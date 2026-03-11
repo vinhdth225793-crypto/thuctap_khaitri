@@ -1,0 +1,1259 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\NguoiDung;
+use App\Models\TaiKhoanChoPheDuyet;
+use App\Models\GiangVien;
+use App\Models\SystemSetting;
+// use App\Models\KhoaHoc;
+// use App\Models\BaiTap;
+// use App\Models\ThongBao;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Carbon\Carbon;
+
+class AdminController extends Controller
+{
+    // Middleware đã được áp dụng ở route level
+    // public function __construct()
+    // {
+    //     $this->middleware(['auth', 'admin']);
+    // }
+
+    /**
+     * Hiển thị trang dashboard admin
+     */
+    public function dashboard()
+    {
+        // Thống kê tổng quan
+        $stats = [
+            'tongNguoiDung' => NguoiDung::count(),
+            'tongHocVien' => NguoiDung::where('vai_tro', 'hoc_vien')->count(),
+            'tongGiangVien' => NguoiDung::where('vai_tro', 'giang_vien')->count(),
+            'tongAdmin' => NguoiDung::where('vai_tro', 'admin')->count(),
+            'tangTruongNguoiDung' => $this->calculateGrowth('nguoi_dung'),
+            'tangTruongHocVien' => $this->calculateGrowth('nguoi_dung', 'hoc_vien'),
+            'tangTruongGiangVien' => $this->calculateGrowth('nguoi_dung', 'giang_vien'),
+            'nguoiDungMoi' => NguoiDung::withTrashed()
+                ->orderBy('created_at', 'desc')
+                ->limit(10)
+                ->get(),
+        ];
+
+        // Dữ liệu cho biểu đồ
+        $chartData = $this->getChartData();
+
+        return view('pages.admin.dashboard', array_merge($stats, $chartData));
+    }
+
+    /**
+     * Tính toán phần trăm tăng trưởng
+     */
+    private function calculateGrowth($table, $role = null)
+    {
+        $currentMonth = DB::table($table)
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->when($role, function ($query) use ($role) {
+                return $query->where('vai_tro', $role);
+            })
+            ->count();
+
+        $lastMonth = DB::table($table)
+            ->whereMonth('created_at', now()->subMonth()->month)
+            ->whereYear('created_at', now()->subMonth()->year)
+            ->when($role, function ($query) use ($role) {
+                return $query->where('vai_tro', $role);
+            })
+            ->count();
+
+        if ($lastMonth == 0) {
+            return $currentMonth > 0 ? 100 : 0;
+        }
+
+        return round((($currentMonth - $lastMonth) / $lastMonth) * 100, 2);
+    }
+
+    /**
+     * Lấy dữ liệu cho biểu đồ
+     */
+    private function getChartData()
+    {
+        // Dữ liệu đăng ký trong 7 ngày gần nhất
+        $registrationData = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i)->format('Y-m-d');
+            $registrationData[$date] = [
+                'hoc_vien' => NguoiDung::where('vai_tro', 'hoc_vien')
+                    ->whereDate('created_at', $date)
+                    ->count(),
+                'giang_vien' => NguoiDung::where('vai_tro', 'giang_vien')
+                    ->whereDate('created_at', $date)
+                    ->count(),
+                'admin' => NguoiDung::where('vai_tro', 'admin')
+                    ->whereDate('created_at', $date)
+                    ->count(),
+            ];
+        }
+
+        // Dữ liệu người dùng theo vai trò
+        $roleDistribution = [
+            'hoc_vien' => NguoiDung::where('vai_tro', 'hoc_vien')->count(),
+            'giang_vien' => NguoiDung::where('vai_tro', 'giang_vien')->count(),
+            'admin' => NguoiDung::where('vai_tro', 'admin')->count(),
+        ];
+
+        // Dữ liệu hoạt động theo tháng
+        $monthlyActivity = [];
+        $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
+        for ($i = 0; $i < 6; $i++) {
+            $month = now()->subMonths(5 - $i);
+            $monthlyActivity[$months[$month->month - 1]] = [
+                'nguoi_dung' => NguoiDung::whereMonth('created_at', $month->month)
+                    ->whereYear('created_at', $month->year)
+                    ->count(),
+                // 'khoa_hoc' => KhoaHoc::whereMonth('created_at', $month->month)
+                //     ->whereYear('created_at', $month->year)
+                //     ->count(),
+            ];
+        }
+
+        return [
+            'registrationData' => $registrationData,
+            'roleDistribution' => $roleDistribution,
+            'monthlyActivity' => $monthlyActivity,
+        ];
+    }
+
+    /**
+     * Hiển thị danh sách người dùng
+     */
+    public function indexNguoiDung(Request $request)
+    {
+        $query = NguoiDung::withTrashed();
+
+        // Tìm kiếm
+        if ($request->has('search')) {
+            $search = $request->get('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('ho_ten', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('so_dien_thoai', 'like', "%{$search}%");
+            });
+        }
+
+        // Lọc theo vai trò
+        if ($request->has('vai_tro') && $request->get('vai_tro') != 'all') {
+            $query->where('vai_tro', $request->get('vai_tro'));
+        }
+
+        // Lọc theo trạng thái
+        if ($request->has('trang_thai')) {
+            $trang_thai = $request->get('trang_thai');
+            if ($trang_thai == 'active') {
+                $query->where('trang_thai', true);
+            } elseif ($trang_thai == 'inactive') {
+                $query->where('trang_thai', false);
+            } elseif ($trang_thai == 'deleted') {
+                $query->onlyTrashed();
+            }
+        }
+
+        // Sắp xếp
+        $sortField = $request->get('sort_field', 'created_at');
+        $sortDirection = $request->get('sort_direction', 'desc');
+        $query->orderBy($sortField, $sortDirection);
+
+        $nguoiDung = $query->paginate(20)->withQueryString();
+
+        return view('pages.admin.quan-ly-tai-khoan.tai-khoan.index', compact('nguoiDung'));
+    }
+
+    /**
+     * Hiển thị form tạo người dùng mới
+     */
+    public function createNguoiDung()
+    {
+        return view('pages.admin.quan-ly-tai-khoan.tai-khoan.create');
+    }
+
+    /**
+     * Lưu người dùng mới
+     */
+    public function storeNguoiDung(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'ho_ten' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:nguoi_dung',
+            'mat_khau' => 'required|string|min:8|confirmed',
+            'vai_tro' => 'required|in:admin,giang_vien,hoc_vien',
+            'so_dien_thoai' => 'nullable|string|max:15',
+            'ngay_sinh' => 'nullable|date|before:today',
+            'dia_chi' => 'nullable|string|max:500',
+            'anh_dai_dien' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'trang_thai' => 'required|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
+        }
+
+        $data = $request->except('anh_dai_dien', 'mat_khau_confirmation');
+        $data['mat_khau'] = Hash::make($request->mat_khau);
+
+        // Xử lý upload ảnh đại diện
+        if ($request->hasFile('anh_dai_dien')) {
+            $file = $request->file('anh_dai_dien');
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('images'), $filename);
+            $data['anh_dai_dien'] = $filename;
+        }
+
+        NguoiDung::create($data);
+
+        return redirect()->route('admin.tai-khoan.index')
+            ->with('success', 'Tạo người dùng mới thành công.');
+    }
+
+    /**
+     * Hiển thị chi tiết người dùng
+     */
+    public function showNguoiDung($id)
+    {
+        $nguoiDung = NguoiDung::withTrashed()->findOrFail($id);
+
+        // Thống kê cơ bản của người dùng
+        $stats = [
+            'tongDangKy' => 0, // Có thể thêm sau nếu có bảng đăng ký
+            'ngayTao' => $nguoiDung->created_at,
+            'lanCuoiDangNhap' => $nguoiDung->updated_at,
+        ];
+
+        return view('pages.admin.quan-ly-tai-khoan.tai-khoan.show', compact('nguoiDung', 'stats'));
+    }
+
+    /**
+     * Quản lý học viên
+     */
+    public function indexHocVien(Request $request)
+    {
+        $query = NguoiDung::where('vai_tro', 'hoc_vien')->withTrashed();
+
+        // Tìm kiếm
+        if ($request->has('search')) {
+            $search = $request->get('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('ho_ten', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('so_dien_thoai', 'like', "%{$search}%");
+            });
+        }
+
+        // Lọc theo trạng thái
+        if ($request->has('trang_thai')) {
+            $status = $request->get('trang_thai');
+            if ($status === 'active') {
+                $query->where('trang_thai', 1)->whereNull('deleted_at');
+            } elseif ($status === 'inactive') {
+                $query->where('trang_thai', 0);
+            } elseif ($status === 'deleted') {
+                $query->onlyTrashed();
+            }
+        }
+
+        // Sắp xếp
+        $sortField = $request->get('sort_field', 'created_at');
+        $sortDirection = $request->get('sort_direction', 'desc');
+        
+        if (!in_array($sortField, ['ho_ten', 'email', 'created_at', 'trang_thai'])) {
+            $sortField = 'created_at';
+        }
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'desc';
+        }
+        
+        // Sắp xếp theo chữ cái đầu tiên cho tên và email
+        if ($sortField === 'ho_ten') {
+            $query->orderByRaw("SUBSTRING(ho_ten, 1, 1) COLLATE utf8mb4_unicode_ci {$sortDirection}, ho_ten {$sortDirection}");
+        } elseif ($sortField === 'email') {
+            $query->orderByRaw("SUBSTRING(email, 1, 1) COLLATE utf8mb4_unicode_ci {$sortDirection}, email {$sortDirection}");
+        } else {
+            $query->orderBy($sortField, $sortDirection);
+        }
+        $hocVien = $query->paginate(20)->withQueryString();
+
+        return view('pages.admin.quan-ly-tai-khoan.hoc-vien.index', compact('hocVien'));
+    }
+
+    /**
+     * Quản lý giảng viên
+     */
+    public function indexGiangVien(Request $request)
+    {
+        $query = NguoiDung::where('vai_tro', 'giang_vien')->withTrashed();
+
+        // Tìm kiếm
+        if ($request->has('search')) {
+            $search = $request->get('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('ho_ten', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('so_dien_thoai', 'like', "%{$search}%");
+            });
+        }
+
+        // Lọc theo trạng thái
+        if ($request->has('trang_thai')) {
+            $status = $request->get('trang_thai');
+            if ($status === 'active') {
+                $query->where('trang_thai', 1)->whereNull('deleted_at');
+            } elseif ($status === 'inactive') {
+                $query->where('trang_thai', 0);
+            } elseif ($status === 'deleted') {
+                $query->onlyTrashed();
+            }
+        }
+
+        // Sắp xếp
+        $sortField = $request->get('sort_field', 'created_at');
+        $sortDirection = $request->get('sort_direction', 'desc');
+        
+        if (!in_array($sortField, ['ho_ten', 'email', 'created_at', 'trang_thai'])) {
+            $sortField = 'created_at';
+        }
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'desc';
+        }
+        
+        // Sắp xếp theo chữ cái đầu tiên cho tên và email
+        if ($sortField === 'ho_ten') {
+            $query->orderByRaw("SUBSTRING(ho_ten, 1, 1) COLLATE utf8mb4_unicode_ci {$sortDirection}, ho_ten {$sortDirection}");
+        } elseif ($sortField === 'email') {
+            $query->orderByRaw("SUBSTRING(email, 1, 1) COLLATE utf8mb4_unicode_ci {$sortDirection}, email {$sortDirection}");
+        } else {
+            $query->orderBy($sortField, $sortDirection);
+        }
+        $giangVien = $query->paginate(20)->withQueryString();
+
+        return view('pages.admin.quan-ly-tai-khoan.giang-vien.index', compact('giangVien'));
+    }
+
+    /**
+     * Hiển thị form chỉnh sửa người dùng
+     */
+    public function editNguoiDung($id)
+    {
+        $nguoiDung = NguoiDung::withTrashed()->findOrFail($id);
+        return view('pages.admin.quan-ly-tai-khoan.tai-khoan.edit', compact('nguoiDung'));
+    }
+
+    /**
+     * Cập nhật thông tin người dùng
+     */
+    public function updateNguoiDung(Request $request, $id)
+    {
+        $nguoiDung = NguoiDung::withTrashed()->findOrFail($id);
+        
+        $validator = Validator::make($request->all(), [
+            'ho_ten' => 'required|string|max:255',
+            'email' => 'required|email|unique:nguoi_dung,email,' . $id . ',ma_nguoi_dung',
+            'vai_tro' => 'required|in:admin,giang_vien,hoc_vien',
+            'so_dien_thoai' => 'nullable|string|max:15',
+            'ngay_sinh' => 'nullable|date|before:today',
+            'dia_chi' => 'nullable|string|max:500',
+            'anh_dai_dien' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'trang_thai' => 'required|boolean',
+            'mat_khau' => 'nullable|min:8|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
+        }
+
+        $data = $request->except('anh_dai_dien', 'mat_khau', 'mat_khau_confirmation');
+
+        // Cập nhật mật khẩu nếu có
+        if ($request->filled('mat_khau')) {
+            $data['mat_khau'] = Hash::make($request->mat_khau);
+        }
+
+        // Xử lý upload ảnh đại diện mới
+        if ($request->hasFile('anh_dai_dien')) {
+            // Xóa ảnh cũ nếu tồn tại
+            if ($nguoiDung->anh_dai_dien && file_exists(public_path('images/' . $nguoiDung->anh_dai_dien))) {
+                unlink(public_path('images/' . $nguoiDung->anh_dai_dien));
+            }
+
+            $file = $request->file('anh_dai_dien');
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('images'), $filename);
+            $data['anh_dai_dien'] = $filename;
+        }
+
+        // Xóa ảnh đại diện nếu người dùng yêu cầu
+        if ($request->has('xoa_anh_dai_dien') && $nguoiDung->anh_dai_dien) {
+            Storage::disk('public')->delete($nguoiDung->anh_dai_dien);
+            $data['anh_dai_dien'] = null;
+        }
+
+        $nguoiDung->update($data);
+
+        return redirect()->route('admin.tai-khoan.show', $nguoiDung->ma_nguoi_dung)
+            ->with('success', 'Cập nhật thông tin người dùng thành công.');
+    }
+
+    /**
+     * Khóa/Mở khóa tài khoản người dùng
+     */
+    public function toggleStatusNguoiDung($id)
+    {
+        $nguoiDung = NguoiDung::findOrFail($id);
+        
+        // Không cho khóa chính mình
+        if ($nguoiDung->ma_nguoi_dung == auth()->id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bạn không thể khóa tài khoản của chính mình.'
+            ], 403);
+        }
+
+        $nguoiDung->trang_thai = !$nguoiDung->trang_thai;
+        $nguoiDung->save();
+
+        $action = $nguoiDung->trang_thai ? 'mở khóa' : 'khóa';
+        
+        return response()->json([
+            'success' => true,
+            'message' => "Đã {$action} tài khoản {$nguoiDung->ho_ten}.",
+            'trang_thai' => $nguoiDung->trang_thai
+        ]);
+    }
+
+    /**
+     * Xóa mềm người dùng
+     */
+    public function destroyNguoiDung($id)
+    {
+        $nguoiDung = NguoiDung::findOrFail($id);
+        
+        // Không cho xóa chính mình
+        if ($nguoiDung->ma_nguoi_dung == auth()->id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bạn không thể xóa tài khoản của chính mình.'
+            ], 403);
+        }
+
+        $nguoiDung->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã xóa tài khoản ' . $nguoiDung->ho_ten . '. Tài khoản có thể được khôi phục trong vòng 30 ngày.'
+        ]);
+    }
+
+    /**
+     * Khôi phục người dùng đã xóa
+     */
+    public function restoreNguoiDung($id)
+    {
+        $nguoiDung = NguoiDung::withTrashed()->findOrFail($id);
+        $nguoiDung->restore();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã khôi phục tài khoản ' . $nguoiDung->ho_ten . '.'
+        ]);
+    }
+
+    /**
+     * Xóa vĩnh viễn người dùng
+     */
+    public function forceDeleteNguoiDung($id)
+    {
+        $nguoiDung = NguoiDung::withTrashed()->findOrFail($id);
+        
+        // Không cho xóa chính mình
+        if ($nguoiDung->ma_nguoi_dung == auth()->id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bạn không thể xóa tài khoản của chính mình.'
+            ], 403);
+        }
+
+        // Xóa ảnh đại diện nếu tồn tại
+        if ($nguoiDung->anh_dai_dien && file_exists(public_path('images/' . $nguoiDung->anh_dai_dien))) {
+            unlink(public_path('images/' . $nguoiDung->anh_dai_dien));
+        }
+
+        $nguoiDung->forceDelete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã xóa vĩnh viễn tài khoản ' . $nguoiDung->ho_ten . '.'
+        ]);
+    }
+
+    /**
+     * Xuất danh sách người dùng ra Excel
+     */
+    public function exportNguoiDung(Request $request)
+    {
+        $nguoiDung = NguoiDung::all();
+        
+        $headers = [
+            'Họ tên', 'Email', 'Vai trò', 'Số điện thoại', 
+            'Ngày sinh', 'Địa chỉ', 'Trạng thái', 'Ngày đăng ký'
+        ];
+
+        $data = [];
+        foreach ($nguoiDung as $user) {
+            $data[] = [
+                $user->ho_ten,
+                $user->email,
+                $this->getRoleLabel($user->vai_tro),
+                $user->so_dien_thoai,
+                $user->ngay_sinh ? $user->ngay_sinh->format('d/m/Y') : '',
+                $user->dia_chi,
+                $user->trang_thai ? 'Hoạt động' : 'Đã khóa',
+                $user->created_at->format('d/m/Y H:i'),
+            ];
+        }
+
+        // Tạo file CSV
+        $filename = 'danh-sach-nguoi-dung-' . date('Y-m-d') . '.csv';
+        
+        $handle = fopen('php://output', 'w');
+        fputcsv($handle, $headers);
+        
+        foreach ($data as $row) {
+            fputcsv($handle, $row);
+        }
+        
+        fclose($handle);
+
+        return response()->streamDownload(function() use ($handle) {
+            echo $handle;
+        }, $filename, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    /**
+     * Lấy nhãn vai trò
+     */
+    private function getRoleLabel($role)
+    {
+        $labels = [
+            'admin' => 'Quản trị viên',
+            'giang_vien' => 'Giảng viên',
+            'hoc_vien' => 'Học viên',
+        ];
+
+        return $labels[$role] ?? $role;
+    }
+
+    /**
+     * Thống kê hệ thống chi tiết
+     */
+    public function thongKe()
+    {
+        // Thống kê theo tháng
+        $monthlyStats = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $month = now()->subMonths($i);
+            $monthStart = $month->copy()->startOfMonth();
+            $monthEnd = $month->copy()->endOfMonth();
+
+            $monthlyStats[$month->format('Y-m')] = [
+                'nguoi_dung' => NguoiDung::whereBetween('created_at', [$monthStart, $monthEnd])->count(),
+                'khoa_hoc' => KhoaHoc::whereBetween('created_at', [$monthStart, $monthEnd])->count(),
+                'bai_tap' => BaiTap::whereBetween('created_at', [$monthStart, $monthEnd])->count(),
+            ];
+        }
+
+        // Thống kê theo vai trò
+        $roleStats = [
+            'total' => NguoiDung::count(),
+            'hoc_vien' => NguoiDung::where('vai_tro', 'hoc_vien')->count(),
+            'giang_vien' => NguoiDung::where('vai_tro', 'giang_vien')->count(),
+            'admin' => NguoiDung::where('vai_tro', 'admin')->count(),
+        ];
+
+        // Người dùng tích cực nhất
+        $activeUsers = NguoiDung::withCount(['khoaHoc', 'baiTap'])
+            ->orderBy('khoa_hoc_count', 'desc')
+            ->limit(10)
+            ->get();
+
+        return view('pages.admin.thong-ke.index', compact('monthlyStats', 'roleStats', 'activeUsers'));
+    }
+
+    /**
+     * Cài đặt hệ thống
+     */
+    public function caiDat()
+    {
+        $settings = [
+            'site_name' => config('app.name', 'Hệ thống Quản lý'),
+            'site_email' => config('mail.from.address', 'admin@example.com'),
+            'items_per_page' => config('app.items_per_page', 20),
+            'enable_registration' => config('app.enable_registration', true),
+            'maintenance_mode' => config('app.maintenance_mode', false),
+        ];
+
+        return view('pages.admin.settings.cai-dat', compact('settings'));
+    }
+
+    /**
+     * Lưu cài đặt hệ thống
+     */
+    public function luuCaiDat(Request $request)
+    {
+        $validated = $request->validate([
+            'site_name' => 'required|string|max:255',
+            'site_email' => 'required|email',
+            'items_per_page' => 'required|integer|min:5|max:100',
+            'enable_registration' => 'required|boolean',
+            'maintenance_mode' => 'required|boolean',
+        ]);
+
+        // Lưu cài đặt vào file .env hoặc database
+        // Đây là ví dụ đơn giản, trong thực tế bạn nên dùng package như spatie/laravel-settings
+        $envPath = base_path('.env');
+        
+        if (file_exists($envPath)) {
+            $envContent = file_get_contents($envPath);
+            
+            foreach ($validated as $key => $value) {
+                $envKey = 'APP_' . strtoupper($key);
+                $envValue = is_bool($value) ? ($value ? 'true' : 'false') : $value;
+                
+                // Tìm và thay thế hoặc thêm mới
+                if (strpos($envContent, "{$envKey}=") !== false) {
+                    $envContent = preg_replace(
+                        "/^{$envKey}=.*/m",
+                        "{$envKey}={$envValue}",
+                        $envContent
+                    );
+                } else {
+                    $envContent .= "\n{$envKey}={$envValue}";
+                }
+            }
+            
+            file_put_contents($envPath, $envContent);
+        }
+
+        return redirect()->route('admin.settings')
+            ->with('success', 'Cập nhật cài đặt hệ thống thành công.');
+    }
+
+    /**
+     * Sao lưu cơ sở dữ liệu
+     */
+    public function backupDatabase()
+    {
+        $filename = 'backup-' . date('Y-m-d-H-i-s') . '.sql';
+        $path = storage_path('app/backups/' . $filename);
+        
+        // Tạo thư mục nếu chưa tồn tại
+        if (!file_exists(dirname($path))) {
+            mkdir(dirname($path), 0755, true);
+        }
+
+        // Lệnh mysqldump (cần cấu hình đúng)
+        $command = sprintf(
+            'mysqldump --user=%s --password=%s --host=%s %s > %s',
+            config('database.connections.mysql.username'),
+            config('database.connections.mysql.password'),
+            config('database.connections.mysql.host'),
+            config('database.connections.mysql.database'),
+            $path
+        );
+
+        exec($command, $output, $returnVar);
+
+        if ($returnVar === 0) {
+            return response()->download($path)->deleteFileAfterSend(true);
+        } else {
+            return redirect()->back()
+                ->with('error', 'Không thể sao lưu cơ sở dữ liệu. Vui lòng kiểm tra cấu hình.');
+        }
+    }
+
+    /**
+     * Xem nhật ký hệ thống
+     */
+    public function nhatKy(Request $request)
+    {
+        $logFile = storage_path('logs/laravel.log');
+        
+        if (!file_exists($logFile)) {
+            return view('pages.admin.nhat-ky.index', ['logs' => [], 'error' => 'File log không tồn tại.']);
+        }
+
+        // Đọc file log
+        $logs = [];
+        $file = fopen($logFile, 'r');
+        
+        while (!feof($file)) {
+            $line = fgets($file);
+            if (preg_match('/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\].*?(\w+)\.(\w+): (.*)$/', $line, $matches)) {
+                $logs[] = [
+                    'timestamp' => $matches[1],
+                    'level' => $matches[3],
+                    'message' => $matches[4],
+                    'type' => $this->getLogType($matches[3]),
+                ];
+            }
+        }
+        
+        fclose($file);
+
+        // Lọc theo level nếu có
+        if ($request->has('level') && $request->level != 'all') {
+            $logs = array_filter($logs, function($log) use ($request) {
+                return strtolower($log['level']) == strtolower($request->level);
+            });
+        }
+
+        // Đảo ngược để hiển thị mới nhất trước
+        $logs = array_reverse($logs);
+
+        // Phân trang
+        $perPage = 50;
+        $currentPage = $request->get('page', 1);
+        $paginatedLogs = array_slice($logs, ($currentPage - 1) * $perPage, $perPage);
+        $logs = new \Illuminate\Pagination\LengthAwarePaginator(
+            $paginatedLogs,
+            count($logs),
+            $perPage,
+            $currentPage,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        return view('pages.admin.nhat-ky.index', compact('logs'));
+    }
+
+    /**
+     * Xác định loại log
+     */
+    private function getLogType($level)
+    {
+        $types = [
+            'ERROR' => 'danger',
+            'CRITICAL' => 'danger',
+            'ALERT' => 'danger',
+            'EMERGENCY' => 'danger',
+            'WARNING' => 'warning',
+            'NOTICE' => 'info',
+            'INFO' => 'info',
+            'DEBUG' => 'secondary',
+        ];
+
+        return $types[strtoupper($level)] ?? 'secondary';
+    }
+
+    /**
+     * Xóa nhật ký
+     */
+    public function xoaNhatKy()
+    {
+        $logFile = storage_path('logs/laravel.log');
+        
+        if (file_exists($logFile)) {
+            file_put_contents($logFile, '');
+        }
+
+        return redirect()->route('admin.nhat-ky')
+            ->with('success', 'Đã xóa tất cả nhật ký hệ thống.');
+    }
+
+    /**
+     * API lấy thông tin người dùng
+     */
+    public function apiGetNguoiDung(Request $request)
+    {
+        $query = NguoiDung::query();
+
+        if ($request->has('search')) {
+            $search = $request->get('search');
+            $query->where('ho_ten', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+        }
+
+        if ($request->has('vai_tro')) {
+            $query->where('vai_tro', $request->get('vai_tro'));
+        }
+
+        $nguoiDung = $query->paginate(10);
+
+        return response()->json([
+            'data' => $nguoiDung,
+            'success' => true
+        ]);
+    }
+
+    /**
+     * Tìm kiếm người dùng nhanh (cho autocomplete)
+     */
+    public function timKiemNguoiDung(Request $request)
+    {
+        $search = $request->get('q');
+        
+        $nguoiDung = NguoiDung::where('ho_ten', 'like', "%{$search}%")
+            ->orWhere('email', 'like', "%{$search}%")
+            ->limit(10)
+            ->get(['ma_nguoi_dung', 'ho_ten', 'email', 'vai_tro']);
+
+        return response()->json($nguoiDung);
+    }
+
+    /**
+     * Dashboard cho giảng viên
+     */
+    public function giangVienDashboard()
+    {
+        // Thống kê cho giảng viên
+        $stats = [
+            'tongKhoaHoc' => KhoaHoc::where('giang_vien_id', auth()->id())->count(),
+            'tongHocVien' => $this->countStudentsOfTeacher(auth()->id()),
+            'baiTapChuaCham' => BaiTap::whereHas('khoaHoc', function($q) {
+                $q->where('giang_vien_id', auth()->id());
+            })->where('trang_thai', 'pending')->count(),
+            'doanhThu' => $this->calculateRevenue(auth()->id()),
+        ];
+
+        return view('pages.giang-vien.dashboard', compact('stats'));
+    }
+
+    /**
+     * Dashboard cho học viên
+     */
+    public function hocVienDashboard()
+    {
+        $user = auth()->user();
+        
+        $stats = [
+            'tongKhoaHoc' => $user->khoaHoc()->count(),
+            'baiTapDaNop' => $user->baiTap()->count(),
+            'diemTrungBinh' => $this->calculateAverageScore($user->ma_nguoi_dung),
+            'tienDo' => $this->calculateProgress($user->ma_nguoi_dung),
+        ];
+
+        return view('pages.hoc-vien.dashboard', compact('stats'));
+    }
+
+    /**
+     * Đếm số học viên của giảng viên
+     */
+    private function countStudentsOfTeacher($teacherId)
+    {
+        return DB::table('khoa_hoc_hoc_vien')
+            ->join('khoa_hoc', 'khoa_hoc_hoc_vien.khoa_hoc_id', '=', 'khoa_hoc.ma_khoa_hoc')
+            ->where('khoa_hoc.giang_vien_id', $teacherId)
+            ->distinct('khoa_hoc_hoc_vien.nguoi_dung_id')
+            ->count('khoa_hoc_hoc_vien.nguoi_dung_id');
+    }
+
+    /**
+     * Tính doanh thu của giảng viên
+     */
+    private function calculateRevenue($teacherId)
+    {
+        // Giả sử mỗi khóa học có giá
+        return KhoaHoc::where('giang_vien_id', $teacherId)
+            ->sum('gia_khoa_hoc');
+    }
+
+    /**
+     * Tính điểm trung bình của học viên
+     */
+    private function calculateAverageScore($studentId)
+    {
+        $average = BaiTap::where('nguoi_dung_id', $studentId)
+            ->whereNotNull('diem')
+            ->avg('diem');
+
+        return round($average, 2);
+    }
+
+    /**
+     * Tính tiến độ học tập
+     */
+    private function calculateProgress($studentId)
+    {
+        // Giả sử mỗi khóa học có số bài học
+        $totalLessons = DB::table('khoa_hoc_hoc_vien')
+            ->join('khoa_hoc', 'khoa_hoc_hoc_vien.khoa_hoc_id', '=', 'khoa_hoc.ma_khoa_hoc')
+            ->where('khoa_hoc_hoc_vien.nguoi_dung_id', $studentId)
+            ->sum('khoa_hoc.so_bai_hoc');
+
+        $completedLessons = DB::table('bai_tap')
+            ->where('nguoi_dung_id', $studentId)
+            ->where('trang_thai', 'completed')
+            ->count();
+
+        if ($totalLessons == 0) {
+            return 0;
+        }
+
+        return round(($completedLessons / $totalLessons) * 100, 2);
+    }
+
+    /**
+     * Hiển thị giao diện quản lý tài khoản chung (gom phê duyệt, học viên, giảng viên)
+     */
+    public function indexTaiKhoan(Request $request)
+    {
+        // Phê duyệt
+        $pendingQuery = TaiKhoanChoPheDuyet::where('trang_thai', 'cho_phe_duyet');
+        if ($request->has('approval_search')) {
+            $search = $request->get('approval_search');
+            $pendingQuery->where(function ($q) use ($search) {
+                $q->where('ho_ten', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('so_dien_thoai', 'like', "%{$search}%");
+            });
+        }
+        $pendingAccounts = $pendingQuery->orderBy('created_at', 'desc')->get();
+        $approvalCount = $pendingAccounts->count();
+
+        // Học viên
+        $studentQuery = NguoiDung::where('vai_tro', 'hoc_vien');
+        if ($request->has('student_search')) {
+            $search = $request->get('student_search');
+            $studentQuery->where(function ($q) use ($search) {
+                $q->where('ho_ten', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+        if ($request->has('student_status') && $request->get('student_status')) {
+            $status = $request->get('student_status');
+            if ($status == 'active') {
+                $studentQuery->where('trang_thai', true);
+            } elseif ($status == 'inactive') {
+                $studentQuery->where('trang_thai', false);
+            }
+        }
+        $students = $studentQuery->orderBy('created_at', 'desc')->get();
+        $studentCount = NguoiDung::where('vai_tro', 'hoc_vien')->count();
+
+        // Giảng viên
+        $instructorQuery = NguoiDung::where('vai_tro', 'giang_vien');
+        if ($request->has('instructor_search')) {
+            $search = $request->get('instructor_search');
+            $instructorQuery->where(function ($q) use ($search) {
+                $q->where('ho_ten', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+        if ($request->has('instructor_status') && $request->get('instructor_status')) {
+            $status = $request->get('instructor_status');
+            if ($status == 'active') {
+                $instructorQuery->where('trang_thai', true);
+            } elseif ($status == 'inactive') {
+                $instructorQuery->where('trang_thai', false);
+            }
+        }
+        $instructors = $instructorQuery->orderBy('created_at', 'desc')->get();
+        $instructorCount = NguoiDung::where('vai_tro', 'giang_vien')->count();
+
+        return view('pages.admin.tai-khoan', compact(
+            'pendingAccounts',
+            'approvalCount',
+            'students',
+            'studentCount',
+            'instructors',
+            'instructorCount'
+        ));
+    }
+
+    /**
+     * Hiển thị danh sách tài khoản chờ phê duyệt (cũ - chuyên dụng)
+     */
+    public function indexPheDuyetTaiKhoan(Request $request)
+    {
+        $query = TaiKhoanChoPheDuyet::where('trang_thai', 'cho_phe_duyet');
+
+        // Tìm kiếm
+        if ($request->has('search')) {
+            $search = $request->get('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('ho_ten', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('so_dien_thoai', 'like', "%{$search}%");
+            });
+        }
+
+        // Sắp xếp
+        $sortField = $request->get('sort_field', 'created_at');
+        $sortDirection = $request->get('sort_direction', 'desc');
+        $query->orderBy($sortField, $sortDirection);
+
+        $taiKhoanChoPheDuyet = $query->paginate(20)->withQueryString();
+
+        return view('pages.admin.quan-ly-tai-khoan.phe-duyet-tai-khoan.index', compact('taiKhoanChoPheDuyet'));
+    }
+
+    /**
+     * Phê duyệt tài khoản
+     */
+    public function approveTaiKhoan($id)
+    {
+        $taiKhoan = TaiKhoanChoPheDuyet::findOrFail($id);
+
+        // Tạo tài khoản người dùng
+        $nguoiDung = NguoiDung::create([
+            'ho_ten' => $taiKhoan->ho_ten,
+            'email' => $taiKhoan->email,
+            'mat_khau' => $taiKhoan->mat_khau,
+            'password' => $taiKhoan->mat_khau,
+            'vai_tro' => $taiKhoan->vai_tro,
+            'so_dien_thoai' => $taiKhoan->so_dien_thoai,
+            'ngay_sinh' => $taiKhoan->ngay_sinh,
+            'dia_chi' => $taiKhoan->dia_chi,
+            'trang_thai' => true,
+        ]);
+
+        // Cập nhật trạng thái
+        $taiKhoan->update(['trang_thai' => 'da_phe_duyet']);
+
+        // Gửi email thông báo (có thể thêm sau)
+
+        // Xác định redirect URL dựa trên vai trò
+        $redirectUrl = $taiKhoan->vai_tro === 'giang_vien' 
+            ? route('admin.giang-vien.index') 
+            : route('admin.hoc-vien.index');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã phê duyệt tài khoản ' . $taiKhoan->ho_ten . '.',
+            'redirect' => $redirectUrl,
+            'vai_tro' => $taiKhoan->vai_tro
+        ]);
+    }
+
+    /**
+     * Từ chối tài khoản
+     */
+    public function rejectTaiKhoan($id)
+    {
+        $taiKhoan = TaiKhoanChoPheDuyet::findOrFail($id);
+
+        // Cập nhật trạng thái
+        $taiKhoan->update(['trang_thai' => 'tu_choi']);
+
+        // Gửi email thông báo từ chối (có thể thêm sau)
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã từ chối tài khoản ' . $taiKhoan->ho_ten . '.'
+        ]);
+    }
+
+    /**
+     * Hủy phê duyệt tài khoản (Undo)
+     */
+    public function undoApproveTaiKhoan($id)
+    {
+        $taiKhoan = TaiKhoanChoPheDuyet::findOrFail($id);
+
+        // Kiểm tra xem tài khoản đó có tồn tại không
+        $nguoiDung = NguoiDung::where('email', $taiKhoan->email)->first();
+
+        if (!$nguoiDung) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài khoản không tồn tại để hủy phê duyệt.'
+            ], 404);
+        }
+
+        // Xóa tài khoản người dùng
+        $nguoiDung->delete();
+
+        // Cập nhật lại trạng thái về chờ phê duyệt
+        $taiKhoan->update(['trang_thai' => 'cho_phe_duyet']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã hủy phê duyệt tài khoản ' . $taiKhoan->ho_ten . '.'
+        ]);
+    }
+
+    /**
+     * Hiển thị trang cài đặt hệ thống
+     */
+    public function showSettings()
+    {
+        $settings = [
+            'hotline' => SystemSetting::get('hotline', ''),
+            'email' => SystemSetting::get('email', ''),
+            'facebook' => SystemSetting::get('facebook', ''),
+            'zalo' => SystemSetting::get('zalo', ''),
+        ];
+
+        // Lấy tất cả giảng viên (không lọc trạng thái)
+        $instructors = GiangVien::with('nguoiDung')->get();
+
+        return view('pages.admin.settings.cai-dat', [
+            'settings' => $settings,
+            'instructors' => $instructors,
+        ]);
+    }
+
+    /**
+     * Lưu cài đặt hệ thống
+     */
+    public function saveSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'site_name' => 'nullable|string|max:255',
+            'site_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'hotline' => 'nullable|string',
+            'email' => 'nullable|email',
+            'facebook' => 'nullable|url',
+            'zalo' => 'nullable|url',
+            'banners' => 'nullable|string',
+        ], [
+            'email.email' => 'Email không hợp lệ',
+            'facebook.url' => 'URL Facebook không hợp lệ',
+            'zalo.url' => 'URL Zalo không hợp lệ',
+        ]);
+
+        // handle file upload for logo
+        if ($request->hasFile('site_logo')) {
+            $file = $request->file('site_logo');
+            $filename = time() . '_logo.' . $file->getClientOriginalExtension();
+            $path = $file->move(public_path('images'), $filename);
+            $validated['site_logo'] = 'images/' . $filename;
+        }
+
+        foreach ($validated as $key => $value) {
+            if ($value !== null) {
+                SystemSetting::set($key, $value);
+            }
+        }
+
+        // banner data handling (base64 or urls)
+        if ($request->filled('banners')) {
+            $raw = $request->input('banners');
+            $list = json_decode($raw, true);
+            $paths = [];
+            if (is_array($list)) {
+                foreach ($list as $item) {
+                    if (is_string($item) && str_starts_with($item, 'data:image')) {
+                        // save base64 image
+                        [$meta, $contents] = explode(',', $item);
+                        preg_match('/data:image\/([^;]+);base64/', $meta, $m);
+                        $ext = isset($m[1]) ? $m[1] : 'png';
+                        $filename = 'banner_' . time() . '_' . \Illuminate\Support\Str::random(6) . '.' . $ext;
+                        $dir = public_path('images/banners');
+                        if (!file_exists($dir)) {
+                            mkdir($dir, 0755, true);
+                        }
+                        $filePath = $dir . '/' . $filename;
+                        file_put_contents($filePath, base64_decode($contents));
+                        $paths[] = 'images/banners/' . $filename;
+                    } else {
+                        // assume existing path or url; if it matches application root, convert to relative path
+                        if (is_string($item) && str_starts_with($item, $request->root())) {
+                            $relative = ltrim(str_replace($request->root(), '', $item), '/');
+                            $paths[] = $relative;
+                        } else {
+                            $paths[] = $item;
+                        }
+                    }
+                }
+            }
+            SystemSetting::set('banner_images', json_encode($paths));
+        }
+
+        // Xác định trang nào đang gọi để redirect về đúng trang
+        $currentRoute = $request->route()->getName();
+
+        if (str_contains($currentRoute, 'contact')) {
+            return redirect()->route('admin.settings.contact')
+                ->with('success', 'Thông tin liên hệ đã được cập nhật thành công!');
+        } elseif (str_contains($currentRoute, 'social')) {
+            return redirect()->route('admin.settings.social')
+                ->with('success', 'Mạng xã hội đã được cập nhật thành công!');
+        } else {
+            return redirect()->route('admin.settings')
+                ->with('success', 'Cài đặt hệ thống đã được cập nhật thành công!');
+        }
+    }
+
+    /**
+     * Lưu các giảng viên hiển thị trên trang chủ
+     */
+    public function saveInstructorSettings(Request $request)
+    {
+        $instructorIds = $request->get('instructors', []);
+
+        // Cập nhật tất cả giảng viên thành không hiển thị
+        GiangVien::query()->update(['hien_thi_trang_chu' => false]);
+
+        // Đánh dấu những giảng viên được chọn
+        if (!empty($instructorIds)) {
+            GiangVien::whereIn('id', $instructorIds)
+                ->update(['hien_thi_trang_chu' => true]);
+        }
+
+        return redirect()->route('admin.settings.instructors')
+            ->with('success', 'Chọn giảng viên hiển thị trên trang chủ đã được cập nhật thành công!');
+    }
+
+    /**
+     * Hiển thị trang cài đặt thông tin liên hệ
+     */
+    public function showContactSettings()
+    {
+        $settings = [
+            'site_name' => SystemSetting::get('site_name', ''),
+            'site_logo' => SystemSetting::get('site_logo', ''),
+            'hotline' => SystemSetting::get('hotline', ''),
+            'email' => SystemSetting::get('email', ''),
+            'banner_images' => collect(json_decode(SystemSetting::get('banner_images', '[]'), true) ?: [])
+                                ->map(fn($p) => asset($p))
+                                ->toArray(),
+        ];
+
+        return view('pages.admin.settings.contact', compact('settings'));
+    }
+
+    /**
+     * Hiển thị trang cài đặt mạng xã hội
+     */
+    public function showSocialSettings()
+    {
+        $settings = [
+            'facebook' => SystemSetting::get('facebook', ''),
+            'zalo' => SystemSetting::get('zalo', ''),
+        ];
+
+        return view('pages.admin.settings.social', compact('settings'));
+    }
+
+    /**
+     * Hiển thị trang cài đặt giảng viên
+     */
+    public function showInstructorSettings()
+    {
+        // Lấy tất cả giảng viên (không lọc trạng thái)
+        $instructors = GiangVien::with('nguoiDung')->get();
+
+        return view('pages.admin.settings.instructors', compact('instructors'));
+    }
+}

@@ -1,0 +1,47 @@
+Quản lý môn học
+
+Quản lý khóa học
+
+Quản lý module thuộc khóa học
+
+CREATE TABLE mon_hoc (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    ma_mon_hoc VARCHAR(50) NOT NULL UNIQUE,
+    ten_mon_hoc VARCHAR(150) NOT NULL,
+    mo_ta TEXT NULL,
+    hinh_anh VARCHAR(255) NULL,
+    trang_thai TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE khoa_hoc (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    mon_hoc_id BIGINT UNSIGNED NOT NULL,
+    ma_khoa_hoc VARCHAR(50) NOT NULL UNIQUE,
+    ten_khoa_hoc VARCHAR(200) NOT NULL,
+    mo_ta_ngan VARCHAR(500) NULL,
+    mo_ta_chi_tiet TEXT NULL,
+    hinh_anh VARCHAR(255) NULL,
+    cap_do ENUM('co_ban','trung_binh','nang_cao') NOT NULL DEFAULT 'co_ban',
+    tong_so_module INT NOT NULL DEFAULT 0,
+    trang_thai TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_khoa_hoc_mon_hoc FOREIGN KEY (mon_hoc_id) REFERENCES mon_hoc(id)
+);
+
+CREATE TABLE module_hoc (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    khoa_hoc_id BIGINT UNSIGNED NOT NULL,
+    ma_module VARCHAR(50) NOT NULL UNIQUE,
+    ten_module VARCHAR(200) NOT NULL,
+    mo_ta TEXT NULL,
+    thu_tu_module INT NOT NULL,
+    thoi_luong_du_kien INT NULL,
+    trang_thai TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_module_hoc_khoa_hoc FOREIGN KEY (khoa_hoc_id) REFERENCES khoa_hoc(id),
+    CONSTRAINT uq_module_thu_tu UNIQUE (khoa_hoc_id, thu_tu_module)
+);
