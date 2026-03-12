@@ -913,74 +913,6 @@ class AdminController extends Controller
     }
 
     /**
-     * Hiển thị giao diện quản lý tài khoản chung (gom phê duyệt, học viên, giảng viên)
-     */
-    public function indexTaiKhoan(Request $request)
-    {
-        // Phê duyệt
-        $pendingQuery = TaiKhoanChoPheDuyet::where('trang_thai', 'cho_phe_duyet');
-        if ($request->has('approval_search')) {
-            $search = $request->get('approval_search');
-            $pendingQuery->where(function ($q) use ($search) {
-                $q->where('ho_ten', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('so_dien_thoai', 'like', "%{$search}%");
-            });
-        }
-        $pendingAccounts = $pendingQuery->orderBy('created_at', 'desc')->get();
-        $approvalCount = $pendingAccounts->count();
-
-        // Học viên
-        $studentQuery = NguoiDung::where('vai_tro', 'hoc_vien');
-        if ($request->has('student_search')) {
-            $search = $request->get('student_search');
-            $studentQuery->where(function ($q) use ($search) {
-                $q->where('ho_ten', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-            });
-        }
-        if ($request->has('student_status') && $request->get('student_status')) {
-            $status = $request->get('student_status');
-            if ($status == 'active') {
-                $studentQuery->where('trang_thai', true);
-            } elseif ($status == 'inactive') {
-                $studentQuery->where('trang_thai', false);
-            }
-        }
-        $students = $studentQuery->orderBy('created_at', 'desc')->get();
-        $studentCount = NguoiDung::where('vai_tro', 'hoc_vien')->count();
-
-        // Giảng viên
-        $instructorQuery = NguoiDung::where('vai_tro', 'giang_vien');
-        if ($request->has('instructor_search')) {
-            $search = $request->get('instructor_search');
-            $instructorQuery->where(function ($q) use ($search) {
-                $q->where('ho_ten', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-            });
-        }
-        if ($request->has('instructor_status') && $request->get('instructor_status')) {
-            $status = $request->get('instructor_status');
-            if ($status == 'active') {
-                $instructorQuery->where('trang_thai', true);
-            } elseif ($status == 'inactive') {
-                $instructorQuery->where('trang_thai', false);
-            }
-        }
-        $instructors = $instructorQuery->orderBy('created_at', 'desc')->get();
-        $instructorCount = NguoiDung::where('vai_tro', 'giang_vien')->count();
-
-        return view('pages.admin.tai-khoan', compact(
-            'pendingAccounts',
-            'approvalCount',
-            'students',
-            'studentCount',
-            'instructors',
-            'instructorCount'
-        ));
-    }
-
-    /**
      * Hiển thị danh sách tài khoản chờ phê duyệt (cũ - chuyên dụng)
      */
     public function indexPheDuyetTaiKhoan(Request $request)
@@ -1125,7 +1057,6 @@ class AdminController extends Controller
             'email' => 'nullable|email',
             'facebook' => 'nullable|url',
             'zalo' => 'nullable|url',
-            'banners' => 'nullable|string',
         ], [
             'email.email' => 'Email không hợp lệ',
             'facebook.url' => 'URL Facebook không hợp lệ',
@@ -1146,39 +1077,6 @@ class AdminController extends Controller
             }
         }
 
-        // banner data handling (base64 or urls)
-        if ($request->filled('banners')) {
-            $raw = $request->input('banners');
-            $list = json_decode($raw, true);
-            $paths = [];
-            if (is_array($list)) {
-                foreach ($list as $item) {
-                    if (is_string($item) && str_starts_with($item, 'data:image')) {
-                        // save base64 image
-                        [$meta, $contents] = explode(',', $item);
-                        preg_match('/data:image\/([^;]+);base64/', $meta, $m);
-                        $ext = isset($m[1]) ? $m[1] : 'png';
-                        $filename = 'banner_' . time() . '_' . \Illuminate\Support\Str::random(6) . '.' . $ext;
-                        $dir = public_path('images/banners');
-                        if (!file_exists($dir)) {
-                            mkdir($dir, 0755, true);
-                        }
-                        $filePath = $dir . '/' . $filename;
-                        file_put_contents($filePath, base64_decode($contents));
-                        $paths[] = 'images/banners/' . $filename;
-                    } else {
-                        // assume existing path or url; if it matches application root, convert to relative path
-                        if (is_string($item) && str_starts_with($item, $request->root())) {
-                            $relative = ltrim(str_replace($request->root(), '', $item), '/');
-                            $paths[] = $relative;
-                        } else {
-                            $paths[] = $item;
-                        }
-                    }
-                }
-            }
-            SystemSetting::set('banner_images', json_encode($paths));
-        }
 
         // Xác định trang nào đang gọi để redirect về đúng trang
         $currentRoute = $request->route()->getName();

@@ -159,7 +159,6 @@
                     </form>
 
                     {{-- include banner slider component --}}
-                    @include('components.banner-slider', ['existingBanners' => $settings['banner_images'] ?? []])
 
                     <div class="d-flex justify-content-between">
                         <a href="{{ route('admin.settings') }}" class="btn btn-secondary">

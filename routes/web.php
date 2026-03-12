@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Admin\KhoaHocController;
-
+use App\Http\Controllers\Admin\BannerController;
 // Route gốc chuyển đến trang chủ
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
@@ -78,21 +78,18 @@ Route::middleware(['auth'])->group(function () {
             return view('pages.admin.khoa-hoc');
         })->name('quan-ly-khoa-hoc');
         
-        // QUẢN LÝ TÀI KHOẢN (gom phê duyệt, học viên, giảng viên)
-        Route::get('/tai-khoan', [\App\Http\Controllers\Admin\AdminController::class, 'indexTaiKhoan'])->name('tai-khoan.index');
-        
         // QUẢN LÝ NGƯỜI DÙNG
         Route::get('/tai-khoan', [\App\Http\Controllers\Admin\AdminController::class, 'indexNguoiDung'])->name('tai-khoan.index');
         Route::get('/tai-khoan/create', [\App\Http\Controllers\Admin\AdminController::class, 'createNguoiDung'])->name('tai-khoan.create');
+        Route::get('/tai-khoan/export', [\App\Http\Controllers\Admin\AdminController::class, 'exportNguoiDung'])->name('tai-khoan.export');
         Route::post('/tai-khoan', [\App\Http\Controllers\Admin\AdminController::class, 'storeNguoiDung'])->name('tai-khoan.store');
         Route::get('/tai-khoan/{id}', [\App\Http\Controllers\Admin\AdminController::class, 'showNguoiDung'])->name('tai-khoan.show');
         Route::get('/tai-khoan/{id}/edit', [\App\Http\Controllers\Admin\AdminController::class, 'editNguoiDung'])->name('tai-khoan.edit');
         Route::post('/tai-khoan/{id}', [\App\Http\Controllers\Admin\AdminController::class, 'updateNguoiDung'])->name('tai-khoan.update');
         Route::post('/tai-khoan/{id}/toggle', [\App\Http\Controllers\Admin\AdminController::class, 'toggleStatusNguoiDung'])->name('tai-khoan.toggle');
-        Route::delete('/tai-khoan/{id}', [\App\Http\Controllers\Admin\AdminController::class, 'destroyNguoiDung'])->name('tai-khoan.destroy');
         Route::post('/tai-khoan/{id}/restore', [\App\Http\Controllers\Admin\AdminController::class, 'restoreNguoiDung'])->name('tai-khoan.restore');
+        Route::delete('/tai-khoan/{id}', [\App\Http\Controllers\Admin\AdminController::class, 'destroyNguoiDung'])->name('tai-khoan.destroy');
         Route::delete('/tai-khoan/{id}/force', [\App\Http\Controllers\Admin\AdminController::class, 'forceDeleteNguoiDung'])->name('tai-khoan.forceDelete');
-        Route::get('/tai-khoan/export', [\App\Http\Controllers\Admin\AdminController::class, 'exportNguoiDung'])->name('tai-khoan.export');
         
         // QUẢN LÝ HỌC VIÊN
         Route::get('/hoc-vien', [\App\Http\Controllers\Admin\AdminController::class, 'indexHocVien'])->name('hoc-vien.index');

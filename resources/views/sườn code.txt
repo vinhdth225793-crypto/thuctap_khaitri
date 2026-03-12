@@ -1,19 +1,13 @@
-Quản lý môn học
+Môn học
+   ↓
+Khóa học
+   ↓
+Module
+   ↓
+Giảng viên được admin phân công
+   ↓
 
-Quản lý khóa học
 
-Quản lý module thuộc khóa học
-
-CREATE TABLE mon_hoc (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    ma_mon_hoc VARCHAR(50) NOT NULL UNIQUE,
-    ten_mon_hoc VARCHAR(150) NOT NULL,
-    mo_ta TEXT NULL,
-    hinh_anh VARCHAR(255) NULL,
-    trang_thai TINYINT(1) NOT NULL DEFAULT 1,
-    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
 
 CREATE TABLE khoa_hoc (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -24,24 +18,65 @@ CREATE TABLE khoa_hoc (
     mo_ta_chi_tiet TEXT NULL,
     hinh_anh VARCHAR(255) NULL,
     cap_do ENUM('co_ban','trung_binh','nang_cao') NOT NULL DEFAULT 'co_ban',
-    tong_so_module INT NOT NULL DEFAULT 0,
     trang_thai TINYINT(1) NOT NULL DEFAULT 1,
+    created_by BIGINT UNSIGNED NOT NULL,
     created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_khoa_hoc_mon_hoc FOREIGN KEY (mon_hoc_id) REFERENCES mon_hoc(id)
 );
-
-CREATE TABLE module_hoc (
+CREATE TABLE khoa_hoc (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    khoa_hoc_id BIGINT UNSIGNED NOT NULL,
-    ma_module VARCHAR(50) NOT NULL UNIQUE,
-    ten_module VARCHAR(200) NOT NULL,
-    mo_ta TEXT NULL,
-    thu_tu_module INT NOT NULL,
-    thoi_luong_du_kien INT NULL,
+    mon_hoc_id BIGINT UNSIGNED NOT NULL,
+    ma_khoa_hoc VARCHAR(50) NOT NULL UNIQUE,
+    ten_khoa_hoc VARCHAR(200) NOT NULL,
+    mo_ta_ngan VARCHAR(500) NULL,
+    mo_ta_chi_tiet TEXT NULL,
+    hinh_anh VARCHAR(255) NULL,
+    cap_do ENUM('co_ban','trung_binh','nang_cao') NOT NULL DEFAULT 'co_ban',
     trang_thai TINYINT(1) NOT NULL DEFAULT 1,
+    created_by BIGINT UNSIGNED NOT NULL,
     created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_module_hoc_khoa_hoc FOREIGN KEY (khoa_hoc_id) REFERENCES khoa_hoc(id),
-    CONSTRAINT uq_module_thu_tu UNIQUE (khoa_hoc_id, thu_tu_module)
+    CONSTRAINT fk_khoa_hoc_mon_hoc FOREIGN KEY (mon_hoc_id) REFERENCES mon_hoc(id)
+);
+CREATE TABLE khoa_hoc_giao_vien (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    khoa_hoc_id BIGINT UNSIGNED NOT NULL,
+    giao_vien_id BIGINT UNSIGNED NOT NULL,
+    vai_tro ENUM('giao_vien_chinh','giao_vien_module','tro_giang') NOT NULL DEFAULT 'giao_vien_module',
+    ghi_chu TEXT NULL,
+    created_by BIGINT UNSIGNED NOT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_khoa_hoc_giao_vien_khoa FOREIGN KEY (khoa_hoc_id) REFERENCES khoa_hoc(id),
+    CONSTRAINT fk_khoa_hoc_giao_vien_gv FOREIGN KEY (giao_vien_id) REFERENCES giao_vien(id),
+    CONSTRAINT uq_khoa_hoc_giao_vien UNIQUE (khoa_hoc_id, giao_vien_id)
+);
+CREATE TABLE lich_trong_giao_vien (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    giao_vien_id BIGINT UNSIGNED NOT NULL,
+    thu_trong_tuan TINYINT NOT NULL,
+    ca_hoc ENUM('sang','chieu','toi') NOT NULL,
+    gio_bat_dau TIME NULL,
+    gio_ket_thuc TIME NULL,
+    ghi_chu TEXT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_lich_trong_giao_vien FOREIGN KEY (giao_vien_id) REFERENCES giao_vien(id)
+);
+CREATE TABLE phan_cong_module_giang_vien (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    khoa_hoc_id BIGINT UNSIGNED NOT NULL,
+    module_hoc_id BIGINT UNSIGNED NOT NULL,
+    giao_vien_id BIGINT UNSIGNED NOT NULL,
+    ngay_phan_cong DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    trang_thai ENUM('cho_xac_nhan','da_nhan','tu_choi') NOT NULL DEFAULT 'da_nhan',
+    ghi_chu TEXT NULL,
+    created_by BIGINT UNSIGNED NOT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_phan_cong_module_khoa FOREIGN KEY (khoa_hoc_id) REFERENCES khoa_hoc(id),
+    CONSTRAINT fk_phan_cong_module_module FOREIGN KEY (module_hoc_id) REFERENCES module_hoc(id),
+    CONSTRAINT fk_phan_cong_module_gv FOREIGN KEY (giao_vien_id) REFERENCES giao_vien(id),
+    CONSTRAINT uq_module_giang_vien UNIQUE (module_hoc_id, giao_vien_id)
 );
