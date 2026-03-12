@@ -65,6 +65,18 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/mang-xa-hoi', [\App\Http\Controllers\Admin\AdminController::class, 'saveSettings'])->name('social.save');
             Route::get('/giang-vien', [\App\Http\Controllers\Admin\AdminController::class, 'showInstructorSettings'])->name('instructors');
             Route::post('/giang-vien', [\App\Http\Controllers\Admin\AdminController::class, 'saveInstructorSettings'])->name('instructors.save');
+
+            // BANNER
+            Route::prefix('banner')->name('banners.')->group(function () {
+                Route::get('/',                    [BannerController::class, 'index'])->name('index');
+                Route::get('/create',              [BannerController::class, 'create'])->name('create');
+                Route::post('/',                   [BannerController::class, 'store'])->name('store');
+                Route::post('/update-order',       [BannerController::class, 'updateOrder'])->name('update-order');
+                Route::get('/{id}/edit',           [BannerController::class, 'edit'])->name('edit');
+                Route::put('/{id}',                [BannerController::class, 'update'])->name('update');
+                Route::delete('/{id}',             [BannerController::class, 'destroy'])->name('destroy');
+                Route::post('/{id}/toggle-status', [BannerController::class, 'toggleStatus'])->name('toggle-status');
+            });
         });
         
         // các trang quản lý khác

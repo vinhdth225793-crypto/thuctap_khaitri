@@ -7,6 +7,17 @@
     </div>
     
     <div class="header-right">
+        <a href="{{ route('home') }}"
+           class="btn btn-sm d-flex align-items-center gap-2"
+           style="background:#eff6ff; color:#2563eb; border:1.5px solid #bfdbfe;
+                  border-radius:8px; padding:6px 14px; font-weight:700; font-size:12px;
+                  text-decoration:none; white-space:nowrap;"
+           title="Xem trang chủ"
+           onmouseover="this.style.background='#dbeafe'"
+           onmouseout="this.style.background='#eff6ff'">
+            <i class="fas fa-home"></i>
+            <span class="d-none d-md-inline">Trang chủ</span>
+        </a>
         <!-- Thông báo -->
         <div class="dropdown">
             <button class="btn position-relative" type="button" data-bs-toggle="dropdown">
@@ -37,8 +48,17 @@
         <!-- User Profile -->
         <div class="dropdown">
             <div class="user-profile" data-bs-toggle="dropdown">
-                <div class="user-avatar">
-                    {{ strtoupper(substr(auth()->user()->ho_ten, 0, 1)) }}
+                <div class="user-avatar" style="overflow:hidden; padding:0;">
+                    @if(auth()->user()->anh_dai_dien)
+                        <img src="{{ asset(auth()->user()->anh_dai_dien) }}"
+                             alt="{{ auth()->user()->ho_ten }}"
+                             style="width:100%; height:100%; object-fit:cover; display:block;">
+                    @else
+                        <span style="display:flex; align-items:center; justify-content:center;
+                                     width:100%; height:100%; font-weight:700; font-size:15px;">
+                            {{ strtoupper(mb_substr(auth()->user()->ho_ten, 0, 1)) }}
+                        </span>
+                    @endif
                 </div>
                 <div class="user-info d-none d-md-block">
                     <h6>{{ auth()->user()->ho_ten }}</h6>

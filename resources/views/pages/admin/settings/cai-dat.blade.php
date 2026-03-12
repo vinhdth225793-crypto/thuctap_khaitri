@@ -52,6 +52,19 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-warning">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-images fa-3x text-warning mb-3"></i>
+                                    <h5 class="card-title">Banner Trang Chủ</h5>
+                                    <p class="card-text text-muted">Quản lý ảnh slider hiển thị trên trang chủ</p>
+                                    <a href="{{ route('admin.settings.banners.index') }}" class="btn btn-warning text-white">
+                                        <i class="fas fa-arrow-right me-2"></i> Truy cập
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

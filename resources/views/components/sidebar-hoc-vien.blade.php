@@ -35,6 +35,13 @@
             </a>
         </div>
         
+        <div class="nav-item">
+            <a href="{{ route('home') }}" class="nav-link">
+                <i class="fas fa-home"></i>
+                <span>Trang chủ</span>
+            </a>
+        </div>
+        
         <div class="nav-item mt-4">
             <a href="{{ route('profile') }}" class="nav-link">
                 <i class="fas fa-user"></i>

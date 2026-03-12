@@ -97,6 +97,10 @@
                         <i class="fas fa-chalkboard-teacher"></i>
                         <span>Giảng viên</span>
                     </a>
+                    <a href="{{ route('admin.settings.banners.index') }}" class="nav-link {{ request()->routeIs('admin.settings.banners.*') ? 'active' : '' }}">
+                        <i class="fas fa-images"></i>
+                        <span>Banner</span>
+                    </a>
                 </div>
             </div>
         </div>
@@ -108,7 +112,7 @@
             </a>
         </div>
         <div class="nav-item">
-            <a href="{{ route('home', ['preview' => 1]) }}" class="nav-link">
+            <a href="{{ route('home') }}" class="nav-link">
                 <i class="fas fa-home"></i>
                 <span>Trang chủ</span>
             </a>

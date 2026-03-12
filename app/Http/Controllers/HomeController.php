@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\GiangVien;
 use App\Models\SystemSetting;
+use App\Models\Banner;
 use Illuminate\Http\Request;
 
 class HomeController extends Controller
@@ -13,28 +14,13 @@ class HomeController extends Controller
      */
     public function index(Request $request)
     {
-        // Nếu đã đăng nhập VÀ không ở chế xem trước thì redirect đến dashboard theo vai trò
-        if (auth()->check() && !$request->has('preview')) {
-            $user = auth()->user();
-            
-            if (!isset($user->vai_tro)) {
-                abort(403, 'Người dùng không có vai trò xác định');
-            }
-            
-            if ($user->vai_tro === 'admin') {
-                return redirect()->route('admin.dashboard');
-            } elseif ($user->vai_tro === 'giang_vien') {
-                return redirect()->route('giang-vien.dashboard');
-            } else {
-                return redirect()->route('hoc-vien.dashboard');
-            }
-        }
-        
-        // Nếu chưa đăng nhập hoặc đã request preview, hiển thị trang chủ public
         // Lấy danh sách giảng viên hiển thị trên trang chủ
         $giangVienFeatured = GiangVien::hienThiTrangChu()
             ->with('nguoiDung')
             ->paginate(6);
+        
+        // Lấy danh sách banner hiển thị
+        $banners = Banner::hienThi()->get();
         
         // Lấy cài đặt hệ thống
         $settings = [
@@ -49,6 +35,7 @@ class HomeController extends Controller
         return view('pages.home.index', [
             'giangVienFeatured' => $giangVienFeatured,
             'settings' => $settings,
+            'banners' => $banners,
         ]);
     }
 

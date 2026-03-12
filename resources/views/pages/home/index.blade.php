@@ -44,15 +44,66 @@
                     </a>
                 </li>
                 @auth
+                    @php
+                        $navUser    = auth()->user();
+                        $navAvatar  = $navUser->anh_dai_dien ? asset($navUser->anh_dai_dien) : null;
+                    @endphp
                     <li class="nav-item dropdown" style="margin-left: 1rem;">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: rgba(255,255,255,0.85) !important; padding: 0; gap: 0.5rem;">
-                            <img src="{{ auth()->user()->avatar ?? 'https://via.placeholder.com/40' }}" alt="Avatar" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.5);">
-                            <span style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ auth()->user()->ten_nguoi_dung ?? auth()->user()->name ?? 'User' }}</span>
+                            @if($navAvatar)
+                                <img src="{{ $navAvatar }}"
+                                     alt="{{ $navUser->ho_ten }}"
+                                     style="width:36px; height:36px; border-radius:50%; object-fit:cover;
+                                            border:2px solid rgba(255,255,255,0.6); flex-shrink:0;">
+                            @else
+                                <div style="width:36px; height:36px; border-radius:50%;
+                                            background:rgba(255,255,255,0.25);
+                                            display:flex; align-items:center; justify-content:center;
+                                            color:white; font-weight:800; font-size:15px;
+                                            border:2px solid rgba(255,255,255,0.5); flex-shrink:0;">
+                                    {{ strtoupper(mb_substr($navUser->ho_ten, 0, 1)) }}
+                                </div>
+                            @endif
+                            <span style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ $navUser->ho_ten }}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown" style="background: white; border: none; box-shadow: 0 5px 20px rgba(0,0,0,0.15);">
                             <li>
-                                <a class="dropdown-item" href="@if(auth()->user()->vai_tro === 'admin'){{ route('admin.dashboard') }}@elseif(auth()->user()->vai_tro === 'giang_vien'){{ route('giang-vien.dashboard') }}@else{{ route('hoc-vien.dashboard') }}@endif" style="color: #333;">
-                                    <i class="fas fa-tachometer-alt" style="color: #667eea;"></i> Dashboard
+                                <div style="padding:12px 16px; display:flex; align-items:center; gap:10px;
+                                            background:linear-gradient(135deg,rgba(102,126,234,.08),rgba(102,126,234,.03));
+                                            border-bottom:1px solid #f1f5f9;">
+                                    @if($navAvatar)
+                                        <img src="{{ $navAvatar }}"
+                                             style="width:38px; height:38px; border-radius:50%; object-fit:cover;
+                                                    border:2px solid #c7d2fe;">
+                                    @else
+                                        <div style="width:38px; height:38px; border-radius:50%; background:#667eea;
+                                                    display:flex; align-items:center; justify-content:center;
+                                                    color:white; font-weight:800; font-size:15px;">
+                                            {{ strtoupper(mb_substr($navUser->ho_ten, 0, 1)) }}
+                                        </div>
+                                    @endif
+                                    <div>
+                                        <div style="font-weight:700; color:#1e293b; font-size:13px; line-height:1.2;">
+                                            {{ $navUser->ho_ten }}
+                                        </div>
+                                        <div style="font-size:11px; color:#64748b; margin-top:2px;">
+                                            @if($navUser->vai_tro === 'admin') Quản trị viên
+                                            @elseif($navUser->vai_tro === 'giang_vien') Giảng viên
+                                            @else Học viên
+                                            @endif
+                                            &middot; {{ $navUser->email }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                            <li><hr class="dropdown-divider" style="margin:4px 0;"></li>
+                            <li>
+                                <a class="dropdown-item" style="color:#1d4ed8; font-weight:600;"
+                                   href="@if($navUser->vai_tro === 'admin'){{ route('admin.dashboard') }}
+                                         @elseif($navUser->vai_tro === 'giang_vien'){{ route('giang-vien.dashboard') }}
+                                         @else{{ route('hoc-vien.dashboard') }}@endif">
+                                    <i class="fas fa-tachometer-alt" style="color:#2563eb;"></i>
+                                    Vào Dashboard
                                 </a>
                             </li>
                             <li>
@@ -62,10 +113,12 @@
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
-                                <a class="dropdown-item" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();" style="color: #d32f2f;">
+                                <a class="dropdown-item" href="#"
+                                   onclick="event.preventDefault(); document.getElementById('home-logout-form').submit();"
+                                   style="color:#d32f2f;">
                                     <i class="fas fa-sign-out-alt"></i> Đăng xuất
                                 </a>
-                                <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                                <form id="home-logout-form" action="{{ route('dang-xuat') }}" method="POST" style="display:none;">
                                     @csrf
                                 </form>
                             </li>
@@ -82,6 +135,41 @@
         </div>
     </div>
 </nav>
+
+@if(isset($banners) && $banners->isNotEmpty())
+<div id="mainBannerSlider" class="carousel slide shadow-sm" data-bs-ride="carousel" data-bs-interval="5000">
+    <div class="carousel-inner">
+        @foreach($banners as $i => $banner)
+        <div class="carousel-item {{ $i === 0 ? 'active' : '' }}">
+            @if($banner->link)<a href="{{ $banner->link }}">@endif
+            <img src="{{ asset($banner->duong_dan_anh) }}" class="d-block w-100"
+                 alt="{{ $banner->tieu_de }}" style="height:420px; object-fit:cover;">
+            @if($banner->link)</a>@endif
+            <div class="carousel-caption d-none d-md-block text-start bg-dark bg-opacity-25 p-4 rounded-3"
+                 style="left:6%; bottom:40px; text-shadow:0 2px 10px rgba(0,0,0,0.5); backdrop-filter: blur(2px);">
+                <h2 class="fw-bold display-6 mb-2">{{ $banner->tieu_de }}</h2>
+                @if($banner->mo_ta)<div class="lead mb-0 opacity-90">{!! $banner->mo_ta !!}</div>@endif
+            </div>
+        </div>
+        @endforeach
+    </div>
+    @if($banners->count() > 1)
+    <button class="carousel-control-prev" type="button" data-bs-target="#mainBannerSlider" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon shadow-sm" aria-hidden="true"></span>
+        <span class="visually-hidden">Previous</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#mainBannerSlider" data-bs-slide="next">
+        <span class="carousel-control-next-icon shadow-sm" aria-hidden="true"></span>
+        <span class="visually-hidden">Next</span>
+    </button>
+    <div class="carousel-indicators">
+        @foreach($banners as $i => $b)
+        <button type="button" data-bs-target="#mainBannerSlider" data-bs-slide-to="{{ $i }}" class="{{ $i===0?'active':'' }}" aria-current="{{ $i===0?'true':'false' }}" aria-label="Slide {{ $i+1 }}"></button>
+        @endforeach
+    </div>
+    @endif
+</div>
+@endif
 
 <!-- ========== HERO SECTION ========== -->
 <section style="padding: 100px 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; position: relative; overflow: hidden;" id="home">
