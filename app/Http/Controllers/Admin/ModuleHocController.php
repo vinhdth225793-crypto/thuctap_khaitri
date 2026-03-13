@@ -13,7 +13,10 @@ use Illuminate\Validation\Rule;
 class ModuleHocController extends Controller
 {
     /**
-     * Hiển thị danh sách module có phân trang và lọc
+     * index(Request $request)
+     * - Filter theo khoa_hoc_id (nếu có) và search (tên/mã module)
+     * - Eager load: khoaHoc.monHoc để tránh N+1
+     * - Paginate 10, giữ filter khi chuyển trang
      */
     public function index(Request $request)
     {
@@ -44,7 +47,9 @@ class ModuleHocController extends Controller
     }
 
     /**
-     * Form thêm module mới
+     * create(Request $request)
+     * - Nhận query param khoa_hoc_id (pre-select từ trang show KhoaHoc)
+     * - Tính sẵn thu_tu_module gợi ý
      */
     public function create(Request $request)
     {
@@ -60,7 +65,8 @@ class ModuleHocController extends Controller
     }
 
     /**
-     * Lưu module mới vào DB
+     * store(Request $request)
+     * Logic trong DB::transaction + Sinh mã module tự động
      */
     public function store(Request $request)
     {
@@ -69,6 +75,7 @@ class ModuleHocController extends Controller
             'ten_module.required' => 'Tên module là bắt buộc',
             'thu_tu_module.required' => 'Thứ tự module là bắt buộc',
             'thu_tu_module.unique' => 'Thứ tự này đã tồn tại trong khóa học này',
+            'thoi_luong_du_kien.max' => 'Thời lượng không quá 600 phút (10 giờ)',
         ];
 
         $validator = Validator::make($request->all(), [
@@ -94,12 +101,12 @@ class ModuleHocController extends Controller
             $khoaHoc = KhoaHoc::findOrFail($request->khoa_hoc_id);
             $thuTu = $request->thu_tu_module;
             
-            // Sinh mã module: {ma_khoa_hoc}M{thu_tu:02d}
+            // Quy tắc sinh mã module: {ma_khoa_hoc}M{thu_tu:02d}
             $maModule = $khoaHoc->ma_khoa_hoc . 'M' . str_pad($thuTu, 2, '0', STR_PAD_LEFT);
 
             // Kiểm tra mã module chưa tồn tại (phòng race condition)
             if (ModuleHoc::where('ma_module', $maModule)->exists()) {
-                throw new \Exception("Mã module {$maModule} đã tồn tại trong hệ thống.");
+                throw new \Exception("Mã module {$maModule} đã tồn tại trong hệ thống (có thể do trùng lặp thứ tự).");
             }
 
             $module = ModuleHoc::create([
@@ -109,7 +116,7 @@ class ModuleHocController extends Controller
                 'mo_ta' => $request->mo_ta,
                 'thu_tu_module' => $thuTu,
                 'thoi_luong_du_kien' => $request->thoi_luong_du_kien,
-                'trang_thai' => $request->has('trang_thai'),
+                'trang_thai' => $request->has('trang_thai') ? $request->trang_thai : true,
             ]);
 
             DB::commit();
@@ -124,7 +131,7 @@ class ModuleHocController extends Controller
     }
 
     /**
-     * Chi tiết module
+     * show($id)
      */
     public function show($id)
     {
@@ -141,7 +148,7 @@ class ModuleHocController extends Controller
     }
 
     /**
-     * Form chỉnh sửa module
+     * edit($id)
      */
     public function edit($id)
     {
@@ -152,7 +159,7 @@ class ModuleHocController extends Controller
     }
 
     /**
-     * Cập nhật module
+     * update(Request $request, $id)
      */
     public function update(Request $request, $id)
     {
@@ -184,7 +191,7 @@ class ModuleHocController extends Controller
         $data = $request->only(['ten_module', 'mo_ta', 'thu_tu_module', 'thoi_luong_du_kien']);
         $data['trang_thai'] = $request->has('trang_thai');
 
-        // Nếu thay đổi thứ tự → sinh lại ma_module
+        // Nếu thu_tu_module thay đổi → sinh lại ma_module
         if ($module->thu_tu_module != $request->thu_tu_module) {
             $data['ma_module'] = $module->khoaHoc->ma_khoa_hoc . 'M' . str_pad($request->thu_tu_module, 2, '0', STR_PAD_LEFT);
         }
@@ -196,19 +203,19 @@ class ModuleHocController extends Controller
     }
 
     /**
-     * Xóa module
+     * destroy($id)
+     * - Không cho xóa nếu có phan_cong đang da_nhan hoặc cho_xac_nhan
      */
     public function destroy($id)
     {
         $moduleHoc = ModuleHoc::findOrFail($id);
 
-        // Không cho xóa nếu có phan_cong đang da_nhan hoặc cho_xac_nhan
         $hasActiveAssignment = $moduleHoc->phanCongGiangViens()
             ->whereIn('trang_thai', ['da_nhan', 'cho_xac_nhan'])
             ->exists();
 
         if ($hasActiveAssignment) {
-            return redirect()->back()->with('error', 'Không thể xóa module này vì đang có giảng viên được phân công giảng dạy (Trạng thái: Đã nhận hoặc Chờ xác nhận).');
+            return redirect()->back()->with('error', 'Không thể xóa module này vì đang có giảng viên được phân công giảng dạy (Đã nhận hoặc Chờ xác nhận).');
         }
 
         $khoaHocId = $moduleHoc->khoa_hoc_id;
@@ -219,7 +226,7 @@ class ModuleHocController extends Controller
     }
 
     /**
-     * Toggle trang_thai
+     * toggleStatus($id)
      */
     public function toggleStatus($id)
     {

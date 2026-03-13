@@ -17,7 +17,7 @@
         </div>
     </div>
 
-    <!-- Header & Flash Messages -->
+    <!-- Header -->
     <div class="row mb-4">
         <div class="col-12 d-flex justify-content-between align-items-center">
             <h3 class="fw-bold mb-0">Danh sách Module học</h3>
@@ -28,14 +28,14 @@
     </div>
 
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert">
             <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
 
     @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm" role="alert">
             <i class="fas fa-exclamation-triangle me-2"></i> {{ session('error') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
@@ -99,7 +99,7 @@
                             <tbody>
                                 @forelse($moduleHocs as $index => $module)
                                     <tr>
-                                        <td class="text-center px-4 text-muted">
+                                        <td class="text-center px-4 text-muted small">
                                             {{ ($moduleHocs->currentPage() - 1) * $moduleHocs->perPage() + $loop->iteration }}
                                         </td>
                                         <td><code class="fw-bold text-primary">{{ $module->ma_module }}</code></td>
@@ -107,7 +107,7 @@
                                         <td><small>{{ $module->khoaHoc->ten_khoa_hoc }}</small></td>
                                         <td><small class="text-info">{{ $module->khoaHoc->monHoc->ten_mon_hoc }}</small></td>
                                         <td class="text-center">
-                                            <span class="badge bg-light text-dark border">{{ $module->thu_tu_module }}</span>
+                                            <span class="badge bg-light text-dark border px-3">#{{ $module->thu_tu_module }}</span>
                                         </td>
                                         <td class="text-center">
                                             @if($module->thoi_luong_du_kien)
@@ -115,7 +115,7 @@
                                                     $h = intdiv($module->thoi_luong_du_kien, 60);
                                                     $m = $module->thoi_luong_du_kien % 60;
                                                 @endphp
-                                                <small class="fw-bold text-dark">
+                                                <small class="fw-bold">
                                                     {{ $h > 0 ? $h.'h ' : '' }}{{ $m > 0 ? $m.'p' : '' }}
                                                 </small>
                                             @else
@@ -163,7 +163,7 @@
                 </div>
                 @if($moduleHocs->hasPages())
                     <div class="vip-card-footer border-top p-3 d-flex justify-content-center">
-                        {{ $moduleHocs->links('pagination::bootstrap-5') }}
+                        {{ $moduleHocs->appends(request()->query())->links('pagination::bootstrap-5') }}
                     </div>
                 @endif
             </div>
@@ -176,15 +176,15 @@
     <div class="modal-dialog">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-danger text-white border-0">
-                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i> Xác nhận xóa</h5>
+                <h5 class="modal-title fw-bold"><i class="fas fa-exclamation-triangle me-2"></i> Xác nhận xóa</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
                 <p>Bạn có chắc chắn muốn xóa module <strong id="deleteModuleName" class="text-danger"></strong> không?</p>
-                <p class="small text-muted mb-0"><i class="fas fa-info-circle me-1"></i> Lưu ý: Hành động này sẽ không thể khôi phục.</p>
+                <p class="small text-muted mb-0"><i class="fas fa-info-circle me-1"></i> Lưu ý: Hành động này sẽ không thể khôi phục nếu module không có ràng buộc dữ liệu.</p>
             </div>
             <div class="modal-footer bg-light border-0">
-                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Hủy bỏ</button>
                 <form id="deleteForm" method="POST" action="">
                     @csrf
                     @method('DELETE')

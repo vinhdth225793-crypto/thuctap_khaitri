@@ -103,6 +103,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
         Route::put('/{id}', [KhoaHocManagementController::class, 'update'])->name('update');
         Route::delete('/{id}', [KhoaHocManagementController::class, 'destroy'])->name('destroy');
         Route::post('/{id}/toggle-status', [KhoaHocManagementController::class, 'toggleStatus'])->name('toggle-status');
+        Route::post('/{id}/kich-hoat-mau', [KhoaHocManagementController::class, 'kichHoatMau'])->name('kich-hoat-mau');
     });
 
     // Quản lý Module học độc lập
@@ -154,7 +155,7 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', \App\Http\
 
     // Phân công dạy học
     Route::get('/phan-cong', [GiangVienController::class, 'phanCong'])->name('phan-cong');
-    Route::get('/khoa-hoc', [GiangVienController::class, 'phanCong'])->name('khoa-hoc'); // Thêm alias này để fix lỗi
+    Route::get('/khoa-hoc', [GiangVienController::class, 'phanCong'])->name('khoa-hoc'); // Alias để fix RouteNotFound
     Route::post('/phan-cong/{id}/xac-nhan', [GiangVienController::class, 'xacNhanPhanCong'])->name('phan-cong.xac-nhan');
     Route::post('/phan-cong/{id}/tu-choi', [GiangVienController::class, 'tuChoiPhanCong'])->name('phan-cong.tu-choi');
 

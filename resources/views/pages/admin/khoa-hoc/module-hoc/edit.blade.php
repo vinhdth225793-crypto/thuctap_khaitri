@@ -6,7 +6,7 @@
 <div class="container-fluid">
     <!-- Breadcrumb -->
     <div class="row mb-4">
-        <div class="col-12">
+        <div class="col-12 text-muted">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0">
                     <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Admin</a></li>
@@ -19,7 +19,7 @@
     </div>
 
     @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm" role="alert">
             <i class="fas fa-exclamation-triangle me-2"></i> {{ session('error') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
@@ -30,7 +30,7 @@
             <div class="vip-card">
                 <div class="vip-card-header">
                     <h5 class="vip-card-title fw-bold">
-                        <i class="fas fa-edit me-2 text-warning"></i> Chỉnh sửa module
+                        <i class="fas fa-edit me-2 text-warning"></i> Chỉnh sửa thông tin module
                     </h5>
                 </div>
                 <div class="vip-card-body p-4">
@@ -42,13 +42,13 @@
                             <!-- Mã module (Readonly) -->
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold text-muted">Mã module</label>
-                                <input type="text" class="form-control vip-form-control bg-light" value="{{ $moduleHoc->ma_module }}" readonly>
+                                <input type="text" class="form-control vip-form-control bg-light fw-bold text-primary" value="{{ $moduleHoc->ma_module }}" readonly title="Không thể sửa mã trực tiếp">
                             </div>
                             
                             <!-- Khóa học (Readonly Display) -->
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold text-muted">Khóa học</label>
-                                <input type="text" class="form-control vip-form-control bg-light" value="[{{ $moduleHoc->khoaHoc->ma_khoa_hoc }}] {{ $moduleHoc->khoaHoc->ten_khoa_hoc }}" readonly>
+                                <input type="text" class="form-control vip-form-control bg-light fw-bold" value="[{{ $moduleHoc->khoaHoc->ma_khoa_hoc }}] {{ $moduleHoc->khoaHoc->ten_khoa_hoc }}" readonly>
                                 <input type="hidden" name="khoa_hoc_id" value="{{ $moduleHoc->khoa_hoc_id }}">
                             </div>
                         </div>
@@ -67,7 +67,7 @@
                             <div class="col-md-6 mb-4">
                                 <label for="thu_tu_module" class="form-label small fw-bold">Thứ tự hiển thị <span class="text-danger">*</span></label>
                                 <input type="number" name="thu_tu_module" id="thu_tu_module" class="form-control vip-form-control @error('thu_tu_module') is-invalid @enderror" value="{{ old('thu_tu_module', $moduleHoc->thu_tu_module) }}" min="1" required>
-                                <div class="form-text smaller text-muted">Thứ tự trong khóa học. Nếu đổi, mã module sẽ tự cập nhật.</div>
+                                <div class="form-text smaller text-muted italic">Thứ tự trong khóa học. Nếu đổi, mã module sẽ tự cập nhật.</div>
                                 @error('thu_tu_module')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -103,10 +103,10 @@
                         <hr class="my-4">
 
                         <div class="d-flex justify-content-end gap-2">
-                            <a href="{{ route('admin.module-hoc.show', $moduleHoc->id) }}" class="btn btn-secondary px-4">
+                            <a href="{{ route('admin.module-hoc.show', $moduleHoc->id) }}" class="btn btn-secondary px-4 fw-bold">
                                 <i class="fas fa-times me-1"></i> Hủy
                             </a>
-                            <button type="submit" class="btn btn-warning px-5 fw-bold text-white">
+                            <button type="submit" class="btn btn-warning px-5 fw-bold text-white shadow-sm">
                                 <i class="fas fa-save me-1"></i> Cập nhật module
                             </button>
                         </div>

@@ -77,14 +77,15 @@ class GiangVienController extends Controller
     }
 
     /**
-     * Xem danh sách phân công dạy module
+     * phanCong()
+     * Load tất cả phân công của GV này, chia 3 nhóm
      */
     public function phanCong()
     {
         $giangVien = auth()->user()->giangVien;
 
         if (!$giangVien) {
-            return redirect()->back()->with('error', 'Không tìm thấy thông tin giảng viên.');
+            return redirect()->back()->with('error', 'Không tìm thấy thông tin giảng viên để truy xuất phân công.');
         }
 
         $phanCongChoXacNhan = PhanCongModuleGiangVien::with(['moduleHoc.khoaHoc.monHoc'])
@@ -109,7 +110,7 @@ class GiangVienController extends Controller
     }
 
     /**
-     * Xác nhận nhận dạy module
+     * xacNhanPhanCong($id)
      */
     public function xacNhanPhanCong($id)
     {
@@ -126,7 +127,7 @@ class GiangVienController extends Controller
     }
 
     /**
-     * Từ chối phân công dạy module
+     * tuChoiPhanCong($id)
      */
     public function tuChoiPhanCong($id)
     {

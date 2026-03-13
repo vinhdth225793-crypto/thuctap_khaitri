@@ -11,289 +11,295 @@ use App\Models\PhanCongModuleGiangVien;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class KhoaHocManagementController extends Controller
 {
     /**
-     * Hiển thị danh sách khóa học
+     * index() — Phase 1
      */
     public function index(Request $request)
     {
-        $search = $request->get('search', '');
-        $monHocId = $request->get('mon_hoc_id', '');
+        $tab    = $request->get('tab', 'mau');
+        $search = trim($request->get('search', ''));
 
-        $query = KhoaHoc::with(['monHoc', 'moduleHocs']);
+        $applySearch = fn($q) => $q->when($search,
+            fn($q) => $q->where('ten_khoa_hoc','like',"%{$search}%")
+                        ->orWhere('ma_khoa_hoc','like',"%{$search}%")
+        );
 
-        if ($search) {
-            $query->search($search);
-        }
+        $khoaHocMau = KhoaHoc::with('monHoc')
+            ->mau()->tap($applySearch)
+            ->orderByDesc('created_at')
+            ->paginate(12, ['*'], 'mau_page')
+            ->appends($request->query());
 
-        if ($monHocId) {
-            $query->where('mon_hoc_id', $monHocId);
-        }
+        $khoaHocHoatDong = KhoaHoc::with('monHoc')
+            ->dangHoatDong()->tap($applySearch)
+            ->withCount([
+                'moduleHocs as tong_module',
+                'moduleHocs as module_da_nhan' => fn($q) =>
+                    $q->whereHas('phanCongGiangViens',
+                        fn($q) => $q->where('trang_thai','da_nhan')),
+            ])
+            ->orderByDesc('updated_at')
+            ->paginate(12, ['*'], 'hd_page')
+            ->appends($request->query());
 
-        $khoaHocs = $query->paginate(10);
-        $monHocs = MonHoc::active()->get();
+        $stats = [
+            'tong_mau'  => KhoaHoc::mau()->count(),
+            'cho_mo'    => KhoaHoc::where('trang_thai_van_hanh','cho_mo')->count(),
+            'hoat_dong' => KhoaHoc::dangHoatDong()->count(),
+            'san_sang'  => KhoaHoc::where('trang_thai_van_hanh','san_sang')->count(),
+        ];
 
-        return view('pages.admin.khoa-hoc.khoa-hoc.index', compact('khoaHocs', 'monHocs', 'search', 'monHocId'));
+        return view('pages.admin.khoa-hoc.khoa-hoc.index',
+            compact('khoaHocMau','khoaHocHoatDong','stats','tab','search'));
     }
 
     /**
-     * Hiển thị form tạo khóa học mới
+     * create() — Phase 2
      */
-    public function create()
+    public function create(Request $request)
     {
-        $monHocs = MonHoc::active()->get();
-        $giangViens = GiangVien::with('nguoiDung')->get();
-        $preSelectedMonHocId = request()->get('mon_hoc_id');
+        $loai = in_array($request->get('loai'),['mau','truc_tiep'])
+                    ? $request->get('loai') : 'mau';
 
-        // ✅ Mới (nhẹ, chỉ lấy tên để tham khảo):
-        $existingModules = ModuleHoc::select('ten_module')
-                                   ->whereHas('khoaHoc', fn($q) => $q->where('trang_thai', true))
-                                   ->distinct()
-                                   ->orderBy('ten_module')
-                                   ->pluck('ten_module');
+        $monHocs = MonHoc::where('trang_thai',true)->orderBy('ten_mon_hoc')->get();
 
-        return view('pages.admin.khoa-hoc.khoa-hoc.create', compact('monHocs', 'giangViens', 'existingModules', 'preSelectedMonHocId'));
+        $khoaHocMauCoSan = KhoaHoc::with(
+                'moduleHocs:id,khoa_hoc_id,ten_module,thu_tu_module,thoi_luong_du_kien,mo_ta'
+            )
+            ->mau()->where('tong_so_module','>',0)->orderBy('ten_khoa_hoc')
+            ->get(['id','ten_khoa_hoc','ma_khoa_hoc','tong_so_module']);
+
+        $giangViens = GiangVien::with('nguoiDung:ma_nguoi_dung,ho_ten')
+            ->whereHas('nguoiDung', fn($q) => $q->where('trang_thai',true))->get();
+
+        $preselectedMonHocId = $request->get('mon_hoc_id');
+
+        return view('pages.admin.khoa-hoc.khoa-hoc.create',
+            compact('loai','monHocs','khoaHocMauCoSan','giangViens','preselectedMonHocId'));
     }
 
     /**
-     * Lưu khóa học mới
+     * store() — Phase 2
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'mon_hoc_id' => 'required|exists:mon_hoc,id',
-            'ten_khoa_hoc' => 'required|string|max:200',
-            'mo_ta_ngan' => 'nullable|string|max:500',
+        $loai = $request->get('loai', 'mau');
+
+        $rules = [
+            'loai'           => 'required|in:mau,truc_tiep',
+            'mon_hoc_id'     => 'required|exists:mon_hoc,id',
+            'ten_khoa_hoc'   => 'required|string|max:200',
+            'cap_do'         => 'required|in:co_ban,trung_binh,nang_cao',
+            'mo_ta_ngan'     => 'nullable|string|max:500',
             'mo_ta_chi_tiet' => 'nullable|string',
-            'hinh_anh' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'cap_do' => 'required|in:co_ban,trung_binh,nang_cao',
-            'modules' => 'required|array|min:1',
-            'modules.*.ten_module' => 'required|string|max:200',
-            'modules.*.mo_ta' => 'nullable|string',
-            'modules.*.thoi_luong_du_kien' => 'nullable|integer|min:1',
-            'lecturer_modules' => 'nullable|string',
-        ], [
+            'hinh_anh'       => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'ghi_chu_noi_bo' => 'nullable|string|max:1000',
+            'modules'                       => 'required|array|min:1',
+            'modules.*.ten_module'          => 'required|string|max:200',
+            'modules.*.thoi_luong_du_kien'  => 'nullable|integer|min:1|max:600',
+            'modules.*.mo_ta'               => 'nullable|string',
+        ];
+
+        if ($loai === 'truc_tiep') {
+            $rules['ngay_khai_giang'] = 'required|date|after_or_equal:today';
+            $rules['ngay_ket_thuc_du_kien'] = 'required|date|after:ngay_khai_giang';
+            $rules['modules.*.giang_vien_id'] = 'required|exists:giang_vien,id';
+        }
+
+        $validator = Validator::make($request->all(), $rules, [
             'mon_hoc_id.required' => 'Vui lòng chọn môn học',
             'ten_khoa_hoc.required' => 'Tên khóa học là bắt buộc',
-            'cap_do.required' => 'Vui lòng chọn cấp độ',
-            'modules.required' => 'Phải có ít nhất một module',
-            'modules.*.ten_module.required' => 'Tên module là bắt buộc',
+            'ngay_khai_giang.required' => 'Ngày khai giảng là bắt buộc với khóa trực tiếp',
+            'ngay_khai_giang.after_or_equal' => 'Ngày khai giảng phải từ hôm nay trở đi',
+            'ngay_ket_thuc_du_kien.after' => 'Ngày kết thúc phải sau ngày khai giảng',
+            'modules.required' => 'Khóa học phải có ít nhất một module',
+            'modules.*.ten_module.required' => 'Tên module không được để trống',
+            'modules.*.giang_vien_id.required' => 'Vui lòng chọn giảng viên cho từng module',
         ]);
 
         if ($validator->fails()) {
-            \Log::warning('KhoaHoc store validation failed', ['errors' => $validator->errors()->keys()]);
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
+            return redirect()->back()->withErrors($validator)->withInput();
         }
 
         DB::beginTransaction();
         try {
-            // Tự động tạo mã khóa học trước
+            $hinh_anh = null;
+            if ($request->hasFile('hinh_anh')) {
+                $file = $request->file('hinh_anh');
+                $filename = time() . '_' . Str::slug($request->ten_khoa_hoc) . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path('images/khoa-hoc'), $filename);
+                $hinh_anh = 'images/khoa-hoc/' . $filename;
+            }
+
             $maKhoaHoc = $this->generateMaKhoaHoc($request->mon_hoc_id);
 
-            // Chuẩn bị dữ liệu tạo khóa học
-            $data = [
-                'mon_hoc_id' => $request->mon_hoc_id,
-                'ma_khoa_hoc' => $maKhoaHoc,
-                'ten_khoa_hoc' => $request->ten_khoa_hoc,
-                'mo_ta_ngan' => $request->mo_ta_ngan,
-                'mo_ta_chi_tiet' => $request->mo_ta_chi_tiet,
-                'cap_do' => $request->cap_do,
-                'tong_so_module' => count($request->modules),
-                'trang_thai' => true, // Thêm trạng thái mặc định
-            ];
+            $khoaHoc = KhoaHoc::create([
+                'mon_hoc_id'          => $request->mon_hoc_id,
+                'ma_khoa_hoc'         => $maKhoaHoc,
+                'ten_khoa_hoc'        => $request->ten_khoa_hoc,
+                'mo_ta_ngan'          => $request->mo_ta_ngan,
+                'mo_ta_chi_tiet'      => $request->mo_ta_chi_tiet,
+                'hinh_anh'            => $hinh_anh,
+                'cap_do'              => $request->cap_do,
+                'loai'                => $loai,
+                'trang_thai_van_hanh' => ($loai === 'mau') ? 'cho_mo' : 'cho_giang_vien',
+                'ngay_khai_giang'     => $request->ngay_khai_giang,
+                'ngay_ket_thuc_du_kien' => $request->ngay_ket_thuc_du_kien,
+                'ghi_chu_noi_bo'      => $request->ghi_chu_noi_bo,
+                'trang_thai'          => true,
+            ]);
 
-            // Xử lý upload hình ảnh (nếu có)
-            if ($request->hasFile('hinh_anh')) {
-                $image = $request->file('hinh_anh');
-                $imageName = time() . '_' . $image->getClientOriginalName();
-                $image->move(public_path('images/khoa-hoc'), $imageName);
-                $data['hinh_anh'] = 'images/khoa-hoc/' . $imageName;
-            }
+            foreach ($request->modules as $index => $modData) {
+                $thuTu = $index + 1;
+                $maModule = $maKhoaHoc . 'M' . str_pad($thuTu, 2, '0', STR_PAD_LEFT);
 
-            // Tạo khóa học trước để có ID
-            $khoaHoc = KhoaHoc::create($data);
-
-            // Tạo modules
-            foreach ($request->modules as $index => $moduleData) {
-                $maModule = $maKhoaHoc . 'M' . str_pad($index + 1, 2, '0', STR_PAD_LEFT);
-
-                ModuleHoc::create([
-                    'khoa_hoc_id' => $khoaHoc->id,
-                    'ma_module' => $maModule,
-                    'ten_module' => $moduleData['ten_module'],
-                    'mo_ta' => $moduleData['mo_ta'] ?? null,
-                    'thu_tu_module' => $index + 1,
-                    'thoi_luong_du_kien' => $moduleData['thoi_luong_du_kien'] ?? null,
-                    'trang_thai' => true,
+                $module = ModuleHoc::create([
+                    'khoa_hoc_id'        => $khoaHoc->id,
+                    'ma_module'          => $maModule,
+                    'ten_module'         => $modData['ten_module'],
+                    'mo_ta'              => $modData['mo_ta'] ?? null,
+                    'thu_tu_module'      => $thuTu,
+                    'thoi_luong_du_kien' => $modData['thoi_luong_du_kien'] ?? null,
+                    'trang_thai'         => true,
                 ]);
-            }
 
-            // Phân công giảng viên cho các module
-            $modules = $khoaHoc->moduleHocs;
-            
-            // Parse dữ liệu lecturer_modules từ JSON
-            $lecturerModulesJson = $request->input('lecturer_modules', '{}');
-            $lecturerModules = json_decode($lecturerModulesJson, true) ?? [];
-
-            foreach ($lecturerModules as $lecturerId => $moduleIndices) {
-                foreach ($moduleIndices as $moduleIndex) {
-                    // Lấy module theo index
-                    $module = $modules->get($moduleIndex);
-
-                    if ($module) {
-                        PhanCongModuleGiangVien::create([
-                            'khoa_hoc_id' => $khoaHoc->id,
-                            'module_hoc_id' => $module->id,
-                            'giao_vien_id' => $lecturerId,
-                            'ngay_phan_cong' => now(),
-                            'trang_thai' => 'da_nhan',
-                            'created_by' => auth()->user()->ma_nguoi_dung, // ✅ ĐÚNG: dùng auth()->user()
-                        ]);
-                    }
+                if (!empty($modData['giang_vien_id'])) {
+                    PhanCongModuleGiangVien::create([
+                        'khoa_hoc_id'    => $khoaHoc->id,
+                        'module_hoc_id'  => $module->id,
+                        'giao_vien_id'   => $modData['giang_vien_id'],
+                        'ngay_phan_cong' => now(),
+                        'trang_thai'     => 'cho_xac_nhan',
+                        'created_by'     => auth()->user()->ma_nguoi_dung,
+                    ]);
                 }
             }
 
+            $khoaHoc->update(['tong_so_module' => count($request->modules)]);
             DB::commit();
 
-            return redirect()->route('admin.khoa-hoc.show', $khoaHoc->id)
-                ->with('success', 'Tạo khóa học thành công! Mã: ' . $maKhoaHoc . ' — ' . count($request->modules) . ' module đã được tạo.');
-
+            return redirect()->route('admin.khoa-hoc.show', $khoaHoc->id)->with('success', "Thao tác thành công.");
         } catch (\Exception $e) {
             DB::rollback();
-            return redirect()->back()
-                ->with('error', 'Có lỗi xảy ra: ' . $e->getMessage())
-                ->withInput();
+            return redirect()->back()->with('error', 'Có lỗi xảy ra: ' . $e->getMessage())->withInput();
         }
     }
 
     /**
-     * Hiển thị chi tiết khóa học - Quản lý tích hợp (Phase 4)
+     * Hiển thị chi tiết khóa học (Phase 3 Redesign)
      */
     public function show($id)
     {
         $khoaHoc = KhoaHoc::with([
             'monHoc',
-            'moduleHocs.phanCongGiangViens.giangVien.nguoiDung'
+            'moduleHocs' => fn($q) => $q->orderBy('thu_tu_module'),
+            'moduleHocs.phanCongGiangViens' => fn($q) => $q->orderByDesc('updated_at'),
+            'moduleHocs.phanCongGiangViens.giangVien.nguoiDung',
         ])->findOrFail($id);
 
-        $giangViens = GiangVien::with('nguoiDung')
-            ->whereHas('nguoiDung', fn($q) => $q->where('trang_thai', true))
-            ->get();
+        $giangViens = GiangVien::with('nguoiDung:ma_nguoi_dung,ho_ten')
+            ->whereHas('nguoiDung', fn($q) => $q->where('trang_thai',true))->get();
 
-        return view('pages.admin.khoa-hoc.khoa-hoc.show', compact('khoaHoc', 'giangViens'));
+        $tongModule = $khoaHoc->moduleHocs->count();
+        $moduleCoGv = $khoaHoc->moduleHocs->filter(
+            fn($m) => $m->phanCongGiangViens->where('trang_thai','da_nhan')->count() > 0
+        )->count();
+
+        return view('pages.admin.khoa-hoc.khoa-hoc.show',
+            compact('khoaHoc','giangViens','tongModule','moduleCoGv'));
     }
 
     /**
-     * Hiển thị form chỉnh sửa khóa học
+     * Kích hoạt khóa học mẫu thành lớp học (Phase 3 Redesign)
      */
-    public function edit($id)
-    {
-        $khoaHoc = KhoaHoc::with(['moduleHocs.phanCongGiangViens.giangVien'])->findOrFail($id);
-        $monHocs = MonHoc::active()->get();
-        $giangViens = GiangVien::with('nguoiDung')->get();
-
-        return view('pages.admin.khoa-hoc.khoa-hoc.edit', compact('khoaHoc', 'monHocs', 'giangViens'));
-    }
-
-    /**
-     * Cập nhật khóa học
-     */
-    public function update(Request $request, $id)
-    {
-        $khoaHoc = KhoaHoc::findOrFail($id);
-
-        $validator = Validator::make($request->all(), [
-            'mon_hoc_id' => 'required|exists:mon_hoc,id',
-            'ten_khoa_hoc' => 'required|string|max:200',
-            'mo_ta_ngan' => 'nullable|string|max:500',
-            'mo_ta_chi_tiet' => 'nullable|string',
-            'hinh_anh' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'cap_do' => 'required|in:co_ban,trung_binh,nang_cao',
-        ]);
-
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
-        }
-
-        $data = $request->only(['mon_hoc_id', 'ten_khoa_hoc', 'mo_ta_ngan', 'mo_ta_chi_tiet', 'cap_do']);
-
-        // Xử lý upload hình ảnh
-        if ($request->hasFile('hinh_anh')) {
-            if ($khoaHoc->hinh_anh && file_exists(public_path($khoaHoc->hinh_anh))) {
-                unlink(public_path($khoaHoc->hinh_anh));
-            }
-            $image = $request->file('hinh_anh');
-            $imageName = time() . '_' . $image->getClientOriginalName();
-            $image->move(public_path('images/khoa-hoc'), $imageName);
-            $data['hinh_anh'] = 'images/khoa-hoc/' . $imageName;
-        }
-
-        $khoaHoc->update($data);
-
-        return redirect()->route('admin.khoa-hoc.show', $khoaHoc->id)
-            ->with('success', 'Cập nhật khóa học thành công.');
-    }
-
-    /**
-     * Xóa khóa học
-     */
-    public function destroy($id)
+    public function kichHoatMau(Request $request, $id)
     {
         $khoaHoc = KhoaHoc::with('moduleHocs')->findOrFail($id);
 
-        // Kiểm tra không cho xóa nếu có học viên đang theo học (bỏ qua nếu chưa có bảng đăng ký)
+        if ($khoaHoc->loai !== 'mau')
+            return redirect()->back()->with('error','Chỉ kích hoạt được khóa học mẫu.');
+        if ($khoaHoc->trang_thai_van_hanh !== 'cho_mo')
+            return redirect()->back()->with('error','Khóa học đã được kích hoạt trước đó.');
 
-        // Xóa ảnh khóa học
-        if ($khoaHoc->hinh_anh && file_exists(public_path($khoaHoc->hinh_anh))) {
-            unlink(public_path($khoaHoc->hinh_anh));
+        $tongModule = $khoaHoc->moduleHocs->count();
+        if ($tongModule === 0)
+            return redirect()->back()->with('error','Khóa học chưa có module. Vui lòng thêm module trước.');
+
+        $moduleIds = $khoaHoc->moduleHocs->pluck('id')->toArray();
+        $gvRules = [];
+        foreach ($moduleIds as $mid) {
+            $gvRules["giang_viens.{$mid}"] = 'required|exists:giang_vien,id';
         }
 
-        // Xóa cascade: module_hoc và phan_cong đã có DB constraint onDelete cascade
-        $khoaHoc->delete();
+        $request->validate(array_merge([
+            'ngay_khai_giang'       => 'required|date|after_or_equal:today',
+            'ngay_ket_thuc_du_kien' => 'required|date|after:ngay_khai_giang',
+        ], $gvRules), [
+            'ngay_khai_giang.required'       => 'Vui lòng chọn ngày khai giảng',
+            'ngay_khai_giang.after_or_equal' => 'Ngày khai giảng phải từ hôm nay',
+            'ngay_ket_thuc_du_kien.required' => 'Vui lòng chọn ngày kết thúc',
+            'ngay_ket_thuc_du_kien.after'    => 'Ngày kết thúc phải sau ngày khai giảng',
+            'giang_viens.*.required'         => 'Vui lòng chọn giảng viên cho tất cả module',
+        ]);
 
-        return redirect()->route('admin.khoa-hoc.index')
-            ->with('success', 'Đã xóa khóa học "' . $khoaHoc->ten_khoa_hoc . '".');
+        DB::transaction(function () use ($khoaHoc, $request, $moduleIds) {
+            $khoaHoc->update([
+                'ngay_khai_giang'       => $request->ngay_khai_giang,
+                'ngay_ket_thuc_du_kien' => $request->ngay_ket_thuc_du_kien,
+                'trang_thai_van_hanh'   => 'cho_giang_vien',
+            ]);
+            foreach ($moduleIds as $mid) {
+                PhanCongModuleGiangVien::updateOrCreate(
+                    ['module_hoc_id' => $mid, 'giao_vien_id' => $request->giang_viens[$mid]],
+                    [
+                        'khoa_hoc_id'    => $khoaHoc->id,
+                        'trang_thai'     => 'cho_xac_nhan',
+                        'ngay_phan_cong' => now(),
+                        'created_by'     => auth()->user()->ma_nguoi_dung,
+                    ]
+                );
+            }
+        });
+
+        return redirect()->route('admin.khoa-hoc.show', $id)
+            ->with('success', "Đã kích hoạt! Đang chờ {$tongModule} giảng viên xác nhận.");
     }
 
     /**
-     * Thay đổi trạng thái khóa học
+     * Các phương thức khác giữ nguyên
      */
-    public function toggleStatus($id)
-    {
+    public function edit($id) { 
+        $khoaHoc = KhoaHoc::findOrFail($id);
+        $monHocs = MonHoc::active()->get();
+        return view('pages.admin.khoa-hoc.khoa-hoc.edit', compact('khoaHoc', 'monHocs'));
+    }
+    
+    public function destroy($id) {
+        $khoaHoc = KhoaHoc::findOrFail($id);
+        $khoaHoc->delete();
+        return redirect()->route('admin.khoa-hoc.index')->with('success', 'Xóa khóa học thành công.');
+    }
+
+    public function toggleStatus($id) {
         $khoaHoc = KhoaHoc::findOrFail($id);
         $khoaHoc->update(['trang_thai' => !$khoaHoc->trang_thai]);
-
-        $statusText = $khoaHoc->trang_thai ? 'kích hoạt' : 'tạm dừng';
-
-        return redirect()->back()
-            ->with('success', "Khóa học đã được {$statusText}");
+        return redirect()->back()->with('success', 'Đã đổi trạng thái.');
     }
 
-    /**
-     * Tự động tạo mã khóa học
-     */
-    private function generateMaKhoaHoc($monHocId)
-    {
+    private function generateMaKhoaHoc($monHocId) {
         $monHoc = MonHoc::find($monHocId);
         $prefix = strtoupper(substr($monHoc->ma_mon_hoc, 0, 3));
-
-        $lastKhoaHoc = KhoaHoc::where('ma_khoa_hoc', 'LIKE', $prefix . '%')
-                              ->orderBy('ma_khoa_hoc', 'desc')
-                              ->first();
-
+        $lastKhoaHoc = KhoaHoc::where('ma_khoa_hoc', 'LIKE', $prefix . '%')->orderBy('ma_khoa_hoc', 'desc')->first();
         if ($lastKhoaHoc) {
             $lastNumber = intval(substr($lastKhoaHoc->ma_khoa_hoc, strlen($prefix)));
             $newNumber = $lastNumber + 1;
         } else {
             $newNumber = 1;
         }
-
         return $prefix . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
     }
 }

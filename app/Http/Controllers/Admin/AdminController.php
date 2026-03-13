@@ -25,7 +25,7 @@ class AdminController extends Controller
      */
     public function dashboard()
     {
-        // Thống kê tổng quan người dùng
+        // 1. Thống kê tổng quan người dùng
         $userStats = [
             'tongNguoiDung' => NguoiDung::count(),
             'tongHocVien' => NguoiDung::where('vai_tro', 'hoc_vien')->count(),
@@ -37,7 +37,7 @@ class AdminController extends Controller
                 ->get(),
         ];
 
-        // Thống kê đào tạo (Phase 5)
+        // 2. Thống kê đào tạo & Module (Phase 5)
         $trainingStats = [
             'tong_mon_hoc'        => MonHoc::count(),
             'mon_hoc_hoat_dong'   => MonHoc::active()->count(),
@@ -50,7 +50,7 @@ class AdminController extends Controller
             'phan_cong_cho_xn'    => PhanCongModuleGiangVien::where('trang_thai', 'cho_xac_nhan')->count(),
         ];
 
-        // Dữ liệu cho 2 bảng nhỏ (Phase 5)
+        // 3. Dữ liệu bảng chi tiết (Phase 5)
         $phanCongMoiNhat = PhanCongModuleGiangVien::with([
                 'moduleHoc.khoaHoc',
                 'giangVien.nguoiDung'
@@ -64,11 +64,11 @@ class AdminController extends Controller
             ->whereDoesntHave('phanCongGiangViens', function($q) {
                 $q->whereIn('trang_thai', ['da_nhan', 'cho_xac_nhan']);
             })
-            ->where('trang_thai', true)
+            ->where('trang_thai', true) // Chỉ lấy module đang active
             ->take(5)
             ->get();
 
-        // Dữ liệu cũ cho chart (nếu view vẫn dùng)
+        // Dữ liệu cho chart
         $chartData = $this->getChartData();
 
         return view('pages.admin.dashboard', array_merge($userStats, [

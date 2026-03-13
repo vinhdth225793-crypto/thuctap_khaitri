@@ -1,140 +1,344 @@
 @extends('layouts.app')
 
-@section('title', 'Thêm module mới')
+@section('title', $loai === 'mau' ? 'Tạo khóa học mẫu' : 'Tạo khóa học trực tiếp')
 
 @section('content')
 <div class="container-fluid">
     <!-- Breadcrumb -->
     <div class="row mb-4">
+        <div class="col-12 text-muted small">
+            <i class="fas fa-home me-1"></i> Admin > Quản lý Khóa học > {{ $loai === 'mau' ? 'Tạo khóa học mẫu' : 'Tạo khóa học trực tiếp' }}
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="row mb-4">
         <div class="col-12">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Admin</a></li>
-                    <li class="breadcrumb-item">Quản lý khóa học</li>
-                    <li class="breadcrumb-item"><a href="{{ route('admin.module-hoc.index') }}">Module học</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Thêm module mới</li>
-                </ol>
-            </nav>
+            @if($loai === 'mau')
+                <h4 class="fw-bold"><i class="fas fa-copy me-2 text-info"></i> Tạo khóa học mẫu <span class="badge bg-info ms-2 fs-6 shadow-sm">Template</span></h4>
+                <p class="text-muted small">Chuẩn bị sẵn nội dung khóa học. Giảng viên và lịch dạy sẽ được thiết lập sau khi kích hoạt thành lớp học.</p>
+            @else
+                <h4 class="fw-bold"><i class="fas fa-bolt me-2 text-primary"></i> Tạo khóa học trực tiếp <span class="badge bg-primary ms-2 fs-6 shadow-sm">Học ngay</span></h4>
+                <p class="text-muted small">Tạo lớp học với giảng viên và ngày khai giảng ngay lập tức.</p>
+            @endif
         </div>
     </div>
 
     @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i> {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
+        <div class="alert alert-danger border-0 shadow-sm mb-4">{{ session('error') }}</div>
     @endif
 
-    <div class="row">
-        <div class="col-md-8 offset-md-2">
-            <div class="vip-card">
-                <div class="vip-card-header">
-                    <h5 class="vip-card-title fw-bold">
-                        <i class="fas fa-plus-circle me-2 text-primary"></i> Thêm module học tập mới
-                    </h5>
+    <form action="{{ route('admin.khoa-hoc.store') }}" method="POST" enctype="multipart/form-data" id="mainForm">
+        @csrf
+        <input type="hidden" name="loai" value="{{ $loai }}">
+
+        <div class="row">
+            <!-- Cột trái: Thông tin chính -->
+            <div class="col-lg-8">
+                <div class="vip-card mb-4">
+                    <div class="vip-card-header">
+                        <h5 class="vip-card-title small fw-bold text-uppercase">1. Thông tin chung</h5>
+                    </div>
+                    <div class="vip-card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Môn học <span class="text-danger">*</span></label>
+                                <select name="mon_hoc_id" class="form-select vip-form-control @error('mon_hoc_id') is-invalid @enderror" required>
+                                    <option value="">-- Chọn môn học --</option>
+                                    @foreach($monHocs as $mh)
+                                        <option value="{{ $mh->id }}" {{ old('mon_hoc_id', $preselectedMonHocId) == $mh->id ? 'selected' : '' }}>
+                                            {{ $mh->ten_mon_hoc }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('mon_hoc_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Tên khóa học <span class="text-danger">*</span></label>
+                                <input type="text" name="ten_khoa_hoc" class="form-control vip-form-control @error('ten_khoa_hoc') is-invalid @enderror" value="{{ old('ten_khoa_hoc') }}" required placeholder="Ví dụ: Lập trình Python cơ bản">
+                                @error('ten_khoa_hoc') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            
+                            <div class="col-12">
+                                <label class="form-label small fw-bold d-block">Cấp độ</label>
+                                <div class="d-flex gap-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="cap_do" id="cd1" value="co_ban" {{ old('cap_do', 'co_ban') === 'co_ban' ? 'checked' : '' }}>
+                                        <label class="form-check-label small" for="cd1 text-success">Cơ bản</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="cap_do" id="cd2" value="trung_binh" {{ old('cap_do') === 'trung_binh' ? 'checked' : '' }}>
+                                        <label class="form-check-label small" for="cd2 text-warning">Trung bình</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="cap_do" id="cd3" value="nang_cao" {{ old('cap_do') === 'nang_cao' ? 'checked' : '' }}>
+                                        <label class="form-check-label small" for="cd3 text-danger">Nâng cao</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Mô tả ngắn</label>
+                                <textarea name="mo_ta_ngan" class="form-control vip-form-control" rows="2" placeholder="Tóm tắt khóa học (tối đa 500 ký tự)">{{ old('mo_ta_ngan') }}</textarea>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Nội dung chi tiết</label>
+                                <textarea name="mo_ta_chi_tiet" class="form-control vip-form-control" rows="5" placeholder="Mục tiêu, lộ trình và yêu cầu khóa học...">{{ old('mo_ta_chi_tiet') }}</textarea>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="vip-card-body p-4">
-                    <form action="{{ route('admin.module-hoc.store') }}" method="POST">
-                        @csrf
-                        
-                        <!-- Khóa học -->
-                        <div class="mb-4">
-                            <label for="khoa_hoc_id" class="form-label small fw-bold">Khóa học <span class="text-danger">*</span></label>
-                            <select name="khoa_hoc_id" id="khoa_hoc_id" class="form-select vip-form-control @error('khoa_hoc_id') is-invalid @enderror" required>
-                                <option value="">-- Chọn khóa học --</option>
-                                @php
-                                    $currentMonHoc = null;
-                                @endphp
-                                @foreach($khoaHocs as $kh)
-                                    @if($currentMonHoc != $kh->monHoc->ten_mon_hoc)
-                                        @if($currentMonHoc !== null) </optgroup> @endif
-                                        @php $currentMonHoc = $kh->monHoc->ten_mon_hoc; @endphp
-                                        <optgroup label="Môn học: {{ $currentMonHoc }}">
-                                    @endif
-                                    <option value="{{ $kh->id }}" {{ old('khoa_hoc_id', $khoaHocId) == $kh->id ? 'selected' : '' }}>
-                                        [{{ $kh->ma_khoa_hoc }}] {{ $kh->ten_khoa_hoc }}
-                                    </option>
-                                @endforeach
-                                @if($currentMonHoc !== null) </optgroup> @endif
-                            </select>
-                            @error('khoa_hoc_id')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
 
-                        <!-- Tên module -->
-                        <div class="mb-4">
-                            <label for="ten_module" class="form-label small fw-bold">Tên module <span class="text-danger">*</span></label>
-                            <input type="text" name="ten_module" id="ten_module" class="form-control vip-form-control @error('ten_module') is-invalid @enderror" value="{{ old('ten_module') }}" required placeholder="Ví dụ: Giới thiệu cơ bản về Python">
-                            @error('ten_module')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                <!-- Section Lịch học (Chỉ hiện khi trực tiếp) -->
+                <div class="{{ $loai === 'truc_tiep' ? '' : 'd-none' }}" id="section-lich-hoc">
+                    <div class="vip-card mb-4 border-primary border-start border-4">
+                        <div class="vip-card-header">
+                            <h5 class="vip-card-title small fw-bold text-primary">2. Lịch học & Khai giảng</h5>
                         </div>
-
-                        <div class="row">
-                            <!-- Thứ tự -->
-                            <div class="col-md-6 mb-4">
-                                <label for="thu_tu_module" class="form-label small fw-bold">Thứ tự hiển thị <span class="text-danger">*</span></label>
-                                <input type="number" name="thu_tu_module" id="thu_tu_module" class="form-control vip-form-control @error('thu_tu_module') is-invalid @enderror" value="{{ old('thu_tu_module', $thuTuGoiY) }}" min="1" required>
-                                <div class="form-text smaller text-muted">Thứ tự hiển thị trong khóa học (1, 2, 3...)</div>
-                                @error('thu_tu_module')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                        <div class="vip-card-body p-4">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Ngày khai giảng <span class="text-danger">*</span></label>
+                                    <input type="date" name="ngay_khai_giang" class="form-control vip-form-control @error('ngay_khai_giang') is-invalid @enderror" value="{{ old('ngay_khai_giang') }}" min="{{ date('Y-m-d') }}">
+                                    @error('ngay_khai_giang') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Ngày kết thúc dự kiến <span class="text-danger">*</span></label>
+                                    <input type="date" name="ngay_ket_thuc_du_kien" class="form-control vip-form-control @error('ngay_ket_thuc_du_kien') is-invalid @enderror" value="{{ old('ngay_ket_thuc_du_kien') }}">
+                                    @error('ngay_ket_thuc_du_kien') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
 
-                            <!-- Thời lượng -->
-                            <div class="col-md-6 mb-4">
-                                <label for="thoi_luong_du_kien" class="form-label small fw-bold">Thời lượng dự kiến (phút)</label>
-                                <input type="number" name="thoi_luong_du_kien" id="thoi_luong_du_kien" class="form-control vip-form-control @error('thoi_luong_du_kien') is-invalid @enderror" value="{{ old('thoi_luong_du_kien') }}" min="1" max="600" placeholder="90">
-                                <div class="form-text smaller text-muted">Đơn vị: phút. VD: 90 = 1 giờ 30 phút</div>
-                                @error('thoi_luong_du_kien')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                <!-- Section Modules (Dynamic) -->
+                <div class="vip-card mb-4">
+                    <div class="vip-card-header d-flex justify-content-between align-items-center">
+                        <h5 class="vip-card-title small fw-bold text-uppercase">3. Cấu trúc Modules</h5>
+                        <span class="badge bg-dark" id="module-count">1 module</span>
+                    </div>
+                    <div class="vip-card-body p-0">
+                        <!-- Alert Suggest Copy -->
+                        <div class="p-3 bg-light border-bottom">
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="fs-4">💡</span>
+                                <div class="flex-fill">
+                                    <label class="small fw-bold text-muted d-block">Copy cấu trúc từ khóa học mẫu có sẵn</label>
+                                    <select class="form-select form-select-sm" id="copy-from-template" style="max-width: 400px;">
+                                        <option value="">-- Tự nhập nội dung mới --</option>
+                                        @foreach($khoaHocMauCoSan as $mau)
+                                            <option value="{{ $mau->id }}" data-modules="{{ $mau->moduleHocs->toJson() }}">
+                                                [{{ $mau->ma_khoa_hoc }}] {{ $mau->ten_khoa_hoc }} ({{ $mau->tong_so_module }} module)
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Mô tả -->
-                        <div class="mb-4">
-                            <label for="mo_ta" class="form-label small fw-bold">Mô tả nội dung</label>
-                            <textarea name="mo_ta" id="mo_ta" class="form-control vip-form-control @error('mo_ta') is-invalid @enderror" rows="4" placeholder="Nhập mô tả chi tiết về nội dung học tập của module này...">{{ old('mo_ta') }}</textarea>
-                            @error('mo_ta')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" id="module-table">
+                                <thead class="bg-light smaller">
+                                    <tr>
+                                        <th class="text-center" width="50">#</th>
+                                        <th>Tên module <span class="text-danger">*</span></th>
+                                        <th width="100">TL (phút)</th>
+                                        <th>Mô tả</th>
+                                        @if($loai === 'truc_tiep')
+                                            <th width="180">Giảng viên <span class="text-danger">*</span></th>
+                                        @endif
+                                        <th class="text-center" width="50"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @php $modulesOld = old('modules', [['ten_module'=>'', 'thoi_luong_du_kien'=>'', 'mo_ta'=>'', 'giang_vien_id'=>'']]) @endphp
+                                    @foreach($modulesOld as $i => $mod)
+                                        <tr class="module-row" data-index="{{ $i }}">
+                                            <td class="text-center fw-bold text-muted stt">{{ $i + 1 }}</td>
+                                            <td>
+                                                <input type="text" name="modules[{{ $i }}][ten_module]" class="form-control form-control-sm vip-form-control" value="{{ $mod['ten_module'] }}" required placeholder="Tên module">
+                                            </td>
+                                            <td>
+                                                <input type="number" name="modules[{{ $i }}][thoi_luong_du_kien]" class="form-control form-control-sm vip-form-control text-center" value="{{ $mod['thoi_luong_du_kien'] }}" placeholder="90" min="1" max="600">
+                                            </td>
+                                            <td>
+                                                <input type="text" name="modules[{{ $i }}][mo_ta]" class="form-control form-control-sm vip-form-control" value="{{ $mod['mo_ta'] }}" placeholder="Ghi chú nhanh">
+                                            </td>
+                                            @if($loai === 'truc_tiep')
+                                                <td>
+                                                    <select name="modules[{{ $i }}][giang_vien_id]" class="form-select form-select-sm vip-form-control" required>
+                                                        <option value="">-- GV --</option>
+                                                        @foreach($giangViens as $gv)
+                                                            <option value="{{ $gv->id }}" {{ ($mod['giang_vien_id'] ?? '') == $gv->id ? 'selected' : '' }}>{{ $gv->nguoiDung->ho_ten }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </td>
+                                            @endif
+                                            <td class="text-center">
+                                                <button type="button" class="btn btn-link text-danger p-0 btn-remove-row" title="Xóa module"><i class="fas fa-times"></i></button>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
-
-                        <!-- Trạng thái -->
-                        <div class="mb-4">
-                            <div class="form-check form-switch custom-switch">
-                                <input class="form-check-input" type="checkbox" name="trang_thai" id="trang_thai" value="1" {{ old('trang_thai', '1') == '1' ? 'checked' : '' }}>
-                                <label class="form-check-label fw-bold small ms-2" for="trang_thai">Kích hoạt hoạt động</label>
-                            </div>
-                        </div>
-
-                        <!-- Mã module (Readonly display) -->
-                        <div class="mb-4 p-3 bg-light rounded border border-dashed">
-                            <label class="form-label small fw-bold mb-1 d-block text-muted">Mã module dự kiến</label>
-                            <span class="text-primary fw-bold" id="ma_module_preview">Tự sinh sau khi chọn khóa học và nhập thứ tự</span>
-                        </div>
-
-                        <hr class="my-4">
-
-                        <div class="d-flex justify-content-end gap-2">
-                            <a href="{{ route('admin.module-hoc.index') }}" class="btn btn-secondary px-4">
-                                <i class="fas fa-times me-1"></i> Hủy
-                            </a>
-                            <button type="submit" class="btn btn-primary px-5 fw-bold">
-                                <i class="fas fa-save me-1"></i> Lưu module
+                        <div class="p-3 border-top bg-light">
+                            <button type="button" id="btn-add-module" class="btn btn-outline-secondary btn-sm fw-bold">
+                                <i class="fas fa-plus me-1"></i> Thêm module
                             </button>
                         </div>
-                    </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cột phải: Media & Settings -->
+            <div class="col-lg-4">
+                <div class="vip-card mb-4 shadow-sm border-0">
+                    <div class="vip-card-header">
+                        <h5 class="vip-card-title small fw-bold text-uppercase">Ảnh đại diện</h5>
+                    </div>
+                    <div class="vip-card-body p-4 text-center">
+                        <div class="bg-light rounded p-4 mb-3 border border-dashed" id="image-preview-container">
+                            <i class="fas fa-image fa-3x text-muted opacity-25"></i>
+                            <p class="small text-muted mt-2">Chưa có ảnh</p>
+                        </div>
+                        <input type="file" name="hinh_anh" class="form-control form-control-sm" accept="image/*">
+                        <div class="form-text smaller italic mt-2">Định dạng: JPG, PNG. Dung lượng tối đa 2MB</div>
+                    </div>
+                </div>
+
+                <div class="vip-card mb-4 shadow-sm border-0">
+                    <div class="vip-card-header">
+                        <h5 class="vip-card-title small fw-bold text-uppercase">Ghi chú nội bộ</h5>
+                    </div>
+                    <div class="vip-card-body p-4">
+                        <textarea name="ghi_chu_noi_bo" class="form-control vip-form-control" rows="4" placeholder="Chỉ dành cho quản trị viên thấy...">{{ old('ghi_chu_noi_bo') }}</textarea>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2">
+                    @if($loai === 'mau')
+                        <button type="submit" class="btn btn-info py-2 fw-bold text-white shadow-sm"><i class="fas fa-save me-2"></i>LƯU KHÓA HỌC MẪU</button>
+                    @else
+                        <button type="submit" class="btn btn-primary py-2 fw-bold shadow-sm"><i class="fas fa-paper-plane me-2"></i>TẠO VÀ GỬI GIẢNG VIÊN</button>
+                    @endif
+                    <a href="{{ route('admin.khoa-hoc.index', ['tab'=> $loai==='mau' ? 'mau' : 'hoat_dong']) }}" class="btn btn-outline-secondary py-2 fw-bold">HỦY BỎ</a>
                 </div>
             </div>
         </div>
-    </div>
+    </form>
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tableBody = document.querySelector('#module-table tbody');
+    const btnAdd = document.getElementById('btn-add-module');
+    const countBadge = document.getElementById('module-count');
+    const loai = "{{ $loai }}";
+
+    function updateRenumbering() {
+        const rows = tableBody.querySelectorAll('.module-row');
+        rows.forEach((row, index) => {
+            row.dataset.index = index;
+            row.querySelector('.stt').textContent = index + 1;
+            
+            // Cập nhật name attributes của inputs
+            row.querySelectorAll('[name*="modules"]').forEach(input => {
+                const oldName = input.getAttribute('name');
+                const newName = oldName.replace(/modules\[\d+\]/, `modules[${index}]`);
+                input.setAttribute('name', newName);
+            });
+        });
+        countBadge.textContent = `${rows.length} module`;
+    }
+
+    // 1. Thêm row
+    btnAdd.addEventListener('click', function() {
+        const lastRow = tableBody.querySelector('.module-row:last-child');
+        const nextIndex = parseInt(lastRow.dataset.index) + 1;
+        const newRow = lastRow.cloneNode(true);
+        
+        // Clear values
+        newRow.querySelectorAll('input').forEach(i => i.value = '');
+        if (loai === 'truc_tiep') {
+            newRow.querySelector('select').selectedIndex = 0;
+        }
+        
+        tableBody.appendChild(newRow);
+        updateRenumbering();
+    });
+
+    // 2. Xóa row
+    tableBody.addEventListener('click', function(e) {
+        if (e.target.closest('.btn-remove-row')) {
+            const rows = tableBody.querySelectorAll('.module-row');
+            if (rows.length <= 1) {
+                alert('Phải có ít nhất 1 module!');
+                return;
+            }
+            e.target.closest('.module-row').remove();
+            updateRenumbering();
+        }
+    });
+
+    // 3. Copy từ template mẫu
+    document.getElementById('copy-from-template').addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (!selectedOption.value) return;
+
+        if (confirm("Thay thế các module hiện tại bằng cấu trúc từ khóa học mẫu này?")) {
+            const modulesData = JSON.parse(selectedOption.dataset.modules);
+            tableBody.innerHTML = ''; // Clear all current rows
+
+            modulesData.forEach((mod, index) => {
+                const row = document.createElement('tr');
+                row.className = 'module-row';
+                row.dataset.index = index;
+                
+                let gvCell = loai === 'truc_tiep' ? `
+                    <td>
+                        <select name="modules[${index}][giang_vien_id]" class="form-select form-select-sm vip-form-control" required>
+                            <option value="">-- GV --</option>
+                            @foreach($giangViens as $gv)
+                                <option value="{{ $gv->id }}">{{ $gv->nguoiDung->ho_ten }}</option>
+                            @endforeach
+                        </select>
+                    </td>
+                ` : '';
+
+                row.innerHTML = `
+                    <td class="text-center fw-bold text-muted stt">${index + 1}</td>
+                    <td>
+                        <input type="text" name="modules[${index}][ten_module]" class="form-control form-control-sm vip-form-control" value="${mod.ten_module}" required>
+                    </td>
+                    <td>
+                        <input type="number" name="modules[${index}][thoi_luong_du_kien]" class="form-control form-control-sm vip-form-control text-center" value="${mod.thoi_luong_du_kien || ''}">
+                    </td>
+                    <td>
+                        <input type="text" name="modules[${index}][mo_ta]" class="form-control form-control-sm vip-form-control" value="${mod.mo_ta || ''}">
+                    </td>
+                    ${gvCell}
+                    <td class="text-center">
+                        <button type="button" class="btn btn-link text-danger p-0 btn-remove-row"><i class="fas fa-times"></i></button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+            updateRenumbering();
+        }
+        this.selectedIndex = 0; // Reset dropdown
+    });
+});
+</script>
+
 <style>
+    .vip-form-control:focus { box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15); }
     .border-dashed { border-style: dashed !important; }
-    .custom-switch .form-check-input { width: 3em; height: 1.5em; cursor: pointer; }
+    .hover-shadow:hover { box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; }
+    .smaller { font-size: 0.75rem; }
+    .btn-xs { padding: 0.125rem 0.25rem; font-size: 0.75rem; }
+    #module-table thead th { border-top: none; }
 </style>
 @endsection

@@ -12,8 +12,15 @@
     </div>
 
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert">
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
             <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i> {{ session('error') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
@@ -53,16 +60,16 @@
                                 <div class="card mb-3 border shadow-sm hover-shadow transition-all">
                                     <div class="card-body p-4">
                                         <div class="row align-items-center">
-                                            <div class="col-md-8">
+                                            <div class="col-md-8 border-end">
                                                 <div class="d-flex align-items-center mb-2">
                                                     <span class="badge bg-primary me-2">{{ $pc->moduleHoc->ma_module }}</span>
-                                                    <h5 class="fw-bold mb-0">{{ $pc->moduleHoc->ten_module }}</h5>
+                                                    <h5 class="fw-bold mb-0 text-dark">{{ $pc->moduleHoc->ten_module }}</h5>
                                                 </div>
                                                 <p class="mb-1 text-dark">
                                                     <i class="fas fa-graduation-cap me-1 text-muted"></i> 
                                                     Khóa học: <strong>{{ $pc->moduleHoc->khoaHoc->ten_khoa_hoc }}</strong>
                                                 </p>
-                                                <div class="d-flex gap-3 small text-muted mb-3">
+                                                <div class="d-flex flex-wrap gap-3 small text-muted mb-3">
                                                     <span><i class="fas fa-book me-1"></i> Môn: {{ $pc->moduleHoc->khoaHoc->monHoc->ten_mon_hoc }}</span>
                                                     <span>
                                                         <i class="fas fa-clock me-1"></i> 
@@ -72,26 +79,26 @@
                                                         @endphp
                                                         {{ $h > 0 ? $h.'h ' : '' }}{{ $m > 0 ? $m.'p' : '' }}
                                                     </span>
-                                                    <span><i class="fas fa-calendar-alt me-1"></i> Gửi ngày: {{ $pc->ngay_phan_cong ? $pc->ngay_phan_cong->format('d/m/Y') : $pc->created_at->format('d/m/Y') }}</span>
+                                                    <span><i class="fas fa-calendar-alt me-1"></i> Ngày PC: {{ $pc->ngay_phan_cong ? $pc->ngay_phan_cong->format('d/m/Y') : $pc->created_at->format('d/m/Y') }}</span>
                                                 </div>
                                                 @if($pc->ghi_chu)
-                                                    <div class="bg-light p-2 rounded border-start border-primary border-4 small">
-                                                        <i class="fas fa-info-circle me-1"></i> <strong>Ghi chú từ Admin:</strong> {{ $pc->ghi_chu }}
+                                                    <div class="bg-light p-2 rounded border-start border-warning border-4 small">
+                                                        <i class="fas fa-sticky-note me-1"></i> <strong>Ghi chú từ Admin:</strong> {{ $pc->ghi_chu }}
                                                     </div>
                                                 @endif
                                             </div>
                                             <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                                                <div class="d-flex justify-content-md-end gap-2">
+                                                <div class="d-flex flex-column gap-2 ps-md-3">
                                                     <form action="{{ route('giang-vien.phan-cong.xac-nhan', $pc->id) }}" method="POST">
                                                         @csrf
-                                                        <button type="submit" class="btn btn-success px-4 fw-bold">
+                                                        <button type="submit" class="btn btn-success w-100 fw-bold shadow-sm">
                                                             <i class="fas fa-check me-1"></i> Xác nhận nhận dạy
                                                         </button>
                                                     </form>
-                                                    <form action="{{ route('giang-vien.phan-cong.tu-choi', $pc->id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn từ chối phân công này?')">
+                                                    <form action="{{ route('giang-vien.phan-cong.tu-choi', $pc->id) }}" method="POST" onsubmit="return confirm('Bạn chắc chắn muốn từ chối phân công này?')">
                                                         @csrf
-                                                        <button type="submit" class="btn btn-outline-danger px-3">
-                                                            <i class="fas fa-times me-1"></i> Từ chối
+                                                        <button type="submit" class="btn btn-outline-danger w-100 fw-bold">
+                                                            <i class="fas fa-times me-1"></i> Từ chối yêu cầu
                                                         </button>
                                                     </form>
                                                 </div>
@@ -100,9 +107,9 @@
                                     </div>
                                 </div>
                             @empty
-                                <div class="text-center py-5 text-muted">
+                                <div class="text-center py-5 text-muted bg-light rounded">
                                     <i class="fas fa-inbox fa-3x mb-3 opacity-25"></i>
-                                    <p>Hiện không có yêu cầu phân công nào đang chờ bạn xác nhận.</p>
+                                    <p class="mb-0">Hiện không có yêu cầu phân công nào đang chờ bạn xác nhận.</p>
                                 </div>
                             @endforelse
                         </div>
@@ -122,7 +129,7 @@
                                                     <i class="fas fa-graduation-cap me-1 text-muted"></i> 
                                                     Khóa học: <strong>{{ $pc->moduleHoc->khoaHoc->ten_khoa_hoc }}</strong>
                                                 </p>
-                                                <div class="d-flex gap-3 small text-muted">
+                                                <div class="d-flex flex-wrap gap-3 small text-muted">
                                                     <span><i class="fas fa-book me-1"></i> Môn: {{ $pc->moduleHoc->khoaHoc->monHoc->ten_mon_hoc }}</span>
                                                     <span>
                                                         <i class="fas fa-clock me-1"></i> 
@@ -132,11 +139,11 @@
                                                         @endphp
                                                         {{ $h > 0 ? $h.'h ' : '' }}{{ $m > 0 ? $m.'p' : '' }}
                                                     </span>
-                                                    <span class="text-success"><i class="fas fa-check-double me-1"></i> Đã xác nhận</span>
+                                                    <span class="text-success"><i class="fas fa-calendar-check me-1"></i> Đã tiếp nhận</span>
                                                 </div>
                                             </div>
                                             <div class="col-md-3 text-md-end mt-3 mt-md-0">
-                                                <a href="#" class="btn btn-outline-primary btn-sm px-3 disabled">
+                                                <a href="{{ route('home') }}" class="btn btn-outline-primary btn-sm px-4 fw-bold">
                                                     <i class="fas fa-folder-open me-1"></i> Vào lớp học
                                                 </a>
                                             </div>
@@ -144,9 +151,9 @@
                                     </div>
                                 </div>
                             @empty
-                                <div class="text-center py-5 text-muted">
+                                <div class="text-center py-5 text-muted bg-light rounded">
                                     <i class="fas fa-chalkboard fa-3x mb-3 opacity-25"></i>
-                                    <p>Bạn chưa nhận dạy module nào.</p>
+                                    <p class="mb-0">Bạn chưa có module nào đang giảng dạy.</p>
                                 </div>
                             @endforelse
                         </div>
@@ -157,9 +164,9 @@
                                 <table class="table table-hover align-middle border">
                                     <thead class="bg-light">
                                         <tr>
-                                            <th>Module</th>
+                                            <th class="ps-3">Module / Mã</th>
                                             <th>Khóa học</th>
-                                            <th class="text-center">Ngày gửi</th>
+                                            <th class="text-center">Ngày phân công</th>
                                             <th class="text-center">Trạng thái</th>
                                             <th>Ghi chú phản hồi</th>
                                         </tr>
@@ -167,20 +174,20 @@
                                     <tbody>
                                         @forelse($lichSu as $pc)
                                             <tr>
-                                                <td>
+                                                <td class="ps-3">
                                                     <div class="fw-bold">{{ $pc->moduleHoc->ten_module }}</div>
-                                                    <code class="small">{{ $pc->moduleHoc->ma_module }}</code>
+                                                    <code class="small text-muted">{{ $pc->moduleHoc->ma_module }}</code>
                                                 </td>
-                                                <td><small>{{ $pc->moduleHoc->khoaHoc->ten_khoa_hoc }}</small></td>
+                                                <td><small class="fw-bold text-dark">{{ $pc->moduleHoc->khoaHoc->ten_khoa_hoc }}</small></td>
                                                 <td class="text-center small text-muted">{{ $pc->ngay_phan_cong ? $pc->ngay_phan_cong->format('d/m/Y') : $pc->created_at->format('d/m/Y') }}</td>
                                                 <td class="text-center">
                                                     <span class="badge bg-danger rounded-pill px-3">Đã từ chối</span>
                                                 </td>
-                                                <td><small class="text-muted italic">{{ $pc->ghi_chu ?: 'Không có ghi chú' }}</small></td>
+                                                <td><small class="text-muted italic">{{ $pc->ghi_chu ?: 'Không có phản hồi' }}</small></td>
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="5" class="text-center py-4 text-muted">Không có lịch sử phân công.</td>
+                                                <td colspan="5" class="text-center py-4 text-muted small italic">Không có lịch sử phân công bị từ chối.</td>
                                             </tr>
                                         @endforelse
                                     </tbody>
@@ -196,16 +203,15 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Nhớ tab khi reload
+        // Bootstrap tab handling with URL hash
         const hash = window.location.hash;
         if (hash) {
             const triggerEl = document.querySelector(`.nav-link[data-bs-target="${hash}"]`);
             if (triggerEl) {
-                bootstrap.Tab.getInstance(triggerEl)?.show() || new bootstrap.Tab(triggerEl).show();
+                bootstrap.Tab.getOrCreateInstance(triggerEl).show();
             }
         }
 
-        // Cập nhật hash khi đổi tab
         const tabEls = document.querySelectorAll('button[data-bs-toggle="tab"]');
         tabEls.forEach(el => {
             el.addEventListener('shown.bs.tab', function(event) {
@@ -227,6 +233,11 @@
         border: none;
         color: #6c757d;
         border-bottom: 3px solid transparent;
+        transition: all 0.2s;
+    }
+    .nav-tabs .nav-link:hover {
+        color: #0d6efd;
+        background-color: #f8f9fa;
     }
     .nav-tabs .nav-link.active {
         color: #0d6efd;
