@@ -1,11 +1,78 @@
-@extends('layouts.app', ['title' => 'Trang chủ'])
+@extends('layouts.home')
+@section('title', 'Trang chủ')
 
 @section('content')
+
+{{-- ===== BANNER QUAY LẠI DASHBOARD (chỉ hiện khi đã đăng nhập) ===== --}}
+@auth
+@php
+    $authUser  = auth()->user();
+    $dashRoute = match($authUser->vai_tro) {
+        'admin'      => route('admin.dashboard'),
+        'giang_vien' => route('giang-vien.dashboard'),
+        default      => route('hoc-vien.dashboard'),
+    };
+
+    // Label nút theo vai trò
+    $dashLabel = match($authUser->vai_tro) {
+        'admin'      => '⚙️ Quay lại Dashboard quản trị',
+        'giang_vien' => '📚 Hoạt động dạy của ' . $authUser->ho_ten,
+        default      => '🎓 Hoạt động học của ' . $authUser->ho_ten,
+    };
+
+    // Màu sắc theo vai trò
+    $dashColor = match($authUser->vai_tro) {
+        'admin'      => '#dc2626',   // đỏ
+        'giang_vien' => '#2563eb',   // xanh dương
+        default      => '#16a34a',   // xanh lá
+    };
+
+    $homeAvatar2 = $authUser->anh_dai_dien ? asset($authUser->anh_dai_dien) : null;
+@endphp
+
+<div style="background: {{ $dashColor }}; color:white; padding:8px 20px;
+            display:flex; align-items:center; justify-content:space-between;
+            position:sticky; top:0; z-index:2000;
+            box-shadow:0 2px 10px rgba(0,0,0,.2); gap:12px; flex-wrap:wrap;">
+
+    {{-- Thông tin user --}}
+    <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
+        @if($homeAvatar2)
+            <img src="{{ $homeAvatar2 }}" alt="{{ $authUser->ho_ten }}"
+                 style="width:30px; height:30px; border-radius:50%; object-fit:cover;
+                        border:2px solid rgba(255,255,255,0.7);">
+        @else
+            <div style="width:30px; height:30px; border-radius:50%;
+                        background:rgba(255,255,255,0.25); color:white; font-weight:800;
+                        font-size:13px; display:flex; align-items:center; justify-content:center;
+                        border:2px solid rgba(255,255,255,0.5);">
+                {{ strtoupper(mb_substr($authUser->ho_ten, 0, 1)) }}
+            </div>
+        @endif
+        <span style="font-size:13px; font-weight:600; opacity:.9;">
+            Xin chào, <strong>{{ $authUser->ho_ten }}</strong>
+        </span>
+    </div>
+
+    {{-- Nút quay lại dashboard --}}
+    <a href="{{ $dashRoute }}"
+       style="background:white; color:{{ $dashColor }}; border:none; border-radius:20px;
+              padding:5px 18px; font-size:13px; font-weight:800; text-decoration:none;
+              display:flex; align-items:center; gap:6px; white-space:nowrap;
+              transition:all .2s; box-shadow:0 2px 8px rgba(0,0,0,.15);"
+       onmouseover="this.style.transform='scale(1.04)'"
+       onmouseout="this.style.transform='scale(1)'">
+        {{ $dashLabel }}
+    </a>
+
+</div>
+@endauth
+{{-- ===== END BANNER ===== --}}
 
 <!-- ========== HEADER & NAVBAR ========== -->
 <nav class="navbar navbar-expand-lg navbar-dark sticky-top" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); box-shadow: 0 2px 15px rgba(0,0,0,0.1);">
     <div class="container">
-        <a class="navbar-brand d-flex align-items-center" href="{{ route('home', ['preview' => 1]) }}" style="font-size: 1.5rem; font-weight: 700; color: white;">
+        <a class="navbar-brand d-flex align-items-center" href="{{ route('home') }}" style="font-size: 1.5rem; font-weight: 700; color: white;">
             @if(isset($settings['site_logo']) && $settings['site_logo'])
                 <img src="{{ asset($settings['site_logo']) }}" alt="Logo" style="height: 2rem; margin-right:0.5rem; object-fit: contain;">
             @else
@@ -19,7 +86,7 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto align-items-center">
                 <li class="nav-item">
-                    <a class="nav-link active" href="{{ route('home', ['preview' => 1]) }}" style="color: rgba(255,255,255,0.85) !important; font-weight: 500; margin: 0 0.5rem;">
+                    <a class="nav-link active" href="{{ route('home') }}" style="color: rgba(255,255,255,0.85) !important; font-weight: 500; margin: 0 0.5rem;">
                         <i class="fas fa-home"></i> Trang chủ
                     </a>
                 </li>
@@ -45,14 +112,14 @@
                 </li>
                 @auth
                     @php
-                        $navUser    = auth()->user();
-                        $navAvatar  = $navUser->anh_dai_dien ? asset($navUser->anh_dai_dien) : null;
+                        $homeUser   = auth()->user();
+                        $homeAvatar = $homeUser->anh_dai_dien ? asset($homeUser->anh_dai_dien) : null;
                     @endphp
                     <li class="nav-item dropdown" style="margin-left: 1rem;">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: rgba(255,255,255,0.85) !important; padding: 0; gap: 0.5rem;">
-                            @if($navAvatar)
-                                <img src="{{ $navAvatar }}"
-                                     alt="{{ $navUser->ho_ten }}"
+                            @if($homeAvatar)
+                                <img src="{{ $homeAvatar }}"
+                                     alt="{{ $homeUser->ho_ten }}"
                                      style="width:36px; height:36px; border-radius:50%; object-fit:cover;
                                             border:2px solid rgba(255,255,255,0.6); flex-shrink:0;">
                             @else
@@ -61,37 +128,37 @@
                                             display:flex; align-items:center; justify-content:center;
                                             color:white; font-weight:800; font-size:15px;
                                             border:2px solid rgba(255,255,255,0.5); flex-shrink:0;">
-                                    {{ strtoupper(mb_substr($navUser->ho_ten, 0, 1)) }}
+                                    {{ strtoupper(mb_substr($homeUser->ho_ten, 0, 1)) }}
                                 </div>
                             @endif
-                            <span style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ $navUser->ho_ten }}</span>
+                            <span style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ $homeUser->ho_ten }}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown" style="background: white; border: none; box-shadow: 0 5px 20px rgba(0,0,0,0.15);">
                             <li>
                                 <div style="padding:12px 16px; display:flex; align-items:center; gap:10px;
                                             background:linear-gradient(135deg,rgba(102,126,234,.08),rgba(102,126,234,.03));
                                             border-bottom:1px solid #f1f5f9;">
-                                    @if($navAvatar)
-                                        <img src="{{ $navAvatar }}"
+                                    @if($homeAvatar)
+                                        <img src="{{ $homeAvatar }}"
                                              style="width:38px; height:38px; border-radius:50%; object-fit:cover;
                                                     border:2px solid #c7d2fe;">
                                     @else
                                         <div style="width:38px; height:38px; border-radius:50%; background:#667eea;
                                                     display:flex; align-items:center; justify-content:center;
                                                     color:white; font-weight:800; font-size:15px;">
-                                            {{ strtoupper(mb_substr($navUser->ho_ten, 0, 1)) }}
+                                            {{ strtoupper(mb_substr($homeUser->ho_ten, 0, 1)) }}
                                         </div>
                                     @endif
                                     <div>
                                         <div style="font-weight:700; color:#1e293b; font-size:13px; line-height:1.2;">
-                                            {{ $navUser->ho_ten }}
+                                            {{ $homeUser->ho_ten }}
                                         </div>
                                         <div style="font-size:11px; color:#64748b; margin-top:2px;">
-                                            @if($navUser->vai_tro === 'admin') Quản trị viên
-                                            @elseif($navUser->vai_tro === 'giang_vien') Giảng viên
+                                            @if($homeUser->vai_tro === 'admin') Quản trị viên
+                                            @elseif($homeUser->vai_tro === 'giang_vien') Giảng viên
                                             @else Học viên
                                             @endif
-                                            &middot; {{ $navUser->email }}
+                                            &middot; {{ $homeUser->email }}
                                         </div>
                                     </div>
                                 </div>
@@ -99,8 +166,8 @@
                             <li><hr class="dropdown-divider" style="margin:4px 0;"></li>
                             <li>
                                 <a class="dropdown-item" style="color:#1d4ed8; font-weight:600;"
-                                   href="@if($navUser->vai_tro === 'admin'){{ route('admin.dashboard') }}
-                                         @elseif($navUser->vai_tro === 'giang_vien'){{ route('giang-vien.dashboard') }}
+                                   href="@if($homeUser->vai_tro === 'admin'){{ route('admin.dashboard') }}
+                                         @elseif($homeUser->vai_tro === 'giang_vien'){{ route('giang-vien.dashboard') }}
                                          @else{{ route('hoc-vien.dashboard') }}@endif">
                                     <i class="fas fa-tachometer-alt" style="color:#2563eb;"></i>
                                     Vào Dashboard
@@ -363,7 +430,7 @@
                 <h5 style="font-weight: 600; margin-bottom: 1.5rem; color: white;">Liên Kết Nhanh</h5>
                 <ul style="list-style: none; padding: 0;">
                     <li style="margin-bottom: 0.75rem;">
-                        <a href="{{ route('home', ['preview' => 1]) }}" style="color: rgba(255,255,255,0.75); text-decoration: none;">Trang chủ</a>
+                        <a href="{{ route('home') }}" style="color: rgba(255,255,255,0.75); text-decoration: none;">Trang chủ</a>
                     </li>
                     <li style="margin-bottom: 0.75rem;">
                         <a href="#features" style="color: rgba(255,255,255,0.75); text-decoration: none;">Tính năng</a>
