@@ -79,10 +79,13 @@
             </div>
 
             <div class="vip-card">
-                <div class="vip-card-header">
+                <div class="vip-card-header d-flex justify-content-between align-items-center">
                     <h5 class="vip-card-title">
                         <i class="fas fa-list"></i> Các khóa học ({{ $khoaHocs->total() }})
                     </h5>
+                    <a href="{{ route('admin.khoa-hoc.create') }}?mon_hoc_id={{ $monHoc->id }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus"></i> Thêm khóa học cho môn này
+                    </a>
                 </div>
                 <div class="vip-card-body">
                     @if($khoaHocs->count() > 0)

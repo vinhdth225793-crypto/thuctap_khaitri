@@ -4,8 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\MonHoc;
-use App\Models\KhoaHoc;
-use App\Models\ModuleHoc;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -14,18 +12,13 @@ class KhoaHocController extends Controller
     /**
      * Hiển thị danh sách môn học
      */
-    public function indexMonHoc()
+    public function indexMonHoc(Request $request)
     {
-        $page = request('page', 1);
-        $search = request('search', '');
+        $search = $request->get('search', '');
         $perPage = 10;
 
-        if ($search) {
-            $monHocs = MonHoc::search($search)
-                ->paginate($perPage, ['*'], 'page', $page);
-        } else {
-            $monHocs = MonHoc::paginate($perPage, ['*'], 'page', $page);
-        }
+        $monHocs = MonHoc::when($search, fn($q) => $q->search($search))
+                         ->paginate($perPage);
 
         return view('pages.admin.khoa-hoc.mon-hoc.index', compact('monHocs', 'search'));
     }
@@ -77,10 +70,10 @@ class KhoaHocController extends Controller
             $data['hinh_anh'] = 'images/mon-hoc/' . $imageName;
         }
 
-        MonHoc::create($data);
+        $monHoc = MonHoc::create($data);  // ← lưu kết quả create vào biến
 
-        return redirect()->route('admin.mon-hoc.index')
-            ->with('success', 'Thêm môn học thành công với mã: ' . $maMonHoc);
+        return redirect()->route('admin.mon-hoc.show', $monHoc->id)
+            ->with('success', 'Thêm môn học thành công! Mã: ' . $maMonHoc);
     }
 
     /**
@@ -151,20 +144,25 @@ class KhoaHocController extends Controller
      */
     public function destroyMonHoc($id)
     {
-        $monHoc = MonHoc::findOrFail($id);
+        $monHoc = MonHoc::with('khoaHocs.moduleHocs')->findOrFail($id);
 
-        // Xóa hình ảnh
+        // Xóa ảnh của chính môn học
         if ($monHoc->hinh_anh && file_exists(public_path($monHoc->hinh_anh))) {
             unlink(public_path($monHoc->hinh_anh));
         }
 
-        // Xóa tất cả khóa học liên quan
-        $monHoc->khoaHocs()->delete();
+        // Xóa ảnh của từng khóa học liên quan
+        foreach ($monHoc->khoaHocs as $khoaHoc) {
+            if ($khoaHoc->hinh_anh && file_exists(public_path($khoaHoc->hinh_anh))) {
+                unlink(public_path($khoaHoc->hinh_anh));
+            }
+        }
 
+        // Cascade delete sẽ tự xóa khoa_hoc → module_hoc → phan_cong qua DB constraint
         $monHoc->delete();
 
         return redirect()->route('admin.mon-hoc.index')
-            ->with('success', 'Xóa môn học thành công');
+            ->with('success', 'Đã xóa môn học "' . $monHoc->ten_mon_hoc . '" và tất cả dữ liệu liên quan.');
     }
 
     /**
@@ -175,28 +173,9 @@ class KhoaHocController extends Controller
         $monHoc = MonHoc::findOrFail($id);
         $monHoc->update(['trang_thai' => !$monHoc->trang_thai]);
 
+        $statusText = $monHoc->trang_thai ? 'kích hoạt' : 'tạm dừng';
+
         return redirect()->back()
-            ->with('success', 'Cập nhật trạng thái thành công');
-    }
-
-    /**
-     * Hiển thị danh sách khóa học
-     */
-    public function indexKhoaHoc()
-    {
-        $monHocs = MonHoc::all();
-        $khoaHocs = KhoaHoc::with('monHoc')->paginate(10);
-
-        return view('pages.admin.khoa-hoc.khoa-hoc.index', compact('khoaHocs', 'monHocs'));
-    }
-
-    /**
-     * Hiển thị danh sách module
-     */
-    public function indexModuleHoc()
-    {
-        $moduleHocs = ModuleHoc::with('khoaHoc')->paginate(10);
-
-        return view('pages.admin.khoa-hoc.module-hoc.index', compact('moduleHocs'));
+            ->with('success', 'Môn học "' . $monHoc->ten_mon_hoc . '" đã được ' . $statusText . '.');
     }
 }

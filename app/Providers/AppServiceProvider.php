@@ -5,6 +5,8 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use App\Models\TaiKhoanChoPheDuyet;
+use App\Models\ModuleHoc;
+use App\Observers\ModuleHocObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,6 +23,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Phase 1 - Register ModuleHocObserver
+        ModuleHoc::observe(ModuleHocObserver::class);
+
         // Share số lượng tài khoản chờ phê duyệt tới tất cả views
         View::composer(['components.sidebar-admin', 'layouts.app'], function ($view) {
             $pendingAccountsCount = TaiKhoanChoPheDuyet::where('trang_thai', 'cho_phe_duyet')->count();

@@ -45,16 +45,16 @@ class KhoaHocManagementController extends Controller
     {
         $monHocs = MonHoc::active()->get();
         $giangViens = GiangVien::with('nguoiDung')->get();
+        $preSelectedMonHocId = request()->get('mon_hoc_id');
 
-        // Lấy tất cả module hiện có để hiển thị
-        $existingModules = ModuleHoc::with(['khoaHoc.monHoc', 'phanCongGiangViens.giangVien.nguoiDung'])
-                                   ->whereHas('khoaHoc', function($q) {
-                                       $q->where('trang_thai', true);
-                                   })
-                                   ->get()
-                                   ->groupBy('ten_module');
+        // ✅ Mới (nhẹ, chỉ lấy tên để tham khảo):
+        $existingModules = ModuleHoc::select('ten_module')
+                                   ->whereHas('khoaHoc', fn($q) => $q->where('trang_thai', true))
+                                   ->distinct()
+                                   ->orderBy('ten_module')
+                                   ->pluck('ten_module');
 
-        return view('pages.admin.khoa-hoc.khoa-hoc.create', compact('monHocs', 'giangViens', 'existingModules'));
+        return view('pages.admin.khoa-hoc.khoa-hoc.create', compact('monHocs', 'giangViens', 'existingModules', 'preSelectedMonHocId'));
     }
 
     /**
@@ -83,8 +83,7 @@ class KhoaHocManagementController extends Controller
         ]);
 
         if ($validator->fails()) {
-            \Log::error('Validation failed in store method:', $validator->errors()->toArray());
-            \Log::error('Request data:', $request->all());
+            \Log::warning('KhoaHoc store validation failed', ['errors' => $validator->errors()->keys()]);
             return redirect()->back()
                 ->withErrors($validator)
                 ->withInput();
@@ -152,7 +151,7 @@ class KhoaHocManagementController extends Controller
                             'giao_vien_id' => $lecturerId,
                             'ngay_phan_cong' => now(),
                             'trang_thai' => 'da_nhan',
-                            'created_by' => 1, // Giả sử admin có ID = 1
+                            'created_by' => auth()->user()->ma_nguoi_dung, // ✅ ĐÚNG: dùng auth()->user()
                         ]);
                     }
                 }
@@ -160,8 +159,8 @@ class KhoaHocManagementController extends Controller
 
             DB::commit();
 
-            return redirect()->route('admin.khoa-hoc.index')
-                ->with('success', 'Thêm khóa học thành công với mã: ' . $maKhoaHoc);
+            return redirect()->route('admin.khoa-hoc.show', $khoaHoc->id)
+                ->with('success', 'Tạo khóa học thành công! Mã: ' . $maKhoaHoc . ' — ' . count($request->modules) . ' module đã được tạo.');
 
         } catch (\Exception $e) {
             DB::rollback();
@@ -172,13 +171,20 @@ class KhoaHocManagementController extends Controller
     }
 
     /**
-     * Hiển thị chi tiết khóa học
+     * Hiển thị chi tiết khóa học - Quản lý tích hợp (Phase 4)
      */
     public function show($id)
     {
-        $khoaHoc = KhoaHoc::with(['monHoc', 'moduleHocs.phanCongGiangViens.giangVien.nguoiDung'])->findOrFail($id);
+        $khoaHoc = KhoaHoc::with([
+            'monHoc',
+            'moduleHocs.phanCongGiangViens.giangVien.nguoiDung'
+        ])->findOrFail($id);
 
-        return view('pages.admin.khoa-hoc.khoa-hoc.show', compact('khoaHoc'));
+        $giangViens = GiangVien::with('nguoiDung')
+            ->whereHas('nguoiDung', fn($q) => $q->where('trang_thai', true))
+            ->get();
+
+        return view('pages.admin.khoa-hoc.khoa-hoc.show', compact('khoaHoc', 'giangViens'));
     }
 
     /**
@@ -207,7 +213,6 @@ class KhoaHocManagementController extends Controller
             'mo_ta_chi_tiet' => 'nullable|string',
             'hinh_anh' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'cap_do' => 'required|in:co_ban,trung_binh,nang_cao',
-            'trang_thai' => 'required|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -216,7 +221,7 @@ class KhoaHocManagementController extends Controller
                 ->withInput();
         }
 
-        $data = $request->only(['mon_hoc_id', 'ten_khoa_hoc', 'mo_ta_ngan', 'mo_ta_chi_tiet', 'cap_do', 'trang_thai']);
+        $data = $request->only(['mon_hoc_id', 'ten_khoa_hoc', 'mo_ta_ngan', 'mo_ta_chi_tiet', 'cap_do']);
 
         // Xử lý upload hình ảnh
         if ($request->hasFile('hinh_anh')) {
@@ -231,8 +236,29 @@ class KhoaHocManagementController extends Controller
 
         $khoaHoc->update($data);
 
+        return redirect()->route('admin.khoa-hoc.show', $khoaHoc->id)
+            ->with('success', 'Cập nhật khóa học thành công.');
+    }
+
+    /**
+     * Xóa khóa học
+     */
+    public function destroy($id)
+    {
+        $khoaHoc = KhoaHoc::with('moduleHocs')->findOrFail($id);
+
+        // Kiểm tra không cho xóa nếu có học viên đang theo học (bỏ qua nếu chưa có bảng đăng ký)
+
+        // Xóa ảnh khóa học
+        if ($khoaHoc->hinh_anh && file_exists(public_path($khoaHoc->hinh_anh))) {
+            unlink(public_path($khoaHoc->hinh_anh));
+        }
+
+        // Xóa cascade: module_hoc và phan_cong đã có DB constraint onDelete cascade
+        $khoaHoc->delete();
+
         return redirect()->route('admin.khoa-hoc.index')
-            ->with('success', 'Cập nhật khóa học thành công');
+            ->with('success', 'Đã xóa khóa học "' . $khoaHoc->ten_khoa_hoc . '".');
     }
 
     /**

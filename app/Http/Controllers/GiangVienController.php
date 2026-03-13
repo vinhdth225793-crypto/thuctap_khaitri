@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use App\Models\NguoiDung;
+use App\Models\PhanCongModuleGiangVien;
 
 class GiangVienController extends Controller
 {
@@ -73,5 +74,71 @@ class GiangVienController extends Controller
         $giang->update($request->only(['chuyen_nganh','hoc_vi','so_gio_day']));
 
         return redirect()->route('giang-vien.profile')->with('success', 'Cập nhật thông tin thành công');
+    }
+
+    /**
+     * Xem danh sách phân công dạy module
+     */
+    public function phanCong()
+    {
+        $giangVien = auth()->user()->giangVien;
+
+        if (!$giangVien) {
+            return redirect()->back()->with('error', 'Không tìm thấy thông tin giảng viên.');
+        }
+
+        $phanCongChoXacNhan = PhanCongModuleGiangVien::with(['moduleHoc.khoaHoc.monHoc'])
+            ->where('giao_vien_id', $giangVien->id)
+            ->where('trang_thai', 'cho_xac_nhan')
+            ->latest('ngay_phan_cong')
+            ->get();
+
+        $phanCongDaNhan = PhanCongModuleGiangVien::with(['moduleHoc.khoaHoc.monHoc'])
+            ->where('giao_vien_id', $giangVien->id)
+            ->where('trang_thai', 'da_nhan')
+            ->latest('ngay_phan_cong')
+            ->get();
+
+        $lichSu = PhanCongModuleGiangVien::with(['moduleHoc.khoaHoc.monHoc'])
+            ->where('giao_vien_id', $giangVien->id)
+            ->where('trang_thai', 'tu_choi')
+            ->latest()
+            ->get();
+
+        return view('pages.giang-vien.phan-cong', compact('phanCongChoXacNhan', 'phanCongDaNhan', 'lichSu'));
+    }
+
+    /**
+     * Xác nhận nhận dạy module
+     */
+    public function xacNhanPhanCong($id)
+    {
+        $giangVien = auth()->user()->giangVien;
+        
+        $phanCong = PhanCongModuleGiangVien::where('id', $id)
+            ->where('giao_vien_id', $giangVien->id)
+            ->where('trang_thai', 'cho_xac_nhan')
+            ->firstOrFail();
+
+        $phanCong->update(['trang_thai' => 'da_nhan']);
+
+        return redirect()->back()->with('success', 'Đã xác nhận nhận dạy module: ' . $phanCong->moduleHoc->ten_module);
+    }
+
+    /**
+     * Từ chối phân công dạy module
+     */
+    public function tuChoiPhanCong($id)
+    {
+        $giangVien = auth()->user()->giangVien;
+
+        $phanCong = PhanCongModuleGiangVien::where('id', $id)
+            ->where('giao_vien_id', $giangVien->id)
+            ->where('trang_thai', 'cho_xac_nhan')
+            ->firstOrFail();
+
+        $phanCong->update(['trang_thai' => 'tu_choi']);
+
+        return redirect()->back()->with('success', 'Đã từ chối phân công module: ' . $phanCong->moduleHoc->ten_module);
     }
 }

@@ -184,7 +184,13 @@
                                             <p class="text-muted small mb-1">Mã: {{ $module->ma_module }}</p>
                                             @if($module->thoi_luong_du_kien)
                                                 <p class="small text-info mb-1">
-                                                    <i class="fas fa-clock"></i> {{ $module->thoi_luong_du_kien }} giờ
+                                                    <i class="fas fa-clock"></i>
+                                                    @php
+                                                        $h = intdiv($module->thoi_luong_du_kien, 60);
+                                                        $m = $module->thoi_luong_du_kien % 60;
+                                                    @endphp
+                                                    {{ $h > 0 ? $h.'h ' : '' }}{{ $m > 0 ? $m.'p' : '' }}
+                                                    <small class="text-muted">({{ $module->thoi_luong_du_kien }} phút)</small>
                                                 </p>
                                             @endif
                                             @php

@@ -10,14 +10,18 @@ use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
-    // Hiển thị form đăng nhập
-    public function showDangNhap()
+    /**
+     * Hiển thị form đăng nhập
+     */
+    public function showLoginForm()
     {
-        return view('pages.auth.dang-nhap'); // Sửa từ auth.dang-nhap -> pages.auth.dang-nhap
+        return view('pages.auth.dang-nhap');
     }
 
-    // Xử lý đăng nhập
-    public function xuLyDangNhap(Request $request)
+    /**
+     * Xử lý đăng nhập
+     */
+    public function login(Request $request)
     {
         $credentials = $request->validate([
             'email' => 'required|email',
@@ -28,36 +32,45 @@ class AuthController extends Controller
         $user = NguoiDung::where('email', $credentials['email'])->first();
 
         // Kiểm tra user tồn tại và mật khẩu đúng
-        if ($user && Hash::check($credentials['mat_khau'], $user->mat_khau)) {
-            // Đăng nhập thủ công
-            Auth::login($user, $request->has('ghi_nho'));
-            $request->session()->regenerate();
+        try {
+            if ($user && Hash::check($credentials['mat_khau'], $user->mat_khau)) {
+                // Đăng nhập thủ công
+                Auth::login($user, $request->has('ghi_nho'));
+                $request->session()->regenerate();
 
-            // Chuyển hướng theo vai trò
-            $vai_tro = $user->vai_tro ?? 'hoc_vien'; // Mặc định là học viên
-            
-            if ($vai_tro === 'admin') {
-                return redirect()->route('admin.dashboard');
-            } elseif ($vai_tro === 'giang_vien') {
-                return redirect()->route('giang-vien.dashboard');
-            } else {
-                return redirect()->route('hoc-vien.dashboard');
+                // Chuyển hướng theo vai trò
+                $vai_tro = $user->vai_tro ?? 'hoc_vien';
+                
+                if ($vai_tro === 'admin') {
+                    return redirect()->route('admin.dashboard');
+                } elseif ($vai_tro === 'giang_vien') {
+                    return redirect()->route('giang-vien.dashboard');
+                } else {
+                    return redirect()->route('hoc-vien.dashboard');
+                }
             }
+        } catch (\RuntimeException $e) {
+            // Log lỗi nếu cần
+            \Log::error("Hashing error for user {$credentials['email']}: " . $e->getMessage());
         }
 
         return back()->withErrors([
-            'email' => 'Thông tin đăng nhập không chính xác.',
+            'email' => 'Thông tin đăng nhập không chính xác hoặc tài khoản có lỗi kỹ thuật.',
         ])->onlyInput('email');
     }
 
-    // Hiển thị form đăng ký
-    public function showDangKy()
+    /**
+     * Hiển thị form đăng ký
+     */
+    public function showRegisterForm()
     {
-        return view('pages.auth.dang-ky'); // Sửa từ auth.dang-ky -> pages.auth.dang-ky
+        return view('pages.auth.dang-ky');
     }
 
-    // Xử lý đăng ký
-    public function xuLyDangKy(Request $request)
+    /**
+     * Xử lý đăng ký
+     */
+    public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'ho_ten' => 'required|string|max:255',
@@ -81,7 +94,7 @@ class AuthController extends Controller
                 'ho_ten' => $request->ho_ten,
                 'email' => $request->email,
                 'mat_khau' => Hash::make($request->mat_khau),
-                'password' => Hash::make($request->mat_khau),
+                'password' => Hash::make($request->mat_khau), // Để tương thích nếu model dùng 'password'
                 'vai_tro' => $request->vai_tro,
                 'so_dien_thoai' => $request->so_dien_thoai,
                 'ngay_sinh' => $request->ngay_sinh,
@@ -109,19 +122,15 @@ class AuthController extends Controller
         }
     }
 
-    // Hiển thị form quên mật khẩu
-    public function hienThiQuenMatKhau()
-    {
-        return view('pages.auth.quen-mat-khau'); // Sửa để phù hợp với cấu trúc
-    }
-
-   // Đăng xuất
-    public function dangXuat(Request $request)
+    /**
+     * Đăng xuất
+     */
+    public function logout(Request $request)
     {
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('home'); // Thay đổi từ 'dang-nhap' thành 'home'
+        return redirect()->route('home');
     }
 }

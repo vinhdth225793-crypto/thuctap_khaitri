@@ -80,4 +80,13 @@ class KhoaHoc extends Model
         return $query->where('ten_khoa_hoc', 'LIKE', "%{$search}%")
                      ->orWhere('ma_khoa_hoc', 'LIKE', "%{$search}%");
     }
+
+    /**
+     * Accessor: lấy số module thực tế (không phụ thuộc vào tong_so_module cached)
+     * Dùng trong blade: $khoaHoc->so_module_thuc_te
+     */
+    public function getSoModuleThucTeAttribute(): int
+    {
+        return $this->module_hocs_count ?? $this->moduleHocs()->count();
+    }
 }

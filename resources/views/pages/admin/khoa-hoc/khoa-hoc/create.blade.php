@@ -36,7 +36,7 @@
                                 <select name="mon_hoc_id" id="mon_hoc_id" class="form-select vip-form-control @error('mon_hoc_id') is-invalid @enderror" required>
                                     <option value="">Chọn môn học</option>
                                     @foreach($monHocs as $monHoc)
-                                        <option value="{{ $monHoc->id }}" {{ old('mon_hoc_id') == $monHoc->id ? 'selected' : '' }}>
+                                        <option value="{{ $monHoc->id }}" {{ old('mon_hoc_id', $preSelectedMonHocId ?? '') == $monHoc->id ? 'selected' : '' }}>
                                             {{ $monHoc->ten_mon_hoc }} ({{ $monHoc->ma_mon_hoc }})
                                         </option>
                                     @endforeach
@@ -154,14 +154,16 @@
                                         >
                                     </div>
                                     <div class="col-md-3">
-                                        <label class="form-label">Thời lượng (giờ)</label>
+                                        <label class="form-label">Thời lượng (phút)</label>
                                         <input
                                             type="number"
                                             name="modules[0][thoi_luong_du_kien]"
                                             class="form-control vip-form-control"
-                                            placeholder="0"
+                                            placeholder="60"
                                             min="1"
+                                            max="600"
                                         >
+                                        <small class="text-muted">VD: 90 phút = 1.5 giờ · 120 phút = 2 giờ</small>
                                     </div>
                                     <div class="col-md-3 d-flex align-items-end">
                                         <button type="button" class="btn btn-danger remove-module" style="display: none;">
@@ -257,24 +259,16 @@
                                 <i class="fas fa-info-circle"></i> Tham khảo các module hiện có
                             </h6>
                             <div class="accordion" id="existingModulesAccordion">
-                                @foreach($existingModules as $moduleName => $modules)
+                                @foreach($existingModules as $moduleName)
                                     <div class="accordion-item">
                                         <h2 class="accordion-header">
                                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#module-{{ md5($moduleName) }}">
-                                                {{ $moduleName }} ({{ $modules->count() }} khóa học)
+                                                {{ $moduleName }}
                                             </button>
                                         </h2>
                                         <div id="module-{{ md5($moduleName) }}" class="accordion-collapse collapse">
                                             <div class="accordion-body">
-                                                @foreach($modules as $existingModule)
-                                                    <div class="border rounded p-2 mb-2">
-                                                        <strong>{{ $existingModule->khoaHoc->ten_khoa_hoc }}</strong>
-                                                        <br><small class="text-muted">{{ $existingModule->khoaHoc->monHoc->ten_mon_hoc }}</small>
-                                                        @if($existingModule->phanCongGiangViens->count() > 0)
-                                                            <br><small>Giảng viên: {{ $existingModule->phanCongGiangViens->first()->giangVien->nguoiDung->ho_ten ?? 'N/A' }}</small>
-                                                        @endif
-                                                    </div>
-                                                @endforeach
+                                                <small class="text-muted">Tên module tham khảo từ các khóa học khác.</small>
                                             </div>
                                         </div>
                                     </div>
@@ -329,14 +323,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         >
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Thời lượng (giờ)</label>
+                        <label class="form-label">Thời lượng (phút)</label>
                         <input
                             type="number"
                             name="modules[${moduleCount - 1}][thoi_luong_du_kien]"
                             class="form-control vip-form-control"
-                            placeholder="0"
+                            placeholder="60"
                             min="1"
+                            max="600"
                         >
+                        <small class="text-muted">VD: 90 phút = 1.5 giờ · 120 phút = 2 giờ</small>
                     </div>
                     <div class="col-md-3 d-flex align-items-end">
                         <button type="button" class="btn btn-danger remove-module">

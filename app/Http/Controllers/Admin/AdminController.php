@@ -7,9 +7,10 @@ use App\Models\NguoiDung;
 use App\Models\TaiKhoanChoPheDuyet;
 use App\Models\GiangVien;
 use App\Models\SystemSetting;
-// use App\Models\KhoaHoc;
-// use App\Models\BaiTap;
-// use App\Models\ThongBao;
+use App\Models\MonHoc;
+use App\Models\KhoaHoc;
+use App\Models\ModuleHoc;
+use App\Models\PhanCongModuleGiangVien;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -19,36 +20,62 @@ use Carbon\Carbon;
 
 class AdminController extends Controller
 {
-    // Middleware đã được áp dụng ở route level
-    // public function __construct()
-    // {
-    //     $this->middleware(['auth', 'admin']);
-    // }
-
     /**
      * Hiển thị trang dashboard admin
      */
     public function dashboard()
     {
-        // Thống kê tổng quan
-        $stats = [
+        // Thống kê tổng quan người dùng
+        $userStats = [
             'tongNguoiDung' => NguoiDung::count(),
             'tongHocVien' => NguoiDung::where('vai_tro', 'hoc_vien')->count(),
             'tongGiangVien' => NguoiDung::where('vai_tro', 'giang_vien')->count(),
             'tongAdmin' => NguoiDung::where('vai_tro', 'admin')->count(),
-            'tangTruongNguoiDung' => $this->calculateGrowth('nguoi_dung'),
-            'tangTruongHocVien' => $this->calculateGrowth('nguoi_dung', 'hoc_vien'),
-            'tangTruongGiangVien' => $this->calculateGrowth('nguoi_dung', 'giang_vien'),
             'nguoiDungMoi' => NguoiDung::withTrashed()
                 ->orderBy('created_at', 'desc')
                 ->limit(10)
                 ->get(),
         ];
 
-        // Dữ liệu cho biểu đồ
+        // Thống kê đào tạo (Phase 5)
+        $trainingStats = [
+            'tong_mon_hoc'        => MonHoc::count(),
+            'mon_hoc_hoat_dong'   => MonHoc::active()->count(),
+            'tong_khoa_hoc'       => KhoaHoc::count(),
+            'khoa_hoc_hoat_dong'  => KhoaHoc::active()->count(),
+            'tong_module'         => ModuleHoc::count(),
+            'module_chua_co_gv'   => ModuleHoc::whereDoesntHave('phanCongGiangViens', function($q) {
+                                        $q->whereIn('trang_thai', ['da_nhan', 'cho_xac_nhan']);
+                                     })->count(),
+            'phan_cong_cho_xn'    => PhanCongModuleGiangVien::where('trang_thai', 'cho_xac_nhan')->count(),
+        ];
+
+        // Dữ liệu cho 2 bảng nhỏ (Phase 5)
+        $phanCongMoiNhat = PhanCongModuleGiangVien::with([
+                'moduleHoc.khoaHoc',
+                'giangVien.nguoiDung'
+            ])
+            ->where('trang_thai', 'cho_xac_nhan')
+            ->latest('ngay_phan_cong')
+            ->take(5)
+            ->get();
+
+        $moduleChuaCoGv = ModuleHoc::with(['khoaHoc.monHoc'])
+            ->whereDoesntHave('phanCongGiangViens', function($q) {
+                $q->whereIn('trang_thai', ['da_nhan', 'cho_xac_nhan']);
+            })
+            ->where('trang_thai', true)
+            ->take(5)
+            ->get();
+
+        // Dữ liệu cũ cho chart (nếu view vẫn dùng)
         $chartData = $this->getChartData();
 
-        return view('pages.admin.dashboard', array_merge($stats, $chartData));
+        return view('pages.admin.dashboard', array_merge($userStats, [
+            'stats' => $trainingStats,
+            'phanCongMoiNhat' => $phanCongMoiNhat,
+            'moduleChuaCoGv' => $moduleChuaCoGv
+        ], $chartData));
     }
 
     /**
@@ -118,9 +145,12 @@ class AdminController extends Controller
                 'nguoi_dung' => NguoiDung::whereMonth('created_at', $month->month)
                     ->whereYear('created_at', $month->year)
                     ->count(),
-                // 'khoa_hoc' => KhoaHoc::whereMonth('created_at', $month->month)
-                //     ->whereYear('created_at', $month->year)
-                //     ->count(),
+                'khoa_hoc' => KhoaHoc::whereMonth('created_at', $month->month)
+                    ->whereYear('created_at', $month->year)
+                    ->count(),
+                'module' => ModuleHoc::whereMonth('created_at', $month->month)
+                    ->whereYear('created_at', $month->year)
+                    ->count(),
             ];
         }
 
@@ -579,7 +609,7 @@ class AdminController extends Controller
             $monthlyStats[$month->format('Y-m')] = [
                 'nguoi_dung' => NguoiDung::whereBetween('created_at', [$monthStart, $monthEnd])->count(),
                 'khoa_hoc' => KhoaHoc::whereBetween('created_at', [$monthStart, $monthEnd])->count(),
-                'bai_tap' => BaiTap::whereBetween('created_at', [$monthStart, $monthEnd])->count(),
+                'module' => ModuleHoc::whereBetween('created_at', [$monthStart, $monthEnd])->count(),
             ];
         }
 
@@ -591,13 +621,7 @@ class AdminController extends Controller
             'admin' => NguoiDung::where('vai_tro', 'admin')->count(),
         ];
 
-        // Người dùng tích cực nhất
-        $activeUsers = NguoiDung::withCount(['khoaHoc', 'baiTap'])
-            ->orderBy('khoa_hoc_count', 'desc')
-            ->limit(10)
-            ->get();
-
-        return view('pages.admin.thong-ke.index', compact('monthlyStats', 'roleStats', 'activeUsers'));
+        return view('pages.admin.thong-ke.index', compact('monthlyStats', 'roleStats'));
     }
 
     /**
@@ -630,7 +654,6 @@ class AdminController extends Controller
         ]);
 
         // Lưu cài đặt vào file .env hoặc database
-        // Đây là ví dụ đơn giản, trong thực tế bạn nên dùng package như spatie/laravel-settings
         $envPath = base_path('.env');
         
         if (file_exists($envPath)) {
@@ -640,7 +663,6 @@ class AdminController extends Controller
                 $envKey = 'APP_' . strtoupper($key);
                 $envValue = is_bool($value) ? ($value ? 'true' : 'false') : $value;
                 
-                // Tìm và thay thế hoặc thêm mới
                 if (strpos($envContent, "{$envKey}=") !== false) {
                     $envContent = preg_replace(
                         "/^{$envKey}=.*/m",
@@ -667,12 +689,10 @@ class AdminController extends Controller
         $filename = 'backup-' . date('Y-m-d-H-i-s') . '.sql';
         $path = storage_path('app/backups/' . $filename);
         
-        // Tạo thư mục nếu chưa tồn tại
         if (!file_exists(dirname($path))) {
             mkdir(dirname($path), 0755, true);
         }
 
-        // Lệnh mysqldump (cần cấu hình đúng)
         $command = sprintf(
             'mysqldump --user=%s --password=%s --host=%s %s > %s',
             config('database.connections.mysql.username'),
@@ -703,7 +723,6 @@ class AdminController extends Controller
             return view('pages.admin.nhat-ky.index', ['logs' => [], 'error' => 'File log không tồn tại.']);
         }
 
-        // Đọc file log
         $logs = [];
         $file = fopen($logFile, 'r');
         
@@ -721,17 +740,14 @@ class AdminController extends Controller
         
         fclose($file);
 
-        // Lọc theo level nếu có
         if ($request->has('level') && $request->level != 'all') {
             $logs = array_filter($logs, function($log) use ($request) {
                 return strtolower($log['level']) == strtolower($request->level);
             });
         }
 
-        // Đảo ngược để hiển thị mới nhất trước
         $logs = array_reverse($logs);
 
-        // Phân trang
         $perPage = 50;
         $currentPage = $request->get('page', 1);
         $paginatedLogs = array_slice($logs, ($currentPage - 1) * $perPage, $perPage);
@@ -825,13 +841,9 @@ class AdminController extends Controller
      */
     public function giangVienDashboard()
     {
-        // Thống kê cho giảng viên
         $stats = [
             'tongKhoaHoc' => KhoaHoc::where('giang_vien_id', auth()->id())->count(),
             'tongHocVien' => $this->countStudentsOfTeacher(auth()->id()),
-            'baiTapChuaCham' => BaiTap::whereHas('khoaHoc', function($q) {
-                $q->where('giang_vien_id', auth()->id());
-            })->where('trang_thai', 'pending')->count(),
             'doanhThu' => $this->calculateRevenue(auth()->id()),
         ];
 
@@ -846,10 +858,9 @@ class AdminController extends Controller
         $user = auth()->user();
         
         $stats = [
-            'tongKhoaHoc' => $user->khoaHoc()->count(),
-            'baiTapDaNop' => $user->baiTap()->count(),
-            'diemTrungBinh' => $this->calculateAverageScore($user->ma_nguoi_dung),
-            'tienDo' => $this->calculateProgress($user->ma_nguoi_dung),
+            'tongKhoaHoc' => 0, // Placeholder
+            'diemTrungBinh' => 0,
+            'tienDo' => 0,
         ];
 
         return view('pages.hoc-vien.dashboard', compact('stats'));
@@ -860,11 +871,7 @@ class AdminController extends Controller
      */
     private function countStudentsOfTeacher($teacherId)
     {
-        return DB::table('khoa_hoc_hoc_vien')
-            ->join('khoa_hoc', 'khoa_hoc_hoc_vien.khoa_hoc_id', '=', 'khoa_hoc.ma_khoa_hoc')
-            ->where('khoa_hoc.giang_vien_id', $teacherId)
-            ->distinct('khoa_hoc_hoc_vien.nguoi_dung_id')
-            ->count('khoa_hoc_hoc_vien.nguoi_dung_id');
+        return 0; // Placeholder
     }
 
     /**
@@ -872,54 +879,16 @@ class AdminController extends Controller
      */
     private function calculateRevenue($teacherId)
     {
-        // Giả sử mỗi khóa học có giá
-        return KhoaHoc::where('giang_vien_id', $teacherId)
-            ->sum('gia_khoa_hoc');
+        return 0; // Placeholder
     }
 
     /**
-     * Tính điểm trung bình của học viên
-     */
-    private function calculateAverageScore($studentId)
-    {
-        $average = BaiTap::where('nguoi_dung_id', $studentId)
-            ->whereNotNull('diem')
-            ->avg('diem');
-
-        return round($average, 2);
-    }
-
-    /**
-     * Tính tiến độ học tập
-     */
-    private function calculateProgress($studentId)
-    {
-        // Giả sử mỗi khóa học có số bài học
-        $totalLessons = DB::table('khoa_hoc_hoc_vien')
-            ->join('khoa_hoc', 'khoa_hoc_hoc_vien.khoa_hoc_id', '=', 'khoa_hoc.ma_khoa_hoc')
-            ->where('khoa_hoc_hoc_vien.nguoi_dung_id', $studentId)
-            ->sum('khoa_hoc.so_bai_hoc');
-
-        $completedLessons = DB::table('bai_tap')
-            ->where('nguoi_dung_id', $studentId)
-            ->where('trang_thai', 'completed')
-            ->count();
-
-        if ($totalLessons == 0) {
-            return 0;
-        }
-
-        return round(($completedLessons / $totalLessons) * 100, 2);
-    }
-
-    /**
-     * Hiển thị danh sách tài khoản chờ phê duyệt (cũ - chuyên dụng)
+     * Hiển thị danh sách tài khoản chờ phê duyệt
      */
     public function indexPheDuyetTaiKhoan(Request $request)
     {
         $query = TaiKhoanChoPheDuyet::where('trang_thai', 'cho_phe_duyet');
 
-        // Tìm kiếm
         if ($request->has('search')) {
             $search = $request->get('search');
             $query->where(function ($q) use ($search) {
@@ -929,7 +898,6 @@ class AdminController extends Controller
             });
         }
 
-        // Sắp xếp
         $sortField = $request->get('sort_field', 'created_at');
         $sortDirection = $request->get('sort_direction', 'desc');
         $query->orderBy($sortField, $sortDirection);
@@ -946,12 +914,10 @@ class AdminController extends Controller
     {
         $taiKhoan = TaiKhoanChoPheDuyet::findOrFail($id);
 
-        // Tạo tài khoản người dùng
         $nguoiDung = NguoiDung::create([
             'ho_ten' => $taiKhoan->ho_ten,
             'email' => $taiKhoan->email,
             'mat_khau' => $taiKhoan->mat_khau,
-            'password' => $taiKhoan->mat_khau,
             'vai_tro' => $taiKhoan->vai_tro,
             'so_dien_thoai' => $taiKhoan->so_dien_thoai,
             'ngay_sinh' => $taiKhoan->ngay_sinh,
@@ -959,12 +925,8 @@ class AdminController extends Controller
             'trang_thai' => true,
         ]);
 
-        // Cập nhật trạng thái
         $taiKhoan->update(['trang_thai' => 'da_phe_duyet']);
 
-        // Gửi email thông báo (có thể thêm sau)
-
-        // Xác định redirect URL dựa trên vai trò
         $redirectUrl = $taiKhoan->vai_tro === 'giang_vien' 
             ? route('admin.giang-vien.index') 
             : route('admin.hoc-vien.index');
@@ -983,11 +945,7 @@ class AdminController extends Controller
     public function rejectTaiKhoan($id)
     {
         $taiKhoan = TaiKhoanChoPheDuyet::findOrFail($id);
-
-        // Cập nhật trạng thái
         $taiKhoan->update(['trang_thai' => 'tu_choi']);
-
-        // Gửi email thông báo từ chối (có thể thêm sau)
 
         return response()->json([
             'success' => true,
@@ -996,13 +954,11 @@ class AdminController extends Controller
     }
 
     /**
-     * Hủy phê duyệt tài khoản (Undo)
+     * Hủy phê duyệt tài khoản
      */
     public function undoApproveTaiKhoan($id)
     {
         $taiKhoan = TaiKhoanChoPheDuyet::findOrFail($id);
-
-        // Kiểm tra xem tài khoản đó có tồn tại không
         $nguoiDung = NguoiDung::where('email', $taiKhoan->email)->first();
 
         if (!$nguoiDung) {
@@ -1012,10 +968,7 @@ class AdminController extends Controller
             ], 404);
         }
 
-        // Xóa tài khoản người dùng
         $nguoiDung->delete();
-
-        // Cập nhật lại trạng thái về chờ phê duyệt
         $taiKhoan->update(['trang_thai' => 'cho_phe_duyet']);
 
         return response()->json([
@@ -1036,7 +989,6 @@ class AdminController extends Controller
             'zalo' => SystemSetting::get('zalo', ''),
         ];
 
-        // Lấy tất cả giảng viên (không lọc trạng thái)
         $instructors = GiangVien::with('nguoiDung')->get();
 
         return view('pages.admin.settings.cai-dat', [
@@ -1057,17 +1009,12 @@ class AdminController extends Controller
             'email' => 'nullable|email',
             'facebook' => 'nullable|url',
             'zalo' => 'nullable|url',
-        ], [
-            'email.email' => 'Email không hợp lệ',
-            'facebook.url' => 'URL Facebook không hợp lệ',
-            'zalo.url' => 'URL Zalo không hợp lệ',
         ]);
 
-        // handle file upload for logo
         if ($request->hasFile('site_logo')) {
             $file = $request->file('site_logo');
             $filename = time() . '_logo.' . $file->getClientOriginalExtension();
-            $path = $file->move(public_path('images'), $filename);
+            $file->move(public_path('images'), $filename);
             $validated['site_logo'] = 'images/' . $filename;
         }
 
@@ -1077,8 +1024,6 @@ class AdminController extends Controller
             }
         }
 
-
-        // Xác định trang nào đang gọi để redirect về đúng trang
         $currentRoute = $request->route()->getName();
 
         if (str_contains($currentRoute, 'contact')) {
@@ -1099,11 +1044,8 @@ class AdminController extends Controller
     public function saveInstructorSettings(Request $request)
     {
         $instructorIds = $request->get('instructors', []);
-
-        // Cập nhật tất cả giảng viên thành không hiển thị
         GiangVien::query()->update(['hien_thi_trang_chu' => false]);
 
-        // Đánh dấu những giảng viên được chọn
         if (!empty($instructorIds)) {
             GiangVien::whereIn('id', $instructorIds)
                 ->update(['hien_thi_trang_chu' => true]);
@@ -1149,9 +1091,7 @@ class AdminController extends Controller
      */
     public function showInstructorSettings()
     {
-        // Lấy tất cả giảng viên (không lọc trạng thái)
         $instructors = GiangVien::with('nguoiDung')->get();
-
         return view('pages.admin.settings.instructors', compact('instructors'));
     }
 }
