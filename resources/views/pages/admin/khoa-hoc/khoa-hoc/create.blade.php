@@ -1,576 +1,340 @@
 @extends('layouts.app')
 
-@section('title', 'Thêm khóa học mới')
+@section('title', $loai === 'mau' ? 'Tạo khóa học mẫu' : 'Tạo khóa học trực tiếp')
 
 @section('content')
 <div class="container-fluid">
+    <!-- Breadcrumb -->
     <div class="row mb-4">
         <div class="col-12">
-            <a href="{{ route('admin.khoa-hoc.index') }}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Quay lại
-            </a>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0 small text-muted">
+                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Admin</a></li>
+                    <li class="breadcrumb-item">Quản lý đào tạo</li>
+                    <li class="breadcrumb-item"><a href="{{ route('admin.khoa-hoc.index') }}">Khóa học</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ $loai === 'mau' ? 'Tạo khóa học mẫu' : 'Tạo khóa học trực tiếp' }}</li>
+                </ol>
+            </nav>
         </div>
     </div>
 
-    <div class="row">
+    <!-- Header -->
+    <div class="row mb-4">
         <div class="col-12">
-            <div class="vip-card">
-                <div class="vip-card-header">
-                    <h5 class="vip-card-title">
-                        <i class="fas fa-plus"></i> Thêm khóa học mới
-                    </h5>
-                </div>
-                <div class="vip-card-body">
-                    <form action="{{ route('admin.khoa-hoc.store') }}" method="POST" enctype="multipart/form-data" id="khoaHocForm">
-                        @csrf
+            @if($loai === 'mau')
+                <h4 class="fw-bold"><i class="fas fa-copy me-2 text-info"></i> Tạo khóa học mẫu <span class="badge bg-info ms-2 fs-6 shadow-sm">Template</span></h4>
+                <p class="text-muted small">Chuẩn bị sẵn nội dung khóa học. Giảng viên và lịch dạy sẽ được thiết lập sau khi kích hoạt thành lớp học.</p>
+            @else
+                <h4 class="fw-bold"><i class="fas fa-bolt me-2 text-primary"></i> Tạo khóa học trực tiếp <span class="badge bg-primary ms-2 fs-6 shadow-sm">Học ngay</span></h4>
+                <p class="text-muted small">Tạo lớp học với giảng viên và ngày khai giảng ngay lập tức.</p>
+            @endif
+        </div>
+    </div>
 
-                        <!-- Thông tin cơ bản -->
-                        <h6 class="mb-3 text-primary">
-                            <i class="fas fa-info-circle"></i> Thông tin cơ bản
-                        </h6>
-                        <div class="row mb-4">
+    @if(session('error'))
+        <div class="alert alert-danger border-0 shadow-sm mb-4">{{ session('error') }}</div>
+    @endif
+
+    <form action="{{ route('admin.khoa-hoc.store') }}" method="POST" enctype="multipart/form-data" id="mainForm">
+        @csrf
+        <input type="hidden" name="loai" value="{{ $loai }}">
+
+        <div class="row">
+            <!-- Cột trái: Thông tin chính -->
+            <div class="col-lg-8">
+                <div class="vip-card mb-4">
+                    <div class="vip-card-header">
+                        <h5 class="vip-card-title small fw-bold text-uppercase">1. Thông tin chung</h5>
+                    </div>
+                    <div class="vip-card-body p-4">
+                        <div class="row g-3">
                             <div class="col-md-6">
-                                <label for="mon_hoc_id" class="form-label">
-                                    <i class="fas fa-book"></i> Môn học <span class="text-danger">*</span>
-                                </label>
-                                <select name="mon_hoc_id" id="mon_hoc_id" class="form-select vip-form-control @error('mon_hoc_id') is-invalid @enderror" required>
-                                    <option value="">Chọn môn học</option>
-                                    @foreach($monHocs as $monHoc)
-                                        <option value="{{ $monHoc->id }}" {{ old('mon_hoc_id', $preSelectedMonHocId ?? '') == $monHoc->id ? 'selected' : '' }}>
-                                            {{ $monHoc->ten_mon_hoc }} ({{ $monHoc->ma_mon_hoc }})
+                                <label class="form-label small fw-bold">Môn học <span class="text-danger">*</span></label>
+                                <select name="mon_hoc_id" class="form-select vip-form-control @error('mon_hoc_id') is-invalid @enderror" required>
+                                    <option value="">-- Chọn môn học --</option>
+                                    @foreach($monHocs as $mh)
+                                        <option value="{{ $mh->id }}" {{ old('mon_hoc_id', $preselectedMonHocId) == $mh->id ? 'selected' : '' }}>
+                                            {{ $mh->ten_mon_hoc }}
                                         </option>
                                     @endforeach
                                 </select>
-                                @error('mon_hoc_id')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                @error('mon_hoc_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-6">
-                                <label for="cap_do" class="form-label">
-                                    <i class="fas fa-chart-line"></i> Cấp độ <span class="text-danger">*</span>
-                                </label>
-                                <select name="cap_do" id="cap_do" class="form-select vip-form-control @error('cap_do') is-invalid @enderror" required>
-                                    <option value="">Chọn cấp độ</option>
-                                    <option value="co_ban" {{ old('cap_do') == 'co_ban' ? 'selected' : '' }}>Cơ bản</option>
-                                    <option value="trung_binh" {{ old('cap_do') == 'trung_binh' ? 'selected' : '' }}>Trung bình</option>
-                                    <option value="nang_cao" {{ old('cap_do') == 'nang_cao' ? 'selected' : '' }}>Nâng cao</option>
-                                </select>
-                                @error('cap_do')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                <label class="form-label small fw-bold">Tên khóa học <span class="text-danger">*</span></label>
+                                <input type="text" name="ten_khoa_hoc" class="form-control vip-form-control @error('ten_khoa_hoc') is-invalid @enderror" value="{{ old('ten_khoa_hoc') }}" required placeholder="Ví dụ: Lập trình Python cơ bản">
+                                @error('ten_khoa_hoc') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
-                        </div>
-
-                        <div class="row mb-4">
-                            <div class="col-md-12">
-                                <label for="ten_khoa_hoc" class="form-label">
-                                    <i class="fas fa-graduation-cap"></i> Tên khóa học <span class="text-danger">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    name="ten_khoa_hoc"
-                                    id="ten_khoa_hoc"
-                                    class="form-control vip-form-control @error('ten_khoa_hoc') is-invalid @enderror"
-                                    placeholder="Nhập tên khóa học"
-                                    value="{{ old('ten_khoa_hoc') }}"
-                                    required
-                                >
-                                @error('ten_khoa_hoc')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
-
-                        <div class="row mb-4">
-                            <div class="col-md-12">
-                                <label for="mo_ta_ngan" class="form-label">
-                                    <i class="fas fa-align-left"></i> Mô tả ngắn
-                                </label>
-                                <textarea
-                                    name="mo_ta_ngan"
-                                    id="mo_ta_ngan"
-                                    class="form-control vip-form-control @error('mo_ta_ngan') is-invalid @enderror"
-                                    rows="2"
-                                    placeholder="Mô tả ngắn gọn về khóa học"
-                                >{{ old('mo_ta_ngan') }}</textarea>
-                                @error('mo_ta_ngan')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
-
-                        <div class="row mb-4">
-                            <div class="col-md-12">
-                                <label for="mo_ta_chi_tiet" class="form-label">
-                                    <i class="fas fa-file-alt"></i> Mô tả chi tiết
-                                </label>
-                                <textarea
-                                    name="mo_ta_chi_tiet"
-                                    id="mo_ta_chi_tiet"
-                                    class="form-control vip-form-control @error('mo_ta_chi_tiet') is-invalid @enderror"
-                                    rows="4"
-                                    placeholder="Mô tả chi tiết về khóa học, nội dung, mục tiêu..."
-                                >{{ old('mo_ta_chi_tiet') }}</textarea>
-                                @error('mo_ta_chi_tiet')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
-
-                        <div class="row mb-4">
-                            <div class="col-md-12">
-                                <label for="hinh_anh" class="form-label">
-                                    <i class="fas fa-image"></i> Hình ảnh khóa học
-                                </label>
-                                <input
-                                    type="file"
-                                    name="hinh_anh"
-                                    id="hinh_anh"
-                                    class="form-control vip-form-control @error('hinh_anh') is-invalid @enderror"
-                                    accept="image/*"
-                                >
-                                <div class="form-text">Chấp nhận: JPG, PNG, GIF. Kích thước tối đa: 2MB</div>
-                                @error('hinh_anh')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
-
-                        <!-- Modules -->
-                        <h6 class="mb-3 text-primary">
-                            <i class="fas fa-list"></i> Modules học tập
-                        </h6>
-                        <div id="modules-container">
-                            <div class="module-item border rounded p-3 mb-3" data-module="1">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <label class="form-label">Tên module 1 <span class="text-danger">*</span></label>
-                                        <input
-                                            type="text"
-                                            name="modules[0][ten_module]"
-                                            class="form-control vip-form-control"
-                                            placeholder="Nhập tên module"
-                                            required
-                                        >
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label">Thời lượng (phút)</label>
-                                        <input
-                                            type="number"
-                                            name="modules[0][thoi_luong_du_kien]"
-                                            class="form-control vip-form-control"
-                                            placeholder="60"
-                                            min="1"
-                                            max="600"
-                                        >
-                                        <small class="text-muted">VD: 90 phút = 1.5 giờ · 120 phút = 2 giờ</small>
-                                    </div>
-                                    <div class="col-md-3 d-flex align-items-end">
-                                        <button type="button" class="btn btn-danger remove-module" style="display: none;">
-                                            <i class="fas fa-trash"></i> Xóa
-                                        </button>
-                                    </div>
+                            
+                            <div class="col-12">
+                                <label class="form-label small fw-bold d-block">Cấp độ</label>
+                                <div class="d-flex gap-4">
+                                    @foreach(['co_ban' => 'Cơ bản', 'trung_binh' => 'Trung bình', 'nang_cao' => 'Nâng cao'] as $val => $label)
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="cap_do" id="cd_{{ $val }}" value="{{ $val }}" {{ old('cap_do', 'co_ban') === $val ? 'checked' : '' }}>
+                                            <label class="form-check-label small" for="cd_{{ $val }}">{{ $label }}</label>
+                                        </div>
+                                    @endforeach
                                 </div>
-                                <div class="row mt-2">
-                                    <div class="col-md-12">
-                                        <label class="form-label">Mô tả module</label>
-                                        <textarea
-                                            name="modules[0][mo_ta]"
-                                            class="form-control vip-form-control"
-                                            rows="2"
-                                            placeholder="Mô tả nội dung module"
-                                        ></textarea>
-                                    </div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Mô tả ngắn</label>
+                                <textarea name="mo_ta_ngan" class="form-control vip-form-control" rows="2" placeholder="Tóm tắt khóa học (tối đa 500 ký tự)">{{ old('mo_ta_ngan') }}</textarea>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Nội dung chi tiết</label>
+                                <textarea name="mo_ta_chi_tiet" class="form-control vip-form-control" rows="5" placeholder="Mục tiêu, lộ trình và yêu cầu khóa học...">{{ old('mo_ta_chi_tiet') }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section Lịch học (Chỉ hiện khi trực tiếp) -->
+                <div class="{{ $loai === 'truc_tiep' ? '' : 'd-none' }}" id="section-lich-hoc">
+                    <div class="vip-card mb-4 border-primary border-start border-4 shadow-sm">
+                        <div class="vip-card-header">
+                            <h5 class="vip-card-title small fw-bold text-primary">2. Lịch học & Khai giảng</h5>
+                        </div>
+                        <div class="vip-card-body p-4">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Ngày khai giảng <span class="text-danger">*</span></label>
+                                    <input type="date" name="ngay_khai_giang" class="form-control vip-form-control @error('ngay_khai_giang') is-invalid @enderror" value="{{ old('ngay_khai_giang') }}" min="{{ date('Y-m-d') }}">
+                                    @error('ngay_khai_giang') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Ngày kết thúc dự kiến <span class="text-danger">*</span></label>
+                                    <input type="date" name="ngay_ket_thuc_du_kien" class="form-control vip-form-control @error('ngay_ket_thuc_du_kien') is-invalid @enderror" value="{{ old('ngay_ket_thuc_du_kien') }}">
+                                    @error('ngay_ket_thuc_du_kien') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                 </div>
                             </div>
                         </div>
-                        <div class="mb-4">
-                            <button type="button" class="btn btn-outline-primary" id="add-module">
-                                <i class="fas fa-plus"></i> Thêm module
+                    </div>
+                </div>
+
+                <!-- Section Modules (Dynamic Table) -->
+                <div class="vip-card mb-4 border-0 shadow-sm">
+                    <div class="vip-card-header d-flex justify-content-between align-items-center">
+                        <h5 class="vip-card-title small fw-bold text-uppercase">3. Cấu trúc Modules học tập</h5>
+                        <span class="badge bg-dark" id="module-count">1 module</span>
+                    </div>
+                    <div class="vip-card-body p-0">
+                        <!-- Suggest Copy from Template -->
+                        <div class="p-3 bg-light border-bottom">
+                            <div class="d-flex align-items-center gap-3">
+                                <i class="fas fa-lightbulb text-warning fs-4"></i>
+                                <div class="flex-fill">
+                                    <label class="small fw-bold text-muted d-block mb-1">Copy cấu trúc từ khóa học mẫu có sẵn</label>
+                                    <select class="form-select form-select-sm vip-form-control" id="copy-from-template" style="max-width: 450px;">
+                                        <option value="">-- Chọn khóa học mẫu để lấy cấu trúc module --</option>
+                                        @foreach($khoaHocMauCoSan as $mau)
+                                            <option value="{{ $mau->id }}" data-modules="{{ $mau->moduleHocs->toJson() }}">
+                                                [{{ $mau->ma_khoa_hoc }}] {{ $mau->ten_khoa_hoc }} ({{ $mau->tong_so_module }} module)
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" id="module-table">
+                                <thead class="bg-light smaller text-muted text-uppercase">
+                                    <tr>
+                                        <th class="text-center" width="50">#</th>
+                                        <th>Tên module <span class="text-danger">*</span></th>
+                                        <th width="110">TL (phút)</th>
+                                        <th>Mô tả nhanh</th>
+                                        @if($loai === 'truc_tiep')
+                                            <th width="200">Giảng viên <span class="text-danger">*</span></th>
+                                        @endif
+                                        <th class="text-center" width="50"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @php $modulesOld = old('modules', [['ten_module'=>'', 'thoi_luong_du_kien'=>'', 'mo_ta'=>'', 'giang_vien_id'=>'']]) @endphp
+                                    @foreach($modulesOld as $i => $mod)
+                                        <tr class="module-row" data-index="{{ $i }}">
+                                            <td class="text-center fw-bold text-muted stt">{{ $i + 1 }}</td>
+                                            <td>
+                                                <input type="text" name="modules[{{ $i }}][ten_module]" class="form-control form-control-sm vip-form-control" value="{{ $mod['ten_module'] }}" required placeholder="Tên module">
+                                            </td>
+                                            <td>
+                                                <input type="number" name="modules[{{ $i }}][thoi_luong_du_kien]" class="form-control form-control-sm vip-form-control text-center" value="{{ $mod['thoi_luong_du_kien'] }}" placeholder="90" min="1" max="600">
+                                            </td>
+                                            <td>
+                                                <input type="text" name="modules[{{ $i }}][mo_ta]" class="form-control form-control-sm vip-form-control" value="{{ $mod['mo_ta'] }}" placeholder="...">
+                                            </td>
+                                            @if($loai === 'truc_tiep')
+                                                <td>
+                                                    <select name="modules[{{ $i }}][giang_vien_id]" class="form-select form-select-sm vip-form-control" required>
+                                                        <option value="">-- Chọn GV --</option>
+                                                        @foreach($giangViens as $gv)
+                                                            <option value="{{ $gv->id }}" {{ ($mod['giang_vien_id'] ?? '') == $gv->id ? 'selected' : '' }}>{{ $gv->nguoiDung->ho_ten }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </td>
+                                            @endif
+                                            <td class="text-center">
+                                                <button type="button" class="btn btn-link text-danger p-0 btn-remove-row" title="Xóa"><i class="fas fa-times-circle"></i></button>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="p-3 border-top bg-light">
+                            <button type="button" id="btn-add-module" class="btn btn-outline-secondary btn-sm fw-bold">
+                                <i class="fas fa-plus me-1"></i> Thêm dòng module mới
                             </button>
                         </div>
+                    </div>
+                </div>
+            </div>
 
-                        <!-- Phân công giảng viên cho từng module -->
-                        <h6 class="mb-3 text-primary">
-                            <i class="fas fa-users"></i> Phân công giảng viên dạy các module
-                        </h6>
-                        
-                        <!-- Hiển thị danh sách giảng viên -->
-                        <div class="row mb-4" id="lecturers-list">
-                            @foreach($giangViens as $giangVien)
-                                <div class="col-md-3 mb-3">
-                                    <div class="card lecturer-card cursor-pointer" data-lecturer-id="{{ $giangVien->id }}" data-lecturer-name="{{ $giangVien->nguoiDung->ho_ten ?? 'N/A' }}" style="cursor: pointer; transition: all 0.3s;">
-                                        <div class="card-body text-center">
-                                            <img src="{{ $giangVien->avatar_url ? asset($giangVien->avatar_url) : asset('images/default-avatar.svg') }}" 
-                                                 alt="Avatar" class="rounded-circle mb-2" style="width: 80px; height: 80px; object-fit: cover;">
-                                            <h6 class="card-title mb-1">{{ $giangVien->nguoiDung->ho_ten ?? 'N/A' }}</h6>
-                                            @if($giangVien->hoc_vi)
-                                                <small class="text-muted d-block">{{ $giangVien->hoc_vi }}</small>
-                                            @endif
-                                            @if($giangVien->chuyen_nganh)
-                                                <small class="text-info d-block">{{ $giangVien->chuyen_nganh }}</small>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
+            <!-- Cột phải: Media & Submit -->
+            <div class="col-lg-4">
+                <div class="vip-card mb-4 shadow-sm">
+                    <div class="vip-card-header">
+                        <h5 class="vip-card-title small fw-bold text-uppercase">Ảnh đại diện</h5>
+                    </div>
+                    <div class="vip-card-body p-4 text-center">
+                        <div class="bg-light rounded p-4 mb-3 border border-dashed text-muted" id="image-preview-placeholder">
+                            <i class="fas fa-image fa-3x opacity-25"></i>
+                            <p class="small mb-0 mt-2 italic">Chưa chọn tập tin</p>
                         </div>
+                        <input type="file" name="hinh_anh" class="form-control form-control-sm" accept="image/*">
+                        <div class="form-text smaller italic mt-2">Dung lượng tối đa 2MB. Hỗ trợ: JPG, PNG.</div>
+                    </div>
+                </div>
 
-                        <!-- Modal chọn module cho giảng viên -->
-                        <div class="modal fade" id="lectureModulesModal" tabindex="-1">
-                            <div class="modal-dialog modal-lg">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title">Chọn modules cho giảng viên: <strong id="selected-lecturer-name"></strong></h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <div id="modules-checkboxes">
-                                            <!-- Module checkboxes sẽ được tạo động bởi JavaScript -->
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                                        <button type="button" class="btn btn-primary" id="save-lecturer-modules">
-                                            <i class="fas fa-save"></i> Lưu phân công
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                <div class="vip-card mb-4 shadow-sm">
+                    <div class="vip-card-header">
+                        <h5 class="vip-card-title small fw-bold text-uppercase">Ghi chú nội bộ</h5>
+                    </div>
+                    <div class="vip-card-body p-4">
+                        <textarea name="ghi_chu_noi_bo" class="form-control vip-form-control" rows="4" placeholder="Chỉ dành cho quản trị viên..."></textarea>
+                    </div>
+                </div>
 
-                        <!-- Hiển thị danh sách phân công đã chọn -->
-                        <h6 class="mb-3 mt-4 text-success">
-                            <i class="fas fa-check-circle"></i> Danh sách phân công
-                        </h6>
-                        <div id="assignments-summary" class="mb-4">
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle"></i> Chọn giảng viên ở trên để phân công các module
-                            </div>
-                        </div>
-
-                        <!-- Hidden input để lưu dữ liệu phân công -->
-                        <input type="hidden" id="lecturer-modules-data" name="lecturer_modules" value="{}">
-
-                        <!-- Hiển thị các module hiện có để tham khảo -->
-                        @if($existingModules->count() > 0)
-                        <div class="mt-4">
-                            <h6 class="text-info">
-                                <i class="fas fa-info-circle"></i> Tham khảo các module hiện có
-                            </h6>
-                            <div class="accordion" id="existingModulesAccordion">
-                                @foreach($existingModules as $moduleName)
-                                    <div class="accordion-item">
-                                        <h2 class="accordion-header">
-                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#module-{{ md5($moduleName) }}">
-                                                {{ $moduleName }}
-                                            </button>
-                                        </h2>
-                                        <div id="module-{{ md5($moduleName) }}" class="accordion-collapse collapse">
-                                            <div class="accordion-body">
-                                                <small class="text-muted">Tên module tham khảo từ các khóa học khác.</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
-                        @endif
-
-                        <!-- Submit buttons -->
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="d-flex justify-content-end gap-2">
-                                    <a href="{{ route('admin.khoa-hoc.index') }}" class="btn btn-secondary">
-                                        <i class="fas fa-times"></i> Hủy
-                                    </a>
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-save"></i> Tạo khóa học
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
+                <div class="d-grid gap-2">
+                    @if($loai === 'mau')
+                        <button type="submit" class="btn btn-info py-2 fw-bold text-white shadow-sm border-0"><i class="fas fa-save me-2"></i>LƯU KHÓA HỌC MẪU</button>
+                    @else
+                        <button type="submit" class="btn btn-primary py-2 fw-bold shadow-sm border-0"><i class="fas fa-paper-plane me-2"></i>TẠO VÀ GỬI THÔNG BÁO GV</button>
+                    @endif
+                    <a href="{{ route('admin.khoa-hoc.index', ['tab'=> $loai==='mau' ? 'mau' : 'hoat_dong']) }}" class="btn btn-outline-secondary py-2 fw-bold">HỦY BỎ</a>
                 </div>
             </div>
         </div>
-    </div>
+    </form>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    let moduleCount = 1;
+    const tableBody = document.querySelector('#module-table tbody');
+    const btnAdd = document.getElementById('btn-add-module');
+    const countBadge = document.getElementById('module-count');
+    const loai = "{{ $loai }}";
 
-    // Tạo assignment cho module đầu tiên
-    updateModuleAssignments();
-
-    // Thêm module mới
-    document.getElementById('add-module').addEventListener('click', function() {
-        moduleCount++;
-        const container = document.getElementById('modules-container');
-
-        const moduleHtml = `
-            <div class="module-item border rounded p-3 mb-3" data-module="${moduleCount}">
-                <div class="row">
-                    <div class="col-md-6">
-                        <label class="form-label">Tên module ${moduleCount} <span class="text-danger">*</span></label>
-                        <input
-                            type="text"
-                            name="modules[${moduleCount - 1}][ten_module]"
-                            class="form-control vip-form-control"
-                            placeholder="Nhập tên module"
-                            required
-                        >
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Thời lượng (phút)</label>
-                        <input
-                            type="number"
-                            name="modules[${moduleCount - 1}][thoi_luong_du_kien]"
-                            class="form-control vip-form-control"
-                            placeholder="60"
-                            min="1"
-                            max="600"
-                        >
-                        <small class="text-muted">VD: 90 phút = 1.5 giờ · 120 phút = 2 giờ</small>
-                    </div>
-                    <div class="col-md-3 d-flex align-items-end">
-                        <button type="button" class="btn btn-danger remove-module">
-                            <i class="fas fa-trash"></i> Xóa
-                        </button>
-                    </div>
-                </div>
-                <div class="row mt-2">
-                    <div class="col-md-12">
-                        <label class="form-label">Mô tả module</label>
-                        <textarea
-                            name="modules[${moduleCount - 1}][mo_ta]"
-                            class="form-control vip-form-control"
-                            rows="2"
-                            placeholder="Mô tả nội dung module"
-                        ></textarea>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        container.insertAdjacentHTML('beforeend', moduleHtml);
-
-        // Hiển thị nút xóa cho module đầu tiên nếu có nhiều hơn 1 module
-        if (moduleCount > 1) {
-            document.querySelector('.remove-module').style.display = 'block';
-        }
-
-        // Cập nhật assignments
-        updateModuleAssignments();
-    });
-
-    // Xóa module
-    document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('remove-module') || e.target.closest('.remove-module')) {
-            e.preventDefault();
-            const moduleItem = e.target.closest('.module-item');
-            moduleItem.remove();
-            moduleCount--;
-
-            // Ẩn nút xóa nếu chỉ còn 1 module
-            if (moduleCount <= 1) {
-                const removeButtons = document.querySelectorAll('.remove-module');
-                removeButtons.forEach(btn => btn.style.display = 'none');
-            }
-
-            // Cập nhật lại tên và index
-            updateModuleNames();
-            updateModuleAssignments();
-        }
-    });
-
-    function updateModuleNames() {
-        const moduleItems = document.querySelectorAll('.module-item');
-        moduleItems.forEach((item, index) => {
-            const moduleNumber = index + 1;
-            item.setAttribute('data-module', moduleNumber);
-
-            const label = item.querySelector('label');
-            if (label) {
-                label.textContent = `Tên module ${moduleNumber} *`;
-            }
-
-            // Cập nhật name attributes
-            const inputs = item.querySelectorAll('input, textarea');
-            inputs.forEach(input => {
+    function updateRenumbering() {
+        const rows = tableBody.querySelectorAll('.module-row');
+        rows.forEach((row, index) => {
+            row.dataset.index = index;
+            row.querySelector('.stt').textContent = index + 1;
+            
+            row.querySelectorAll('input, select').forEach(input => {
                 const name = input.getAttribute('name');
                 if (name) {
-                    const newName = name.replace(/\[\d+\]/, `[${index}]`);
+                    const newName = name.replace(/modules\[\d+\]/, `modules[${index}]`);
                     input.setAttribute('name', newName);
                 }
             });
         });
+        countBadge.textContent = `${rows.length} module`;
     }
 
-    function updateModuleAssignments() {
-        // Không cần cập nhật gì ở đây vì chúng ta sử dụng phương pháp mới qua modal
-    }
-
-    // Lưu trữ nhân các module được phân công
-    let lecturerModules = {};
-
-    // Xử lý khi click vào card giảng viên
-    document.addEventListener('click', function(e) {
-        const lecturerCard = e.target.closest('.lecturer-card');
-        if (lecturerCard) {
-            const lecturerId = lecturerCard.getAttribute('data-lecturer-id');
-            const lecturerName = lecturerCard.getAttribute('data-lecturer-name');
-            const modalElement = document.getElementById('lectureModulesModal');
-            const modal = new bootstrap.Modal(modalElement);
-
-            // Cập nhật tiêu đề modal
-            document.getElementById('selected-lecturer-name').textContent = lecturerName;
-
-            // Tạo danh sách checkbox cho các module
-            createModuleCheckboxes(lecturerId);
-
-            // Lưu lecturer ID hiện tại để después dùng
-            modalElement.dataset.currentLecturerId = lecturerId;
-
-            // Hiển thị modal
-            modal.show();
-        }
-    });
-
-    // Tạo danh sách checkbox cho các module
-    function createModuleCheckboxes(lecturerId) {
-        const modulesContainer = document.getElementById('modules-checkboxes');
-        const moduleItems = document.querySelectorAll('.module-item');
+    // 1. Thêm row mới
+    btnAdd.addEventListener('click', function() {
+        const lastRow = tableBody.querySelector('.module-row:last-child');
+        const newRow = lastRow.cloneNode(true);
         
-        let checkboxesHtml = '';
-
-        if (moduleItems.length === 0) {
-            modulesContainer.innerHTML = '<div class="alert alert-warning">Vui lòng tạo ít nhất một module trước</div>';
-            return;
+        newRow.querySelectorAll('input').forEach(i => i.value = '');
+        if (loai === 'truc_tiep') {
+            newRow.querySelector('select').selectedIndex = 0;
         }
-
-        moduleItems.forEach((item, index) => {
-            const tenModuleInput = item.querySelector('input[name*="ten_module"]');
-            const tenModule = tenModuleInput ? tenModuleInput.value || `Module ${index + 1}` : `Module ${index + 1}`;
-            const isChecked = lecturerModules[lecturerId] && lecturerModules[lecturerId].includes(index) ? 'checked' : '';
-
-            checkboxesHtml += `
-                <div class="form-check mb-2">
-                    <input 
-                        class="form-check-input module-checkbox" 
-                        type="checkbox" 
-                        value="${index}" 
-                        id="module_${index}" 
-                        ${isChecked}
-                    >
-                    <label class="form-check-label" for="module_${index}">
-                        <strong>${tenModule}</strong>
-                    </label>
-                </div>
-            `;
-        });
-
-        modulesContainer.innerHTML = checkboxesHtml;
-    }
-
-    // Xử lý khi lưu phân công giảng viên cho module
-    document.getElementById('save-lecturer-modules').addEventListener('click', function() {
-        const modalElement = document.getElementById('lectureModulesModal');
-        const lecturerId = modalElement.dataset.currentLecturerId;
-        const checkboxes = document.querySelectorAll('.module-checkbox:checked');
-        const selectedModules = Array.from(checkboxes).map(cb => parseInt(cb.value));
-
-        // Lưu lựa chọn
-        if (selectedModules.length > 0) {
-            lecturerModules[lecturerId] = selectedModules;
-        } else {
-            delete lecturerModules[lecturerId];
-        }
-
-        // Cập nhật hidden input
-        document.getElementById('lecturer-modules-data').value = JSON.stringify(lecturerModules);
-
-        // Cập nhật hiển thị summary
-        updateAssignmentsSummary();
-
-        // Đóng modal
-        const modal = bootstrap.Modal.getInstance(modalElement);
-        modal.hide();
+        
+        tableBody.appendChild(newRow);
+        updateRenumbering();
     });
 
-    // Cập nhật hiển thị danh sách phân công
-    function updateAssignmentsSummary() {
-        const summaryContainer = document.getElementById('assignments-summary');
-        let summaryHtml = '';
-
-        if (Object.keys(lecturerModules).length === 0) {
-            summaryHtml = '<div class="alert alert-info"><i class="fas fa-info-circle"></i> Chọn giảng viên ở trên để phân công các module</div>';
-        } else {
-            summaryHtml = '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Giảng viên</th><th>Modules</th><th>Thao tác</th></tr></thead><tbody>';
-
-            // Tìm giảng viên từ cards
-            const lecturerCards = document.querySelectorAll('.lecturer-card');
-            lecturerCards.forEach(card => {
-                const lecturerId = card.getAttribute('data-lecturer-id');
-                const lecturerName = card.getAttribute('data-lecturer-name');
-
-                if (lecturerModules[lecturerId]) {
-                    const moduleItems = document.querySelectorAll('.module-item');
-                    const moduleNames = lecturerModules[lecturerId].map(index => {
-                        const tenModuleInput = moduleItems[index]?.querySelector('input[name*="ten_module"]');
-                        return tenModuleInput ? tenModuleInput.value || `Module ${index + 1}` : `Module ${index + 1}`;
-                    }).join(', ');
-
-                    summaryHtml += `
-                        <tr>
-                            <td><strong>${lecturerName}</strong></td>
-                            <td>${moduleNames}</td>
-                            <td>
-                                <button type="button" class="btn btn-sm btn-primary edit-assignment" data-lecturer-id="${lecturerId}">
-                                    <i class="fas fa-edit"></i> Sửa
-                                </button>
-                                <button type="button" class="btn btn-sm btn-danger delete-assignment" data-lecturer-id="${lecturerId}">
-                                    <i class="fas fa-trash"></i> Xóa
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                }
-            });
-
-            summaryHtml += '</tbody></table></div>';
+    // 2. Xóa row
+    tableBody.addEventListener('click', function(e) {
+        if (e.target.closest('.btn-remove-row')) {
+            const rows = tableBody.querySelectorAll('.module-row');
+            if (rows.length <= 1) {
+                alert('Phải có ít nhất 1 module cho khóa học!');
+                return;
+            }
+            e.target.closest('.module-row').remove();
+            updateRenumbering();
         }
+    });
 
-        summaryContainer.innerHTML = summaryHtml;
+    // 3. Copy từ template có sẵn
+    document.getElementById('copy-from-template').addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (!selectedOption.value) return;
 
-        // Thêm event listeners cho nút Sửa và Xóa
-        attachSummaryEventListeners();
-    }
+        if (confirm("Thay thế danh sách module hiện tại bằng cấu trúc từ khóa học mẫu này?")) {
+            const modulesData = JSON.parse(selectedOption.dataset.modules);
+            tableBody.innerHTML = ''; 
 
-    function attachSummaryEventListeners() {
-        document.querySelectorAll('.edit-assignment').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const lecturerId = this.getAttribute('data-lecturer-id');
-                const lecturerCard = document.querySelector(`.lecturer-card[data-lecturer-id="${lecturerId}"]`);
-                lecturerCard.click(); // Mở modal
+            modulesData.forEach((mod, index) => {
+                const row = document.createElement('tr');
+                row.className = 'module-row';
+                row.dataset.index = index;
+                
+                let gvCell = loai === 'truc_tiep' ? `
+                    <td>
+                        <select name="modules[${index}][giang_vien_id]" class="form-select form-select-sm vip-form-control" required>
+                            <option value="">-- Chọn GV --</option>
+                            @foreach($giangViens as $gv)
+                                <option value="{{ $gv->id }}">{{ $gv->nguoiDung->ho_ten }}</option>
+                            @endforeach
+                        </select>
+                    </td>
+                ` : '';
+
+                row.innerHTML = `
+                    <td class="text-center fw-bold text-muted stt">${index + 1}</td>
+                    <td>
+                        <input type="text" name="modules[${index}][ten_module]" class="form-control form-control-sm vip-form-control" value="${mod.ten_module}" required>
+                    </td>
+                    <td>
+                        <input type="number" name="modules[${index}][thoi_luong_du_kien]" class="form-control form-control-sm vip-form-control text-center" value="${mod.thoi_luong_du_kien || ''}">
+                    </td>
+                    <td>
+                        <input type="text" name="modules[${index}][mo_ta]" class="form-control form-control-sm vip-form-control" value="${mod.mo_ta || ''}">
+                    </td>
+                    ${gvCell}
+                    <td class="text-center">
+                        <button type="button" class="btn btn-link text-danger p-0 btn-remove-row"><i class="fas fa-times-circle"></i></button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
             });
-        });
-
-        document.querySelectorAll('.delete-assignment').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const lecturerId = this.getAttribute('data-lecturer-id');
-                delete lecturerModules[lecturerId];
-                updateAssignmentsSummary();
-            });
-        });
-    }
-
-    // Đảm bảo dữ liệu được gửi khi form submit
-    document.getElementById('khoaHocForm').addEventListener('submit', function(e) {
-        //Cập nhật hidden input trước khi submit
-        document.getElementById('lecturer-modules-data').value = JSON.stringify(lecturerModules);
+            updateRenumbering();
+        }
+        this.selectedIndex = 0; 
     });
 });
 </script>
+
+<style>
+    .border-dashed { border-style: dashed !important; }
+    .vip-form-control:focus { box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1); }
+</style>
 @endsection
