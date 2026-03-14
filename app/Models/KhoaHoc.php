@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class KhoaHoc extends Model
 {
@@ -23,16 +25,22 @@ class KhoaHoc extends Model
         'trang_thai',
         'loai',
         'trang_thai_van_hanh',
+        'khoa_hoc_mau_id',
+        'lan_mo_thu',
         'ngay_khai_giang',
-        'ngay_ket_thuc_du_kien',
-        'ghi_chu_noi_bo'
+        'ngay_mo_lop',
+        'ngay_ket_thuc',
+        'ghi_chu_noi_bo',
+        'created_by'
     ];
 
     protected $casts = [
         'trang_thai' => 'boolean',
         'tong_so_module' => 'integer',
+        'lan_mo_thu' => 'integer',
         'ngay_khai_giang' => 'date',
-        'ngay_ket_thuc_du_kien' => 'date',
+        'ngay_mo_lop' => 'date',
+        'ngay_ket_thuc' => 'date',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -40,7 +48,7 @@ class KhoaHoc extends Model
     /**
      * Relationship: Khóa học thuộc về một môn học
      */
-    public function monHoc()
+    public function monHoc(): BelongsTo
     {
         return $this->belongsTo(MonHoc::class, 'mon_hoc_id');
     }
@@ -48,27 +56,51 @@ class KhoaHoc extends Model
     /**
      * Relationship: Một khóa học có nhiều module
      */
-    public function moduleHocs()
+    public function moduleHocs(): HasMany
     {
         return $this->hasMany(ModuleHoc::class, 'khoa_hoc_id')->orderBy('thu_tu_module');
     }
 
     /**
+     * Relationship: KH hoạt động -> KH mẫu gốc
+     */
+    public function khoaHocMau(): BelongsTo
+    {
+        return $this->belongsTo(KhoaHoc::class, 'khoa_hoc_mau_id');
+    }
+
+    /**
+     * Relationship: KH mẫu -> tất cả lớp đã mở từ mẫu này
+     */
+    public function lopDaMo(): HasMany
+    {
+        return $this->hasMany(KhoaHoc::class, 'khoa_hoc_mau_id');
+    }
+
+    /**
      * Relationship: Một khóa học có nhiều phân công giảng viên
      */
-    public function phanCongGiangViens()
+    public function phanCongGiangViens(): HasMany
     {
         return $this->hasMany(PhanCongModuleGiangVien::class, 'khoa_hoc_id');
     }
 
     /**
-     * Relationship: Lấy danh sách giảng viên được phân công cho khóa học này thông qua bảng trung gian
+     * Relationship: Lấy danh sách giảng viên được phân công cho khóa học này
      */
     public function giangViens()
     {
         return $this->belongsToMany(GiangVien::class, 'phan_cong_module_giang_vien', 'khoa_hoc_id', 'giao_vien_id')
                     ->withPivot('module_hoc_id', 'trang_thai', 'ghi_chu')
                     ->withTimestamps();
+    }
+
+    /**
+     * Relationship: Người tạo khóa học
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(NguoiDung::class, 'created_by', 'ma_nguoi_dung');
     }
 
     /**
@@ -85,20 +117,49 @@ class KhoaHoc extends Model
                      ->orWhere('ma_khoa_hoc', 'LIKE', "%{$search}%");
     }
 
-    public function scopeMau($q)          { return $q->where('loai','mau'); }
-    public function scopeTrucTiep($q)     { return $q->where('loai','truc_tiep'); }
-    public function scopeDangHoatDong($q) {
-        return $q->whereIn('trang_thai_van_hanh',['cho_giang_vien','san_sang','dang_day']);
+    public function scopeMau($query)
+    {
+        return $query->where('loai', 'mau');
+    }
+
+    public function scopeHoatDong($query)
+    {
+        return $query->where('loai', 'hoat_dong');
     }
 
     /**
      * Accessors
      */
-    public function getSoModuleThucTeAttribute(): int
+    public function getSoLanMoAttribute(): int
     {
-        return $this->module_hocs_count ?? $this->moduleHocs()->count();
+        return $this->lopDaMo()->count();
     }
 
+    public function getLabelTrangThaiVanHanhAttribute(): string
+    {
+        return match($this->trang_thai_van_hanh) {
+            'cho_mo'          => 'Chờ mở lớp',
+            'cho_giang_vien'  => 'Chờ giảng viên xác nhận',
+            'san_sang'        => 'Sẵn sàng khai giảng',
+            'dang_day'        => 'Đang giảng dạy',
+            'ket_thuc'        => 'Đã kết thúc',
+            default           => 'Không xác định',
+        };
+    }
+
+    public function getBadgeTrangThaiAttribute(): string
+    {
+        return match($this->trang_thai_van_hanh) {
+            'cho_mo'          => 'secondary',
+            'cho_giang_vien'  => 'warning',
+            'san_sang'        => 'info',
+            'dang_day'        => 'success',
+            'ket_thuc'        => 'dark',
+            default           => 'light',
+        };
+    }
+
+    // Keep the array-based label for Blade flexibility if already used
     public function getTrangThaiVanHanhLabelAttribute(): array
     {
         $map = [
@@ -116,8 +177,13 @@ class KhoaHoc extends Model
     {
         return [
             'mau'       => ['label'=>'Khóa mẫu',  'color'=>'info'],
-            'truc_tiep' => ['label'=>'Trực tiếp', 'color'=>'primary'],
+            'hoat_dong' => ['label'=>'Hoạt động', 'color'=>'primary'],
         ][$this->loai] ?? ['label'=>'?','color'=>'secondary'];
+    }
+
+    public function getSoModuleThucTeAttribute(): int
+    {
+        return $this->module_hocs_count ?? $this->moduleHocs()->count();
     }
 
     /**

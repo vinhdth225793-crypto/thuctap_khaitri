@@ -1,236 +1,183 @@
 @extends('layouts.app')
 
-@section('title', 'Chỉnh sửa khóa học')
+@section('title', 'Chỉnh sửa Khóa học mẫu')
 
 @section('content')
 <div class="container-fluid">
+    <!-- Breadcrumb -->
     <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <a href="{{ route('admin.khoa-hoc.show', $khoaHoc->id) }}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Quay lại
-                </a>
-                <div>
-                    <a href="{{ route('admin.khoa-hoc.show', $khoaHoc->id) }}" class="btn btn-info">
-                        <i class="fas fa-eye"></i> Xem chi tiết
-                    </a>
-                </div>
-            </div>
+        <div class="col-12 text-muted small">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('admin.khoa-hoc.index') }}">Khóa học</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('admin.khoa-hoc.show', $khoaHoc->id) }}">{{ $khoaHoc->ma_khoa_hoc }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Chỉnh sửa</li>
+                </ol>
+            </nav>
         </div>
     </div>
 
-    <div class="row">
+    <!-- Header -->
+    <div class="row mb-4">
         <div class="col-12">
-            <div class="vip-card">
-                <div class="vip-card-header">
-                    <h5 class="vip-card-title">
-                        <i class="fas fa-edit"></i> Chỉnh sửa khóa học: {{ $khoaHoc->ten_khoa_hoc }}
-                    </h5>
-                </div>
-                <div class="vip-card-body">
-                    <form action="{{ route('admin.khoa-hoc.update', $khoaHoc->id) }}" method="POST" enctype="multipart/form-data">
-                        @csrf
-                        @method('PUT')
+            <h4 class="fw-bold"><i class="fas fa-edit me-2 text-warning"></i> Chỉnh sửa Khóa học mẫu</h4>
+            <p class="text-muted small">Cập nhật nội dung chương trình học mẫu. Các thay đổi tại đây sẽ áp dụng cho các lớp mở từ mẫu này trong tương lai.</p>
+        </div>
+    </div>
 
-                        <!-- Thông tin cơ bản -->
-                        <h6 class="mb-3 text-primary">
-                            <i class="fas fa-info-circle"></i> Thông tin cơ bản
-                        </h6>
-                        <div class="row mb-4">
+    @if(session('error'))
+        <div class="alert alert-danger border-0 shadow-sm mb-4">{{ session('error') }}</div>
+    @endif
+
+    <form action="{{ route('admin.khoa-hoc.update', $khoaHoc->id) }}" method="POST" enctype="multipart/form-data" id="mainForm">
+        @csrf
+        @method('PUT')
+        <div class="row">
+            <!-- Cột trái: Thông tin chính -->
+            <div class="col-lg-8">
+                <div class="vip-card mb-4">
+                    <div class="vip-card-header">
+                        <h5 class="vip-card-title small fw-bold text-uppercase">1. Thông tin chung</h5>
+                    </div>
+                    <div class="vip-card-body p-4">
+                        <div class="row g-3">
                             <div class="col-md-6">
-                                <label for="mon_hoc_id" class="form-label">
-                                    <i class="fas fa-book"></i> Môn học <span class="text-danger">*</span>
-                                </label>
-                                <select name="mon_hoc_id" id="mon_hoc_id" class="form-select vip-form-control @error('mon_hoc_id') is-invalid @enderror" required>
-                                    <option value="">Chọn môn học</option>
-                                    @foreach($monHocs as $monHoc)
-                                        <option value="{{ $monHoc->id }}" {{ $khoaHoc->mon_hoc_id == $monHoc->id ? 'selected' : '' }}>
-                                            {{ $monHoc->ten_mon_hoc }} ({{ $monHoc->ma_mon_hoc }})
+                                <label class="form-label small fw-bold">Môn học <span class="text-danger">*</span></label>
+                                <select name="mon_hoc_id" class="form-select vip-form-control @error('mon_hoc_id') is-invalid @enderror" required>
+                                    @foreach($monHocs as $mh)
+                                        <option value="{{ $mh->id }}" {{ old('mon_hoc_id', $khoaHoc->mon_hoc_id) == $mh->id ? 'selected' : '' }}>
+                                            {{ $mh->ten_mon_hoc }}
                                         </option>
                                     @endforeach
                                 </select>
-                                @error('mon_hoc_id')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                @error('mon_hoc_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-6">
-                                <label for="cap_do" class="form-label">
-                                    <i class="fas fa-chart-line"></i> Cấp độ <span class="text-danger">*</span>
-                                </label>
-                                <select name="cap_do" id="cap_do" class="form-select vip-form-control @error('cap_do') is-invalid @enderror" required>
-                                    <option value="">Chọn cấp độ</option>
-                                    <option value="co_ban" {{ $khoaHoc->cap_do == 'co_ban' ? 'selected' : '' }}>Cơ bản</option>
-                                    <option value="trung_binh" {{ $khoaHoc->cap_do == 'trung_binh' ? 'selected' : '' }}>Trung bình</option>
-                                    <option value="nang_cao" {{ $khoaHoc->cap_do == 'nang_cao' ? 'selected' : '' }}>Nâng cao</option>
-                                </select>
-                                @error('cap_do')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                <label class="form-label small fw-bold">Mã khóa học mẫu (Chỉ đọc)</label>
+                                <input type="text" class="form-control bg-light" value="{{ $khoaHoc->ma_khoa_hoc }}" readonly>
+                                <div class="form-text smaller italic">Mã khóa học mẫu không được phép thay đổi để tránh lỗi hệ thống.</div>
                             </div>
-                        </div>
-
-                        <div class="row mb-4">
-                            <div class="col-md-8">
-                                <label for="ten_khoa_hoc" class="form-label">
-                                    <i class="fas fa-graduation-cap"></i> Tên khóa học <span class="text-danger">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    name="ten_khoa_hoc"
-                                    id="ten_khoa_hoc"
-                                    class="form-control vip-form-control @error('ten_khoa_hoc') is-invalid @enderror"
-                                    placeholder="Nhập tên khóa học"
-                                    value="{{ $khoaHoc->ten_khoa_hoc }}"
-                                    required
-                                >
-                                @error('ten_khoa_hoc')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            <div class="col-md-4">
-                                <label for="trang_thai" class="form-label">
-                                    <i class="fas fa-toggle-on"></i> Trạng thái
-                                </label>
-                                <select name="trang_thai" id="trang_thai" class="form-select vip-form-control">
-                                    <option value="1" {{ $khoaHoc->trang_thai ? 'selected' : '' }}>Hoạt động</option>
-                                    <option value="0" {{ !$khoaHoc->trang_thai ? 'selected' : '' }}>Tạm dừng</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="row mb-4">
                             <div class="col-md-12">
-                                <label for="mo_ta_ngan" class="form-label">
-                                    <i class="fas fa-align-left"></i> Mô tả ngắn
-                                </label>
-                                <textarea
-                                    name="mo_ta_ngan"
-                                    id="mo_ta_ngan"
-                                    class="form-control vip-form-control @error('mo_ta_ngan') is-invalid @enderror"
-                                    rows="2"
-                                    placeholder="Mô tả ngắn gọn về khóa học"
-                                >{{ $khoaHoc->mo_ta_ngan }}</textarea>
-                                @error('mo_ta_ngan')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                <label class="form-label small fw-bold">Tên khóa học mẫu <span class="text-danger">*</span></label>
+                                <input type="text" name="ten_khoa_hoc" class="form-control vip-form-control @error('ten_khoa_hoc') is-invalid @enderror" value="{{ old('ten_khoa_hoc', $khoaHoc->ten_khoa_hoc) }}" required>
+                                @error('ten_khoa_hoc') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
-                        </div>
-
-                        <div class="row mb-4">
-                            <div class="col-md-12">
-                                <label for="mo_ta_chi_tiet" class="form-label">
-                                    <i class="fas fa-file-alt"></i> Mô tả chi tiết
-                                </label>
-                                <textarea
-                                    name="mo_ta_chi_tiet"
-                                    id="mo_ta_chi_tiet"
-                                    class="form-control vip-form-control @error('mo_ta_chi_tiet') is-invalid @enderror"
-                                    rows="4"
-                                    placeholder="Mô tả chi tiết về khóa học, nội dung, mục tiêu..."
-                                >{{ $khoaHoc->mo_ta_chi_tiet }}</textarea>
-                                @error('mo_ta_chi_tiet')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
-
-                        <div class="row mb-4">
-                            <div class="col-md-12">
-                                <label for="hinh_anh" class="form-label">
-                                    <i class="fas fa-image"></i> Hình ảnh khóa học
-                                </label>
-                                <input
-                                    type="file"
-                                    name="hinh_anh"
-                                    id="hinh_anh"
-                                    class="form-control vip-form-control @error('hinh_anh') is-invalid @enderror"
-                                    accept="image/*"
-                                >
-                                <div class="form-text">
-                                    Chấp nhận: JPG, PNG, GIF. Kích thước tối đa: 2MB
-                                    @if($khoaHoc->hinh_anh)
-                                        <br><small class="text-muted">Để trống nếu không muốn thay đổi hình ảnh hiện tại</small>
-                                    @endif
-                                </div>
-                                @if($khoaHoc->hinh_anh)
-                                    <div class="mt-2">
-                                        <img src="{{ asset($khoaHoc->hinh_anh) }}" alt="Hình ảnh hiện tại" class="img-thumbnail" style="max-width: 200px;">
-                                    </div>
-                                @endif
-                                @error('hinh_anh')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
-
-                        <!-- Thông tin modules hiện tại -->
-                        <h6 class="mb-3 text-primary">
-                            <i class="fas fa-list"></i> Modules hiện tại
-                        </h6>
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i>
-                            <strong>Lưu ý:</strong> Việc chỉnh sửa modules và phân công giảng viên sẽ được triển khai trong phiên bản nâng cao.
-                            Hiện tại chỉ có thể chỉnh sửa thông tin cơ bản của khóa học.
-                        </div>
-
-                        @if($khoaHoc->moduleHocs->count() > 0)
-                            <div class="row mb-4">
-                                @foreach($khoaHoc->moduleHocs as $module)
-                                    <div class="col-md-6 mb-3">
-                                        <div class="border rounded p-3">
-                                            <h6 class="text-primary mb-2">
-                                                <i class="fas fa-bookmark"></i> {{ $module->ten_module }}
-                                            </h6>
-                                            <p class="text-muted small mb-1">Mã: {{ $module->ma_module }}</p>
-                                            @if($module->thoi_luong_du_kien)
-                                                <p class="small text-info mb-1">
-                                                    <i class="fas fa-clock"></i>
-                                                    @php
-                                                        $h = intdiv($module->thoi_luong_du_kien, 60);
-                                                        $m = $module->thoi_luong_du_kien % 60;
-                                                    @endphp
-                                                    {{ $h > 0 ? $h.'h ' : '' }}{{ $m > 0 ? $m.'p' : '' }}
-                                                    <small class="text-muted">({{ $module->thoi_luong_du_kien }} phút)</small>
-                                                </p>
-                                            @endif
-                                            @php
-                                                $giangVienModule = $module->phanCongGiangViens->where('trang_thai', 'da_nhan')->first();
-                                            @endphp
-                                            @if($giangVienModule)
-                                                <p class="small mb-1">
-                                                    <strong>Giảng viên:</strong> {{ $giangVienModule->giangVien->nguoiDung->ho_ten ?? 'N/A' }}
-                                                </p>
-                                            @endif
-                                            <div>
-                                                @if($module->trang_thai)
-                                                    <span class="badge bg-success">Hoạt động</span>
-                                                @else
-                                                    <span class="badge bg-danger">Tạm dừng</span>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
-
-                        <!-- Submit buttons -->
-                        <div class="row">
+                            
                             <div class="col-12">
-                                <div class="d-flex justify-content-end gap-2">
-                                    <a href="{{ route('admin.khoa-hoc.show', $khoaHoc->id) }}" class="btn btn-secondary">
-                                        <i class="fas fa-times"></i> Hủy
-                                    </a>
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-save"></i> Cập nhật
-                                    </button>
+                                <label class="form-label small fw-bold d-block">Cấp độ *</label>
+                                <div class="d-flex gap-4">
+                                    @foreach(['co_ban' => 'Cơ bản', 'trung_binh' => 'Trung bình', 'nang_cao' => 'Nâng cao'] as $val => $label)
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="cap_do" id="cd_{{ $val }}" value="{{ $val }}" {{ old('cap_do', $khoaHoc->cap_do) === $val ? 'checked' : '' }}>
+                                            <label class="form-check-label small" for="cd_{{ $val }}">{{ $label }}</label>
+                                        </div>
+                                    @endforeach
                                 </div>
                             </div>
+
+                            <div class="col-12">
+                                <label class="form-label small fw-bold text-dark">Trạng thái hiển thị</label>
+                                <div class="form-check form-switch">
+                                    <input type="hidden" name="trang_thai" value="0">
+                                    <input class="form-check-input" type="checkbox" name="trang_thai" id="trang_thai" value="1" {{ old('trang_thai', $khoaHoc->trang_thai) ? 'checked' : '' }}>
+                                    <label class="form-check-label small" for="trang_thai">Cho phép sử dụng mẫu này để mở lớp</label>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Mô tả ngắn</label>
+                                <textarea name="mo_ta_ngan" id="mo_ta_ngan" class="form-control vip-form-control" rows="2" maxlength="500">{{ old('mo_ta_ngan', $khoaHoc->mo_ta_ngan) }}</textarea>
+                                <div class="text-end smaller text-muted" id="char-counter">0/500</div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Nội dung chi tiết chương trình</label>
+                                <textarea name="mo_ta_chi_tiet" class="form-control vip-form-control" rows="6">{{ old('mo_ta_chi_tiet', $khoaHoc->mo_ta_chi_tiet) }}</textarea>
+                            </div>
                         </div>
-                    </form>
+                    </div>
+                </div>
+
+                {{-- THÔNG BÁO VỀ MODULE --}}
+                <div class="alert alert-warning border-0 shadow-sm small mb-4">
+                    <i class="fas fa-info-circle me-2"></i> 
+                    <strong>Lưu ý về Module:</strong> Để thêm hoặc xóa Module, vui lòng thực hiện tại trang <a href="{{ route('admin.khoa-hoc.show', $khoaHoc->id) }}" class="fw-bold">Chi tiết khóa học</a>. Trang này tập trung chỉnh sửa thông tin mô tả chung.
+                </div>
+            </div>
+
+            <!-- Cột phải: Media & Settings -->
+            <div class="col-lg-4">
+                <div class="vip-card mb-4 shadow-sm border-0">
+                    <div class="vip-card-header bg-white border-bottom py-3">
+                        <h5 class="vip-card-title small fw-bold text-uppercase mb-0">Ảnh đại diện mẫu</h5>
+                    </div>
+                    <div class="vip-card-body p-4 text-center">
+                        <div class="image-preview-wrapper mb-3 border rounded overflow-hidden bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
+                            <img id="preview-img" src="{{ $khoaHoc->hinh_anh ? asset($khoaHoc->hinh_anh) : asset('images/default-course.svg') }}" class="img-fluid" style="max-height: 100%;">
+                        </div>
+                        <input type="file" name="hinh_anh" id="hinh_anh" class="form-control form-control-sm" accept="image/*">
+                        <div class="form-text smaller italic mt-2">Hỗ trợ JPG, PNG. Để trống nếu không muốn đổi ảnh.</div>
+                    </div>
+                </div>
+
+                <div class="vip-card mb-4 shadow-sm border-0">
+                    <div class="vip-card-header bg-white border-bottom py-3">
+                        <h5 class="vip-card-title small fw-bold text-uppercase mb-0">Ghi chú nội bộ</h5>
+                    </div>
+                    <div class="vip-card-body p-4">
+                        <textarea name="ghi_chu_noi_bo" class="form-control vip-form-control" rows="4" placeholder="Ghi chú dành riêng cho ban quản lý...">{{ old('ghi_chu_noi_bo', $khoaHoc->ghi_chu_noi_bo) }}</textarea>
+                    </div>
+                </div>
+
+                <div class="sticky-top" style="top: 1rem;">
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-warning py-3 fw-bold shadow text-white border-0">
+                            <i class="fas fa-save me-2"></i> CẬP NHẬT THAY ĐỔI
+                        </button>
+                        <a href="{{ route('admin.khoa-hoc.show', $khoaHoc->id) }}" class="btn btn-outline-secondary py-2 fw-bold">
+                            HỦY BỎ
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const descTextarea = document.getElementById('mo_ta_ngan');
+    const charCounter = document.getElementById('char-counter');
+
+    // Character counter
+    function updateCounter() {
+        const length = descTextarea.value.length;
+        charCounter.textContent = `${length}/500`;
+        if (length >= 500) charCounter.classList.add('text-danger');
+        else charCounter.classList.remove('text-danger');
+    }
+    descTextarea.addEventListener('input', updateCounter);
+    updateCounter();
+
+    // Image preview
+    const imgInput = document.getElementById('hinh_anh');
+    const previewImg = document.getElementById('preview-img');
+
+    imgInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+});
+</script>
+
+<style>
+    .vip-form-control:focus { box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.1); border-color: #ffc107; }
+</style>
 @endsection

@@ -1,280 +1,187 @@
 @extends('layouts.app')
 
-@section('title', 'Chi tiết khóa học: ' . $khoaHoc->ma_khoa_hoc)
+@section('title', 'Chi tiết: ' . $khoaHoc->ma_khoa_hoc)
 
 @section('content')
-@php
-    $capDo = [
-        'co_ban' => ['text' => 'Cơ bản', 'class' => 'success'],
-        'trung_binh' => ['text' => 'Trung bình', 'class' => 'warning text-dark'],
-        'nang_cao' => ['text' => 'Nâng cao', 'class' => 'danger'],
-    ];
-    $cd = $capDo[$khoaHoc->cap_do] ?? ['text' => 'N/A', 'class' => 'secondary'];
-@endphp
 <div class="container-fluid">
     <!-- Breadcrumb -->
     <div class="row mb-4">
-        <div class="col-12">
+        <div class="col-12 text-muted small">
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-2 small text-muted">
-                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Admin</a></li>
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Trang chủ</a></li>
                     <li class="breadcrumb-item"><a href="{{ route('admin.khoa-hoc.index') }}">Khóa học</a></li>
                     <li class="breadcrumb-item active" aria-current="page">{{ $khoaHoc->ma_khoa_hoc }}</li>
                 </ol>
             </nav>
-            <div class="d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center">
-                    <h3 class="fw-bold mb-0 me-3">{{ $khoaHoc->ten_khoa_hoc }}</h3>
-                    <span class="badge bg-{{ $khoaHoc->loai_label['color'] }} me-2 px-3">{{ $khoaHoc->loai_label['label'] }}</span>
-                    <span class="badge bg-{{ $khoaHoc->trang_thai_van_hanh_label['color'] }} px-3">
-                        <i class="fas {{ $khoaHoc->trang_thai_van_hanh_label['icon'] }} me-1"></i>
-                        {{ $khoaHoc->trang_thai_van_hanh_label['label'] }}
-                    </span>
-                </div>
-                <div class="d-flex gap-2">
-                    <a href="{{ route('admin.khoa-hoc.edit', $khoaHoc->id) }}" class="btn btn-warning text-white fw-bold shadow-sm">
-                        <i class="fas fa-edit me-1"></i> Sửa
-                    </a>
-                    <form action="{{ route('admin.khoa-hoc.destroy', $khoaHoc->id) }}" method="POST" onsubmit="return confirm('Xác nhận xóa khóa học này? Mọi module và phân công liên quan sẽ bị xóa vĩnh viễn.')">
-                        @csrf @method('DELETE')
-                        <button type="submit" class="btn btn-danger fw-bold shadow-sm">
-                            <i class="fas fa-trash me-1"></i> Xóa
-                        </button>
-                    </form>
-                    <a href="{{ route('admin.khoa-hoc.index', ['tab' => $khoaHoc->loai === 'mau' ? 'mau' : 'hoat_dong']) }}" class="btn btn-outline-secondary fw-bold">
-                        <i class="fas fa-arrow-left me-1"></i> Quay lại
-                    </a>
-                </div>
-            </div>
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert">
-            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <!-- Header & Actions -->
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-7">
+            <div class="d-flex align-items-center">
+                <span class="badge bg-{{ $khoaHoc->loai === 'mau' ? 'info' : 'primary' }} me-3 px-3 py-2">
+                    {{ $khoaHoc->loai === 'mau' ? 'KHÓA MẪU' : 'LỚP HOẠT ĐỘNG' }}
+                </span>
+                <h3 class="fw-bold mb-0">{{ $khoaHoc->ten_khoa_hoc }}</h3>
+            </div>
+            <div class="mt-2 text-muted small">
+                <i class="fas fa-barcode me-1"></i> Mã: <code class="fw-bold">{{ $khoaHoc->ma_khoa_hoc }}</code>
+                <span class="mx-2">|</span>
+                <i class="fas fa-book me-1"></i> Môn học: <span class="fw-bold text-dark">{{ $khoaHoc->monHoc->ten_mon_hoc }}</span>
+            </div>
         </div>
-    @endif
-
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i> {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="col-md-5 text-md-end mt-3 mt-md-0">
+            @if($khoaHoc->loai === 'mau')
+                <a href="{{ route('admin.khoa-hoc.mo-lop', $khoaHoc->id) }}" class="btn btn-success fw-bold shadow-sm px-4">
+                    <i class="fas fa-rocket me-2"></i> MỞ LỚP TỪ MẪU NÀY
+                </a>
+                <a href="{{ route('admin.khoa-hoc.edit', $khoaHoc->id) }}" class="btn btn-outline-warning fw-bold ms-2">
+                    <i class="fas fa-edit me-1"></i> Sửa mẫu
+                </a>
+            @else
+                <button class="btn btn-outline-secondary fw-bold shadow-sm" disabled>
+                    <i class="fas fa-lock me-2"></i> Đã mở lớp (K{{ str_pad($khoaHoc->lan_mo_thu, 2, '0', STR_PAD_LEFT) }})
+                </button>
+            @endif
         </div>
-    @endif
+    </div>
 
+    <!-- Main Content -->
     <div class="row">
-        <!-- Cột trái: Thông tin & Nội dung -->
+        <!-- Left: Core Info & Modules -->
         <div class="col-lg-8">
-            <div class="vip-card mb-4">
-                <div class="vip-card-header">
-                    <h5 class="vip-card-title fw-bold">Thông tin chi tiết</h5>
-                </div>
+            {{-- THÔNG TIN CHI TIẾT --}}
+            <div class="vip-card mb-4 shadow-sm border-0">
                 <div class="vip-card-body p-4">
-                    <div class="mb-4">
-                        <label class="small text-muted fw-bold d-block text-uppercase mb-1">Mô tả ngắn</label>
-                        <p class="text-dark fw-bold border-start border-primary border-4 ps-3 py-1 bg-light">
-                            {{ $khoaHoc->mo_ta_ngan ?: 'Chưa có mô tả ngắn' }}
-                        </p>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <label class="small text-muted fw-bold d-block text-uppercase mb-2">Nội dung chương trình</label>
-                        <div class="p-3 bg-light rounded border min-vh-20">
-                            {!! nl2br(e($khoaHoc->mo_ta_chi_tiet)) ?: '<em class="text-muted small">Nội dung chi tiết đang được cập nhật...</em>' !!}
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <div class="image-box rounded border bg-light overflow-hidden shadow-xs" style="height: 180px;">
+                                <img src="{{ $khoaHoc->hinh_anh ? asset($khoaHoc->hinh_anh) : asset('images/default-course.svg') }}" 
+                                     class="img-fluid w-100 h-100 object-fit-cover">
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <h6 class="smaller fw-bold text-muted text-uppercase mb-2">Mô tả ngắn chương trình</h6>
+                                <p class="mb-0 text-dark">{{ $khoaHoc->mo_ta_ngan ?: 'Chưa có mô tả ngắn.' }}</p>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-6 col-md-4">
+                                    <span class="smaller text-muted d-block">Cấp độ</span>
+                                    <span class="fw-bold">{{ ['co_ban'=>'Cơ bản','trung_binh'=>'Trung bình','nang_cao'=>'Nâng cao'][$khoaHoc->cap_do] ?? 'N/A' }}</span>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <span class="smaller text-muted d-block">Tổng Module</span>
+                                    <span class="fw-bold">{{ $khoaHoc->tong_so_module }} bài học</span>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <span class="smaller text-muted d-block">Trạng thái</span>
+                                    <span class="badge bg-{{ $khoaHoc->badge_trang_thai }}">{{ $khoaHoc->label_trang_thai_van_hanh }}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-
-                    @if($khoaHoc->ghi_chu_noi_bo)
-                        <div class="alert alert-light border shadow-sm">
-                            <h6 class="fw-bold small text-muted text-uppercase mb-2"><i class="fas fa-sticky-note me-1"></i> Ghi chú nội bộ (Chỉ Admin thấy)</h6>
-                            <p class="mb-0 small">{{ $khoaHoc->ghi_chu_noi_bo }}</p>
-                        </div>
+                    @if($khoaHoc->mo_ta_chi_tiet)
+                        <hr class="my-4">
+                        <h6 class="smaller fw-bold text-muted text-uppercase mb-2">Nội dung chi tiết & Lộ trình</h6>
+                        <div class="text-dark small lh-lg">{!! nl2br(e($khoaHoc->mo_ta_chi_tiet)) !!}</div>
                     @endif
                 </div>
             </div>
 
-            <!-- Progress Bar (Hiện khi đã kích hoạt hoặc trực tiếp) -->
-            @if($khoaHoc->trang_thai_van_hanh !== 'cho_mo')
-                <div class="vip-card mb-4 border-0 shadow-sm">
-                    <div class="vip-card-body p-4 text-center">
-                        <h6 class="fw-bold mb-3">Tình trạng tiếp nhận giảng dạy</h6>
-                        <div class="progress mb-2" style="height: 25px; border-radius: 50px;">
-                            @php $percent = $tongModule > 0 ? ($moduleCoGv / $tongModule * 100) : 0; @endphp
-                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-{{ $percent >= 100 ? 'success' : 'warning' }}" 
-                                 role="progressbar" style="width: {{ $percent }}%" 
-                                 aria-valuenow="{{ $percent }}" aria-valuemin="0" aria-valuemax="100">
-                                {{ round($percent) }}%
-                            </div>
-                        </div>
-                        <p class="mb-0 small fw-bold text-{{ $percent >= 100 ? 'success' : 'muted' }}">
-                            {{ $moduleCoGv }}/{{ $tongModule }} module đã có giảng viên xác nhận dạy.
-                            @if($percent >= 100) <i class="fas fa-check-circle ms-1"></i> Tất cả giảng viên đã xác nhận! @endif
-                        </p>
-                    </div>
-                </div>
-            @endif
-
-            {{-- BLOCK 1: Xác nhận mở lớp (Khi đã sẵn sàng) --}}
-            @if($khoaHoc->trang_thai_van_hanh === 'san_sang')
-            <div class="card border-primary shadow-sm mb-4" id="section-mo-lop">
-                <div class="card-header bg-primary text-white py-3">
-                    <h6 class="fw-bold mb-0">
-                        <i class="fas fa-flag-checkered me-2"></i>
-                        Tất cả giảng viên đã xác nhận — Sẵn sàng mở lớp!
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-success mb-3 small">
-                        <i class="fas fa-check-circle me-2"></i>
-                        <strong>{{ $tongModule }}/{{ $tongModule }}</strong> module đã có giảng viên xác nhận dạy.
-                        Bạn có thể xác nhận mở lớp học chính thức ngay bây giờ.
-                    </div>
-
-                    <div class="row g-3 mb-4 text-center">
-                        <div class="col-md-4">
-                            <div class="border rounded p-3 bg-light">
-                                <div class="text-muted small mb-1">Ngày khai giảng</div>
-                                <div class="fw-bold text-primary fs-5">
-                                    {{ $khoaHoc->ngay_khai_giang ? $khoaHoc->ngay_khai_giang->format('d/m/Y') : '—' }}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="border rounded p-3 bg-light">
-                                <div class="text-muted small mb-1">Ngày kết thúc</div>
-                                <div class="fw-bold text-secondary fs-5">
-                                    {{ $khoaHoc->ngay_ket_thuc_du_kien ? $khoaHoc->ngay_ket_thuc_du_kien->format('d/m/Y') : '—' }}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="border rounded p-3 bg-light">
-                                <div class="text-muted small mb-1">Tổng module</div>
-                                <div class="fw-bold text-success fs-5">{{ $tongModule }}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <form action="{{ route('admin.khoa-hoc.xac-nhan-mo-lop', $khoaHoc->id) }}"
-                          method="POST"
-                          onsubmit="return confirm('Xác nhận mở lớp chính thức? Thao tác này không thể hoàn tác.')">
-                        @csrf
-                        <button type="submit" class="btn btn-primary btn-lg px-5 fw-bold shadow">
-                            <i class="fas fa-rocket me-2"></i>
-                            Xác nhận mở lớp chính thức
-                        </button>
-                        <p class="text-muted small mt-2 mb-0">
-                            <i class="fas fa-info-circle me-1"></i> Sau khi xác nhận, bạn có thể bắt đầu thêm học sinh vào lớp.
-                        </p>
-                    </form>
-                </div>
-            </div>
-            @endif
-
-            {{-- BLOCK 2: Quản lý học sinh (Khi lớp đang dạy) --}}
-            @if($khoaHoc->trang_thai_van_hanh === 'dang_day')
-            <div class="card border-success shadow-sm mb-4" id="section-hoc-sinh">
-                <div class="card-header bg-success text-white py-3">
-                    <h6 class="fw-bold mb-0">
-                        <i class="fas fa-user-graduate me-2"></i>
-                        Lớp đang hoạt động — Quản lý học sinh
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-success mb-3 small">
-                        <i class="fas fa-check-circle me-2"></i>
-                        Lớp học đã được mở chính thức từ ngày 
-                        <strong>{{ $khoaHoc->ngay_khai_giang ? $khoaHoc->ngay_khai_giang->format('d/m/Y') : '—' }}</strong>.
-                    </div>
-
-                    <div class="text-center py-5 border rounded bg-light border-dashed">
-                        <i class="fas fa-users fa-3x text-muted mb-3 opacity-25"></i>
-                        <h6 class="text-muted fw-bold">Chức năng quản lý học sinh</h6>
-                        <p class="small text-muted mb-0">
-                            Giai đoạn tiếp theo: Tìm kiếm học sinh, thêm vào lớp, điểm danh và quản lý học phí.
-                        </p>
-                    </div>
-                </div>
-            </div>
-            @endif
-
-            <!-- Bảng danh sách Modules -->
-            <div class="vip-card mb-4">
-                <div class="vip-card-header d-flex justify-content-between align-items-center">
-                    <h5 class="vip-card-title fw-bold mb-0">Chương trình học ({{ $tongModule }} modules)</h5>
-                    <a href="{{ route('admin.module-hoc.create', ['khoa_hoc_id' => $khoaHoc->id]) }}" class="btn btn-primary btn-sm px-3 fw-bold">
-                        <i class="fas fa-plus me-1"></i> Thêm module
-                    </a>
+            {{-- DANH SÁCH MODULE & GIẢNG VIÊN --}}
+            <div class="vip-card mb-4 shadow-sm border-0">
+                <div class="vip-card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="vip-card-title small fw-bold text-uppercase mb-0">📋 Cấu trúc Module học tập</h5>
+                    @if($khoaHoc->loai === 'mau')
+                        <a href="{{ route('admin.module-hoc.create', ['khoa_hoc_id' => $khoaHoc->id]) }}" class="btn btn-primary btn-sm px-3 fw-bold shadow-xs">
+                            <i class="fas fa-plus me-1"></i> Thêm module
+                        </a>
+                    @endif
                 </div>
                 <div class="vip-card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="bg-light smaller">
                                 <tr>
-                                    <th class="text-center" width="50">#</th>
-                                    <th>Tên Module</th>
-                                    <th class="text-center">Thời lượng</th>
-                                    <th>Giảng viên phụ trách</th>
-                                    <th class="text-center">Trạng thái PC</th>
-                                    <th class="text-center" width="80">Xem</th>
+                                    <th class="ps-4 text-center" width="60">STT</th>
+                                    <th>Tên Module học</th>
+                                    <th class="text-center">TL (phút)</th>
+                                    @if($khoaHoc->loai === 'hoat_dong')
+                                        <th>Giảng viên phụ trách</th>
+                                        <th class="text-center">Xác nhận</th>
+                                    @endif
+                                    <th class="pe-4 text-center" width="100">Hành động</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($khoaHoc->moduleHocs as $index => $module)
-                                    @php $pc = $module->phanCongGiangViens->first(); @endphp
                                     <tr>
-                                        <td class="text-center fw-bold text-muted">{{ $index + 1 }}</td>
+                                        <td class="text-center ps-4 text-muted small fw-bold">{{ $index + 1 }}</td>
                                         <td>
                                             <div class="fw-bold text-dark">{{ $module->ten_module }}</div>
-                                            <code class="smaller">{{ $module->ma_module }}</code>
+                                            <div class="smaller text-muted italic">{{ Str::limit($module->mo_ta, 60) }}</div>
                                         </td>
-                                        <td class="text-center small">
-                                            @if($module->thoi_luong_du_kien)
-                                                @php $h = intdiv($module->thoi_luong_du_kien, 60); $m = $module->thoi_luong_du_kien % 60; @endphp
-                                                <span class="fw-bold">{{ $h > 0 ? $h.'h ' : '' }}{{ $m > 0 ? $m.'p' : '' }}</span>
-                                            @else — @endif
-                                        </td>
-                                        <td>
-                                            @if($pc)
-                                                <div class="d-flex flex-column">
-                                                    <div class="d-flex align-items-center mb-1">
-                                                        <img src="{{ asset('images/default-avatar.svg') }}" class="rounded-circle me-2" width="20">
-                                                        <span class="small fw-bold text-primary">{{ $pc->giangVien->nguoiDung->ho_ten ?? 'N/A' }}</span>
+                                        <td class="text-center">{{ $module->thoi_luong_du_kien }}p</td>
+                                        
+                                        @if($khoaHoc->loai === 'hoat_dong')
+                                            @php $pc = $module->phanCongGiangViens->first(); @endphp
+                                            <td>
+                                                @if($pc)
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="avatar-mini rounded-circle bg-light me-2 border text-center" style="width: 30px; height: 30px; line-height: 30px;">
+                                                            <i class="fas fa-user-tie text-primary small"></i>
+                                                        </div>
+                                                        <div class="lh-1">
+                                                            <div class="small fw-bold text-primary">{{ $pc->giangVien->nguoiDung->ho_ten }}</div>
+                                                            <div class="smaller text-muted mt-1">{{ $pc->giangVien->chuyen_nganh ?: 'Chuyên gia' }}</div>
+                                                        </div>
                                                     </div>
-                                                    <div class="ps-4">
-                                                        @if($pc->giangVien->hoc_vi)
-                                                            <span class="smaller fw-bold text-danger">{{ $pc->giangVien->hoc_vi }}</span>
-                                                        @endif
-                                                        @if($pc->giangVien->chuyen_nganh)
-                                                            <span class="smaller text-warning fw-bold">({{ $pc->giangVien->chuyen_nganh }})</span>
-                                                        @endif
-                                                    </div>
-                                                </div>
-                                            @else
-                                                <span class="text-muted small italic">Chưa phân công</span>
-                                            @endif
-                                        </td>
-                                        <td class="text-center">
-                                            @if($pc)
-                                                @php 
-                                                    $st = [
-                                                        'da_nhan' => ['c' => 'success', 't' => 'Đã xác nhận'],
-                                                        'cho_xac_nhan' => ['c' => 'warning text-dark', 't' => 'Chờ XN'],
-                                                        'tu_choi' => ['c' => 'danger', 't' => 'Từ chối']
-                                                    ][$pc->trang_thai] ?? ['c' => 'secondary', 't' => $pc->trang_thai];
-                                                @endphp
-                                                <span class="badge bg-{{ $st['c'] }} smaller px-2 shadow-sm">{{ $st['t'] }}</span>
-                                            @else
-                                                <span class="text-muted">—</span>
-                                            @endif
-                                        </td>
-                                        <td class="text-center">
-                                            <a href="{{ route('admin.module-hoc.show', $module->id) }}" class="btn btn-sm btn-outline-info p-1 px-2"><i class="fas fa-eye"></i></a>
+                                                @else
+                                                    <span class="badge bg-light text-muted border">Chưa gán GV</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-center">
+                                                @if($pc)
+                                                    @php
+                                                        $statusMap = [
+                                                            'cho_xac_nhan' => ['bg'=>'warning','text'=>'Chờ'],
+                                                            'da_nhan'     => ['bg'=>'success','text'=>'Đồng ý'],
+                                                            'tu_choi'     => ['bg'=>'danger','text'=>'Từ chối']
+                                                        ];
+                                                        $s = $statusMap[$pc->trang_thai] ?? ['bg'=>'secondary','text'=>'?'];
+                                                    @endphp
+                                                    <span class="badge bg-{{ $s['bg'] }} smaller shadow-xs">{{ $s['text'] }}</span>
+                                                @else — @endif
+                                            </td>
+                                        @endif
+
+                                        <td class="pe-4 text-center">
+                                            <div class="d-flex justify-content-center gap-1">
+                                                <a href="{{ route('admin.module-hoc.show', $module->id) }}" class="btn btn-sm btn-outline-info border-0" title="Chi tiết"><i class="fas fa-info-circle"></i></a>
+                                                @if($khoaHoc->loai === 'mau')
+                                                    <a href="{{ route('admin.module-hoc.edit', $module->id) }}" class="btn btn-sm btn-outline-warning border-0" title="Sửa"><i class="fas fa-edit"></i></a>
+                                                    <form action="{{ route('admin.module-hoc.destroy', $module->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa module này?')">
+                                                        @csrf @method('DELETE')
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger border-0"><i class="fas fa-trash"></i></button>
+                                                    </form>
+                                                @else
+                                                    <button type="button" class="btn btn-sm btn-outline-primary border-0 btn-phan-cong" 
+                                                            data-module-id="{{ $module->id }}" 
+                                                            data-module-name="{{ $module->ten_module }}"
+                                                            title="Phân công GV">
+                                                        <i class="fas fa-user-plus"></i>
+                                                    </button>
+                                                @endif
+                                            </div>
                                         </td>
                                     </tr>
                                 @empty
-                                    <tr><td colspan="6" class="text-center py-4 text-muted italic small">Chưa có module nào được thiết lập.</td></tr>
+                                    <tr>
+                                        <td colspan="10" class="text-center py-5 text-muted small">Chưa có module nào.</td>
+                                    </tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -283,154 +190,188 @@
             </div>
         </div>
 
-        <!-- Cột phải: Sidebar thông tin & Kích hoạt -->
+        <!-- Right: Lifecycle & Meta -->
         <div class="col-lg-4">
-            <div class="vip-card mb-4 border-primary border-top border-4 shadow-sm">
-                <div class="vip-card-body p-4">
-                    <div class="text-center mb-4">
-                        @if($khoaHoc->hinh_anh)
-                            <img src="{{ asset($khoaHoc->hinh_anh) }}" class="img-fluid rounded shadow border mb-3 w-100" style="max-height: 180px; object-fit: cover;">
-                        @else
-                            <div class="bg-light rounded p-5 mb-3 border text-muted">
-                                <i class="fas fa-graduation-cap fa-4x opacity-25"></i>
+            @if($khoaHoc->loai === 'hoat_dong')
+                {{-- CARD LỊCH TRÌNH LỚP --}}
+                <div class="vip-card mb-4 border-0 shadow-sm">
+                    <div class="vip-card-header bg-primary text-white py-3">
+                        <h5 class="vip-card-title small fw-bold text-uppercase mb-0">📅 Lịch trình lớp học</h5>
+                    </div>
+                    <div class="vip-card-body p-4">
+                        <div class="timeline-simple">
+                            <div class="timeline-item mb-4 pb-1 border-start ps-4 position-relative">
+                                <div class="timeline-point bg-info"></div>
+                                <span class="smaller text-muted text-uppercase fw-bold d-block">Ngày khai giảng</span>
+                                <span class="fw-bold fs-5">{{ $khoaHoc->ngay_khai_giang->format('d/m/Y') }}</span>
                             </div>
-                        @endif
-                    </div>
-
-                    <div class="list-group list-group-flush border rounded overflow-hidden shadow-sm small">
-                        <div class="list-group-item d-flex justify-content-between p-3">
-                            <span class="text-muted fw-bold">Mã khóa học:</span>
-                            <span class="fw-bold text-primary">{{ $khoaHoc->ma_khoa_hoc }}</span>
-                        </div>
-                        <div class="list-group-item d-flex justify-content-between p-3">
-                            <span class="text-muted fw-bold">Môn học:</span>
-                            <span class="fw-bold text-info">{{ $khoaHoc->monHoc->ten_mon_hoc }}</span>
-                        </div>
-                        <div class="list-group-item d-flex justify-content-between p-3">
-                            <span class="text-muted fw-bold">Cấp độ:</span>
-                            <span class="badge bg-{{ $cd['class'] }}">{{ $cd['text'] }}</span>
-                        </div>
-                        <div class="list-group-item d-flex justify-content-between p-3">
-                            <span class="text-muted fw-bold">Ngày khai giảng:</span>
-                            <span class="fw-bold">{{ $khoaHoc->ngay_khai_giang ? $khoaHoc->ngay_khai_giang->format('d/m/Y') : '—' }}</span>
-                        </div>
-                        <div class="list-group-item d-flex justify-content-between p-3">
-                            <span class="text-muted fw-bold">Ngày kết thúc:</span>
-                            <span class="fw-bold">{{ $khoaHoc->ngay_ket_thuc_du_kien ? $khoaHoc->ngay_ket_thuc_du_kien->format('d/m/Y') : '—' }}</span>
-                        </div>
-                        <div class="list-group-item d-flex justify-content-between p-3 bg-light border-bottom-0">
-                            <span class="text-muted fw-bold">Ngày tạo:</span>
-                            <span class="text-muted">{{ $khoaHoc->created_at->format('d/m/Y') }}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SECTION KÍCH HOẠT (Chỉ cho khóa mẫu đang chờ mở) -->
-            @if($khoaHoc->loai === 'mau' && $khoaHoc->trang_thai_van_hanh === 'cho_mo')
-                <div class="card border-success shadow-sm mb-4" id="section-kich-hoat">
-                    <div class="card-header bg-success text-white py-3">
-                        <h6 class="fw-bold mb-0"><i class="fas fa-rocket me-2"></i> KÍCH HOẠT LỚP HỌC THỰC TẾ</h6>
-                    </div>
-                    <div class="card-body p-4">
-                        {{-- Block: Thông tin mở lớp dự kiến --}}
-                        @if($khoaHoc->trang_thai_van_hanh === 'cho_mo')
-                        <div class="alert alert-info border-0 shadow-sm mb-4" role="alert" style="background-color: #f0f7ff;">
-                            <div class="d-flex align-items-start gap-3">
-                                <i class="fas fa-info-circle fa-2x text-info mt-1"></i>
-                                <div class="w-100">
-                                    <h6 class="fw-bold mb-2 text-dark">📋 QUY TRÌNH KÍCH HOẠT LỚP HỌC</h6>
-                                    <p class="mb-3 small text-muted lh-base">
-                                        Vui lòng thực hiện theo kế hoạch 3 bước bên dưới. Lớp học sẽ chuyển sang trạng thái <strong>"Sẵn sàng"</strong> ngay sau khi tất cả giảng viên được phân công xác nhận đồng ý dạy qua hệ thống.
-                                    </p>
-                                    <div class="vstack gap-2">
-                                        <div class="border rounded p-2 bg-white shadow-sm">
-                                            <div class="fw-bold small text-warning mb-1"><i class="fas fa-1 me-1"></i> Bước 1: Kế hoạch</div>
-                                            <div class="smaller text-muted">Admin chọn GV + ngày & Kích hoạt dự kiến.</div>
-                                        </div>
-                                        <div class="border rounded p-2 bg-white shadow-sm">
-                                            <div class="fw-bold small text-info mb-1"><i class="fas fa-2 me-1"></i> Bước 2: Xác nhận</div>
-                                            <div class="smaller text-muted">GV nhận thông báo & Xác nhận dạy Module.</div>
-                                        </div>
-                                        <div class="border rounded p-2 bg-white shadow-sm">
-                                            <div class="fw-bold small text-success mb-1"><i class="fas fa-3 me-1"></i> Bước 3: Vận hành</div>
-                                            <div class="smaller text-muted">Admin nhận phản hồi & Mở lớp chính thức.</div>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div class="timeline-item mb-4 pb-1 border-start ps-4 position-relative">
+                                <div class="timeline-point bg-success"></div>
+                                <span class="smaller text-muted text-uppercase fw-bold d-block">Ngày chính thức mở lớp</span>
+                                <span class="fw-bold fs-5">{{ $khoaHoc->ngay_mo_lop->format('d/m/Y') }}</span>
+                            </div>
+                            <div class="timeline-item pb-1 border-start ps-4 position-relative">
+                                <div class="timeline-point bg-danger"></div>
+                                <span class="smaller text-muted text-uppercase fw-bold d-block">Dự kiến kết thúc</span>
+                                <span class="fw-bold fs-5">{{ $khoaHoc->ngay_ket_thuc->format('d/m/Y') }}</span>
                             </div>
                         </div>
-                        @endif
-
-                        @if($tongModule === 0)
-                            <div class="alert alert-warning small mb-0">
-                                <i class="fas fa-exclamation-circle me-1"></i> Khóa học chưa có module. 
-                                <a href="{{ route('admin.module-hoc.create', ['khoa_hoc_id' => $khoaHoc->id]) }}" class="fw-bold">Thêm module ngay</a>
-                            </div>
-                        @else
-                            <p class="text-muted small mb-4 italic">Điền thông tin lịch học và chọn giảng viên phụ trách cho từng phần để bắt đầu vận hành lớp học này.</p>
-                            
-                            <form action="{{ route('admin.khoa-hoc.kich-hoat-mau', $khoaHoc->id) }}" method="POST">
+                        
+                        @if($khoaHoc->trang_thai_van_hanh === 'san_sang')
+                            <hr class="my-4">
+                            <form action="{{ route('admin.khoa-hoc.xac-nhan-mo-lop', $khoaHoc->id) }}" method="POST">
                                 @csrf
-                                <div class="mb-3">
-                                    <label class="form-label small fw-bold">Ngày khai giảng *</label>
-                                    <input type="date" name="ngay_khai_giang" class="form-control form-control-sm @error('ngay_khai_giang') is-invalid @enderror" value="{{ old('ngay_khai_giang') }}" min="{{ date('Y-m-d') }}" required>
-                                    @error('ngay_khay_giang') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="mb-4">
-                                    <label class="form-label small fw-bold">Ngày kết thúc dự kiến *</label>
-                                    <input type="date" name="ngay_ket_thuc_du_kien" class="form-control form-control-sm @error('ngay_ket_thuc_du_kien') is-invalid @enderror" value="{{ old('ngay_ket_thuc_du_kien') }}" required>
-                                    @error('ngay_ket_thuc_du_kien') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-
-                                <h6 class="fw-bold small text-muted text-uppercase mb-3 border-bottom pb-2">Phân công giảng viên</h6>
-                                @foreach($khoaHoc->moduleHocs as $module)
-                                    <div class="mb-3 p-2 bg-light rounded border-start border-primary border-3">
-                                        <label class="small d-block mb-1 fw-bold text-dark">{{ $module->ten_module }}</label>
-                                        <select name="giang_viens[{{ $module->id }}]" class="form-select form-select-sm @error("giang_viens.{$module->id}") is-invalid @enderror" required>
-                                            <option value="">-- Chọn giảng viên --</option>
-                                            @foreach($giangViens as $gv)
-                                                @php
-                                                    $tenGv      = $gv->nguoiDung->ho_ten ?? 'N/A';
-                                                    $chuyenNganh = $gv->chuyen_nganh ? " — Chuyên ngành: {$gv->chuyen_nganh}" : '';
-                                                    $trinhDo     = $gv->hoc_vi       ? " — Trình độ: {$gv->hoc_vi}"       : '';
-                                                    $label       = "{$tenGv}{$chuyenNganh}{$trinhDo}";
-                                                @endphp
-                                                <option value="{{ $gv->id }}"
-                                                        {{ old("giang_viens.{$module->id}") == $gv->id ? 'selected' : '' }}>
-                                                    {{ $label }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        @error("giang_viens.{$module->id}") <div class="text-danger smaller italic mt-1">{{ $message }}</div> @enderror
-                                    </div>
-                                @endforeach
-
-                                <div class="d-grid mt-4">
-                                    <button type="submit" class="btn btn-success fw-bold py-2 shadow-sm" onclick="return confirm('Xác nhận kích hoạt? Hệ thống sẽ tạo yêu cầu gửi tới giảng viên.')">
-                                        <i class="fas fa-rocket me-2"></i> XÁC NHẬN KÍCH HOẠT
-                                    </button>
-                                </div>
+                                <button type="submit" class="btn btn-primary w-100 py-3 fw-bold shadow-sm">
+                                    <i class="fas fa-play me-2"></i> KÍCH HOẠT DẠY NGAY
+                                </button>
+                                <p class="smaller text-muted text-center mt-2 italic">Tất cả giảng viên đã xác nhận đồng ý.</p>
                             </form>
                         @endif
                     </div>
                 </div>
+
+                {{-- NGUỒN GỐC --}}
+                <div class="vip-card mb-4 shadow-sm border-0 bg-light">
+                    <div class="vip-card-body p-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-link fa-2x text-muted me-3 opacity-50"></i>
+                            <div>
+                                <span class="smaller text-muted fw-bold d-block text-uppercase">Gốc từ khóa mẫu</span>
+                                @if($khoaHoc->khoaHocMau)
+                                    <a href="{{ route('admin.khoa-hoc.show', $khoaHoc->khoa_hoc_mau_id) }}" class="fw-bold text-decoration-none">
+                                        {{ $khoaHoc->khoaHocMau->ten_khoa_hoc }}
+                                    </a>
+                                @else
+                                    <span class="fw-bold text-dark">Khóa trực tiếp</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @else
+                {{-- STATS CHO KHÓA MẪU --}}
+                <div class="vip-card mb-4 shadow-sm border-0">
+                    <div class="vip-card-header py-3">
+                        <h5 class="vip-card-title small fw-bold text-uppercase mb-0">📊 Hiệu quả đào tạo</h5>
+                    </div>
+                    <div class="vip-card-body p-4 text-center">
+                        <div class="row g-0">
+                            <div class="col-12 mb-3">
+                                <div class="p-3 border rounded bg-light">
+                                    <h2 class="fw-bold text-success mb-0">{{ $khoaHoc->lop_da_mo_count }}</h2>
+                                    <span class="smaller text-muted text-uppercase fw-bold">Lần mở lớp thực tế</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="alert alert-info border-0 small text-start mb-0">
+                            <i class="fas fa-info-circle me-1"></i> Khóa mẫu giúp chuẩn hóa quy trình dạy cho tất cả các lớp sau này.
+                        </div>
+                    </div>
+                </div>
             @endif
+
+            {{-- GHI CHÚ NỘI BỘ --}}
+            <div class="vip-card mb-4 shadow-sm border-0">
+                <div class="vip-card-header py-3">
+                    <h5 class="vip-card-title small fw-bold text-uppercase mb-0">📝 Ghi chú nội bộ</h5>
+                </div>
+                <div class="vip-card-body p-4">
+                    <p class="text-dark small lh-base mb-0 italic">
+                        {{ $khoaHoc->ghi_chu_noi_bo ?: 'Không có ghi chú nào dành cho quản trị viên.' }}
+                    </p>
+                </div>
+            </div>
+
+            {{-- META INFO --}}
+            <div class="vip-card shadow-sm border-0">
+                <div class="vip-card-body p-3 smaller">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Ngày khởi tạo:</span>
+                        <span class="fw-bold">{{ $khoaHoc->created_at->format('d/m/Y H:i') }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Cập nhật cuối:</span>
+                        <span class="fw-bold">{{ $khoaHoc->updated_at->format('d/m/Y H:i') }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Người tạo:</span>
+                        <span class="fw-bold text-primary">{{ $khoaHoc->creator->ho_ten ?? 'Admin' }}</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
+{{-- MODAL PHÂN CÔNG GIẢNG VIÊN --}}
+<div class="modal fade shadow" id="modalPhanCong" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0">
+            <div class="modal-header bg-primary text-white border-0">
+                <h5 class="modal-title fw-bold"><i class="fas fa-user-plus me-2"></i> Phân công giảng viên</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="modalPhanCongForm" method="POST" action="">
+                @csrf
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="small text-muted text-uppercase fw-bold mb-1">Module đang chọn:</label>
+                        <div id="phanCong-moduleName" class="fw-bold fs-5 text-dark"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Chọn giảng viên *</label>
+                        <select name="giao_vien_id" class="form-select vip-form-control" required>
+                            <option value="">-- Chọn giảng viên --</option>
+                            @foreach($giangViens as $gv)
+                                <option value="{{ $gv->id }}">
+                                    {{ $gv->nguoiDung->ho_ten }} ({{ $gv->chuyen_nganh ?: 'Chuyên gia' }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label small fw-bold">Ghi chú phân công</label>
+                        <textarea name="ghi_chu" class="form-control vip-form-control" rows="3" placeholder="Ghi chú về yêu cầu dạy, tài liệu..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-3 justify-content-center gap-2">
+                    <button type="button" class="btn btn-light px-4 fw-bold" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm">Gửi yêu cầu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
 <script>
-    function confirmDeleteKH() {
-        if(confirm('CẢNH BÁO: Xóa khóa học sẽ xóa toàn bộ modules và phân công liên quan. Bạn chắc chắn muốn xóa?')) {
-            // Submit hidden delete form or logic
-        }
-    }
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = new bootstrap.Modal(document.getElementById('modalPhanCong'));
+        const form = document.getElementById('modalPhanCongForm');
+        const moduleNameDisp = document.getElementById('phanCong-moduleName');
+
+        document.querySelectorAll('.btn-phan-cong').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const moduleId = this.dataset.moduleId;
+                const moduleName = this.dataset.moduleName;
+                
+                moduleNameDisp.textContent = moduleName;
+                form.action = `/admin/module-hoc/${moduleId}/assign`;
+                modal.show();
+            });
+        });
+    });
 </script>
+@endpush
 
 <style>
-    .min-vh-20 { min-height: 150px; }
-    .opacity-90 { opacity: 0.95; }
-    .smaller { font-size: 0.75rem; }
+    .shadow-xs { box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.05) !important; }
+    .timeline-point {
+        position: absolute; left: -5px; top: 0;
+        width: 10px; height: 10px; border-radius: 50%;
+    }
+    .avatar-mini { font-size: 14px; }
+    .object-fit-cover { object-fit: cover; }
+    .italic { font-style: italic; }
 </style>
 @endsection

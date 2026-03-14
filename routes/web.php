@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\PhanCongController as AdminPhanCongController;
 use App\Http\Controllers\GiangVien\PhanCongController;
 use App\Http\Controllers\GiangVienController;
 use App\Http\Controllers\HocVienController;
+use App\Http\Controllers\ThongBaoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -36,7 +37,6 @@ Route::post('/dang-xuat', [AuthController::class, 'logout'])->name('dang-xuat')-
 Route::get('/profile', function () {
     $user = auth()->user();
     if ($user->vai_tro === 'admin') {
-        // Nếu admin chưa có trang profile riêng thì có thể tạo hoặc tạm thời dùng trang sửa user chính mình
         return redirect()->route('admin.tai-khoan.edit', $user->ma_nguoi_dung);
     } elseif ($user->vai_tro === 'giang_vien') {
         return redirect()->route('giang-vien.profile');
@@ -44,8 +44,6 @@ Route::get('/profile', function () {
         return redirect()->route('hoc-vien.profile');
     }
 })->name('profile')->middleware('auth');
-
-use App\Http\Controllers\ThongBaoController;
 
 // =========== THÔNG BÁO ROUTES ===========
 Route::middleware(['auth'])->group(function () {
@@ -114,6 +112,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
         Route::post('/{id}/toggle-status', [KhoaHocManagementController::class, 'toggleStatus'])->name('toggle-status');
         Route::post('/{id}/kich-hoat-mau', [KhoaHocManagementController::class, 'kichHoatMau'])->name('kich-hoat-mau');
         Route::post('/{id}/xac-nhan-mo-lop', [KhoaHocManagementController::class, 'xacNhanMoLop'])->name('xac-nhan-mo-lop');
+
+        // Mở lớp từ khóa học mẫu
+        Route::get('/{id}/mo-lop',  [KhoaHocManagementController::class, 'showMoLop'])->name('mo-lop');
+        Route::post('/{id}/mo-lop', [KhoaHocManagementController::class, 'storeMoLop'])->name('mo-lop.store');
     });
 
     // Quản lý Module học độc lập
@@ -126,10 +128,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
         Route::put('/{id}',          [ModuleHocController::class, 'update'])->name('update');
         Route::delete('/{id}',       [ModuleHocController::class, 'destroy'])->name('destroy');
         Route::post('/{id}/toggle-status', [ModuleHocController::class, 'toggleStatus'])->name('toggle-status');
+        
+        // Phân công giảng viên
+        Route::post('/{moduleId}/assign', [AdminPhanCongController::class, 'assign'])->name('assign');
     });
 
-    // Phân công giảng viên
-    Route::post('/module-hoc/{moduleId}/assign', [AdminPhanCongController::class, 'assign'])->name('phan-cong.assign');
+    // Phân công chung
     Route::post('/phan-cong/{id}/huy', [AdminPhanCongController::class, 'huy'])->name('phan-cong.huy');
 
     // Cài đặt hệ thống

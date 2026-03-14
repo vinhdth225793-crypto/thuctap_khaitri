@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Models\ModuleHoc;
+use App\Models\KhoaHoc;
 
 class ModuleHocObserver
 {
@@ -29,7 +30,7 @@ class ModuleHocObserver
     {
         $soModule = ModuleHoc::where('khoa_hoc_id', $khoaHocId)->count();
 
-        \App\Models\KhoaHoc::where('id', $khoaHocId)
+        KhoaHoc::where('id', $khoaHocId)
             ->update(['tong_so_module' => $soModule]);
     }
 }

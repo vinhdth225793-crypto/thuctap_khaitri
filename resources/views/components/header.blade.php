@@ -19,29 +19,62 @@
             <span class="d-none d-md-inline">Trang chủ</span>
         </a>
         <!-- Thông báo -->
+        @php
+            $soTBChuaDoc = \App\Models\ThongBao::where('nguoi_nhan_id', auth()->id())
+                ->where('da_doc', 0)
+                ->count();
+            $thongBaosGanDay = \App\Models\ThongBao::where('nguoi_nhan_id', auth()->id())
+                ->orderBy('created_at', 'desc')
+                ->take(5)
+                ->get();
+        @endphp
         <div class="dropdown">
             <button class="btn position-relative" type="button" data-bs-toggle="dropdown">
                 <i class="fas fa-bell"></i>
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                    3
-                </span>
+                @if($soTBChuaDoc > 0)
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                        {{ $soTBChuaDoc > 99 ? '99+' : $soTBChuaDoc }}
+                    </span>
+                @endif
             </button>
-            <div class="dropdown-menu dropdown-menu-end">
-                <h6 class="dropdown-header">Thông báo</h6>
-                <a class="dropdown-item" href="#">
-                    <div class="d-flex w-100 justify-content-between">
-                        <small>Có bài tập mới</small>
-                        <small>5 phút trước</small>
-                    </div>
-                </a>
-                <a class="dropdown-item" href="#">
-                    <div class="d-flex w-100 justify-content-between">
-                        <small>Thông báo hệ thống</small>
-                        <small>1 giờ trước</small>
-                    </div>
-                </a>
-                <div class="dropdown-divider"></div>
-                <a class="dropdown-item text-center" href="#">Xem tất cả</a>
+            <div class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="width: 320px;">
+                <h6 class="dropdown-header d-flex justify-content-between align-items-center py-3">
+                    <span>Thông báo</span>
+                    @if($soTBChuaDoc > 0)
+                        <span class="badge bg-danger rounded-pill">{{ $soTBChuaDoc }} mới</span>
+                    @endif
+                </h6>
+                <div class="dropdown-divider m-0"></div>
+                <div style="max-height: 350px; overflow-y: auto;">
+                    @forelse($thongBaosGanDay as $tb)
+                        <a class="dropdown-item py-3 border-bottom {{ $tb->da_doc ? '' : 'bg-light' }}" href="{{ route('thong-bao.doc-mot', $tb->id) }}">
+                            <div class="d-flex align-items-start gap-2">
+                                <div class="mt-1">
+                                    @if($tb->loai === 'phan_cong')
+                                        <i class="fas fa-user-tie text-info"></i>
+                                    @elseif($tb->loai === 'mo_lop')
+                                        <i class="fas fa-rocket text-success"></i>
+                                    @elseif($tb->loai === 'xac_nhan_gv')
+                                        <i class="fas fa-check-circle text-primary"></i>
+                                    @else
+                                        <i class="fas fa-info-circle text-secondary"></i>
+                                    @endif
+                                </div>
+                                <div class="flex-fill">
+                                    <div class="small fw-bold text-dark text-wrap">{{ $tb->tieu_de }}</div>
+                                    <div class="smaller text-muted mt-1">{{ $tb->created_at->diffForHumans() }}</div>
+                                </div>
+                                @if(!$tb->da_doc)
+                                    <div class="rounded-circle bg-danger" style="width: 8px; height: 8px; margin-top: 5px;"></div>
+                                @endif
+                            </div>
+                        </a>
+                    @empty
+                        <div class="text-center py-4 text-muted small">Không có thông báo nào</div>
+                    @endforelse
+                </div>
+                <div class="dropdown-divider m-0"></div>
+                <a class="dropdown-item text-center py-2 fw-bold small text-primary" href="{{ route('thong-bao.index') }}">Xem tất cả thông báo</a>
             </div>
         </div>
         

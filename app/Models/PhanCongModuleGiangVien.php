@@ -21,11 +21,29 @@ class PhanCongModuleGiangVien extends Model
         'created_by',
     ];
 
+    protected $attributes = [
+        'trang_thai' => 'cho_xac_nhan',
+    ];
+
     protected $casts = [
         'ngay_phan_cong' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    /**
+     * Accessor: Lấy nhãn trạng thái phân công
+     */
+    public function getTrangThaiLabelAttribute(): array
+    {
+        $map = [
+            'cho_xac_nhan' => ['label' => 'Chờ xác nhận', 'color' => 'warning',  'icon' => 'fa-clock'],
+            'da_nhan'      => ['label' => 'Đã xác nhận',  'color' => 'success',  'icon' => 'fa-check-circle'],
+            'tu_choi'      => ['label' => 'Từ chối',       'color' => 'danger',   'icon' => 'fa-times-circle'],
+        ];
+        return $map[$this->trang_thai]
+            ?? ['label' => 'Không xác định', 'color' => 'secondary', 'icon' => 'fa-question'];
+    }
 
     /**
      * Relationship: Phân công thuộc về khóa học
