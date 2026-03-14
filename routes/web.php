@@ -8,7 +8,8 @@ use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\KhoaHocManagementController;
 use App\Http\Controllers\Admin\ModuleHocController;
-use App\Http\Controllers\Admin\PhanCongController;
+use App\Http\Controllers\Admin\PhanCongController as AdminPhanCongController;
+use App\Http\Controllers\GiangVien\PhanCongController;
 use App\Http\Controllers\GiangVienController;
 use App\Http\Controllers\HocVienController;
 
@@ -43,6 +44,14 @@ Route::get('/profile', function () {
         return redirect()->route('hoc-vien.profile');
     }
 })->name('profile')->middleware('auth');
+
+use App\Http\Controllers\ThongBaoController;
+
+// =========== THÔNG BÁO ROUTES ===========
+Route::middleware(['auth'])->group(function () {
+    Route::get('/thong-bao',        [ThongBaoController::class, 'index'])  ->name('thong-bao.index');
+    Route::get('/thong-bao/{id}',   [ThongBaoController::class, 'docMot']) ->name('thong-bao.doc-mot');
+});
 
 // =========== ADMIN ROUTES ===========
 Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware\CheckAdmin::class])->group(function () {
@@ -104,6 +113,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
         Route::delete('/{id}', [KhoaHocManagementController::class, 'destroy'])->name('destroy');
         Route::post('/{id}/toggle-status', [KhoaHocManagementController::class, 'toggleStatus'])->name('toggle-status');
         Route::post('/{id}/kich-hoat-mau', [KhoaHocManagementController::class, 'kichHoatMau'])->name('kich-hoat-mau');
+        Route::post('/{id}/xac-nhan-mo-lop', [KhoaHocManagementController::class, 'xacNhanMoLop'])->name('xac-nhan-mo-lop');
     });
 
     // Quản lý Module học độc lập
@@ -119,8 +129,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     });
 
     // Phân công giảng viên
-    Route::post('/module-hoc/{moduleId}/assign', [PhanCongController::class, 'assign'])->name('phan-cong.assign');
-    Route::post('/phan-cong/{id}/huy', [PhanCongController::class, 'huy'])->name('phan-cong.huy');
+    Route::post('/module-hoc/{moduleId}/assign', [AdminPhanCongController::class, 'assign'])->name('phan-cong.assign');
+    Route::post('/phan-cong/{id}/huy', [AdminPhanCongController::class, 'huy'])->name('phan-cong.huy');
 
     // Cài đặt hệ thống
     Route::prefix('settings')->group(function () {
@@ -153,11 +163,13 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', \App\Http\
     Route::get('/profile', [GiangVienController::class, 'profile'])->name('profile');
     Route::post('/profile', [GiangVienController::class, 'updateProfile'])->name('profile.update');
 
-    // Phân công dạy học
-    Route::get('/phan-cong', [GiangVienController::class, 'phanCong'])->name('phan-cong');
-    Route::get('/khoa-hoc', [GiangVienController::class, 'phanCong'])->name('khoa-hoc'); // Alias để fix RouteNotFound
-    Route::post('/phan-cong/{id}/xac-nhan', [GiangVienController::class, 'xacNhanPhanCong'])->name('phan-cong.xac-nhan');
-    Route::post('/phan-cong/{id}/tu-choi', [GiangVienController::class, 'tuChoiPhanCong'])->name('phan-cong.tu-choi');
+    // Phân công dạy học (Nâng cấp Phase B)
+    Route::get('/khoa-hoc', [PhanCongController::class, 'index'])->name('khoa-hoc');
+    Route::post('/khoa-hoc/{id}/xac-nhan', [PhanCongController::class, 'xacNhan'])->name('khoa-hoc.xac-nhan');
+    
+    // Giữ route cũ cho backward compatibility nếu cần (nhưng ta sẽ cập nhật các view chính)
+    Route::get('/phan-cong', [PhanCongController::class, 'index'])->name('phan-cong.index');
+    Route::post('/phan-cong/{id}/xac-nhan', [PhanCongController::class, 'xacNhan'])->name('phan-cong.xac-nhan');
 
     // Các tính năng khác (Placeholder)
     Route::get('/tao-bai-giang', function () { return "Tính năng Tạo bài giảng đang được phát triển"; })->name('tao-bai-giang');

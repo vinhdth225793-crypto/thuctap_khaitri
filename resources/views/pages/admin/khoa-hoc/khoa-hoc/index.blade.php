@@ -122,49 +122,142 @@
         <div class="vip-card-body p-0">
             @if($tab === 'mau')
                 <!-- Tab Khóa học mẫu -->
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-light">
-                            <tr class="smaller">
-                                <th class="ps-4 text-center" width="60">STT</th>
-                                <th width="120">Mã KH</th>
-                                <th>Tên khóa học mẫu</th>
-                                <th>Môn học</th>
-                                <th class="text-center">Cấp độ</th>
-                                <th class="text-center">Modules</th>
-                                <th class="text-center">Trạng thái</th>
-                                <th class="text-center">Ngày tạo</th>
-                                <th class="pe-4 text-center" width="220">Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($khoaHocMau as $kh)
-                                <tr>
-                                    <td class="text-center ps-4 text-muted small">{{ ($khoaHocMau->currentPage() - 1) * $khoaHocMau->perPage() + $loop->iteration }}</td>
-                                    <td><code class="fw-bold text-primary">{{ $kh->ma_khoa_hoc }}</code></td>
-                                    <td><span class="fw-bold text-dark">{{ $kh->ten_khoa_hoc }}</span></td>
-                                    <td><small class="fw-bold text-info">{{ $kh->monHoc->ten_mon_hoc ?? 'N/A' }}</small></td>
-                                    <td class="text-center">
-                                        <span class="badge bg-light text-dark border smaller">{{ ucfirst($kh->cap_do) }}</span>
-                                    </td>
-                                    <td class="text-center">
-                                        <span class="badge bg-secondary rounded-pill px-2">{{ $kh->tong_so_module }}</span>
-                                    </td>
-                                    <td class="text-center">
-                                        <span class="badge bg-{{ $kh->trang_thai_van_hanh_label['color'] }} px-2">
-                                            <i class="fas {{ $kh->trang_thai_van_hanh_label['icon'] }} me-1 small"></i>
-                                            {{ $kh->trang_thai_van_hanh_label['label'] }}
-                                        </span>
-                                    </td>
-                                    <td class="text-center small text-muted">{{ $kh->created_at->format('d/m/Y') }}</td>
-                                    <td class="pe-4 text-center">
-                                        <div class="d-flex justify-content-center gap-1">
-                                            <a href="{{ route('admin.khoa-hoc.show', $kh->id) }}" class="btn btn-sm btn-info text-white shadow-sm" title="Xem chi tiết">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            @if($kh->trang_thai_van_hanh === 'cho_mo')
-                                                <a href="{{ route('admin.khoa-hoc.show', $kh->id) }}#section-kich-hoat" class="btn btn-sm btn-success shadow-sm" title="Tạo lớp học từ template này">
-                                                    <i class="fas fa-rocket"></i>
+                @php
+                    $groupedMau = $khoaHocMau->getCollection()->groupBy(function($kh) {
+                        return $kh->monHoc->ten_mon_hoc ?? 'Chưa phân loại';
+                    });
+                    $sttMau = ($khoaHocMau->currentPage() - 1) * $khoaHocMau->perPage() + 1;
+                @endphp
+
+                @forelse($groupedMau as $tenMonHoc => $items)
+                    <div class="px-4 py-3 bg-light border-bottom d-flex align-items-center mt-3" style="border-top: 1px solid #dee2e6;">
+                        <h6 class="mb-0 fw-bold text-info">
+                            <i class="fas fa-book me-2"></i> Môn học: {{ $tenMonHoc }}
+                        </h6>
+                        <span class="badge bg-info ms-2 rounded-pill">{{ $items->count() }} khóa học</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-white">
+                                <tr class="smaller">
+                                    <th class="ps-4 text-center" width="60">STT</th>
+                                    <th width="120">Mã KH</th>
+                                    <th>Tên khóa học mẫu</th>
+                                    <th class="text-center">Cấp độ</th>
+                                    <th class="text-center">Modules</th>
+                                    <th class="text-center">Trạng thái</th>
+                                    <th class="text-center">Ngày tạo</th>
+                                    <th class="pe-4 text-center" width="220">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($items as $kh)
+                                    <tr>
+                                        <td class="text-center ps-4 text-muted small">{{ $sttMau++ }}</td>
+                                        <td><code class="fw-bold text-primary">{{ $kh->ma_khoa_hoc }}</code></td>
+                                        <td><span class="fw-bold text-dark">{{ $kh->ten_khoa_hoc }}</span></td>
+                                        <td class="text-center">
+                                            <span class="badge bg-light text-dark border smaller">{{ ucfirst($kh->cap_do) }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-secondary rounded-pill px-2">{{ $kh->tong_so_module }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-{{ $kh->trang_thai_van_hanh_label['color'] }} px-2">
+                                                <i class="fas {{ $kh->trang_thai_van_hanh_label['icon'] }} me-1 small"></i>
+                                                {{ $kh->trang_thai_van_hanh_label['label'] }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center small text-muted">{{ $kh->created_at->format('d/m/Y') }}</td>
+                                        <td class="pe-4 text-center">
+                                            <div class="d-flex justify-content-center gap-1">
+                                                <a href="{{ route('admin.khoa-hoc.show', $kh->id) }}" class="btn btn-sm btn-info text-white shadow-sm" title="Xem chi tiết">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                @if($kh->trang_thai_van_hanh === 'cho_mo')
+                                                    <a href="{{ route('admin.khoa-hoc.show', $kh->id) }}#section-kich-hoat" class="btn btn-sm btn-success shadow-sm" title="Tạo lớp học từ template này">
+                                                        <i class="fas fa-rocket"></i>
+                                                    </a>
+                                                @endif
+                                                <a href="{{ route('admin.khoa-hoc.edit', $kh->id) }}" class="btn btn-sm btn-warning text-white" title="Chỉnh sửa">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-danger" title="Xóa" onclick="confirmDelete({{ $kh->id }}, '{{ $kh->ten_khoa_hoc }}')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @empty
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-inbox fa-2x mb-2 d-block opacity-25"></i> Chưa có khóa học mẫu nào.
+                    </div>
+                @endforelse
+                <div class="p-3 border-top d-flex justify-content-center">
+                    {{ $khoaHocMau->links('pagination::bootstrap-5') }}
+                </div>
+            @else
+                <!-- Tab Đang hoạt động -->
+                @php
+                    $groupedHoatDong = $khoaHocHoatDong->getCollection()->groupBy(function($kh) {
+                        return $kh->monHoc->ten_mon_hoc ?? 'Chưa phân loại';
+                    });
+                    $sttHD = ($khoaHocHoatDong->currentPage() - 1) * $khoaHocHoatDong->perPage() + 1;
+                @endphp
+
+                @forelse($groupedHoatDong as $tenMonHoc => $items)
+                    <div class="px-4 py-3 bg-light border-bottom d-flex align-items-center mt-3" style="border-top: 1px solid #dee2e6;">
+                        <h6 class="mb-0 fw-bold text-primary">
+                            <i class="fas fa-book me-2"></i> Môn học: {{ $tenMonHoc }}
+                        </h6>
+                        <span class="badge bg-primary ms-2 rounded-pill">{{ $items->count() }} lớp học</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-white">
+                                <tr class="smaller">
+                                    <th class="ps-4 text-center" width="60">STT</th>
+                                    <th width="120">Mã KH</th>
+                                    <th>Tên lớp học</th>
+                                    <th class="text-center">Loại</th>
+                                    <th class="text-center">GV xác nhận</th>
+                                    <th class="text-center">Ngày khai giảng</th>
+                                    <th class="text-center">Trạng thái</th>
+                                    <th class="pe-4 text-center" width="120">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($items as $kh)
+                                    <tr>
+                                        <td class="text-center ps-4 text-muted small">{{ $sttHD++ }}</td>
+                                        <td><code class="fw-bold text-primary">{{ $kh->ma_khoa_hoc }}</code></td>
+                                        <td><span class="fw-bold text-dark">{{ $kh->ten_khoa_hoc }}</span></td>
+                                        <td class="text-center">
+                                            <span class="badge bg-{{ $kh->loai_label['color'] }} smaller">{{ $kh->loai_label['label'] }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            @php $t = $kh->tong_module ?? 0; $d = $kh->module_da_nhan ?? 0; @endphp
+                                            <span class="badge bg-{{ $d >= $t && $t > 0 ? 'success' : 'warning' }} shadow-sm px-2">
+                                                {{ $d }}/{{ $t }} module
+                                            </span>
+                                        </td>
+                                        <td class="text-center small fw-bold text-dark">
+                                            {{ $kh->ngay_khai_giang ? $kh->ngay_khai_giang->format('d/m/Y') : '—' }}
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-{{ $kh->trang_thai_van_hanh_label['color'] }} px-2">
+                                                <i class="fas {{ $kh->trang_thai_van_hanh_label['icon'] }} me-1 small"></i>
+                                                {{ $kh->trang_thai_van_hanh_label['label'] }}
+                                            </span>
+                                        </td>
+                                        <td class="pe-4 text-center">
+                                            <div class="d-flex justify-content-center gap-1">
+                                                <a href="{{ route('admin.khoa-hoc.show', $kh->id) }}" class="btn btn-sm btn-info text-white shadow-sm" title="Xem chi tiết & Quản lý">
+                                                    <i class="fas fa-cog"></i>
                                                 </a>
                                                 <a href="{{ route('admin.khoa-hoc.edit', $kh->id) }}" class="btn btn-sm btn-warning text-white" title="Chỉnh sửa">
                                                     <i class="fas fa-edit"></i>
@@ -172,73 +265,18 @@
                                                 <button type="button" class="btn btn-sm btn-danger" title="Xóa" onclick="confirmDelete({{ $kh->id }}, '{{ $kh->ten_khoa_hoc }}')">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
-                                            @endif
-                                        </div>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr><td colspan="9" class="text-center py-5 text-muted"><i class="fas fa-inbox fa-2x mb-2 d-block opacity-25"></i> Chưa có khóa học mẫu nào.</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-                <div class="p-3 border-top d-flex justify-content-center">
-                    {{ $khoaHocMau->links('pagination::bootstrap-5') }}
-                </div>
-            @else
-                <!-- Tab Đang hoạt động -->
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-light">
-                            <tr class="smaller">
-                                <th class="ps-4 text-center" width="60">STT</th>
-                                <th width="120">Mã KH</th>
-                                <th>Tên lớp học</th>
-                                <th>Môn học</th>
-                                <th class="text-center">Loại</th>
-                                <th class="text-center">GV xác nhận</th>
-                                <th class="text-center">Ngày khai giảng</th>
-                                <th class="text-center">Trạng thái</th>
-                                <th class="pe-4 text-center" width="120">Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($khoaHocHoatDong as $kh)
-                                <tr>
-                                    <td class="text-center ps-4 text-muted small">{{ ($khoaHocHoatDong->currentPage() - 1) * $khoaHocHoatDong->perPage() + $loop->iteration }}</td>
-                                    <td><code class="fw-bold text-primary">{{ $kh->ma_khoa_hoc }}</code></td>
-                                    <td><span class="fw-bold text-dark">{{ $kh->ten_khoa_hoc }}</span></td>
-                                    <td><small class="fw-bold text-info">{{ $kh->monHoc->ten_mon_hoc ?? 'N/A' }}</small></td>
-                                    <td class="text-center">
-                                        <span class="badge bg-{{ $kh->loai_label['color'] }} smaller">{{ $kh->loai_label['label'] }}</span>
-                                    </td>
-                                    <td class="text-center">
-                                        @php $t = $kh->tong_module ?? 0; $d = $kh->module_da_nhan ?? 0; @endphp
-                                        <span class="badge bg-{{ $d >= $t && $t > 0 ? 'success' : 'warning' }} shadow-sm px-2">
-                                            {{ $d }}/{{ $t }} module
-                                        </span>
-                                    </td>
-                                    <td class="text-center small fw-bold text-dark">
-                                        {{ $kh->ngay_khai_giang ? $kh->ngay_khai_giang->format('d/m/Y') : '—' }}
-                                    </td>
-                                    <td class="text-center">
-                                        <span class="badge bg-{{ $kh->trang_thai_van_hanh_label['color'] }} px-2">
-                                            <i class="fas {{ $kh->trang_thai_van_hanh_label['icon'] }} me-1 small"></i>
-                                            {{ $kh->trang_thai_van_hanh_label['label'] }}
-                                        </span>
-                                    </td>
-                                    <td class="pe-4 text-center">
-                                        <a href="{{ route('admin.khoa-hoc.show', $kh->id) }}" class="btn btn-sm btn-info text-white shadow-sm" title="Xem chi tiết & Quản lý">
-                                            <i class="fas fa-cog"></i> Quản lý
-                                        </a>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr><td colspan="9" class="text-center py-5 text-muted"><i class="fas fa-play-circle fa-2x mb-2 d-block opacity-25"></i> Hiện không có lớp học nào đang hoạt động.</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @empty
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-play-circle fa-2x mb-2 d-block opacity-25"></i> Hiện không có lớp học nào đang hoạt động.
+                    </div>
+                @endforelse
                 <div class="p-3 border-top d-flex justify-content-center">
                     {{ $khoaHocHoatDong->links('pagination::bootstrap-5') }}
                 </div>
@@ -274,7 +312,7 @@
 <script>
     function confirmDelete(id, name) {
         document.getElementById('deleteCourseName').textContent = name;
-        document.getElementById('deleteForm').action = `/admin/khoa-hoc/${id}`;
+        document.getElementById('deleteForm').action = `{{ url('admin/khoa-hoc') }}/${id}`;
         new bootstrap.Modal(document.getElementById('deleteModal')).show();
     }
 </script>
