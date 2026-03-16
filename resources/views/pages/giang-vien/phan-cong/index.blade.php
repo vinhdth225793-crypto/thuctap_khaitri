@@ -134,7 +134,12 @@
                                         <td class="text-center">{{ $pc->moduleHoc->khoaHoc->ngay_khai_giang ? $pc->moduleHoc->khoaHoc->ngay_khai_giang->format('d/m/Y') : '—' }}</td>
                                         <td class="text-center small text-muted">{{ $pc->updated_at->format('d/m/Y H:i') }}</td>
                                         <td class="text-center">
-                                            <span class="badge bg-success shadow-sm px-3"><i class="fas fa-check-circle me-1"></i> Đã xác nhận</span>
+                                            <div class="d-flex justify-content-center gap-1">
+                                                <a href="{{ route('giang-vien.khoa-hoc.show', $pc->id) }}" class="btn btn-sm btn-outline-primary border-0" title="Xem chi tiết">
+                                                    <i class="fas fa-eye me-1"></i> Chi tiết
+                                                </a>
+                                                <span class="badge bg-success shadow-sm px-3"><i class="fas fa-check-circle me-1"></i> Đã xác nhận</span>
+                                            </div>
                                         </td>
                                     </tr>
                                 @empty

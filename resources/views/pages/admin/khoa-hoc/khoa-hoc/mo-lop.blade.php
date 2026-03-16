@@ -51,8 +51,8 @@
                                     <code class="fw-bold text-primary">{{ $khoaHocMau->ma_khoa_hoc }}</code>
                                 </div>
                                 <div class="col-6">
-                                    <span class="smaller text-muted fw-bold text-uppercase d-block">Môn học</span>
-                                    <span class="small fw-bold">{{ $khoaHocMau->monHoc->ten_mon_hoc }}</span>
+                                    <span class="smaller text-muted fw-bold text-uppercase d-block">Nhóm ngành</span>
+                                    <span class="small fw-bold">{{ $khoaHocMau->nhomNganh->ten_nhom_nganh }}</span>
                                 </div>
                                 <div class="col-6 mt-2">
                                     <span class="smaller text-muted fw-bold text-uppercase d-block">Cấp độ</span>

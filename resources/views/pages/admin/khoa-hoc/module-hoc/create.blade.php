@@ -40,10 +40,10 @@
                                 <select name="khoa_hoc_id" id="khoa_hoc_id" class="form-select vip-form-control @error('khoa_hoc_id') is-invalid @enderror" required>
                                     <option value="">-- Chọn khóa học --</option>
                                     @php
-                                        $groupedKhoaHocs = $khoaHocs->groupBy(fn($kh) => $kh->monHoc->ten_mon_hoc ?? 'Khác');
+                                        $groupedKhoaHocs = $khoaHocs->groupBy(fn($kh) => $kh->nhomNganh->ten_nhom_nganh ?? 'Khác');
                                     @endphp
-                                    @foreach($groupedKhoaHocs as $tenMonHoc => $items)
-                                        <optgroup label="Môn: {{ $tenMonHoc }}">
+                                    @foreach($groupedKhoaHocs as $tenNhomNganh => $items)
+                                        <optgroup label="Ngành: {{ $tenNhomNganh }}">
                                             @foreach($items as $kh)
                                                 <option value="{{ $kh->id }}" {{ old('khoa_hoc_id', $khoaHocId) == $kh->id ? 'selected' : '' }}>
                                                     [{{ $kh->ma_khoa_hoc }}] {{ $kh->ten_khoa_hoc }}

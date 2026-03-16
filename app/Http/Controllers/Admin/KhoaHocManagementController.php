@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\KhoaHoc;
-use App\Models\MonHoc;
+use App\Models\NhomNganh;
 use App\Models\ModuleHoc;
 use App\Models\GiangVien;
 use App\Models\PhanCongModuleGiangVien;
@@ -23,7 +23,7 @@ class KhoaHocManagementController extends Controller
      */
     public function index(Request $request)
     {
-        $activeTab = $request->get('tab', 'mau');
+        $activeTab = $request->get('tab', 'dang_day');
         $search = trim($request->get('search', ''));
 
         $applySearch = fn($q) => $q->when($search,
@@ -31,24 +31,49 @@ class KhoaHocManagementController extends Controller
                         ->orWhere('ma_khoa_hoc','like',"%{$search}%")
         );
 
-        // Khóa học mẫu
+        // 1. Khóa học mẫu
         $khoaHocMau = KhoaHoc::mau()
-            ->with(['monHoc', 'moduleHocs', 'lopDaMo'])
+            ->with(['nhomNganh', 'moduleHocs', 'lopDaMo'])
             ->withCount('lopDaMo')
             ->tap($applySearch)
             ->orderBy('created_at', 'desc')
             ->paginate(10, ['*'], 'page_mau');
 
-        // Khóa học đang hoạt động
-        $khoaHocHoatDong = KhoaHoc::hoatDong()
-            ->with(['monHoc', 'moduleHocs', 'khoaHocMau'])
+        // 2. Lớp đang giảng dạy
+        $khoaHocDangDay = KhoaHoc::hoatDong()
+            ->with(['nhomNganh', 'moduleHocs', 'khoaHocMau'])
+            ->withCount(['moduleHocs as module_xac_nhan_count' => function($q) {
+                $q->whereHas('phanCongGiangViens', fn($q2) => $q2->where('trang_thai', 'da_nhan'));
+            }])
             ->tap($applySearch)
-            ->whereIn('trang_thai_van_hanh', ['cho_giang_vien', 'san_sang', 'dang_day'])
+            ->where('trang_thai_van_hanh', 'dang_day')
             ->orderBy('ngay_mo_lop', 'asc')
-            ->paginate(10, ['*'], 'page_hd');
+            ->paginate(10, ['*'], 'page_dd');
+
+        // 3. Lớp chờ giảng viên xác nhận
+        $khoaHocChoGV = KhoaHoc::hoatDong()
+            ->with(['nhomNganh', 'moduleHocs', 'khoaHocMau'])
+            ->withCount(['moduleHocs as module_xac_nhan_count' => function($q) {
+                $q->whereHas('phanCongGiangViens', fn($q2) => $q2->where('trang_thai', 'da_nhan'));
+            }])
+            ->tap($applySearch)
+            ->where('trang_thai_van_hanh', 'cho_giang_vien')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10, ['*'], 'page_cgv');
+
+        // 4. Lớp sẵn sàng khai giảng
+        $khoaHocSanSang = KhoaHoc::hoatDong()
+            ->with(['nhomNganh', 'moduleHocs', 'khoaHocMau'])
+            ->withCount(['moduleHocs as module_xac_nhan_count' => function($q) {
+                $q->whereHas('phanCongGiangViens', fn($q2) => $q2->where('trang_thai', 'da_nhan'));
+            }])
+            ->tap($applySearch)
+            ->where('trang_thai_van_hanh', 'san_sang')
+            ->orderBy('ngay_mo_lop', 'asc')
+            ->paginate(10, ['*'], 'page_ss');
 
         return view('pages.admin.khoa-hoc.khoa-hoc.index', compact(
-            'khoaHocMau', 'khoaHocHoatDong', 'activeTab', 'search'
+            'khoaHocMau', 'khoaHocDangDay', 'khoaHocChoGV', 'khoaHocSanSang', 'activeTab', 'search'
         ));
     }
 
@@ -57,8 +82,8 @@ class KhoaHocManagementController extends Controller
      */
     public function create()
     {
-        $monHocs = MonHoc::where('trang_thai', 1)->orderBy('ten_mon_hoc')->get();
-        return view('pages.admin.khoa-hoc.khoa-hoc.create', compact('monHocs'));
+        $nhomNganhs = NhomNganh::where('trang_thai', 1)->orderBy('ten_nhom_nganh')->get();
+        return view('pages.admin.khoa-hoc.khoa-hoc.create', compact('nhomNganhs'));
     }
 
     /**
@@ -67,7 +92,7 @@ class KhoaHocManagementController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'mon_hoc_id'     => 'required|exists:mon_hoc,id',
+            'nhom_nganh_id'  => 'required|exists:nhom_nganh,id',
             'ma_khoa_hoc'    => 'required|string|max:50|unique:khoa_hoc,ma_khoa_hoc',
             'ten_khoa_hoc'   => 'required|string|max:200',
             'cap_do'         => 'required|in:co_ban,trung_binh,nang_cao',
@@ -79,7 +104,7 @@ class KhoaHocManagementController extends Controller
             'modules.*.ten_module'          => 'required|string|max:200',
             'modules.*.thoi_luong_du_kien'  => 'nullable|integer|min:1',
         ], [
-            'mon_hoc_id.required' => 'Vui lòng chọn môn học',
+            'nhom_nganh_id.required' => 'Vui lòng chọn nhóm ngành',
             'ma_khoa_hoc.required' => 'Mã khóa học là bắt buộc',
             'ma_khoa_hoc.unique' => 'Mã khóa học đã tồn tại',
             'ten_khoa_hoc.required' => 'Tên khóa học là bắt buộc',
@@ -97,7 +122,7 @@ class KhoaHocManagementController extends Controller
             }
 
             $khoaHoc = KhoaHoc::create([
-                'mon_hoc_id'          => $request->mon_hoc_id,
+                'nhom_nganh_id'       => $request->nhom_nganh_id,
                 'ma_khoa_hoc'         => $request->ma_khoa_hoc,
                 'ten_khoa_hoc'        => $request->ten_khoa_hoc,
                 'mo_ta_ngan'          => $request->mo_ta_ngan,
@@ -142,10 +167,10 @@ class KhoaHocManagementController extends Controller
     public function show($id)
     {
         $khoaHoc = KhoaHoc::with([
-            'monHoc',
+            'nhomNganh',
             'moduleHocs.phanCongGiangViens.giangVien.nguoiDung',
             'khoaHocMau',
-            'lopDaMo.monHoc'
+            'lopDaMo.nhomNganh'
         ])->findOrFail($id);
 
         $tongModule = $khoaHoc->moduleHocs->count();
@@ -166,7 +191,7 @@ class KhoaHocManagementController extends Controller
     public function showMoLop($id)
     {
         $khoaHocMau = KhoaHoc::mau()
-            ->with(['monHoc', 'moduleHocs'])
+            ->with(['nhomNganh', 'moduleHocs'])
             ->findOrFail($id);
 
         $giangViens = GiangVien::with('nguoiDung')
@@ -211,7 +236,7 @@ class KhoaHocManagementController extends Controller
             }
 
             $khoaMoi = KhoaHoc::create([
-                'mon_hoc_id'          => $khoaHocMau->mon_hoc_id,
+                'nhom_nganh_id'       => $khoaHocMau->nhom_nganh_id,
                 'ma_khoa_hoc'         => $maMoi,
                 'ten_khoa_hoc'        => $khoaHocMau->ten_khoa_hoc . ' (Khóa ' . $lanThu . ')',
                 'mo_ta_ngan'          => $khoaHocMau->mo_ta_ngan,
@@ -284,8 +309,8 @@ class KhoaHocManagementController extends Controller
         if ($khoaHoc->loai === 'hoat_dong') {
             return redirect()->back()->with('error', 'Không thể chỉnh sửa trực tiếp khóa học đang hoạt động. Hãy chỉnh sửa thông qua trang chi tiết.');
         }
-        $monHocs = MonHoc::where('trang_thai', 1)->get();
-        return view('pages.admin.khoa-hoc.khoa-hoc.edit', compact('khoaHoc', 'monHocs'));
+        $nhomNganhs = NhomNganh::where('trang_thai', 1)->get();
+        return view('pages.admin.khoa-hoc.khoa-hoc.edit', compact('khoaHoc', 'nhomNganhs'));
     }
 
     /**
@@ -299,13 +324,13 @@ class KhoaHocManagementController extends Controller
         }
 
         $request->validate([
-            'mon_hoc_id'   => 'required|exists:mon_hoc,id',
-            'ten_khoa_hoc' => 'required|string|max:200',
-            'cap_do'       => 'required|in:co_ban,trung_binh,nang_cao',
-            'trang_thai'   => 'required|boolean',
+            'nhom_nganh_id' => 'required|exists:nhom_nganh,id',
+            'ten_khoa_hoc'  => 'required|string|max:200',
+            'cap_do'        => 'required|in:co_ban,trung_binh,nang_cao',
+            'trang_thai'    => 'required|boolean',
         ]);
 
-        $data = $request->only(['mon_hoc_id', 'ten_khoa_hoc', 'cap_do', 'mo_ta_ngan', 'mo_ta_chi_tiet', 'trang_thai', 'ghi_chu_noi_bo']);
+        $data = $request->only(['nhom_nganh_id', 'ten_khoa_hoc', 'cap_do', 'mo_ta_ngan', 'mo_ta_chi_tiet', 'trang_thai', 'ghi_chu_noi_bo']);
 
         if ($request->hasFile('hinh_anh')) {
             if ($khoaHoc->hinh_anh && file_exists(public_path($khoaHoc->hinh_anh))) {
@@ -346,8 +371,6 @@ class KhoaHocManagementController extends Controller
         return redirect()->back()->with('success', 'Đã đổi trạng thái.');
     }
 
-    public function kichHoatMau(Request $request, $id) { /* Giữ logic cũ nếu cần hoặc tích hợp vào storeMoLop */ }
-
     public function xacNhanMoLop($id)
     {
         $khoaHoc = KhoaHoc::with(['moduleHocs.phanCongGiangViens'])->findOrFail($id);
@@ -359,7 +382,6 @@ class KhoaHocManagementController extends Controller
 
         DB::transaction(function () use ($khoaHoc) {
             $khoaHoc->update(['trang_thai_van_hanh' => 'dang_day']);
-            // Thông báo... (đã có logic ở phiên bản cũ)
         });
 
         return redirect()->route('admin.khoa-hoc.show', $id)->with('success', 'Đã mở lớp học chính thức!');

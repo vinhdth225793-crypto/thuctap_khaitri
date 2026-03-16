@@ -41,16 +41,16 @@
                     <div class="vip-card-body p-4">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label small fw-bold">Môn học <span class="text-danger">*</span></label>
-                                <select name="mon_hoc_id" class="form-select vip-form-control @error('mon_hoc_id') is-invalid @enderror" required>
-                                    <option value="">-- Chọn môn học --</option>
-                                    @foreach($monHocs as $mh)
-                                        <option value="{{ $mh->id }}" {{ old('mon_hoc_id') == $mh->id ? 'selected' : '' }}>
-                                            {{ $mh->ten_mon_hoc }}
+                                <label class="form-label small fw-bold">Nhóm ngành <span class="text-danger">*</span></label>
+                                <select name="nhom_nganh_id" class="form-select vip-form-control @error('nhom_nganh_id') is-invalid @enderror" required>
+                                    <option value="">-- Chọn nhóm ngành --</option>
+                                    @foreach($nhomNganhs as $item)
+                                        <option value="{{ $item->id }}" {{ old('nhom_nganh_id') == $item->id ? 'selected' : '' }}>
+                                            {{ $item->ten_nhom_nganh }}
                                         </option>
                                     @endforeach
                                 </select>
-                                @error('mon_hoc_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                @error('nhom_nganh_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">Mã khóa học mẫu <span class="text-danger">*</span></label>

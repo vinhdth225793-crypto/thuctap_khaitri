@@ -18,6 +18,7 @@ class ModuleHoc extends Model
         'mo_ta',
         'thu_tu_module',
         'thoi_luong_du_kien',
+        'so_buoi',
         'trang_thai',
     ];
 
@@ -25,6 +26,7 @@ class ModuleHoc extends Model
         'trang_thai' => 'boolean',
         'thu_tu_module' => 'integer',
         'thoi_luong_du_kien' => 'integer',
+        'so_buoi' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -64,7 +66,31 @@ class ModuleHoc extends Model
     }
 
     /**
-     * Scope: Tìm kiếm theo tên module
+     * Relationship: Lịch học của module này
+     */
+    public function lichHocs()
+    {
+        return $this->hasMany(LichHoc::class, 'module_hoc_id')->orderBy('ngay_hoc');
+    }
+
+    /**
+     * Accessor: Tổng số buổi đã lên lịch thực tế
+     */
+    public function getSoBuoiDaLenLichAttribute(): int
+    {
+        return $this->lich_hocs_count ?? $this->lichHocs()->count();
+    }
+
+    /**
+     * Accessor: Số buổi còn thiếu so với quy định
+     */
+    public function getSoBuoiConLaiAttribute(): int
+    {
+        return max(0, $this->so_buoi - $this->so_buoi_da_len_lich);
+    }
+
+    /**
+     * Scope: Tìm kiếm module theo tên module
      */
     public function scopeSearch($query, $search)
     {

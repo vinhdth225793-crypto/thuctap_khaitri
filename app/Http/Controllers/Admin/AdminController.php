@@ -7,7 +7,7 @@ use App\Models\NguoiDung;
 use App\Models\TaiKhoanChoPheDuyet;
 use App\Models\GiangVien;
 use App\Models\SystemSetting;
-use App\Models\MonHoc;
+use App\Models\NhomNganh;
 use App\Models\KhoaHoc;
 use App\Models\ModuleHoc;
 use App\Models\PhanCongModuleGiangVien;
@@ -39,8 +39,8 @@ class AdminController extends Controller
 
         // 2. Thống kê đào tạo & Module (Phase 5)
         $trainingStats = [
-            'tong_mon_hoc'        => MonHoc::count(),
-            'mon_hoc_hoat_dong'   => MonHoc::active()->count(),
+            'tong_mon_hoc'        => NhomNganh::count(),
+            'mon_hoc_hoat_dong'   => NhomNganh::active()->count(),
             'tong_khoa_hoc'       => KhoaHoc::count(),
             'khoa_hoc_hoat_dong'  => KhoaHoc::active()->count(),
             'tong_module'         => ModuleHoc::count(),
@@ -60,7 +60,7 @@ class AdminController extends Controller
             ->take(5)
             ->get();
 
-        $moduleChuaCoGv = ModuleHoc::with(['khoaHoc.monHoc'])
+        $moduleChuaCoGv = ModuleHoc::with(['khoaHoc.nhomNganh'])
             ->whereDoesntHave('phanCongGiangViens', function($q) {
                 $q->whereIn('trang_thai', ['da_nhan', 'cho_xac_nhan']);
             })
@@ -318,7 +318,9 @@ class AdminController extends Controller
         } else {
             $query->orderBy($sortField, $sortDirection);
         }
-        $hocVien = $query->paginate(20)->withQueryString();
+
+        // Eager load hocVien details
+        $hocVien = $query->with('hocVien')->paginate(20)->withQueryString();
 
         return view('pages.admin.quan-ly-tai-khoan.hoc-vien.index', compact('hocVien'));
     }
@@ -371,7 +373,9 @@ class AdminController extends Controller
         } else {
             $query->orderBy($sortField, $sortDirection);
         }
-        $giangVien = $query->paginate(20)->withQueryString();
+
+        // Eager load giangVien details
+        $giangVien = $query->with('giangVien')->paginate(20)->withQueryString();
 
         return view('pages.admin.quan-ly-tai-khoan.giang-vien.index', compact('giangVien'));
     }
@@ -841,13 +845,46 @@ class AdminController extends Controller
      */
     public function giangVienDashboard()
     {
+        $giangVienId = auth()->user()->giangVien->id ?? null;
+
+        if (!$giangVienId) {
+            return redirect()->route('home')->with('error', 'Tài khoản của bạn chưa được thiết lập profile giảng viên.');
+        }
+
         $stats = [
-            'tongKhoaHoc' => KhoaHoc::where('giang_vien_id', auth()->id())->count(),
-            'tongHocVien' => $this->countStudentsOfTeacher(auth()->id()),
-            'doanhThu' => $this->calculateRevenue(auth()->id()),
+            'dang_day' => PhanCongModuleGiangVien::where('giao_vien_id', $giangVienId)
+                ->where('trang_thai', 'da_nhan')
+                ->count(),
+            'cho_xac_nhan' => PhanCongModuleGiangVien::where('giao_vien_id', $giangVienId)
+                ->where('trang_thai', 'cho_xac_nhan')
+                ->count(),
+            'tong_hoc_vien' => DB::table('hoc_vien_khoa_hoc')
+                ->whereIn('khoa_hoc_id', function($query) use ($giangVienId) {
+                    $query->select('khoa_hoc_id')
+                        ->from('phan_cong_module_giang_vien')
+                        ->where('giao_vien_id', $giangVienId);
+                })
+                ->count(),
+            'so_gio_day' => auth()->user()->giangVien->so_gio_day ?? 0,
         ];
 
-        return view('pages.giang-vien.dashboard', compact('stats'));
+        // Lấy danh sách phân công mới nhất cần xác nhận
+        $phanCongMoi = PhanCongModuleGiangVien::with(['moduleHoc.khoaHoc.nhomNganh'])
+            ->where('giao_vien_id', $giangVienId)
+            ->where('trang_thai', 'cho_xac_nhan')
+            ->latest()
+            ->take(5)
+            ->get();
+
+        // Lấy danh sách lớp đang dạy (từ các module đã nhận)
+        $lopDangDay = PhanCongModuleGiangVien::with(['moduleHoc.khoaHoc.nhomNganh'])
+            ->where('giao_vien_id', $giangVienId)
+            ->where('trang_thai', 'da_nhan')
+            ->latest()
+            ->take(5)
+            ->get();
+
+        return view('pages.giang-vien.dashboard', compact('stats', 'phanCongMoi', 'lopDangDay'));
     }
 
     /**

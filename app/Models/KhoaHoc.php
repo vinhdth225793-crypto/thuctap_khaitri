@@ -14,7 +14,7 @@ class KhoaHoc extends Model
     protected $table = 'khoa_hoc';
 
     protected $fillable = [
-        'mon_hoc_id',
+        'nhom_nganh_id', // Đổi từ mon_hoc_id
         'ma_khoa_hoc',
         'ten_khoa_hoc',
         'mo_ta_ngan',
@@ -46,11 +46,19 @@ class KhoaHoc extends Model
     ];
 
     /**
-     * Relationship: Khóa học thuộc về một môn học
+     * Relationship: Khóa học thuộc về một nhóm ngành
+     */
+    public function nhomNganh(): BelongsTo
+    {
+        return $this->belongsTo(NhomNganh::class, 'nhom_nganh_id');
+    }
+
+    /**
+     * Alias để tương thích ngược (nếu cần)
      */
     public function monHoc(): BelongsTo
     {
-        return $this->belongsTo(MonHoc::class, 'mon_hoc_id');
+        return $this->nhomNganh();
     }
 
     /**
@@ -83,6 +91,39 @@ class KhoaHoc extends Model
     public function phanCongGiangViens(): HasMany
     {
         return $this->hasMany(PhanCongModuleGiangVien::class, 'khoa_hoc_id');
+    }
+
+    /**
+     * Relationship: Học viên trong khóa học (bảng trung gian)
+     */
+    public function hocVienKhoaHocs(): HasMany
+    {
+        return $this->hasMany(HocVienKhoaHoc::class, 'khoa_hoc_id');
+    }
+
+    /**
+     * Relationship: Danh sách học viên của khóa học
+     */
+    public function hocViens()
+    {
+        return $this->belongsToMany(
+            NguoiDung::class,
+            'hoc_vien_khoa_hoc',
+            'khoa_hoc_id',
+            'hoc_vien_id',
+            'id',
+            'ma_nguoi_dung'
+        )->withPivot('ngay_tham_gia', 'trang_thai', 'ghi_chu')->withTimestamps();
+    }
+
+    /**
+     * Relationship: Lịch học của khóa học
+     */
+    public function lichHocs(): HasMany
+    {
+        return $this->hasMany(LichHoc::class, 'khoa_hoc_id')
+                    ->orderBy('ngay_hoc')
+                    ->orderBy('gio_bat_dau');
     }
 
     /**
@@ -127,9 +168,25 @@ class KhoaHoc extends Model
         return $query->where('loai', 'hoat_dong');
     }
 
+    public function scopeDangHoatDong($query)
+    {
+        return $query->where('loai', 'hoat_dong')
+                     ->whereIn('trang_thai_van_hanh', ['dang_day', 'san_sang', 'cho_giang_vien']);
+    }
+
+    public function scopeDangDay($query)
+    {
+        return $query->where('trang_thai_van_hanh', 'dang_day');
+    }
+
     /**
      * Accessors
      */
+    public function getSoHocVienAttribute(): int
+    {
+        return $this->hoc_vien_count ?? $this->hocVienKhoaHocs()->where('trang_thai', 'dang_hoc')->count();
+    }
+
     public function getSoLanMoAttribute(): int
     {
         return $this->lopDaMo()->count();

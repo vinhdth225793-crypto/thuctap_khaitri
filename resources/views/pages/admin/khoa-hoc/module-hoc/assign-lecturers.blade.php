@@ -33,7 +33,7 @@
                                 <ul class="list-group">
                                     <li class="list-group-item"><strong>Mã module:</strong> {{ $module->ma_module }}</li>
                                     <li class="list-group-item"><strong>Khóa học:</strong> {{ $module->khoaHoc->ten_khoa_hoc }}</li>
-                                    <li class="list-group-item"><strong>Môn học:</strong> {{ $module->khoaHoc->monHoc->ten_mon_hoc }}</li>
+                                    <li class="list-group-item"><strong>Nhóm ngành:</strong> {{ $module->khoaHoc->nhomNganh->ten_nhom_nganh }}</li>
                                 </ul>
                             </div>
                             <div class="col-md-6">

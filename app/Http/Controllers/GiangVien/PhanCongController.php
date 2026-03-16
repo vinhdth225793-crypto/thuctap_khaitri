@@ -19,7 +19,7 @@ class PhanCongController extends Controller
         }
 
         $phanCongs = PhanCongModuleGiangVien::with([
-                'moduleHoc.khoaHoc.monHoc',
+                'moduleHoc.khoaHoc.nhomNganh',
             ])
             ->where('giao_vien_id', $giangVien->id)
             ->orderByRaw("FIELD(trang_thai, 'cho_xac_nhan', 'da_nhan', 'tu_choi')")
@@ -27,6 +27,32 @@ class PhanCongController extends Controller
             ->get();
 
         return view('pages.giang-vien.phan-cong.index', compact('phanCongs'));
+    }
+
+    /**
+     * Chi tiết khóa học/module dành cho giảng viên
+     */
+    public function show($id)
+    {
+        $giangVien = auth()->user()->giangVien;
+        
+        $phanCong = PhanCongModuleGiangVien::with([
+            'khoaHoc.nhomNganh', 
+            'moduleHoc',
+            'khoaHoc.hocVienKhoaHocs.hocVien'
+        ])
+        ->where('giao_vien_id', $giangVien->id)
+        ->findOrFail($id);
+
+        $khoaHoc = $phanCong->khoaHoc;
+        
+        // Lấy lịch dạy của RIÊNG giảng viên này trong khóa học này
+        $lichDays = \App\Models\LichHoc::where('khoa_hoc_id', $khoaHoc->id)
+            ->where('giang_vien_id', $giangVien->id)
+            ->orderBy('ngay_hoc')
+            ->get();
+
+        return view('pages.giang-vien.phan-cong.show', compact('phanCong', 'khoaHoc', 'lichDays'));
     }
 
     public function xacNhan(Request $request, $id)

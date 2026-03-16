@@ -3,11 +3,13 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HomeController;
-use App\Http\Controllers\Admin\KhoaHocController;
+use App\Http\Controllers\Admin\NhomNganhController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\KhoaHocManagementController;
+use App\Http\Controllers\Admin\HocVienKhoaHocController;
 use App\Http\Controllers\Admin\ModuleHocController;
+use App\Http\Controllers\Admin\LichHocController;
 use App\Http\Controllers\Admin\PhanCongController as AdminPhanCongController;
 use App\Http\Controllers\GiangVien\PhanCongController;
 use App\Http\Controllers\GiangVienController;
@@ -88,16 +90,16 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     Route::get('/giang-vien', [AdminController::class, 'indexGiangVien'])->name('giang-vien.index');
     Route::get('/hoc-vien', [AdminController::class, 'indexHocVien'])->name('hoc-vien.index');
 
-    // Quản lý Môn học
-    Route::prefix('mon-hoc')->name('mon-hoc.')->group(function () {
-        Route::get('/', [KhoaHocController::class, 'indexMonHoc'])->name('index');
-        Route::get('/create', [KhoaHocController::class, 'createMonHoc'])->name('create');
-        Route::post('/', [KhoaHocController::class, 'storeMonHoc'])->name('store');
-        Route::get('/{id}', [KhoaHocController::class, 'showMonHoc'])->name('show');
-        Route::get('/{id}/edit', [KhoaHocController::class, 'editMonHoc'])->name('edit');
-        Route::put('/{id}', [KhoaHocController::class, 'updateMonHoc'])->name('update');
-        Route::delete('/{id}', [KhoaHocController::class, 'destroyMonHoc'])->name('destroy');
-        Route::post('/{id}/toggle-status', [KhoaHocController::class, 'toggleStatusMonHoc'])->name('toggle-status');
+    // Quản lý Nhóm ngành (Thay thế Môn học)
+    Route::prefix('nhom-nganh')->name('mon-hoc.')->group(function () {
+        Route::get('/', [NhomNganhController::class, 'index'])->name('index');
+        Route::get('/create', [NhomNganhController::class, 'create'])->name('create');
+        Route::post('/', [NhomNganhController::class, 'store'])->name('store');
+        Route::get('/{id}', [NhomNganhController::class, 'show'])->name('show');
+        Route::get('/{id}/edit', [NhomNganhController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [NhomNganhController::class, 'update'])->name('update');
+        Route::delete('/{id}', [NhomNganhController::class, 'destroy'])->name('destroy');
+        Route::post('/{id}/toggle-status', [NhomNganhController::class, 'toggleStatus'])->name('toggle-status');
     });
 
     // Quản lý Khóa học
@@ -116,6 +118,28 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
         // Mở lớp từ khóa học mẫu
         Route::get('/{id}/mo-lop',  [KhoaHocManagementController::class, 'showMoLop'])->name('mo-lop');
         Route::post('/{id}/mo-lop', [KhoaHocManagementController::class, 'storeMoLop'])->name('mo-lop.store');
+
+        // Quản lý học viên trong khóa học
+        Route::prefix('{khoaHocId}/hoc-vien')->name('hoc-vien.')->group(function () {
+            Route::get('/',                [HocVienKhoaHocController::class, 'index'])->name('index');
+            Route::post('/',               [HocVienKhoaHocController::class, 'store'])->name('store');
+            Route::put('/{id}/trang-thai', [HocVienKhoaHocController::class, 'updateTrangThai'])->name('update-trang-thai');
+            Route::delete('/{id}',         [HocVienKhoaHocController::class, 'destroy'])->name('destroy');
+        });
+
+        // Lịch học của khóa học
+        Route::prefix('{khoaHocId}/lich-hoc')->name('lich-hoc.')->group(function () {
+            Route::get('/',                      [LichHocController::class, 'index'])->name('index');
+            Route::post('/',                     [LichHocController::class, 'store'])->name('store');
+            Route::post('/tu-dong',              [LichHocController::class, 'storeAuto'])->name('store-auto');
+            Route::delete('/bulk-delete',        [LichHocController::class, 'destroyBulk'])->name('destroy-bulk');
+            Route::delete('/module/{moduleId}',  [LichHocController::class, 'destroyModuleSchedules'])->name('destroy-module');
+            Route::get('/{id}/edit',             [LichHocController::class, 'edit'])->name('edit');
+            Route::put('/{id}',                  [LichHocController::class, 'update'])->name('update');
+            Route::delete('/{id}',               [LichHocController::class, 'destroy'])->name('destroy');
+            Route::post('/module/{moduleId}/so-buoi', [LichHocController::class, 'updateSoBuoiModule'])
+                 ->name('update-so-buoi');
+        });
     });
 
     // Quản lý Module học độc lập
@@ -135,6 +159,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
 
     // Phân công chung
     Route::post('/phan-cong/{id}/huy', [AdminPhanCongController::class, 'huy'])->name('phan-cong.huy');
+    Route::post('/phan-cong/{id}/replace', [AdminPhanCongController::class, 'replace'])->name('phan-cong.replace');
 
     // Cài đặt hệ thống
     Route::prefix('settings')->group(function () {
@@ -161,14 +186,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
 
 // =========== GIẢNG VIÊN ROUTES ===========
 Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', \App\Http\Middleware\CheckGiangVien::class])->group(function () {
-    Route::get('/dashboard', function () {
-        return view('pages.giang-vien.dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [GiangVienController::class, 'dashboard'])->name('dashboard');
     Route::get('/profile', [GiangVienController::class, 'profile'])->name('profile');
     Route::post('/profile', [GiangVienController::class, 'updateProfile'])->name('profile.update');
 
     // Phân công dạy học (Nâng cấp Phase B)
     Route::get('/khoa-hoc', [PhanCongController::class, 'index'])->name('khoa-hoc');
+    Route::get('/khoa-hoc/{id}', [PhanCongController::class, 'show'])->name('khoa-hoc.show');
     Route::post('/khoa-hoc/{id}/xac-nhan', [PhanCongController::class, 'xacNhan'])->name('khoa-hoc.xac-nhan');
     
     // Giữ route cũ cho backward compatibility nếu cần (nhưng ta sẽ cập nhật các view chính)

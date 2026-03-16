@@ -70,7 +70,7 @@
                                                     Khóa học: <strong>{{ $pc->moduleHoc->khoaHoc->ten_khoa_hoc }}</strong>
                                                 </p>
                                                 <div class="d-flex flex-wrap gap-3 small text-muted mb-3">
-                                                    <span><i class="fas fa-book me-1"></i> Môn: {{ $pc->moduleHoc->khoaHoc->monHoc->ten_mon_hoc }}</span>
+                                                    <span><i class="fas fa-layer-group me-1"></i> Ngành: {{ $pc->moduleHoc->khoaHoc->nhomNganh->ten_nhom_nganh }}</span>
                                                     <span>
                                                         <i class="fas fa-clock me-1"></i> 
                                                         @php
@@ -130,7 +130,7 @@
                                                     Khóa học: <strong>{{ $pc->moduleHoc->khoaHoc->ten_khoa_hoc }}</strong>
                                                 </p>
                                                 <div class="d-flex flex-wrap gap-3 small text-muted">
-                                                    <span><i class="fas fa-book me-1"></i> Môn: {{ $pc->moduleHoc->khoaHoc->monHoc->ten_mon_hoc }}</span>
+                                                    <span><i class="fas fa-layer-group me-1"></i> Ngành: {{ $pc->moduleHoc->khoaHoc->nhomNganh->ten_nhom_nganh }}</span>
                                                     <span>
                                                         <i class="fas fa-clock me-1"></i> 
                                                         @php

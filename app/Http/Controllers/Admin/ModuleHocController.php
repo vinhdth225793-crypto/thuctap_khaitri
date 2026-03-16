@@ -20,22 +20,38 @@ class ModuleHocController extends Controller
         $search = $request->get('search');
         $khoaHocId = $request->get('khoa_hoc_id');
 
-        $moduleHocs = ModuleHoc::with(['khoaHoc.monHoc'])
+        // Paginate by KhoaHoc instead of ModuleHoc
+        $khoaHocsPaginated = KhoaHoc::with(['nhomNganh', 'moduleHocs' => function($q) use ($search) {
+                $q->when($search, function($q2) use ($search) {
+                    $q2->where('ten_module', 'like', "%{$search}%")
+                       ->orWhere('ma_module', 'like', "%{$search}%");
+                })
+                ->orderBy('thu_tu_module');
+            }])
+            ->withCount('moduleHocs')
             ->when($search, function($q) use ($search) {
-                $q->where('ten_module', 'like', "%{$search}%")
-                  ->orWhere('ma_module', 'like', "%{$search}%");
+                // Only show courses that have at least one module matching the search
+                $q->whereHas('moduleHocs', function($q2) use ($search) {
+                    $q2->where('ten_module', 'like', "%{$search}%")
+                       ->orWhere('ma_module', 'like', "%{$search}%");
+                });
             })
             ->when($khoaHocId, function($q) use ($khoaHocId) {
-                $q->where('khoa_hoc_id', $khoaHocId);
+                $q->where('id', $khoaHocId);
             })
-            ->orderBy('khoa_hoc_id')
-            ->orderBy('thu_tu_module')
-            ->paginate(10)
+            ->orderBy('id', 'desc')
+            ->paginate(3)
             ->appends($request->query());
 
-        $khoaHocs = KhoaHoc::with('monHoc')->orderBy('ma_khoa_hoc')->get();
+        // For the filter dropdown
+        $khoaHocsAll = KhoaHoc::with('nhomNganh')->orderBy('ma_khoa_hoc')->get();
 
-        return view('pages.admin.khoa-hoc.module-hoc.index', compact('moduleHocs', 'khoaHocs', 'search', 'khoaHocId'));
+        return view('pages.admin.khoa-hoc.module-hoc.index', [
+            'khoaHocsPaginated' => $khoaHocsPaginated,
+            'khoaHocsAll' => $khoaHocsAll,
+            'search' => $search,
+            'khoaHocId' => $khoaHocId
+        ]);
     }
 
     /**
@@ -44,7 +60,7 @@ class ModuleHocController extends Controller
     public function create(Request $request)
     {
         $khoaHocId = $request->get('khoa_hoc_id');
-        $khoaHocs = KhoaHoc::with('monHoc')->active()->orderBy('ma_khoa_hoc')->get();
+        $khoaHocs = KhoaHoc::with('nhomNganh')->active()->orderBy('ma_khoa_hoc')->get();
         
         $thuTuGoiY = 1;
         if ($khoaHocId) {
@@ -109,7 +125,7 @@ class ModuleHocController extends Controller
     public function show($id)
     {
         $moduleHoc = ModuleHoc::with([
-            'khoaHoc.monHoc',
+            'khoaHoc.nhomNganh',
             'phanCongGiangViens.giangVien.nguoiDung'
         ])->findOrFail($id);
 
@@ -125,8 +141,8 @@ class ModuleHocController extends Controller
      */
     public function edit($id)
     {
-        $moduleHoc = ModuleHoc::with('khoaHoc.monHoc')->findOrFail($id);
-        $khoaHocs = KhoaHoc::with('monHoc')->orderBy('ma_khoa_hoc')->get();
+        $moduleHoc = ModuleHoc::with('khoaHoc.nhomNganh')->findOrFail($id);
+        $khoaHocs = KhoaHoc::with('nhomNganh')->orderBy('ma_khoa_hoc')->get();
 
         return view('pages.admin.khoa-hoc.module-hoc.edit', compact('moduleHoc', 'khoaHocs'));
     }

@@ -209,8 +209,8 @@
                         </div>
                     </div>
                     <div class="mb-0">
-                        <span class="smaller text-muted d-block text-uppercase">Môn học</span>
-                        <span class="small fw-bold">{{ $moduleHoc->khoaHoc->monHoc->ten_mon_hoc ?? 'N/A' }}</span>
+                        <span class="smaller text-muted d-block text-uppercase">Nhóm ngành</span>
+                        <span class="small fw-bold">{{ $moduleHoc->khoaHoc->nhomNganh->ten_nhom_nganh ?? 'N/A' }}</span>
                     </div>
                     <hr>
                     <div class="d-grid">

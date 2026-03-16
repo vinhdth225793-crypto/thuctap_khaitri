@@ -57,8 +57,8 @@
             <div class="collapse {{ request()->routeIs('admin.mon-hoc.*', 'admin.khoa-hoc.*', 'admin.module-hoc.*', 'admin.quan-ly-khoa-hoc') ? 'show' : '' }}" id="collapseCourse">
                 <div class="nav-submenu">
                     <a href="{{ route('admin.mon-hoc.index') }}" class="nav-link {{ request()->routeIs('admin.mon-hoc.*') ? 'active' : '' }}">
-                        <i class="fas fa-graduation-cap"></i>
-                        <span>Môn học</span>
+                        <i class="fas fa-layer-group"></i>
+                        <span>Nhóm ngành</span>
                     </a>
                     <a href="{{ route('admin.khoa-hoc.index') }}" class="nav-link {{ request()->routeIs('admin.khoa-hoc.*') ? 'active' : '' }}">
                         <i class="fas fa-layer-group"></i>

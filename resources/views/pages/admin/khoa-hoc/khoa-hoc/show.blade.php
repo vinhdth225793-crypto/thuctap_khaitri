@@ -29,7 +29,7 @@
             <div class="mt-2 text-muted small">
                 <i class="fas fa-barcode me-1"></i> Mã: <code class="fw-bold">{{ $khoaHoc->ma_khoa_hoc }}</code>
                 <span class="mx-2">|</span>
-                <i class="fas fa-book me-1"></i> Môn học: <span class="fw-bold text-dark">{{ $khoaHoc->monHoc->ten_mon_hoc }}</span>
+                <i class="fas fa-layer-group me-1"></i> Nhóm ngành: <span class="fw-bold text-dark">{{ $khoaHoc->nhomNganh->ten_nhom_nganh ?? 'N/A' }}</span>
             </div>
         </div>
         <div class="col-md-5 text-md-end mt-3 mt-md-0">
@@ -91,6 +91,82 @@
                 </div>
             </div>
 
+            {{-- QUẢN LÝ HỌC VIÊN & LỊCH HỌC (Dời lên đây cho lớp hoạt động) --}}
+            @if($khoaHoc->loai === 'hoat_dong')
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        {{-- CARD QUẢN LÝ HỌC VIÊN --}}
+                        <div class="vip-card shadow-sm border-0 h-100">
+                            <div class="vip-card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                                <h5 class="vip-card-title small fw-bold text-uppercase mb-0 text-success">
+                                    <i class="fas fa-users me-2"></i> Học viên
+                                </h5>
+                                <a href="{{ route('admin.khoa-hoc.hoc-vien.index', $khoaHoc->id) }}" class="btn btn-success btn-sm fw-bold">
+                                    <i class="fas fa-cog me-1"></i> Quản lý
+                                </a>
+                            </div>
+                            <div class="vip-card-body p-4">
+                                <div class="row text-center g-2">
+                                    <div class="col-4">
+                                        <div class="fw-bold fs-4 text-success">
+                                            {{ $khoaHoc->hocVienKhoaHocs()->where('trang_thai','dang_hoc')->count() }}
+                                        </div>
+                                        <div class="smaller text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Đang học</div>
+                                    </div>
+                                    <div class="col-4 border-start border-end">
+                                        <div class="fw-bold fs-4 text-primary">
+                                            {{ $khoaHoc->hocVienKhoaHocs()->where('trang_thai','hoan_thanh')->count() }}
+                                        </div>
+                                        <div class="smaller text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Xong</div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="fw-bold fs-4 text-danger">
+                                            {{ $khoaHoc->hocVienKhoaHocs()->where('trang_thai','ngung_hoc')->count() }}
+                                        </div>
+                                        <div class="smaller text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Nghỉ</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        {{-- CARD QUẢN LÝ LỊCH HỌC --}}
+                        <div class="vip-card shadow-sm border-0 h-100">
+                            <div class="vip-card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                                <h5 class="vip-card-title small fw-bold text-uppercase mb-0 text-info">
+                                    <i class="fas fa-calendar-alt me-2"></i> Lịch học
+                                </h5>
+                                <a href="{{ route('admin.khoa-hoc.lich-hoc.index', $khoaHoc->id) }}" class="btn btn-info btn-sm fw-bold text-white">
+                                    <i class="fas fa-edit me-1"></i> Quản lý
+                                </a>
+                            </div>
+                            <div class="vip-card-body p-4">
+                                @php 
+                                    $tongLich = $khoaHoc->lichHocs()->count(); 
+                                    $tongBuoiReq = $khoaHoc->moduleHocs()->sum('so_buoi'); 
+                                @endphp
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <div class="small text-muted mb-1">Tiến độ: <strong>{{ $tongLich }} / {{ $tongBuoiReq }} buổi</strong></div>
+                                    </div>
+                                    <div>
+                                        @if($tongLich < $tongBuoiReq)
+                                            <span class="badge bg-warning text-dark px-2" style="font-size: 0.65rem;">Thiếu {{ $tongBuoiReq - $tongLich }} buổi</span>
+                                        @else
+                                            <span class="badge bg-success px-2" style="font-size: 0.65rem;">Đã đủ</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="progress mt-2" style="height: 6px;">
+                                    @php $prog = $tongBuoiReq > 0 ? min(100, ($tongLich / $tongBuoiReq) * 100) : 0; @endphp
+                                    <div class="progress-bar bg-info" role="progressbar" style="width: {{ $prog }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             {{-- DANH SÁCH MODULE & GIẢNG VIÊN --}}
             <div class="vip-card mb-4 shadow-sm border-0">
                 <div class="vip-card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
@@ -130,14 +206,24 @@
                                             @php $pc = $module->phanCongGiangViens->first(); @endphp
                                             <td>
                                                 @if($pc)
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="avatar-mini rounded-circle bg-light me-2 border text-center" style="width: 30px; height: 30px; line-height: 30px;">
-                                                            <i class="fas fa-user-tie text-primary small"></i>
+                                                    <div class="d-flex align-items-center justify-content-between">
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="avatar-mini rounded-circle bg-light me-2 border text-center" style="width: 30px; height: 30px; line-height: 30px;">
+                                                                <i class="fas fa-user-tie text-primary small"></i>
+                                                            </div>
+                                                            <div class="lh-1">
+                                                                <div class="small fw-bold text-primary">{{ $pc->giangVien->nguoiDung->ho_ten }}</div>
+                                                                <div class="smaller text-muted mt-1">{{ $pc->giangVien->chuyen_nganh ?: 'Chuyên gia' }}</div>
+                                                            </div>
                                                         </div>
-                                                        <div class="lh-1">
-                                                            <div class="small fw-bold text-primary">{{ $pc->giangVien->nguoiDung->ho_ten }}</div>
-                                                            <div class="smaller text-muted mt-1">{{ $pc->giangVien->chuyen_nganh ?: 'Chuyên gia' }}</div>
-                                                        </div>
+                                                        {{-- Nút thay đổi nhanh --}}
+                                                        <button type="button" class="btn btn-xs btn-outline-warning border-0 btn-replace-gv" 
+                                                                data-pc-id="{{ $pc->id }}" 
+                                                                data-module-name="{{ $module->ten_module }}"
+                                                                data-current-gv="{{ $pc->giangVien->nguoiDung->ho_ten }}"
+                                                                title="Thay đổi GV">
+                                                            <i class="fas fa-exchange-alt"></i>
+                                                        </button>
                                                     </div>
                                                 @else
                                                     <span class="badge bg-light text-muted border">Chưa gán GV</span>
@@ -283,7 +369,7 @@
             </div>
 
             {{-- META INFO --}}
-            <div class="vip-card shadow-sm border-0">
+            <div class="vip-card shadow-sm border-0 mb-4 bg-light">
                 <div class="vip-card-body p-3 smaller">
                     <div class="d-flex justify-content-between mb-2">
                         <span class="text-muted">Ngày khởi tạo:</span>
@@ -343,21 +429,76 @@
     </div>
 </div>
 
+{{-- MODAL THAY THẾ GIẢNG VIÊN --}}
+<div class="modal fade shadow" id="modalReplaceGV" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0">
+            <div class="modal-header bg-warning text-white border-0">
+                <h5 class="modal-title fw-bold"><i class="fas fa-exchange-alt me-2"></i> Thay đổi giảng viên</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="modalReplaceGVForm" method="POST" action="">
+                @csrf
+                <div class="modal-body p-4">
+                    <div class="alert alert-warning border-0 smaller mb-4">
+                        Bạn đang thay thế giảng viên cho module: <strong id="replace-moduleName"></strong>.
+                        <br>Giảng viên hiện tại: <strong id="replace-currentGV"></strong>.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Chọn giảng viên thay thế *</label>
+                        <select name="giao_vien_id" class="form-select vip-form-control" required>
+                            <option value="">-- Chọn giảng viên mới --</option>
+                            @foreach($giangViens as $gv)
+                                <option value="{{ $gv->id }}">
+                                    {{ $gv->nguoiDung->ho_ten }} ({{ $gv->chuyen_nganh ?: 'Chuyên gia' }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label small fw-bold">Lý do thay đổi / Ghi chú</label>
+                        <textarea name="ghi_chu" class="form-control vip-form-control" rows="3" placeholder="Ghi chú cho GV mới..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-3 justify-content-center gap-2">
+                    <button type="button" class="btn btn-light px-4 fw-bold" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-warning px-4 fw-bold shadow-sm text-white">Xác nhận thay thế</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const modal = new bootstrap.Modal(document.getElementById('modalPhanCong'));
-        const form = document.getElementById('modalPhanCongForm');
-        const moduleNameDisp = document.getElementById('phanCong-moduleName');
+        // Modal Phân công
+        const modalPC = new bootstrap.Modal(document.getElementById('modalPhanCong'));
+        const formPC = document.getElementById('modalPhanCongForm');
+        const moduleNamePC = document.getElementById('phanCong-moduleName');
 
         document.querySelectorAll('.btn-phan-cong').forEach(btn => {
             btn.addEventListener('click', function() {
                 const moduleId = this.dataset.moduleId;
-                const moduleName = this.dataset.moduleName;
-                
-                moduleNameDisp.textContent = moduleName;
-                form.action = `/admin/module-hoc/${moduleId}/assign`;
-                modal.show();
+                moduleNamePC.textContent = this.dataset.moduleName;
+                formPC.action = `/admin/module-hoc/${moduleId}/assign`;
+                modalPC.show();
+            });
+        });
+
+        // Modal Thay thế
+        const modalRep = new bootstrap.Modal(document.getElementById('modalReplaceGV'));
+        const formRep = document.getElementById('modalReplaceGVForm');
+        const moduleNameRep = document.getElementById('replace-moduleName');
+        const currentGVRep = document.getElementById('replace-currentGV');
+
+        document.querySelectorAll('.btn-replace-gv').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const pcId = this.dataset.pcId;
+                moduleNameRep.textContent = this.dataset.moduleName;
+                currentGVRep.textContent = this.dataset.currentGv;
+                formRep.action = `/admin/phan-cong/${pcId}/replace`;
+                modalRep.show();
             });
         });
     });
