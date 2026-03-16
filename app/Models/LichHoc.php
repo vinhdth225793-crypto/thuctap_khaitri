@@ -24,9 +24,36 @@ class LichHoc extends Model
         'phong_hoc',
         'hinh_thuc',
         'link_online',
+        'nen_tang',
+        'meeting_id',
+        'mat_khau_cuoc_hop',
+        'trang_thai',
         'ghi_chu',
-        'trang_thai'
     ];
+
+    /**
+     * Relationship: Một buổi học có nhiều tài nguyên
+     */
+    public function taiNguyen()
+    {
+        return $this->hasMany(TaiNguyenBuoiHoc::class, 'lich_hoc_id');
+    }
+
+    /**
+     * Relationship: Một buổi học có nhiều bài kiểm tra
+     */
+    public function baiKiemTras()
+    {
+        return $this->hasMany(BaiKiemTra::class, 'lich_hoc_id');
+    }
+
+    /**
+     * Relationship: Một buổi học có nhiều bản ghi điểm danh
+     */
+    public function diemDanhs()
+    {
+        return $this->hasMany(DiemDanh::class, 'lich_hoc_id');
+    }
 
     protected $casts = [
         'ngay_hoc' => 'date',
@@ -90,6 +117,20 @@ class LichHoc extends Model
             'hoan_thanh' => 'Hoàn thành',
             'huy'        => 'Đã hủy',
             default      => '─',
+        };
+    }
+
+    /**
+     * Accessor: Màu sắc trạng thái buổi học
+     */
+    public function getTrangThaiColorAttribute(): string
+    {
+        return match($this->trang_thai) {
+            'cho'        => 'secondary',
+            'dang_hoc'   => 'primary',
+            'hoan_thanh' => 'success',
+            'huy'        => 'danger',
+            default      => 'secondary',
         };
     }
 }

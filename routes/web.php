@@ -12,6 +12,9 @@ use App\Http\Controllers\Admin\ModuleHocController;
 use App\Http\Controllers\Admin\LichHocController;
 use App\Http\Controllers\Admin\PhanCongController as AdminPhanCongController;
 use App\Http\Controllers\GiangVien\PhanCongController;
+use App\Http\Controllers\GiangVien\TaiNguyenController;
+use App\Http\Controllers\GiangVien\DiemDanhController;
+use App\Http\Controllers\GiangVien\BaiKiemTraController;
 use App\Http\Controllers\GiangVienController;
 use App\Http\Controllers\HocVienController;
 use App\Http\Controllers\ThongBaoController;
@@ -194,6 +197,22 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', \App\Http\
     Route::get('/khoa-hoc', [PhanCongController::class, 'index'])->name('khoa-hoc');
     Route::get('/khoa-hoc/{id}', [PhanCongController::class, 'show'])->name('khoa-hoc.show');
     Route::post('/khoa-hoc/{id}/xac-nhan', [PhanCongController::class, 'xacNhan'])->name('khoa-hoc.xac-nhan');
+    Route::put('/buoi-hoc/{id}/link', [PhanCongController::class, 'updateLinkOnline'])->name('buoi-hoc.update-link');
+    
+    // Quản lý Học viên & Yêu cầu (Phase 6)
+    Route::post('/khoa-hoc/{khoaHocId}/yeu-cau-hoc-vien', [PhanCongController::class, 'guiYeuCauHocVien'])->name('khoa-hoc.gui-yeu-cau-hoc-vien');
+    
+    // Quản lý Tài nguyên (Phase 4)
+    Route::post('/buoi-hoc/{lichHocId}/tai-nguyen', [TaiNguyenController::class, 'store'])->name('buoi-hoc.tai-nguyen.store');
+    Route::delete('/tai-nguyen/{id}', [TaiNguyenController::class, 'destroy'])->name('buoi-hoc.tai-nguyen.destroy');
+
+    // Điểm danh (Phase 7)
+    Route::get('/buoi-hoc/{lichHocId}/diem-danh', [DiemDanhController::class, 'show'])->name('buoi-hoc.diem-danh.show');
+    Route::post('/buoi-hoc/{lichHocId}/diem-danh', [DiemDanhController::class, 'store'])->name('buoi-hoc.diem-danh.store');
+
+    // Bài kiểm tra (Phase 8)
+    Route::post('/bai-kiem-tra', [BaiKiemTraController::class, 'store'])->name('bai-kiem-tra.store');
+    Route::delete('/bai-kiem-tra/{id}', [BaiKiemTraController::class, 'destroy'])->name('bai-kiem-tra.destroy');
     
     // Giữ route cũ cho backward compatibility nếu cần (nhưng ta sẽ cập nhật các view chính)
     Route::get('/phan-cong', [PhanCongController::class, 'index'])->name('phan-cong.index');
