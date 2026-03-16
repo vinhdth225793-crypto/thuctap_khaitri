@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\GiangVien;
 
 use App\Http\Controllers\Controller;
+use App\Models\KhoaHoc;
 use App\Models\PhanCongModuleGiangVien;
 use App\Services\ThongBaoService;
 use Illuminate\Http\Request;
@@ -10,6 +11,9 @@ use Illuminate\Support\Facades\DB;
 
 class PhanCongController extends Controller
 {
+    /**
+     * Hiển thị lộ trình giảng dạy gom nhóm theo Khóa học
+     */
     public function index()
     {
         $giangVien = auth()->user()->giangVien;
@@ -18,15 +22,27 @@ class PhanCongController extends Controller
                 ->with('error', 'Tài khoản chưa được liên kết với giảng viên.');
         }
 
-        $phanCongs = PhanCongModuleGiangVien::with([
-                'moduleHoc.khoaHoc.nhomNganh',
-            ])
-            ->where('giao_vien_id', $giangVien->id)
-            ->orderByRaw("FIELD(trang_thai, 'cho_xac_nhan', 'da_nhan', 'tu_choi')")
-            ->orderBy('created_at', 'desc')
+        // Lấy danh sách khóa học mà GV có tham gia dạy (ít nhất 1 module)
+        $khoaHocs = KhoaHoc::with(['nhomNganh', 'moduleHocs' => function($q) use ($giangVien) {
+                // Chỉ lấy những module mà GV này được phân công trong khóa học đó
+                $q->whereHas('phanCongGiangViens', function($q2) use ($giangVien) {
+                    $q2->where('giao_vien_id', $giangVien->id);
+                })->with(['phanCongGiangViens' => function($q2) use ($giangVien) {
+                    $q2->where('giao_vien_id', $giangVien->id);
+                }]);
+            }])
+            ->whereHas('moduleHocs.phanCongGiangViens', function($q) use ($giangVien) {
+                $q->where('giao_vien_id', $giangVien->id);
+            })
+            ->orderBy('id', 'desc')
             ->get();
 
-        return view('pages.giang-vien.phan-cong.index', compact('phanCongs'));
+        // Đếm số phân công mới để hiển thị badge thông báo
+        $phanCongChoXacNhan = PhanCongModuleGiangVien::where('giao_vien_id', $giangVien->id)
+            ->where('trang_thai', 'cho_xac_nhan')
+            ->count();
+
+        return view('pages.giang-vien.phan-cong.index', compact('khoaHocs', 'phanCongChoXacNhan'));
     }
 
     /**
@@ -46,9 +62,8 @@ class PhanCongController extends Controller
 
         $khoaHoc = $phanCong->khoaHoc;
         
-        // Lấy lịch dạy của RIÊNG giảng viên này trong khóa học này
-        $lichDays = \App\Models\LichHoc::where('khoa_hoc_id', $khoaHoc->id)
-            ->where('giang_vien_id', $giangVien->id)
+        // Lấy TOÀN BỘ lịch dạy của Module này (để GV thấy lộ trình đầy đủ)
+        $lichDays = \App\Models\LichHoc::where('module_hoc_id', $phanCong->module_hoc_id)
             ->orderBy('ngay_hoc')
             ->get();
 
@@ -69,19 +84,15 @@ class PhanCongController extends Controller
         $validated = $request->validate([
             'hanh_dong' => 'required|in:da_nhan,tu_choi',
             'ghi_chu'   => 'nullable|string|max:500',
-        ], [
-            'hanh_dong.required' => 'Vui lòng chọn hành động.',
-            'hanh_dong.in'       => 'Hành động không hợp lệ.',
         ]);
 
         DB::transaction(function () use ($phanCong, $validated) {
             $phanCong->update([
                 'trang_thai' => $validated['hanh_dong'],
-                'ghi_chu'    => $validated['ghi_chu'],
+                'ghi_chu'    => $validated['ghi_chu'] ?? null,
             ]);
 
             if ($validated['hanh_dong'] === 'da_nhan') {
-                // Kiểm tra xem TẤT CẢ module của KH đã có GV xác nhận chưa
                 $khoaHoc    = $phanCong->khoaHoc()->with('moduleHocs.phanCongGiangViens')->first();
                 $tongModule = $khoaHoc->moduleHocs->count();
                 $daXacNhan  = $khoaHoc->moduleHocs->filter(
@@ -97,7 +108,7 @@ class PhanCongController extends Controller
         });
 
         $msg = $validated['hanh_dong'] === 'da_nhan'
-            ? 'Đã xác nhận dạy module thành công!'
+            ? 'Đã xác nhận bài dạy thành công!'
             : 'Đã từ chối phân công.';
 
         return back()->with('success', $msg);

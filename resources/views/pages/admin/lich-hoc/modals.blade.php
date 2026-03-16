@@ -89,8 +89,23 @@
 
                     <div class="row g-3">
                         <div class="col-md-12">
+                            <div class="bg-light p-3 rounded border mb-2 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="smaller text-muted fw-bold d-block text-uppercase">Số buổi cần tạo</span>
+                                    <span id="auto-so-buoi-text" class="fw-bold fs-5 text-primary">0 buổi</span>
+                                </div>
+                                <div class="text-end">
+                                    <span class="smaller text-muted fw-bold d-block text-uppercase">Dự kiến kết thúc</span>
+                                    <span id="auto-end-date-text" class="fw-bold fs-5 text-dark">--/--/----</span>
+                                </div>
+                            </div>
+                            <div id="auto-conflict-warning" class="alert alert-danger border-0 smaller py-2 d-none">
+                                <i class="fas fa-exclamation-triangle me-1"></i> <strong>Cảnh báo:</strong> Lộ trình vượt quá ngày kết thúc khóa học (<span id="auto-course-end-date"></span>).
+                            </div>
+                        </div>
+                        <div class="col-md-12">
                             <label class="form-label small fw-bold">Ngày bắt đầu áp dụng *</label>
-                            <input type="date" name="ngay_bat_dau" class="form-control vip-form-control" required min="{{ date('Y-m-d') }}" value="{{ date('Y-m-d') }}">
+                            <input type="date" name="ngay_bat_dau" id="auto-start-date" class="form-control vip-form-control" required min="{{ date('Y-m-d') }}" value="{{ date('Y-m-d') }}">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">Giờ bắt đầu *</label>
@@ -102,13 +117,20 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label small fw-bold d-block">Các thứ trong tuần *</label>
-                            <div class="d-flex flex-wrap gap-3 mt-1">
+                            <div class="d-flex flex-wrap gap-2 mt-1" id="container-thu-auto">
                                 @foreach(\App\Models\LichHoc::$thuLabels as $val => $lbl)
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="thu_trong_tuan[]" value="{{ $val }}" id="thu_auto_{{ $val }}" {{ in_array($val, [2, 4, 6]) ? 'checked' : '' }}>
-                                        <label class="form-check-label small" for="thu_auto_{{ $val }}">{{ $lbl }}</label>
+                                    <div class="form-check p-0 m-0">
+                                        <input class="form-check-input d-none" type="checkbox" name="thu_trong_tuan[]" value="{{ $val }}" id="thu_auto_{{ $val }}" {{ in_array($val, [2, 4, 6]) ? 'checked' : '' }}>
+                                        <label class="thu-label-box" for="thu_auto_{{ $val }}" data-thu="{{ $val }}">
+                                            {{ $lbl }}
+                                        </label>
                                     </div>
                                 @endforeach
+                            </div>
+                            <div class="mt-2 smaller d-flex gap-3">
+                                <span><span class="legend-box bg-danger"></span> Ngày bắt đầu</span>
+                                <span><span class="legend-box bg-success"></span> Cùng tuần</span>
+                                <span><span class="legend-box bg-warning"></span> Tuần mới</span>
                             </div>
                         </div>
                         <div class="col-md-6">

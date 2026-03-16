@@ -121,10 +121,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
 
         // Quản lý học viên trong khóa học
         Route::prefix('{khoaHocId}/hoc-vien')->name('hoc-vien.')->group(function () {
-            Route::get('/',                [HocVienKhoaHocController::class, 'index'])->name('index');
-            Route::post('/',               [HocVienKhoaHocController::class, 'store'])->name('store');
-            Route::put('/{id}/trang-thai', [HocVienKhoaHocController::class, 'updateTrangThai'])->name('update-trang-thai');
-            Route::delete('/{id}',         [HocVienKhoaHocController::class, 'destroy'])->name('destroy');
+            Route::get('/',         [HocVienKhoaHocController::class, 'index'])->name('index');
+            Route::post('/',        [HocVienKhoaHocController::class, 'store'])->name('store');
+            Route::put('/{id}',     [HocVienKhoaHocController::class, 'update'])->name('update');
+            Route::delete('/{id}',  [HocVienKhoaHocController::class, 'destroy'])->name('destroy');
         });
 
         // Lịch học của khóa học

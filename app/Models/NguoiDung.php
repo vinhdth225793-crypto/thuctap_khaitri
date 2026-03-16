@@ -75,4 +75,19 @@ class NguoiDung extends Authenticatable
     {
         return $this->hasOne(HocVien::class, 'nguoi_dung_id', 'ma_nguoi_dung');
     }
+
+    /**
+     * Relationship: Các khóa học mà người dùng (học viên) tham gia
+     */
+    public function khoaHocs()
+    {
+        return $this->belongsToMany(
+            KhoaHoc::class,
+            'hoc_vien_khoa_hoc',
+            'hoc_vien_id',
+            'khoa_hoc_id',
+            'ma_nguoi_dung',
+            'id'
+        )->withPivot('ngay_tham_gia', 'trang_thai', 'ghi_chu')->withTimestamps();
+    }
 }

@@ -138,25 +138,26 @@ class GiangVienController extends Controller
             return redirect()->back()->with('error', 'Không tìm thấy thông tin giảng viên để truy xuất phân công.');
         }
 
-        $phanCongChoXacNhan = PhanCongModuleGiangVien::with(['moduleHoc.khoaHoc.nhomNganh'])
-            ->where('giao_vien_id', $giangVien->id)
-            ->where('trang_thai', 'cho_xac_nhan')
-            ->latest('ngay_phan_cong')
+        // Lấy danh sách khóa học mà GV có ít nhất 1 module được phân công
+        $khoaHocs = KhoaHoc::with(['nhomNganh', 'moduleHocs' => function($q) use ($giangVien) {
+                // Chỉ lấy những module mà GV này được phân công
+                $q->whereHas('phanCongGiangViens', function($q2) use ($giangVien) {
+                    $q2->where('giao_vien_id', $giangVien->id);
+                })->with(['phanCongGiangViens' => function($q2) use ($giangVien) {
+                    $q2->where('giao_vien_id', $giangVien->id);
+                }]);
+            }])
+            ->whereHas('moduleHocs.phanCongGiangViens', function($q) use ($giangVien) {
+                $q->where('giao_vien_id', $giangVien->id);
+            })
+            ->orderBy('id', 'desc')
             ->get();
 
-        $phanCongDaNhan = PhanCongModuleGiangVien::with(['moduleHoc.khoaHoc.nhomNganh'])
-            ->where('giao_vien_id', $giangVien->id)
-            ->where('trang_thai', 'da_nhan')
-            ->latest('ngay_phan_cong')
-            ->get();
+        // Giữ lại logic các biến cũ nếu view vẫn dùng (nhưng ta sẽ cập nhật view mới)
+        $phanCongChoXacNhan = PhanCongModuleGiangVien::where('giao_vien_id', $giangVien->id)
+            ->where('trang_thai', 'cho_xac_nhan')->count();
 
-        $lichSu = PhanCongModuleGiangVien::with(['moduleHoc.khoaHoc.nhomNganh'])
-            ->where('giao_vien_id', $giangVien->id)
-            ->where('trang_thai', 'tu_choi')
-            ->latest()
-            ->get();
-
-        return view('pages.giang-vien.phan-cong', compact('phanCongChoXacNhan', 'phanCongDaNhan', 'lichSu'));
+        return view('pages.giang-vien.phan-cong', compact('khoaHocs', 'phanCongChoXacNhan'));
     }
 
     /**

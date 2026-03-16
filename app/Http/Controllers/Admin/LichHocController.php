@@ -24,8 +24,14 @@ class LichHocController extends Controller
             'moduleHocs.phanCongGiangViens.giangVien.nguoiDung'
         ])->findOrFail($khoaHocId);
 
+        // Tính toán ngày cuối cùng của từng module để gửi sang View
+        foreach ($khoaHoc->moduleHocs as $module) {
+            $lastSession = $module->lichHocs->last();
+            $module->ngay_ket_thuc_thuc_te = $lastSession ? $lastSession->ngay_hoc->format('Y-m-d') : null;
+        }
+
         $giangViens = GiangVien::with('nguoiDung')
-            ->whereHas('nguoiDung', fn($q) => $q->where('trang_thai', true))
+            ->whereHas('nguoiDung', fn($q) => $q->where('trang_thai', 1))
             ->get();
 
         return view('pages.admin.lich-hoc.index', compact('khoaHoc', 'giangViens'));
@@ -165,13 +171,39 @@ class LichHocController extends Controller
             'gio_bat_dau'  => 'required',
             'gio_ket_thuc' => 'required|after:gio_bat_dau',
             'trang_thai'   => 'required|in:cho,dang_hoc,hoan_thanh,huy',
+            'hinh_thuc'    => 'required|in:truc_tiep,online',
+            'phong_hoc'    => 'nullable|string|max:255',
         ]);
 
         $lichHoc = LichHoc::findOrFail($id);
-        $lichHoc->update($request->all());
+        $data = $request->all();
 
-        return redirect()->route('admin.khoa-hoc.lich-hoc.index', $khoaHocId)
-                         ->with('success', 'Đã cập nhật lịch học.');
+        // Xử lý link online nếu hình thức là online
+        if ($request->hinh_thuc === 'online') {
+            $data['link_online'] = $request->phong_hoc;
+        }
+
+        DB::beginTransaction();
+        try {
+            $lichHoc->update($data);
+
+            // Nếu tích chọn áp dụng cho tất cả buổi Online
+            if ($request->hinh_thuc === 'online' && $request->has('apply_to_all_online')) {
+                LichHoc::where('khoa_hoc_id', $khoaHocId)
+                    ->where('hinh_thuc', 'online')
+                    ->update([
+                        'link_online' => $request->phong_hoc,
+                        'phong_hoc'   => $request->phong_hoc
+                    ]);
+            }
+
+            DB::commit();
+            return redirect()->route('admin.khoa-hoc.lich-hoc.index', $khoaHocId)
+                             ->with('success', 'Đã cập nhật lịch học.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Lỗi: ' . $e->getMessage());
+        }
     }
 
     public function destroy(int $khoaHocId, int $id)

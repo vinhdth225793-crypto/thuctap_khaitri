@@ -59,9 +59,14 @@
                             </span>
                         </td>
                         <td class="pe-4 text-center">
-                            <a href="{{ route('admin.khoa-hoc.show', $kh->id) }}" class="btn btn-sm btn-outline-primary px-3 shadow-sm" title="Xem chi tiết">
-                                <i class="fas fa-eye me-1"></i> Xem
-                            </a>
+                            <div class="d-flex justify-content-center gap-1">
+                                <a href="{{ route('admin.khoa-hoc.hoc-vien.index', $kh->id) }}" class="btn btn-sm btn-outline-success action-btn" title="Quản lý học viên">
+                                    <i class="fas fa-users"></i>
+                                </a>
+                                <a href="{{ route('admin.khoa-hoc.show', $kh->id) }}" class="btn btn-sm btn-outline-primary action-btn" title="Xem chi tiết">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                 @endforeach

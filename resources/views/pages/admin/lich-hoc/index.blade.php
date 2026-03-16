@@ -80,12 +80,17 @@
     </form>
 
     <!-- Loop qua từng module -->
-    @foreach($khoaHoc->moduleHocs as $module)
+    @foreach($khoaHoc->moduleHocs as $index => $module)
+        @php
+            // Lấy ngày kết thúc của module đứng trước đó (nếu có)
+            $prevModule = $index > 0 ? $khoaHoc->moduleHocs[$index - 1] : null;
+            $minDate = $prevModule ? $prevModule->ngay_ket_thuc_thuc_te : date('Y-m-d');
+        @endphp
         <div class="vip-card mb-4 border-0 shadow-sm">
             <div class="vip-card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <div style="flex: 1; min-width: 250px;">
                     <h5 class="vip-card-title small fw-bold text-uppercase mb-1 text-primary">
-                        <i class="fas fa-cube me-2"></i> Module: {{ $module->ten_module }}
+                        <i class="fas fa-cube me-2"></i> Module {{ $module->thu_tu_module }}: {{ $module->ten_module }}
                     </h5>
                     <div class="d-flex align-items-center gap-3">
                         <div class="small text-muted">
@@ -101,7 +106,7 @@
                     </div>
                 </div>
                 <div class="d-flex flex-wrap gap-2 align-items-center">
-                    <!-- Form lưu số buổi (Đã tách ra độc lập, không bị lồng) -->
+                    <!-- Form lưu số buổi -->
                     <div class="d-flex gap-1 align-items-center me-2 border-end pe-3">
                         <form action="{{ route('admin.khoa-hoc.lich-hoc.update-so-buoi', [$khoaHoc->id, $module->id]) }}" method="POST" class="d-flex gap-1 align-items-center">
                             @csrf
@@ -125,10 +130,18 @@
                         </ul>
                     </div>
 
-                    <button type="button" class="btn btn-sm btn-success fw-bold px-3 btn-auto-schedule" data-module-id="{{ $module->id }}" data-module-name="{{ $module->ten_module }}">
+                    <button type="button" class="btn btn-sm btn-success fw-bold px-3 btn-auto-schedule" 
+                            data-module-id="{{ $module->id }}" 
+                            data-module-name="{{ $module->ten_module }}"
+                            data-so-buoi="{{ $module->so_buoi }}"
+                            data-khoa-hoc-end="{{ $khoaHoc->ngay_ket_thuc->format('Y-m-d') }}"
+                            data-min-date="{{ $minDate }}">
                         <i class="fas fa-magic me-1"></i> Sinh lịch tự động
                     </button>
-                    <button type="button" class="btn btn-sm btn-primary fw-bold px-3 btn-add-single" data-module-id="{{ $module->id }}" data-module-name="{{ $module->ten_module }}">
+                    <button type="button" class="btn btn-sm btn-primary fw-bold px-3 btn-add-single" 
+                            data-module-id="{{ $module->id }}" 
+                            data-module-name="{{ $module->ten_module }}"
+                            data-min-date="{{ $minDate }}">
                         <i class="fas fa-plus me-1"></i> Thêm buổi lẻ
                     </button>
                 </div>
@@ -236,66 +249,146 @@ document.addEventListener('DOMContentLoaded', function() {
     const modalSingle = new bootstrap.Modal(document.getElementById('modalThemBuoi'));
     const modalAuto   = new bootstrap.Modal(document.getElementById('modalSinhTuDong'));
 
+    // Hàm hỗ trợ cộng 1 ngày
+    function getNextDay(dateString) {
+        if (!dateString) return "{{ date('Y-m-d') }}";
+        const date = new Date(dateString);
+        date.setDate(date.getDate() + 1);
+        return date.toISOString().split('T')[0];
+    }
+
     // Sự kiện mở Modal thêm buổi lẻ
     document.querySelectorAll('.btn-add-single').forEach(btn => {
         btn.addEventListener('click', function() {
             document.getElementById('single-module-id').value = this.dataset.moduleId;
             document.getElementById('single-module-name').textContent = this.dataset.moduleName;
+            
+            const minDate = this.dataset.minDate;
+            const inputNgay = document.querySelector('#modalThemBuoi input[name="ngay_hoc"]');
+            if (inputNgay && minDate) {
+                const nextDay = getNextDay(minDate);
+                inputNgay.min = nextDay;
+                inputNgay.value = nextDay;
+                inputNgay.dispatchEvent(new Event('change'));
+            }
+            
             modalSingle.show();
         });
     });
 
+    // Biến lưu trữ dữ liệu module đang thao tác
+    let currentModuleSoBuoi = 0;
+    let currentCourseEndDate = "";
+
     // Sự kiện mở Modal sinh lịch tự động
     document.querySelectorAll('.btn-auto-schedule').forEach(btn => {
         btn.addEventListener('click', function() {
-            document.getElementById('auto-module-id').value = this.dataset.moduleId;
+            const moduleId = this.dataset.moduleId;
+            document.getElementById('auto-module-id').value = moduleId;
             document.getElementById('auto-module-name').textContent = this.dataset.moduleName;
+            
+            // Lưu thông tin phục vụ tính toán
+            currentModuleSoBuoi = parseInt(this.dataset.soBuoi) || 0;
+            currentCourseEndDate = this.dataset.khoaHocEnd;
+            
+            document.getElementById('auto-so-buoi-text').textContent = currentModuleSoBuoi + " buổi";
+            document.getElementById('auto-course-end-date').textContent = new Date(currentCourseEndDate).toLocaleDateString('vi-VN');
+
+            const minDate = this.dataset.minDate;
+            const inputNgayBatDau = document.querySelector('#modalSinhTuDong input[name="ngay_bat_dau"]');
+            if (inputNgayBatDau && minDate) {
+                const nextDay = getNextDay(minDate);
+                inputNgayBatDau.min = nextDay;
+                inputNgayBatDau.value = nextDay;
+            }
+
+            calculateExpectedEndDate();
             modalAuto.show();
         });
     });
 
-    // Tự động tính Thứ khi chọn Ngày học (trong Modal thêm lẻ)
-    const ngayHocInput = document.querySelector('input[name="ngay_hoc"]');
-    const thuSelect = document.querySelector('select[name="thu_trong_tuan"]');
-    if (ngayHocInput && thuSelect) {
-        ngayHocInput.addEventListener('change', function() {
-            if (this.value) {
-                const date = new Date(this.value);
-                let day = date.getDay(); // 0 (Sun) to 6 (Sat)
-                let thuVal = (day === 0) ? 8 : (day + 1);
-                thuSelect.value = thuVal;
-                thuSelect.classList.add('is-valid');
-                setTimeout(() => thuSelect.classList.remove('is-valid'), 1000);
+    // --- LOGIC TÍNH TOÁN LỘ TRÌNH DỰ KIẾN ---
+    function calculateExpectedEndDate() {
+        const startDateVal = document.getElementById('auto-start-date').value;
+        const selectedDays = Array.from(document.querySelectorAll('input[name="thu_trong_tuan[]"]:checked')).map(cb => parseInt(cb.value));
+        const endDateDisplay = document.getElementById('auto-end-date-text');
+        const warningBox = document.getElementById('auto-conflict-warning');
+
+        if (!startDateVal || selectedDays.length === 0 || currentModuleSoBuoi <= 0) {
+            endDateDisplay.textContent = "--/--/----";
+            warningBox.classList.add('d-none');
+            return;
+        }
+
+        let currentDate = new Date(startDateVal);
+        let count = 0;
+        let safetyLoop = 0;
+
+        while (count < currentModuleSoBuoi && safetyLoop < 1000) {
+            safetyLoop++;
+            let day = currentDate.getDay(); // 0 (Sun) to 6 (Sat)
+            let dbDay = (day === 0) ? 8 : (day + 1);
+
+            if (selectedDays.includes(dbDay)) {
+                count++;
+                if (count === currentModuleSoBuoi) break;
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        const expectedEndDateStr = currentDate.toISOString().split('T')[0];
+        endDateDisplay.textContent = currentDate.toLocaleDateString('vi-VN');
+
+        // So sánh với ngày kết thúc khóa học
+        if (expectedEndDateStr > currentCourseEndDate) {
+            warningBox.classList.remove('d-none');
+            endDateDisplay.classList.add('text-danger');
+        } else {
+            warningBox.classList.add('d-none');
+            endDateDisplay.classList.remove('text-danger');
+        }
+
+        // Đồng thời cập nhật màu sắc các thứ
+        updateThuColors();
+    }
+
+    // Lắng nghe sự kiện thay đổi để tính toán lại
+    document.getElementById('auto-start-date').addEventListener('change', calculateExpectedEndDate);
+    document.querySelectorAll('input[name="thu_trong_tuan[]"]').forEach(cb => {
+        cb.addEventListener('change', calculateExpectedEndDate);
+    });
+
+    // --- LOGIC TÔ MÀU THỨ (MODAL SINH TỰ ĐỘNG) ---
+    const ngayBatDauInput = document.querySelector('#modalSinhTuDong input[name="ngay_bat_dau"]');
+    const thuLabels = document.querySelectorAll('#container-thu-auto .thu-label-box');
+
+    function updateThuColors() {
+        if (!ngayBatDauInput.value) return;
+
+        const date = new Date(ngayBatDauInput.value);
+        let carbonDay = date.getDay(); // 0 (Sun) to 6 (Sat)
+        let startThu = (carbonDay === 0) ? 8 : (carbonDay + 1); // 2 to 8
+
+        thuLabels.forEach(label => {
+            let thuVal = parseInt(label.dataset.thu);
+            label.classList.remove('bg-danger', 'bg-success', 'bg-warning', 'text-white', 'text-dark');
+
+            if (thuVal === startThu) {
+                label.classList.add('bg-danger', 'text-white');
+            } else if (thuVal > startThu) {
+                label.classList.add('bg-success', 'text-white');
+            } else {
+                label.classList.add('bg-warning', 'text-dark');
             }
         });
     }
 
-    // Logic Xóa hàng loạt
-    const bulkBtn = document.getElementById('btnBulkDelete');
-    const selectedCountSpan = document.getElementById('selectedCount');
-    const checkboxes = document.querySelectorAll('.check-item');
-
-    document.querySelectorAll('.check-all-module').forEach(checkAll => {
-        checkAll.addEventListener('change', function() {
-            const moduleId = this.dataset.module;
-            document.querySelectorAll('.module-' + moduleId).forEach(cb => {
-                cb.checked = this.checked;
-            });
-            updateBulkBtn();
+    if (ngayBatDauInput) {
+        ngayBatDauInput.addEventListener('change', updateThuColors);
+        // Cập nhật ngay khi mở modal (vì có giá trị mặc định)
+        document.querySelector('.btn-auto-schedule').addEventListener('click', () => {
+            setTimeout(updateThuColors, 200); 
         });
-    });
-
-    checkboxes.forEach(cb => {
-        cb.addEventListener('change', updateBulkBtn);
-    });
-
-    function updateBulkBtn() {
-        const checkedCount = document.querySelectorAll('.check-item:checked').length;
-        if (selectedCountSpan) selectedCountSpan.textContent = checkedCount;
-        if (bulkBtn) {
-            if (checkedCount > 0) bulkBtn.classList.remove('d-none');
-            else bulkBtn.classList.add('d-none');
-        }
     }
 });
 
@@ -317,7 +410,8 @@ function confirmDeleteModule(moduleId, moduleName) {
 
 function submitBulkDelete() {
     if (confirm('Bạn chắc chắn muốn xóa toàn bộ các buổi học đã chọn?')) {
-        document.getElementById('bulkDeleteForm').submit();
+        const form = document.getElementById('bulkDeleteForm');
+        form.submit();
     }
 }
 </script>
@@ -327,5 +421,75 @@ function submitBulkDelete() {
     .smaller { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
     .row-selectable:hover { background-color: rgba(13, 110, 253, 0.02); }
     .italic { font-style: italic; }
+
+    /* Style cho ô chọn Thứ - VIP Upgrade */
+    .thu-label-box {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        border: 2px solid #edf2f7;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 1rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        user-select: none;
+        background-color: #fff;
+        color: #4a5568;
+        position: relative;
+    }
+    
+    .thu-label-box:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        border-color: #cbd5e0;
+    }
+
+    input.form-check-input:checked + .thu-label-box {
+        border-color: #0d6efd;
+        color: #0d6efd;
+        background-color: #f0f7ff;
+        transform: scale(1.05);
+        z-index: 2;
+    }
+
+    input.form-check-input:checked + .thu-label-box::after {
+        content: '\f058';
+        font-family: "Font Awesome 6 Free";
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: #fff;
+        border-radius: 50%;
+        font-size: 14px;
+        color: #0d6efd;
+    }
+
+    /* Màu sắc theo logic tuần */
+    .thu-label-box.bg-danger { background-color: #fff5f5 !important; color: #c53030 !important; border-color: #feb2b2 !important; }
+    .thu-label-box.bg-success { background-color: #f0fff4 !important; color: #2f855a !important; border-color: #9ae6b4 !important; }
+    .thu-label-box.bg-warning { background-color: #fffaf0 !important; color: #975a16 !important; border-color: #fbd38d !important; }
+
+    /* Hiệu ứng nháy khi tự động thay đổi */
+    @keyframes pulse-highlight {
+        0% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(13, 110, 253, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0); }
+    }
+    .auto-filled {
+        animation: pulse-highlight 1.5s infinite;
+        border-color: #0d6efd !important;
+    }
+
+    .legend-box {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+        margin-right: 6px;
+        vertical-align: middle;
+    }
 </style>
 @endsection

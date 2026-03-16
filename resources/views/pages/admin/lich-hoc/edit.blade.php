@@ -82,9 +82,18 @@
 
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold" id="label-location">Phòng học / Link họp</label>
-                                <input type="text" name="phong_hoc" class="form-control vip-form-control" 
+                                <input type="text" name="phong_hoc" class="form-control vip-form-control shadow-sm" 
                                        value="{{ old('phong_hoc', $lichHoc->hinh_thuc === 'online' ? $lichHoc->link_online : $lichHoc->phong_hoc) }}" placeholder="...">
                                 <input type="hidden" name="link_online" id="input-link-online" value="{{ $lichHoc->link_online }}">
+                                
+                                <div class="mt-2" id="box-apply-all" style="display: {{ $lichHoc->hinh_thuc === 'online' ? 'block' : 'none' }};">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="apply_to_all_online" value="1" id="applyAllOnline">
+                                        <label class="form-check-label small text-primary fw-bold" for="applyAllOnline">
+                                            Áp dụng link này cho tất cả các buổi học Online của khóa học này
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="col-md-12">

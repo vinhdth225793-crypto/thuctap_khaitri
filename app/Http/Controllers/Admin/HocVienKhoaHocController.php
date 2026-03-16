@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
@@ -7,119 +8,112 @@ use App\Models\HocVienKhoaHoc;
 use App\Models\NguoiDung;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class HocVienKhoaHocController extends Controller
 {
     /**
-     * Danh sách học viên trong một khóa học (trang riêng)
-     * GET /admin/khoa-hoc/{khoaHocId}/hoc-vien
+     * Phase 2: Xem danh sách học viên trong khóa học
      */
     public function index(int $khoaHocId)
     {
-        $khoaHoc = KhoaHoc::with([
-            'nhomNganh',
-            'hocVienKhoaHocs.hocVien',
-        ])->findOrFail($khoaHocId);
+        $khoaHoc = KhoaHoc::with(['nhomNganh'])->findOrFail($khoaHocId);
 
-        // Danh sách học viên chưa tham gia khóa này (để form thêm mới)
-        $idsDaThamGia = $khoaHoc->hocVienKhoaHocs->pluck('hoc_vien_id');
-        $hocVienChuaThamGia = NguoiDung::where('vai_tro','hoc_vien')
-            ->where('trang_thai', true)
-            ->whereNotIn('ma_nguoi_dung', $idsDaThamGia)
+        // Lấy danh sách ghi danh kèm thông tin người dùng
+        $hocViens = HocVienKhoaHoc::with(['hocVien'])
+            ->where('khoa_hoc_id', $khoaHocId)
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        // Thống kê nhanh
+        $stats = [
+            'tong' => $hocViens->total(),
+            'dang_hoc' => HocVienKhoaHoc::where('khoa_hoc_id', $khoaHocId)->where('trang_thai', 'dang_hoc')->count(),
+            'hoan_thanh' => HocVienKhoaHoc::where('khoa_hoc_id', $khoaHocId)->where('trang_thai', 'hoan_thanh')->count(),
+        ];
+
+        // Lấy danh sách học viên toàn hệ thống (phục vụ Phase 3 - thêm mới)
+        // Chỉ lấy những người có vai trò là hoc_vien và chưa có trong khóa học này
+        $availableStudents = NguoiDung::where('vai_tro', 'hoc_vien')
+            ->where('trang_thai', 1)
+            ->whereDoesntHave('khoaHocs', function($q) use ($khoaHocId) {
+                $q->where('khoa_hoc_id', $khoaHocId);
+            })
             ->orderBy('ho_ten')
             ->get();
 
-        return view('pages.admin.hoc-vien-khoa-hoc.index', compact(
-            'khoaHoc', 'hocVienChuaThamGia'
-        ));
+        return view('pages.admin.hoc-vien-khoa-hoc.index', compact('khoaHoc', 'hocViens', 'stats', 'availableStudents'));
     }
 
     /**
-     * Thêm học viên vào khóa học
-     * POST /admin/khoa-hoc/{khoaHocId}/hoc-vien
+     * Phase 3: Thêm học viên vào khóa học
      */
     public function store(Request $request, int $khoaHocId)
     {
-        $khoaHoc = KhoaHoc::findOrFail($khoaHocId);
-
-        if ($khoaHoc->trang_thai_van_hanh !== 'dang_day') {
-            return back()->with('error', 'Chỉ có thể thêm học viên vào khóa học đang hoạt động.');
-        }
-
         $request->validate([
-            'hoc_vien_ids'   => 'required|array|min:1',
+            'hoc_vien_ids' => 'required|array|min:1',
             'hoc_vien_ids.*' => 'exists:nguoi_dung,ma_nguoi_dung',
-            'ghi_chu'        => 'nullable|string|max:500',
-        ], [
-            'hoc_vien_ids.required' => 'Vui lòng chọn ít nhất một học viên.',
-            'hoc_vien_ids.*.exists' => 'Học viên không hợp lệ.',
+            'ngay_tham_gia' => 'nullable|date',
+            'ghi_chu' => 'nullable|string|max:500',
         ]);
 
-        DB::transaction(function () use ($request, $khoaHoc) {
-            foreach ($request->hoc_vien_ids as $hocVienId) {
-                // Kiểm tra vai_tro
-                $nd = NguoiDung::where('ma_nguoi_dung', $hocVienId)
-                               ->where('vai_tro','hoc_vien')->first();
-                if (!$nd) continue;
+        $khoaHoc = KhoaHoc::findOrFail($khoaHocId);
+        
+        DB::beginTransaction();
+        try {
+            $count = 0;
+            foreach ($request->hoc_vien_ids as $hvId) {
+                // Kiểm tra lại lần nữa để tránh trùng (mặc dù view đã lọc)
+                $exists = HocVienKhoaHoc::where('khoa_hoc_id', $khoaHocId)
+                    ->where('hoc_vien_id', $hvId)
+                    ->exists();
 
-                HocVienKhoaHoc::firstOrCreate(
-                    ['khoa_hoc_id' => $khoaHoc->id, 'hoc_vien_id' => $hocVienId],
-                    [
-                        'ngay_tham_gia' => Carbon::today(),
-                        'trang_thai'    => 'dang_hoc',
-                        'ghi_chu'       => $request->ghi_chu,
-                        'created_by'    => auth()->id(),
-                    ]
-                );
+                if (!$exists) {
+                    HocVienKhoaHoc::create([
+                        'khoa_hoc_id' => $khoaHocId,
+                        'hoc_vien_id' => $hvId,
+                        'ngay_tham_gia' => $request->ngay_tham_gia ?? now(),
+                        'trang_thai' => 'dang_hoc',
+                        'ghi_chu' => $request->ghi_chu,
+                        'created_by' => Auth::user()->ma_nguoi_dung,
+                    ]);
+                    $count++;
+                }
             }
-        });
-
-        return back()->with('success', 'Đã thêm học viên vào khóa học thành công.');
+            DB::commit();
+            return back()->with('success', "Đã thêm thành công {$count} học viên vào khóa học.");
+        } catch (\Exception $e) {
+            DB::rollback();
+            return back()->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
+        }
     }
 
     /**
-     * Thay đổi trạng thái học viên
-     * PUT /admin/khoa-hoc/{khoaHocId}/hoc-vien/{id}/trang-thai
+     * Phase 5: Cập nhật thông tin ghi danh
      */
-    public function updateTrangThai(Request $request, int $khoaHocId, int $id)
+    public function update(Request $request, int $khoaHocId, int $id)
     {
-        $bghv = HocVienKhoaHoc::where('khoa_hoc_id', $khoaHocId)->findOrFail($id);
-
         $request->validate([
+            'ngay_tham_gia' => 'required|date',
             'trang_thai' => 'required|in:dang_hoc,hoan_thanh,ngung_hoc',
-            'ghi_chu'    => 'nullable|string|max:500',
-        ], [
-            'trang_thai.required' => 'Vui lòng chọn trạng thái.',
-            'trang_thai.in'       => 'Trạng thái không hợp lệ.',
+            'ghi_chu' => 'nullable|string|max:500',
         ]);
 
-        DB::transaction(function () use ($request, $bghv) {
-            $bghv->update([
-                'trang_thai' => $request->trang_thai,
-                'ghi_chu'    => $request->ghi_chu ?? $bghv->ghi_chu,
-            ]);
-        });
+        $enrollment = HocVienKhoaHoc::where('khoa_hoc_id', $khoaHocId)->findOrFail($id);
+        $enrollment->update($request->only(['ngay_tham_gia', 'trang_thai', 'ghi_chu']));
 
-        return back()->with('success', 'Đã cập nhật trạng thái học viên.');
+        return back()->with('success', 'Cập nhật thông tin ghi danh thành công.');
     }
 
     /**
-     * Xóa học viên khỏi khóa học (đổi trạng thái → ngung_hoc)
-     * DELETE /admin/khoa-hoc/{khoaHocId}/hoc-vien/{id}
+     * Phase 4: Xóa học viên khỏi khóa học
      */
     public function destroy(int $khoaHocId, int $id)
     {
-        $khoaHoc = KhoaHoc::findOrFail($khoaHocId);
-        if ($khoaHoc->trang_thai_van_hanh !== 'dang_day') {
-            return back()->with('error', 'Không thể thay đổi danh sách học viên khi khóa học không ở trạng thái đang dạy.');
-        }
-
-        $bghv = HocVienKhoaHoc::where('khoa_hoc_id', $khoaHocId)->findOrFail($id);
-
-        DB::transaction(function () use ($bghv) {
-            $bghv->update(['trang_thai' => 'ngung_hoc']);
-        });
+        $enrollment = HocVienKhoaHoc::where('khoa_hoc_id', $khoaHocId)->findOrFail($id);
+        
+        // Tùy chọn: Xóa vĩnh viễn bản ghi bảng trung gian
+        $enrollment->delete();
 
         return back()->with('success', 'Đã xóa học viên khỏi khóa học.');
     }
