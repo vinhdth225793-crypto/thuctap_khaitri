@@ -90,4 +90,12 @@ class NguoiDung extends Authenticatable
             'id'
         )->withPivot('ngay_tham_gia', 'trang_thai', 'ghi_chu')->withTimestamps();
     }
+
+    /**
+     * Relationship: Dữ liệu điểm danh của học viên (Phase 2 Upgrade)
+     */
+    public function diemDanhs()
+    {
+        return $this->hasMany(DiemDanh::class, 'hoc_vien_id', 'ma_nguoi_dung');
+    }
 }

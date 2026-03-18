@@ -29,6 +29,9 @@ class LichHoc extends Model
         'mat_khau_cuoc_hop',
         'trang_thai',
         'ghi_chu',
+        'bao_cao_giang_vien',
+        'thoi_gian_bao_cao',
+        'trang_thai_bao_cao',
     ];
 
     /**

@@ -72,6 +72,13 @@
             </div>
         </div>
 
+        <div class="nav-item">
+            <a href="{{ route('admin.yeu-cau-hoc-vien.index') }}" class="nav-link {{ request()->routeIs('admin.yeu-cau-hoc-vien.*') ? 'active' : '' }}">
+                <i class="fas fa-user-edit"></i>
+                <span>Yêu cầu học viên</span>
+            </a>
+        </div>
+
         <!-- Cài đặt hệ thống dropdown -->
         <div class="nav-item">
             <a class="nav-link collapsed" data-bs-toggle="collapse" href="#settingsMenu" role="button" aria-expanded="{{ request()->routeIs('admin.settings*') ? 'true' : 'false' }}" aria-controls="settingsMenu">

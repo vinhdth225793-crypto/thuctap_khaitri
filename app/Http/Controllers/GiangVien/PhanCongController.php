@@ -47,9 +47,6 @@ class PhanCongController extends Controller
         return view('pages.giang-vien.phan-cong.index', compact('khoaHocs', 'phanCongChoXacNhan'));
     }
 
-    /**
-     * Chi tiết khóa học/module dành cho giảng viên
-     */
     public function show($id)
     {
         $giangVien = auth()->user()->giangVien;
@@ -57,19 +54,25 @@ class PhanCongController extends Controller
         $phanCong = PhanCongModuleGiangVien::with([
             'khoaHoc.nhomNganh', 
             'moduleHoc',
-            'khoaHoc.hocVienKhoaHocs.hocVien'
+            'khoaHoc.hocVienKhoaHocs.hocVien' => function($q) {
+                $q->with(['diemDanhs']);
+            }
         ])
         ->where('giao_vien_id', $giangVien->id)
         ->findOrFail($id);
 
         $khoaHoc = $phanCong->khoaHoc;
         
+        // Lấy danh sách ID buổi học của khóa học này để lọc điểm danh
+        $lichHocIds = LichHoc::where('khoa_hoc_id', $khoaHoc->id)->pluck('id');
+        
         // Lấy TOÀN BỘ lịch dạy của Module này (để GV thấy lộ trình đầy đủ)
-        $lichDays = LichHoc::where('module_hoc_id', $phanCong->module_hoc_id)
+        $lichDays = LichHoc::with(['taiNguyen', 'baiKiemTras'])
+            ->where('module_hoc_id', $phanCong->module_hoc_id)
             ->orderBy('ngay_hoc')
             ->get();
 
-        return view('pages.giang-vien.phan-cong.show', compact('phanCong', 'khoaHoc', 'lichDays'));
+        return view('pages.giang-vien.phan-cong.show', compact('phanCong', 'khoaHoc', 'lichDays', 'lichHocIds'));
     }
 
     /**

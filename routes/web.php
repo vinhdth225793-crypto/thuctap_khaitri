@@ -165,6 +165,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     Route::post('/phan-cong/{id}/huy', [AdminPhanCongController::class, 'huy'])->name('phan-cong.huy');
     Route::post('/phan-cong/{id}/replace', [AdminPhanCongController::class, 'replace'])->name('phan-cong.replace');
 
+    // Quản lý Yêu cầu từ Giảng viên (Phase 3)
+    Route::get('/yeu-cau-hoc-vien', [App\Http\Controllers\Admin\YeuCauHocVienController::class, 'index'])->name('yeu-cau-hoc-vien.index');
+    Route::post('/yeu-cau-hoc-vien/{id}/xac-nhan', [App\Http\Controllers\Admin\YeuCauHocVienController::class, 'xacNhan'])->name('yeu-cau-hoc-vien.xac-nhan');
+
     // Cài đặt hệ thống
     Route::prefix('settings')->group(function () {
         Route::get('/', [AdminController::class, 'showSettings'])->name('settings');
@@ -212,9 +216,10 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', \App\Http\
     // Quản lý Bài giảng (Phase 7)
     Route::get('/bai-giang', [BaiGiangController::class, 'index'])->name('bai-giang.index');
 
-    // Điểm danh (Phase 7)
-    Route::get('/buoi-hoc/{lichHocId}/diem-danh', [DiemDanhController::class, 'show'])->name('buoi-hoc.diem-danh.show');
-    Route::post('/buoi-hoc/{lichHocId}/diem-danh', [DiemDanhController::class, 'store'])->name('buoi-hoc.diem-danh.store');
+    // Điểm danh (Flow 4 - Phase 1)
+    Route::get('/buoi-hoc/{lichHocId}/diem-danh', [App\Http\Controllers\GiangVien\DiemDanhController::class, 'show'])->name('buoi-hoc.diem-danh.show');
+    Route::post('/buoi-hoc/{lichHocId}/diem-danh', [App\Http\Controllers\GiangVien\DiemDanhController::class, 'store'])->name('buoi-hoc.diem-danh.store');
+    Route::post('/buoi-hoc/{lichHocId}/bao-cao-diem-danh', [App\Http\Controllers\GiangVien\DiemDanhController::class, 'report'])->name('buoi-hoc.diem-danh.report');
 
     // Bài kiểm tra (Phase 8)
     Route::post('/bai-kiem-tra', [BaiKiemTraController::class, 'store'])->name('bai-kiem-tra.store');

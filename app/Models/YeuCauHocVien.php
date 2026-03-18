@@ -18,11 +18,14 @@ class YeuCauHocVien extends Model
         'du_lieu_yeu_cau',
         'ly_do',
         'trang_thai',
-        'phan_hoi_admin',
+        'admin_duyet_id',
+        'thoi_gian_duyet',
+        'phan_hoi_admin'
     ];
 
     protected $casts = [
         'du_lieu_yeu_cau' => 'array',
+        'thoi_gian_duyet' => 'datetime',
     ];
 
     public function khoaHoc()
@@ -33,5 +36,21 @@ class YeuCauHocVien extends Model
     public function giangVien()
     {
         return $this->belongsTo(GiangVien::class, 'giang_vien_id');
+    }
+
+    public function admin()
+    {
+        return $this->belongsTo(NguoiDung::class, 'admin_duyet_id', 'ma_nguoi_dung');
+    }
+
+    // Accessor hiển thị nhãn loại yêu cầu
+    public function getLoaiLabelAttribute()
+    {
+        return match($this->loai_yeu_cau) {
+            'them' => 'Thêm học viên',
+            'xoa'  => 'Xóa học viên',
+            'sua'  => 'Cập nhật thông tin',
+            default => $this->loai_yeu_cau
+        };
     }
 }
