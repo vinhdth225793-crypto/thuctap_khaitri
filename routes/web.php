@@ -15,6 +15,7 @@ use App\Http\Controllers\GiangVien\PhanCongController;
 use App\Http\Controllers\GiangVien\TaiNguyenController;
 use App\Http\Controllers\GiangVien\DiemDanhController;
 use App\Http\Controllers\GiangVien\BaiKiemTraController;
+use App\Http\Controllers\GiangVien\BaiGiangController;
 use App\Http\Controllers\GiangVienController;
 use App\Http\Controllers\HocVienController;
 use App\Http\Controllers\ThongBaoController;
@@ -202,9 +203,14 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', \App\Http\
     // Quản lý Học viên & Yêu cầu (Phase 6)
     Route::post('/khoa-hoc/{khoaHocId}/yeu-cau-hoc-vien', [PhanCongController::class, 'guiYeuCauHocVien'])->name('khoa-hoc.gui-yeu-cau-hoc-vien');
     
-    // Quản lý Tài nguyên (Phase 4)
+    // Quản lý Tài nguyên (Phase 4 & 6)
     Route::post('/buoi-hoc/{lichHocId}/tai-nguyen', [TaiNguyenController::class, 'store'])->name('buoi-hoc.tai-nguyen.store');
+    Route::put('/tai-nguyen/{id}', [TaiNguyenController::class, 'update'])->name('buoi-hoc.tai-nguyen.update');
+    Route::patch('/tai-nguyen/{id}/toggle', [TaiNguyenController::class, 'toggleHienThi'])->name('buoi-hoc.tai-nguyen.toggle');
     Route::delete('/tai-nguyen/{id}', [TaiNguyenController::class, 'destroy'])->name('buoi-hoc.tai-nguyen.destroy');
+
+    // Quản lý Bài giảng (Phase 7)
+    Route::get('/bai-giang', [BaiGiangController::class, 'index'])->name('bai-giang.index');
 
     // Điểm danh (Phase 7)
     Route::get('/buoi-hoc/{lichHocId}/diem-danh', [DiemDanhController::class, 'show'])->name('buoi-hoc.diem-danh.show');
@@ -229,6 +235,10 @@ Route::prefix('hoc-vien')->name('hoc-vien.')->middleware(['auth', \App\Http\Midd
     Route::get('/dashboard', function () {
         return view('pages.hoc-vien.dashboard');
     })->name('dashboard');
+    
+    Route::get('/khoa-hoc-cua-toi', [HocVienController::class, 'khoaHocCuaToi'])->name('khoa-hoc-cua-toi');
+    Route::get('/khoa-hoc/{id}', [HocVienController::class, 'chiTietKhoaHoc'])->name('chi-tiet-khoa-hoc');
+    
     Route::get('/profile', [HocVienController::class, 'profile'])->name('profile');
     Route::post('/profile', [HocVienController::class, 'updateProfile'])->name('profile.update');
 });

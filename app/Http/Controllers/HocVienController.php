@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use App\Models\NguoiDung;
+use App\Models\HocVienKhoaHoc;
+use App\Models\KhoaHoc;
+use App\Models\LichHoc;
 
 class HocVienController extends Controller
 {
@@ -14,6 +17,51 @@ class HocVienController extends Controller
     {
         // sử dụng tên lớp middleware trực tiếp để tránh lỗi khi alias không được tải
         $this->middleware(['auth', \App\Http\Middleware\CheckHocVien::class]);
+    }
+
+    /**
+     * Danh sách khóa học của học viên (Phase 5)
+     */
+    public function khoaHocCuaToi()
+    {
+        $user = auth()->user();
+        
+        // Lấy các khóa học học viên đang tham gia thông qua bảng trung gian
+        $khoaHocs = HocVienKhoaHoc::with(['khoaHoc.nhomNganh'])
+            ->where('hoc_vien_id', $user->ma_nguoi_dung)
+            ->get();
+            
+        return view('pages.hoc-vien.khoa-hoc.index', compact('khoaHocs'));
+    }
+
+    /**
+     * Chi tiết khóa học và tài nguyên buổi học (Phase 5)
+     */
+    public function chiTietKhoaHoc($id)
+    {
+        $user = auth()->user();
+        
+        // Kiểm tra quyền truy cập (Học viên phải thuộc khóa học này)
+        $isMember = HocVienKhoaHoc::where('khoa_hoc_id', $id)
+            ->where('hoc_vien_id', $user->ma_nguoi_dung)
+            ->exists();
+            
+        if (!$isMember) {
+            return redirect()->route('hoc-vien.khoa-hoc-cua-toi')->with('error', 'Bạn không có quyền truy cập khóa học này.');
+        }
+
+        $khoaHoc = KhoaHoc::with(['nhomNganh', 'moduleHocs'])->findOrFail($id);
+        
+        // Lấy lịch học kèm tài nguyên (chỉ lấy tài nguyên đã công khai)
+        $lichHocs = LichHoc::with(['moduleHoc', 'taiNguyen' => function($query) {
+                $query->where('trang_thai_hien_thi', 'hien')->orderBy('thu_tu_hien_thi');
+            }])
+            ->where('khoa_hoc_id', $id)
+            ->orderBy('ngay_hoc')
+            ->orderBy('gio_bat_dau')
+            ->get();
+
+        return view('pages.hoc-vien.khoa-hoc.show', compact('khoaHoc', 'lichHocs'));
     }
 
     public function profile()

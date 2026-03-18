@@ -100,32 +100,6 @@
                                             @else
                                                 <span class="text-dark small"><i class="fas fa-door-open me-1 text-muted"></i>{{ $lich->phong_hoc ?: 'Chưa gán' }}</span>
                                             @endif
-
-                                            {{-- Hiển thị tài nguyên đã đăng (Phase 4) --}}
-                                            @if($lich->taiNguyen->count() > 0)
-                                                <div class="mt-2 pt-2 border-top border-light">
-                                                    @foreach($lich->taiNguyen as $tn)
-                                                        <div class="d-flex align-items-center justify-content-between mb-1">
-                                                            <a href="{{ $tn->duong_dan_file ? asset('storage/'.$tn->duong_dan_file) : ($tn->link_ngoai ?: '#') }}" 
-                                                               target="_blank" class="smaller text-dark text-decoration-none">
-                                                                @php
-                                                                    $icon = match($tn->loai_tai_nguyen) {
-                                                                        'bai_giang' => 'fa-chalkboard',
-                                                                        'tai_lieu'  => 'fa-file-alt',
-                                                                        'bai_tap'   => 'fa-pencil-alt',
-                                                                        default     => 'fa-paperclip'
-                                                                    };
-                                                                @endphp
-                                                                <i class="fas {{ $icon }} text-muted me-1"></i> {{ $tn->tieu_de }}
-                                                            </a>
-                                                            <form action="{{ route('giang-vien.buoi-hoc.tai-nguyen.destroy', $tn->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa tài liệu này?')">
-                                                                @csrf @method('DELETE')
-                                                                <button type="submit" class="btn btn-link p-0 text-danger smaller"><i class="fas fa-times"></i></button>
-                                                            </form>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                            @endif
                                         </td>
                                         <td class="text-center">
                                             <span class="badge bg-{{ $lich->trang_thai_color }}-soft text-dark smaller">
@@ -198,7 +172,120 @@
                 </div>
             </div>
 
-            {{-- MÔ TẢ MODULE --}}
+           
+
+            {{-- DANH SÁCH TÀI LIỆU (Dời từ bảng lịch dạy xuống đây) --}}
+            <div class="vip-card mb-4 border-0 shadow-sm">
+                <div class="vip-card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="vip-card-title small fw-bold text-uppercase mb-0 text-primary">
+                        <i class="fas fa-folder-open me-2"></i> Danh sách tài liệu học tập
+                    </h5>
+                    @php
+                        $totalResources = $lichDays->sum(fn($l) => $l->taiNguyen->count());
+                    @endphp
+                    <span class="badge bg-primary-soft text-primary border border-primary px-3">{{ $totalResources }} tài liệu</span>
+                </div>
+                <div class="vip-card-body p-4">
+                    @if($totalResources > 0)
+                        <div class="row g-3">
+                            @foreach($lichDays as $lich)
+                                @if($lich->taiNguyen->count() > 0)
+                                    @foreach($lich->taiNguyen->sortBy('thu_tu_hien_thi') as $tn)
+                                        <div class="col-12">
+                                            <div class="d-flex align-items-start p-3 rounded border bg-white shadow-xs hover-bg-light transition-all">
+                                                <div class="bg-{{ $tn->loai_color }}-soft rounded text-{{ $tn->loai_color }} d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px; flex-shrink: 0;">
+                                                    <i class="fas {{ $tn->loai_icon }} fa-lg"></i>
+                                                </div>
+                                                <div class="flex-fill min-w-0 me-3">
+                                                    <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
+                                                        <span class="badge bg-dark text-white border-0 smaller py-1 px-2">Buổi #{{ $lich->buoi_so }}</span>
+                                                        <span class="badge bg-{{ $tn->loai_color }}-soft text-{{ $tn->loai_color }} border-0 smaller py-1 px-2">{{ $tn->loai_label }}</span>
+                                                        <h6 class="mb-0 fw-bold text-dark text-truncate">{{ $tn->tieu_de }}</h6>
+                                                        @if($tn->trang_thai_hien_thi === 'an')
+                                                            <span class="badge bg-secondary-soft text-secondary border-0 px-2" style="font-size: 0.65rem;"><i class="fas fa-eye-slash me-1"></i> Đang ẩn</span>
+                                                        @else
+                                                            <span class="badge bg-success-soft text-success border-0 px-2" style="font-size: 0.65rem;"><i class="fas fa-eye me-1"></i> Công khai</span>
+                                                        @endif
+                                                    </div>
+                                                    
+                                                    <div class="d-flex align-items-center flex-wrap gap-3 mt-1">
+                                                        @if($tn->original_file_name)
+                                                            <small class="smaller text-muted" title="File gốc: {{ $tn->original_file_name }}">
+                                                                <i class="fas fa-paperclip me-1"></i> {{ \Illuminate\Support\Str::limit($tn->original_file_name, 30) }}
+                                                            </small>
+                                                        @elseif($tn->link_ngoai)
+                                                            <small class="smaller text-info text-truncate" style="max-width: 250px;" title="{{ $tn->link_ngoai }}">
+                                                                <i class="fas fa-link me-1"></i> {{ $tn->link_ngoai }}
+                                                            </small>
+                                                        @endif
+                                                        <small class="smaller text-muted"><i class="far fa-clock me-1"></i> Cập nhật: {{ $tn->updated_at->format('d/m/Y H:i') }}</small>
+                                                    </div>
+                                                    
+                                                    <div class="d-flex align-items-center gap-2 mt-3">
+                                                        <button type="button" class="btn btn-xs btn-primary fw-bold py-1 px-3 btn-view-resource"
+                                                                data-title="{{ $tn->tieu_de }}"
+                                                                data-loai="{{ $tn->loai_label }}"
+                                                                data-desc="{{ $tn->mo_ta ?: 'Không có mô tả.' }}"
+                                                                data-url="{{ $tn->file_url }}"
+                                                                data-path="{{ $tn->storage_path }}"
+                                                                data-color="{{ $tn->loai_color }}"
+                                                                data-icon="{{ $tn->loai_icon }}"
+                                                                data-downloadable="{{ $tn->is_downloadable ? 'true' : 'false' }}"
+                                                                data-filename="{{ $tn->original_file_name }}">
+                                                            <i class="fas fa-info-circle me-1"></i> Xem chi tiết
+                                                        </button>
+                                                        <button type="button" class="btn btn-xs btn-outline-primary fw-bold py-1 px-3 btn-preview-file"
+                                                                data-url="{{ $tn->file_url }}"
+                                                                data-title="{{ $tn->tieu_de }}"
+                                                                data-extension="{{ pathinfo($tn->file_url, PATHINFO_EXTENSION) }}">
+                                                            <i class="fas fa-eye me-1"></i> Xem file
+                                                        </button>
+                                                        @if($tn->is_downloadable)
+                                                            <a href="{{ $tn->file_url }}" download="{{ $tn->original_file_name }}" class="btn btn-xs btn-outline-success fw-bold py-1 px-3">
+                                                                <i class="fas fa-download me-1"></i> Tải về
+                                                            </a>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex flex-column gap-2 ms-auto align-items-center bg-light p-2 rounded">
+                                                    <form action="{{ route('giang-vien.buoi-hoc.tai-nguyen.toggle', $tn->id) }}" method="POST">
+                                                        @csrf @method('PATCH')
+                                                        <button type="submit" class="btn btn-link p-0 {{ $tn->trang_thai_hien_thi === 'hien' ? 'text-success' : 'text-secondary' }}" 
+                                                                title="{{ $tn->trang_thai_hien_thi === 'hien' ? 'Nhấn để ẩn' : 'Nhấn để hiện' }}">
+                                                            <i class="fas {{ $tn->trang_thai_hien_thi === 'hien' ? 'fa-toggle-on' : 'fa-toggle-off' }} fa-lg"></i>
+                                                        </button>
+                                                    </form>
+                                                    <button type="button" class="btn btn-link p-0 text-warning btn-edit-resource" 
+                                                            data-id="{{ $tn->id }}" 
+                                                            data-type="{{ $tn->loai_tai_nguyen }}"
+                                                            data-title="{{ $tn->tieu_de }}"
+                                                            data-desc="{{ $tn->mo_ta }}"
+                                                            data-link="{{ $tn->link_ngoai }}"
+                                                            data-status="{{ $tn->trang_thai_hien_thi }}"
+                                                            data-order="{{ $tn->thu_tu_hien_thi }}"
+                                                            title="Chỉnh sửa">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <form action="{{ route('giang-vien.buoi-hoc.tai-nguyen.destroy', $tn->id) }}" method="POST" onsubmit="return confirm('Xóa tài liệu này?')">
+                                                        @csrf @method('DELETE')
+                                                        <button type="submit" class="btn btn-link p-0 text-danger" title="Xóa bỏ"><i class="fas fa-trash-alt"></i></button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                @endif
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="text-center py-4 text-muted italic">
+                            <i class="fas fa-folder-open fa-2x mb-2 d-block opacity-25"></i>
+                            Chưa có tài liệu nào được đăng cho các buổi học.
+                        </div>
+                    @endif
+                </div>
+            </div>
+             {{-- MÔ TẢ MODULE --}}
             <div class="vip-card mb-4 border-0 shadow-sm">
                 <div class="vip-card-header bg-white border-bottom py-3">
                     <h5 class="vip-card-title small fw-bold text-uppercase mb-0 text-dark">
@@ -405,34 +492,167 @@
             <form id="formAddResource" method="POST" action="" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Loại tài nguyên *</label>
-                        <select name="loai_tai_nguyen" class="form-select vip-form-control" required>
-                            <option value="bai_giang">Bài giảng (Slide/Video)</option>
-                            <option value="tai_lieu">Tài liệu tham khảo</option>
-                            <option value="bai_tap">Bài tập về nhà</option>
-                        </select>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Loại tài nguyên *</label>
+                            <select name="loai_tai_nguyen" class="form-select vip-form-control" required>
+                                <option value="bai_giang">Bài giảng (Slide/Video)</option>
+                                <option value="tai_lieu">Tài liệu tham khảo</option>
+                                <option value="bai_tap">Bài tập về nhà</option>
+                                <option value="link_ngoai">Link liên kết ngoài</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Thứ tự hiển thị</label>
+                            <input type="number" name="thu_tu_hien_thi" class="form-control vip-form-control" value="0" min="0">
+                        </div>
                     </div>
-                    <div class="mb-3">
+
+                    <div class="mt-3">
                         <label class="form-label small fw-bold">Tiêu đề tài liệu *</label>
                         <input type="text" name="tieu_de" class="form-control vip-form-control" placeholder="VD: Slide buổi 1 - Giới thiệu Laravel" required>
                     </div>
-                    <div class="mb-3">
+
+                    <div class="mt-3">
                         <label class="form-label small fw-bold">Mô tả ngắn</label>
                         <textarea name="mo_ta" class="form-control vip-form-control" rows="2" placeholder="Tóm tắt nội dung tài liệu..."></textarea>
                     </div>
-                    <div class="mb-3">
+
+                    <div class="mt-3">
                         <label class="form-label small fw-bold">Link ngoài (Youtube/Drive/...)</label>
                         <input type="url" name="link_ngoai" class="form-control vip-form-control" placeholder="https://...">
                     </div>
-                    <div class="mb-0">
-                        <label class="form-label small fw-bold">Tải lên file (Tối đa 10MB)</label>
-                        <input type="file" name="file_dinh_kem" class="form-control vip-form-control">
+
+                    <div class="mt-3">
+                        <label class="form-label small fw-bold">Tải lên file (Tối đa 20MB) *</label>
+                        <input type="file" name="file_dinh_kem" id="add-res-file" class="form-control vip-form-control">
+                        <div class="smaller text-muted mt-1 italic">Hỗ trợ: PDF, Word, PowerPoint, Excel, ZIP, RAR</div>
+                    </div>
+
+                    <div class="mt-3 p-3 bg-light rounded border border-primary-soft">
+                        <label class="form-label small fw-bold d-block mb-2 text-primary"><i class="fas fa-cog me-1"></i> Tùy chọn lưu trữ</label>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="save_format" id="save_original" value="original" checked>
+                            <label class="form-check-label small" for="save_original">
+                                <b>Giữ nguyên file gốc:</b> Lưu đúng định dạng bạn tải lên.
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="save_format" id="save_pdf" value="pdf">
+                            <label class="form-check-label small" for="save_pdf">
+                                <b>Chuyển sang PDF:</b> Giúp học viên xem trực tiếp ngay trên web (Khuyên dùng).
+                            </label>
+                        </div>
+                        <div id="pdf-warning" class="mt-2 smaller text-danger d-none italic">
+                            <i class="fas fa-exclamation-triangle me-1"></i> 
+                            Hệ thống đang chạy Local, bạn nên tự chuyển file sang PDF trước khi tải lên để đảm bảo hiển thị tốt nhất.
+                        </div>
+                    </div>
+
+                    <div class="mt-3 p-3 bg-light rounded border">
+                        <label class="form-label small fw-bold d-block mb-2">Trạng thái công khai</label>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="trang_thai_hien_thi" id="status_an" value="an" checked>
+                            <label class="form-check-label small" for="status_an">Lưu nháp (Ẩn với học viên)</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="trang_thai_hien_thi" id="status_hien" value="hien">
+                            <label class="form-check-label small" for="status_hien">Công khai ngay</label>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer border-0 p-3 justify-content-center gap-2">
-                    <button type="button" class="btn btn-light px-4 fw-bold" data-bs-dismiss="modal">Hủy bỏ</button>
-                    <button type="submit" class="btn btn-success px-4 fw-bold shadow-sm">ĐĂNG TÀI LIỆU</button>
+                    <button type="button" class="btn btn-light px-4 fw-bold shadow-xs" data-bs-dismiss="modal">HỦY BỎ</button>
+                    <button type="submit" class="btn btn-success px-4 fw-bold shadow-sm">ĐĂNG TÀI NGUYÊN</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{-- MODAL SỬA TÀI NGUYÊN (PHASE 4) --}}
+<div class="modal fade shadow" id="modalEditResource" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0">
+            <div class="modal-header bg-warning text-white border-0">
+                <h5 class="modal-title fw-bold"><i class="fas fa-edit me-2"></i> Chỉnh sửa tài nguyên</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formEditResource" method="POST" action="" enctype="multipart/form-data">
+                @csrf
+                @method('PUT')
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Loại tài nguyên *</label>
+                            <select name="loai_tai_nguyen" id="edit-res-type" class="form-select vip-form-control" required>
+                                <option value="bai_giang">Bài giảng (Slide/Video)</option>
+                                <option value="tai_lieu">Tài liệu tham khảo</option>
+                                <option value="bai_tap">Bài tập về nhà</option>
+                                <option value="link_ngoai">Link liên kết ngoài</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Thứ tự hiển thị</label>
+                            <input type="number" name="thu_tu_hien_thi" id="edit-res-order" class="form-control vip-form-control" min="0">
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label small fw-bold">Tiêu đề tài liệu *</label>
+                        <input type="text" name="tieu_de" id="edit-res-title" class="form-control vip-form-control" required>
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label small fw-bold">Mô tả ngắn</label>
+                        <textarea name="mo_ta" id="edit-res-desc" class="form-control vip-form-control" rows="2"></textarea>
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label small fw-bold">Link ngoài (Youtube/Drive/...)</label>
+                        <input type="url" name="link_ngoai" id="edit-res-link" class="form-control vip-form-control">
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label small fw-bold">Thay đổi file (Để trống nếu giữ nguyên)</label>
+                        <input type="file" name="file_dinh_kem" id="edit-res-file" class="form-control vip-form-control">
+                    </div>
+
+                    <div class="mt-3 p-3 bg-light rounded border border-warning-soft">
+                        <label class="form-label small fw-bold d-block mb-2 text-warning"><i class="fas fa-cog me-1"></i> Tùy chọn lưu trữ</label>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="save_format" id="edit_save_original" value="original" checked>
+                            <label class="form-check-label small" for="edit_save_original">
+                                <b>Giữ nguyên file gốc</b>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="save_format" id="edit_save_pdf" value="pdf">
+                            <label class="form-check-label small" for="edit_save_pdf">
+                                <b>Chuyển sang PDF</b>
+                            </label>
+                        </div>
+                        <div id="edit-pdf-warning" class="mt-2 smaller text-danger d-none italic">
+                            <i class="fas fa-exclamation-triangle me-1"></i> 
+                            Bạn nên tự chuyển file sang PDF trước khi tải lên.
+                        </div>
+                    </div>
+
+                    <div class="mt-3 p-3 bg-light rounded border">
+                        <label class="form-label small fw-bold d-block mb-2">Trạng thái công khai</label>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="trang_thai_hien_thi" id="edit-status-an" value="an">
+                            <label class="form-check-label small" for="edit-status-an">Lưu nháp</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="trang_thai_hien_thi" id="edit-status-hien" value="hien">
+                            <label class="form-check-label small" for="edit-status-hien">Công khai</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-3 justify-content-center gap-2">
+                    <button type="button" class="btn btn-light px-4 fw-bold shadow-xs" data-bs-dismiss="modal">HỦY BỎ</button>
+                    <button type="submit" class="btn btn-warning px-4 fw-bold shadow-sm text-white">LƯU THAY ĐỔI</button>
                 </div>
             </form>
         </div>
@@ -548,9 +768,207 @@
     </div>
 </div>
 
+{{-- MODAL PREVIEW TÀI LIỆU (PHASE 4 UPGRADE) --}}
+<div class="modal fade shadow" id="modalPreviewResource" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-dark text-white border-0 py-3">
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 35px; height: 35px;">
+                        <i class="fas fa-eye fa-sm"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="preview-title">Xem trước tài liệu</h5>
+                        <small class="text-light opacity-75" id="preview-filename"></small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0 bg-secondary bg-opacity-10" style="height: 80vh; overflow: hidden;">
+                <div id="preview-container" class="w-100 h-100 d-flex align-items-center justify-content-center">
+                    {{-- Nội dung preview sẽ được load bằng JS --}}
+                    <div class="text-center p-5" id="preview-loading">
+                        <div class="spinner-border text-primary mb-3" role="status"></div>
+                        <p class="text-muted fw-bold">Đang tải nội dung...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-white border-0 py-3 justify-content-between">
+                <div class="text-muted small italic">
+                    <i class="fas fa-info-circle me-1"></i> 
+                    Nếu không xem được trực tiếp, vui lòng bấm <b>"Tải về"</b> hoặc <b>"Mở tab mới"</b>.
+                </div>
+                <div class="d-flex gap-2">
+                    <a id="preview-open-btn" href="#" target="_blank" class="btn btn-outline-dark fw-bold px-4">
+                        <i class="fas fa-external-link-alt me-1"></i> MỞ TRONG TAB MỚI
+                    </a>
+                    <a id="preview-download-btn" href="#" download class="btn btn-success fw-bold px-4 shadow-sm">
+                        <i class="fas fa-download me-1"></i> TẢI VỀ MÁY
+                    </a>
+                    <button type="button" class="btn btn-light border fw-bold px-4" data-bs-dismiss="modal">ĐÓNG</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- MODAL CHI TIẾT TÀI LIỆU (PHASE 4) --}}
+<div class="modal fade shadow" id="modalViewResource" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0">
+            <div id="res-detail-header" class="modal-header text-white border-0">
+                <h5 class="modal-title fw-bold"><i id="res-detail-icon" class="fas me-2"></i> Chi tiết tài liệu</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-4">
+                    <label class="smaller text-muted d-block mb-1">Tiêu đề</label>
+                    <h5 id="res-detail-title" class="fw-bold text-dark mb-0"></h5>
+                    <span id="res-detail-badge" class="badge mt-2 border-0 smaller py-1 px-2"></span>
+                </div>
+
+                <div class="mb-4">
+                    <label class="smaller text-muted d-block mb-1">Mô tả</label>
+                    <div id="res-detail-desc" class="p-3 bg-light rounded border small text-dark lh-base"></div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="smaller text-muted d-block mb-1">URL truy cập (Public URL)</label>
+                    <div class="input-group">
+                        <input type="text" id="res-detail-url" class="form-control form-control-sm bg-white" readonly>
+                        <button class="btn btn-sm btn-outline-primary fw-bold" type="button" id="btn-copy-res-url">
+                            <i class="far fa-copy me-1"></i> Copy
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-0">
+                    <label class="smaller text-muted d-block mb-1">Đường dẫn thực tế trên Server (Debug)</label>
+                    <code id="res-detail-path" class="d-block p-2 bg-dark text-light rounded smaller text-break"></code>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-3 justify-content-center gap-2 bg-light">
+                <a id="res-detail-open" href="#" target="_blank" class="btn btn-primary px-4 fw-bold shadow-sm">
+                    <i class="fas fa-external-link-alt me-1"></i> MỞ TÀI LIỆU
+                </a>
+                <a id="res-detail-download" href="#" download class="btn btn-success px-4 fw-bold shadow-sm">
+                    <i class="fas fa-download me-1"></i> TẢI VỀ
+                </a>
+                <button type="button" class="btn btn-light px-4 fw-bold shadow-xs border" data-bs-dismiss="modal">ĐÓNG</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Logic cảnh báo PDF cho Modal Thêm
+    const addFileInp = document.getElementById('add-res-file');
+    const addPdfRadio = document.getElementById('save_pdf');
+    const addPdfWarning = document.getElementById('pdf-warning');
+
+    function checkAddPdfSupport() {
+        if (addPdfRadio.checked && addFileInp.files.length > 0) {
+            const ext = addFileInp.files[0].name.split('.').pop().toLowerCase();
+            if (ext !== 'pdf' && !['jpg', 'jpeg', 'png'].includes(ext)) {
+                addPdfWarning.classList.remove('d-none');
+            } else {
+                addPdfWarning.classList.add('d-none');
+            }
+        } else {
+            addPdfWarning.classList.add('d-none');
+        }
+    }
+
+    if (addFileInp) {
+        addFileInp.addEventListener('change', checkAddPdfSupport);
+        document.querySelectorAll('input[name="save_format"]').forEach(r => r.addEventListener('change', checkAddPdfSupport));
+    }
+
+    // Logic cảnh báo PDF cho Modal Sửa
+    const editFileInp = document.getElementById('edit-res-file');
+    const editPdfRadio = document.getElementById('edit_save_pdf');
+    const editPdfWarning = document.getElementById('edit-pdf-warning');
+
+    function checkEditPdfSupport() {
+        if (editPdfRadio.checked && editFileInp.files.length > 0) {
+            const ext = editFileInp.files[0].name.split('.').pop().toLowerCase();
+            if (ext !== 'pdf' && !['jpg', 'jpeg', 'png'].includes(ext)) {
+                editPdfWarning.classList.remove('d-none');
+            } else {
+                editPdfWarning.classList.add('d-none');
+            }
+        } else {
+            editPdfWarning.classList.add('d-none');
+        }
+    }
+
+    if (editFileInp) {
+        editFileInp.addEventListener('change', checkEditPdfSupport);
+        document.querySelectorAll('#modalEditResource input[name="save_format"]').forEach(r => r.addEventListener('change', checkEditPdfSupport));
+    }
+
+    // Xử lý Modal Xem chi tiết tài nguyên
+    const modalViewRes = new bootstrap.Modal(document.getElementById('modalViewResource'));
+    const btnCopyUrl = document.getElementById('btn-copy-res-url');
+
+    document.querySelectorAll('.btn-view-resource').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const d = this.dataset;
+            
+            // Đổ dữ liệu
+            document.getElementById('res-detail-title').textContent = d.title;
+            document.getElementById('res-detail-desc').innerHTML = d.desc.replace(/\n/g, '<br>');
+            document.getElementById('res-detail-url').value = d.url;
+            document.getElementById('res-detail-path').textContent = d.path;
+            
+            // UI
+            const badge = document.getElementById('res-detail-badge');
+            badge.textContent = d.loai;
+            badge.className = `badge mt-2 border-0 smaller py-1 px-2 bg-${d.color}-soft text-${d.color}`;
+            
+            const header = document.getElementById('res-detail-header');
+            header.className = `modal-header text-white border-0 bg-${d.color}`;
+            
+            const icon = document.getElementById('res-detail-icon');
+            icon.className = `fas ${d.icon} me-2`;
+
+            // Link actions
+            const openBtn = document.getElementById('res-detail-open');
+            openBtn.href = d.url;
+            
+            const downloadBtn = document.getElementById('res-detail-download');
+            if (d.downloadable === 'true') {
+                downloadBtn.style.display = 'inline-block';
+                downloadBtn.href = d.url;
+                downloadBtn.setAttribute('download', d.filename);
+            } else {
+                downloadBtn.style.display = 'none';
+            }
+
+            modalViewRes.show();
+        });
+    });
+
+    // Copy URL trong modal
+    if (btnCopyUrl) {
+        btnCopyUrl.addEventListener('click', function() {
+            const urlInput = document.getElementById('res-detail-url');
+            urlInput.select();
+            document.execCommand('copy');
+            
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-check me-1"></i> Đã Copy';
+            this.classList.replace('btn-outline-primary', 'btn-success');
+            
+            setTimeout(() => {
+                this.innerHTML = originalText;
+                this.classList.replace('btn-success', 'btn-outline-primary');
+            }, 2000);
+        });
+    }
+
     // Xử lý Copy Link
     document.querySelectorAll('.btn-copy-link').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -618,6 +1036,31 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Xử lý Modal Sửa tài nguyên (PHASE 4)
+    const modalEditRes = new bootstrap.Modal(document.getElementById('modalEditResource'));
+    const formEditRes = document.getElementById('formEditResource');
+
+    document.querySelectorAll('.btn-edit-resource').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const d = this.dataset;
+            document.getElementById('edit-res-type').value = d.type;
+            document.getElementById('edit-res-title').value = d.title;
+            document.getElementById('edit-res-desc').value = d.desc || '';
+            document.getElementById('edit-res-link').value = d.link || '';
+            document.getElementById('edit-res-order').value = d.order || 0;
+            
+            // Set radio status
+            if (d.status === 'hien') {
+                document.getElementById('edit-status-hien').checked = true;
+            } else {
+                document.getElementById('edit-status-an').checked = true;
+            }
+
+            formEditRes.action = "{{ route('giang-vien.buoi-hoc.tai-nguyen.update', ':id') }}".replace(':id', d.id);
+            modalEditRes.show();
+        });
+    });
+
     // Xử lý Modal Yêu cầu học viên
     const reqTypeSelect = document.getElementById('req-type');
     const groupAdd = document.getElementById('req-group-add');
@@ -681,14 +1124,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         });
     });
-});
 
-function checkAllAttendance(status) {
-    document.querySelectorAll('.att-select').forEach(sel => sel.value = status);
-}
-
-// Xử lý Modal TẠO BÀI KIỂM TRA
-document.addEventListener('DOMContentLoaded', function() {
+    // Xử lý Modal TẠO BÀI KIỂM TRA
     const modalAddTestElement = document.getElementById('modalAddTest');
     if (modalAddTestElement) {
         const modalTest = new bootstrap.Modal(modalAddTestElement);
@@ -701,8 +1138,92 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-});
-</script>
+
+    // ==========================================
+    // XỬ LÝ PREVIEW TÀI LIỆU (PHASE 4 UPGRADE)
+    // ==========================================
+    const modalPreviewElement = document.getElementById('modalPreviewResource');
+    if (modalPreviewElement) {
+        const modalPreview = new bootstrap.Modal(modalPreviewElement);
+        const previewContainer = document.getElementById('preview-container');
+        const previewTitle = document.getElementById('preview-title');
+        const previewFilename = document.getElementById('preview-filename');
+        const previewOpenBtn = document.getElementById('preview-open-btn');
+        const previewDownloadBtn = document.getElementById('preview-download-btn');
+        const loadingHtml = document.getElementById('preview-loading') ? document.getElementById('preview-loading').outerHTML : '<p>Loading...</p>';
+
+        document.querySelectorAll('.btn-preview-file').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const url = this.dataset.url;
+                const title = this.dataset.title;
+                let ext = this.dataset.extension ? this.dataset.extension.toLowerCase() : '';
+                
+                if (!ext) {
+                    ext = url.split('.').pop().split(/\#|\?/)[0].toLowerCase();
+                }
+
+                console.log('Previewing File:', { title, url, ext });
+
+                previewTitle.textContent = title;
+                previewFilename.textContent = url.split('/').pop();
+                previewOpenBtn.href = url;
+                previewDownloadBtn.href = url;
+                previewDownloadBtn.setAttribute('download', title + '.' + ext);
+
+                previewContainer.innerHTML = loadingHtml;
+                modalPreview.show();
+
+                setTimeout(() => {
+                    let content = '';
+                    if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext)) {
+                        content = `<div class="p-3 text-center w-100 h-100 d-flex align-items-center justify-content-center">
+                                    <img src="${url}" class="img-fluid shadow-sm rounded bg-white" style="max-height: 100%; object-fit: contain;">
+                                   </div>`;
+                    } else if (ext === 'pdf') {
+                        content = `<embed src="${url}#toolbar=0&navpanes=0&scrollbar=0" type="application/pdf" width="100%" height="100%" />`;
+                    } else if (['mp4', 'webm', 'ogg'].includes(ext)) {
+                        content = `<div class="p-3 w-100 h-100 d-flex align-items-center justify-content-center">
+                                    <video controls class="mw-100 mh-100 shadow rounded bg-black" autoplay><source src="${url}" type="video/${ext === 'mp4' ? 'mp4' : ext}">Trình duyệt không hỗ trợ.</video>
+                                   </div>`;
+                    } else if (['mp3', 'wav', 'ogg'].includes(ext)) {
+                        content = `<div class="text-center p-5"><i class="fas fa-file-audio fa-6x text-primary mb-4 d-block"></i><audio controls class="w-100 shadow-sm" style="max-width: 500px;"><source src="${url}" type="audio/mpeg"></audio></div>`;
+                    } 
+                    // 5. File Văn bản (Word, Excel, WPS...)
+                    else if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'wps', 'txt'].includes(ext)) {
+                        content = `
+                            <div class="text-center p-5 bg-white rounded shadow-sm border m-3" style="max-width: 600px;">
+                                <div class="mb-4">
+                                    <span class="fa-stack fa-4x">
+                                        <i class="fas fa-file fa-stack-2x text-primary opacity-10"></i>
+                                        <i class="fas fa-file-word fa-stack-1x text-primary"></i>
+                                    </span>
+                                </div>
+                                <h4 class="fw-bold text-dark">Tài liệu .${ext.toUpperCase()}</h4>
+                                <p class="text-muted mb-4">
+                                    Trình duyệt không hỗ trợ xem trực tiếp định dạng <b>.${ext}</b>.<br>
+                                    Vui lòng tải về máy để mở bằng <b>WPS Office</b> hoặc <b>Microsoft Office</b>.
+                                </p>
+                                <div class="d-grid gap-3">
+                                    <a href="${url}" download class="btn btn-primary btn-lg fw-bold shadow-sm">
+                                        <i class="fas fa-download me-2"></i> TẢI XUỐNG NGAY
+                                    </a>
+                                    <div class="text-muted small italic">
+                                        <i class="fas fa-lightbulb me-1 text-warning"></i> 
+                                        <b>Mẹo:</b> Bạn nên chuyển file sang định dạng <b>PDF</b> trước khi đăng để học viên có thể xem trực tiếp trên web.
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    else {
+                        content = `<div class="text-center p-5 bg-white rounded shadow-sm border m-3" style="max-width: 500px;"><div class="mb-4"><span class="fa-stack fa-3x"><i class="fas fa-file fa-stack-2x text-light"></i><i class="fas fa-file-download fa-stack-1x text-primary"></i></span></div><h5 class="fw-bold text-dark">Định dạng .${ext.toUpperCase()}</h5><p class="text-muted small mb-4">Trình duyệt không hỗ trợ xem trực tiếp hoặc đang chạy Local.</p><div class="d-grid gap-2"><a href="${url}" download class="btn btn-success fw-bold py-2 shadow-sm"><i class="fas fa-download me-2"></i>TẢI VỀ</a><a href="${url}" target="_blank" class="btn btn-outline-primary fw-bold py-2"><i class="fas fa-external-link-alt me-2"></i>MỞ TAB MỚI</a></div></div>`;
+                    }
+                    previewContainer.innerHTML = content;
+                }, 500);
+            });
+        });
+    }
+});</script>
 @endpush
 
 <style>

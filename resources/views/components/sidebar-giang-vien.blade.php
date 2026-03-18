@@ -23,6 +23,13 @@
             </a>
         </div>
 
+        <div class="nav-item mb-1">
+            <a href="{{ route('giang-vien.bai-giang.index') }}" class="nav-link {{ request()->routeIs('giang-vien.bai-giang*') ? 'active' : '' }}">
+                <i class="fas fa-chalkboard"></i>
+                <span>Bài giảng & Tài liệu</span>
+            </a>
+        </div>
+
         <div class="nav-label px-4 smaller text-muted text-uppercase fw-bold mb-2 mt-4">Tiện ích & Hệ thống</div>
         
         <div class="nav-item mb-1">
