@@ -160,6 +160,7 @@
                                 <th class="text-center">Thời gian</th>
                                 <th>Phòng / Link</th>
                                 <th>Giảng viên</th>
+                                <th class="text-center">Báo cáo</th>
                                 <th class="text-center">Trạng thái</th>
                                 <th class="pe-4 text-center" width="100">Thao tác</th>
                             </tr>
@@ -193,6 +194,19 @@
                                             <div class="small fw-bold text-truncate" style="max-width: 120px;">{{ $lich->giangVien->nguoiDung->ho_ten }}</div>
                                         @else
                                             <span class="text-muted italic smaller">Chưa gán</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-center">
+                                        @if($lich->trang_thai_bao_cao === 'da_bao_cao')
+                                            <button type="button" class="btn btn-xs btn-success fw-bold px-2 btn-view-report" 
+                                                    data-content="{{ $lich->bao_cao_giang_vien }}"
+                                                    data-time="{{ $lich->thoi_gian_bao_cao?->format('d/m/Y H:i') }}"
+                                                    data-gv="{{ $lich->giangVien->nguoiDung->ho_ten ?? 'N/A' }}"
+                                                    data-buoi="{{ $lich->buoi_so }}">
+                                                <i class="fas fa-file-alt me-1"></i> Xem
+                                            </button>
+                                        @else
+                                            <span class="text-muted smaller">Chưa có</span>
                                         @endif
                                     </td>
                                     <td class="text-center">
@@ -239,12 +253,56 @@
     @csrf @method('DELETE')
 </form>
 
+{{-- MODAL XEM BÁO CÁO GIẢNG VIÊN (PHASE 7 ADD-ON) --}}
+<div class="modal fade shadow" id="modalViewReport" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0">
+            <div class="modal-header bg-success text-white border-0 py-3">
+                <h5 class="modal-title fw-bold"><i class="fas fa-file-alt me-2"></i> Báo cáo giảng dạy buổi <span id="view-buoi-label"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3 d-flex justify-content-between align-items-start border-bottom pb-3">
+                    <div>
+                        <label class="smaller text-muted d-block fw-bold">Giảng viên báo cáo</label>
+                        <span id="view-gv-name" class="fw-bold text-dark fs-6"></span>
+                    </div>
+                    <div class="text-end">
+                        <label class="smaller text-muted d-block fw-bold">Thời gian gửi</label>
+                        <span id="view-report-time" class="small text-muted"></span>
+                    </div>
+                </div>
+                <div class="mb-0">
+                    <label class="smaller text-muted d-block fw-bold mb-2">Nội dung báo cáo</label>
+                    <div id="view-report-content" class="p-3 bg-light rounded border small text-dark lh-base" style="min-height: 150px; white-space: pre-wrap;"></div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-3 justify-content-center bg-light">
+                <button type="button" class="btn btn-secondary px-5 fw-bold shadow-xs" data-bs-dismiss="modal">ĐÓNG</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {{-- Các Modal (Sinh lịch, Thêm buổi lẻ) --}}
 @include('pages.admin.lich-hoc.modals')
 
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Xử lý Modal Xem báo cáo
+    const modalViewReport = new bootstrap.Modal(document.getElementById('modalViewReport'));
+    document.querySelectorAll('.btn-view-report').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const d = this.dataset;
+            document.getElementById('view-buoi-label').textContent = d.buoi;
+            document.getElementById('view-gv-name').textContent = d.gv;
+            document.getElementById('view-report-time').textContent = d.time;
+            document.getElementById('view-report-content').textContent = d.content;
+            modalViewReport.show();
+        });
+    });
+
     // Khởi tạo Bootstrap Modals
     const modalSingle = new bootstrap.Modal(document.getElementById('modalThemBuoi'));
     const modalAuto   = new bootstrap.Modal(document.getElementById('modalSinhTuDong'));

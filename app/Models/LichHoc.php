@@ -60,6 +60,7 @@ class LichHoc extends Model
 
     protected $casts = [
         'ngay_hoc' => 'date',
+        'thoi_gian_bao_cao' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

@@ -1160,11 +1160,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         baoCaoContent.value = res.bao_cao || '';
                         
                         if (res.trang_thai_bao_cao === 'da_bao_cao') {
-                            statusBadge.innerHTML = '<span class="badge bg-success-soft text-success border border-success px-3 py-2 fw-bold"><i class="fas fa-check-circle me-1"></i> ĐÃ GỬI BÁO CÁO</span>';
+                            statusBadge.innerHTML = '<span class="badge bg-success bg-opacity-10 text-success border border-success px-3 py-2 fw-bold"><i class="fas fa-check-circle me-1"></i> ĐÃ GỬI BÁO CÁO</span>';
                             btnSubmitReport.innerHTML = '<i class="fas fa-sync-alt me-1"></i> CẬP NHẬT BÁO CÁO';
                             btnSubmitReport.classList.replace('btn-success', 'btn-warning');
                         } else {
-                            statusBadge.innerHTML = '<span class="badge bg-secondary-soft text-secondary border border-secondary px-3 py-2 fw-bold"><i class="fas fa-clock me-1"></i> CHƯA GỬI BÁO CÁO</span>';
+                            statusBadge.innerHTML = '<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary px-3 py-2 fw-bold"><i class="fas fa-clock me-1"></i> CHƯA GỬI BÁO CÁO</span>';
                             btnSubmitReport.innerHTML = 'GỬI BÁO CÁO CHO ADMIN';
                             btnSubmitReport.classList.replace('btn-warning', 'btn-success');
                         }
