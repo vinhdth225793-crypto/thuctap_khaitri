@@ -6,10 +6,20 @@ use App\Http\Controllers\Controller;
 use App\Models\BaiKiemTra;
 use App\Models\BaiLamBaiKiemTra;
 use App\Models\HocVienKhoaHoc;
+use App\Services\BaiKiemTraScoringService;
+use App\Services\KetQuaHocTapService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class BaiKiemTraController extends Controller
 {
+    public function __construct(
+        private readonly BaiKiemTraScoringService $scoringService,
+        private readonly KetQuaHocTapService $ketQuaHocTapService,
+    ) {
+    }
+
     public function index()
     {
         $user = auth()->user();
@@ -35,6 +45,7 @@ class BaiKiemTraController extends Controller
             'dang_mo' => $baiKiemTras->where('access_status_key', 'dang_mo')->count(),
             'sap_mo' => $baiKiemTras->where('access_status_key', 'sap_mo')->count(),
             'da_nop' => $baiKiemTras->filter(fn (BaiKiemTra $item) => optional($item->baiLams->first())->is_submitted)->count(),
+            'cho_cham' => $baiKiemTras->filter(fn (BaiKiemTra $item) => optional($item->baiLams->first())->need_manual_grading)->count(),
         ];
 
         return view('pages.hoc-vien.bai-kiem-tra.index', compact('baiKiemTras', 'stats'));
@@ -43,9 +54,25 @@ class BaiKiemTraController extends Controller
     public function show(int $id)
     {
         $baiKiemTra = $this->findBaiKiemTraHocVien($id, auth()->user()->ma_nguoi_dung);
-        $baiLam = $baiKiemTra->baiLams->first();
+        $baiLam = $baiKiemTra->baiLams->sortByDesc('lan_lam_thu')->first();
 
-        return view('pages.hoc-vien.bai-kiem-tra.show', compact('baiKiemTra', 'baiLam'));
+        if ($baiLam) {
+            $baiLam->loadMissing([
+                'chiTietTraLois.chiTietBaiKiemTra',
+                'chiTietTraLois.cauHoi.dapAns',
+                'chiTietTraLois.dapAn',
+            ]);
+        }
+
+        $cauHoiHienThi = $baiKiemTra->chiTietCauHois;
+        if ($baiKiemTra->randomize_questions && $baiLam && $baiLam->can_resume) {
+            $cauHoiHienThi = $cauHoiHienThi->shuffle()->values();
+        }
+
+        $attemptsUsed = $baiKiemTra->baiLams->count();
+        $remainingAttempts = max(0, (int) $baiKiemTra->so_lan_duoc_lam - $attemptsUsed);
+
+        return view('pages.hoc-vien.bai-kiem-tra.show', compact('baiKiemTra', 'baiLam', 'cauHoiHienThi', 'attemptsUsed', 'remainingAttempts'));
     }
 
     public function batDau(int $id)
@@ -59,36 +86,54 @@ class BaiKiemTraController extends Controller
                 ->with('error', 'Bai kiem tra nay chua mo hoac da dong.');
         }
 
-        $baiLam = BaiLamBaiKiemTra::firstOrNew([
-            'bai_kiem_tra_id' => $baiKiemTra->id,
-            'hoc_vien_id' => $user->ma_nguoi_dung,
-        ]);
+        $baiLam = $baiKiemTra->baiLams->firstWhere('trang_thai', 'dang_lam');
 
-        if ($baiLam->is_submitted) {
+        if ($baiLam) {
             return redirect()
                 ->route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id)
-                ->with('info', 'Ban da nop bai kiem tra nay roi.');
+                ->with('info', 'Ban dang co mot lan lam bai chua nop. Hay tiep tuc bai lam hien tai.');
         }
 
-        if (!$baiLam->exists) {
-            $baiLam->trang_thai = 'dang_lam';
+        if ($baiKiemTra->baiLams->count() >= $baiKiemTra->so_lan_duoc_lam) {
+            return redirect()
+                ->route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id)
+                ->with('error', 'Ban da dung het so lan lam bai duoc phep.');
         }
 
-        if (!$baiLam->bat_dau_luc) {
-            $baiLam->bat_dau_luc = now();
-        }
+        DB::transaction(function () use ($baiKiemTra, $user, &$baiLam) {
+            $baiLam = BaiLamBaiKiemTra::create([
+                'bai_kiem_tra_id' => $baiKiemTra->id,
+                'hoc_vien_id' => $user->ma_nguoi_dung,
+                'lan_lam_thu' => $baiKiemTra->baiLams->max('lan_lam_thu') + 1,
+                'trang_thai' => 'dang_lam',
+                'trang_thai_cham' => 'chua_cham',
+                'bat_dau_luc' => now(),
+            ]);
 
-        $baiLam->save();
+            foreach ($baiKiemTra->chiTietCauHois as $chiTietBaiKiemTra) {
+                $baiLam->chiTietTraLois()->create([
+                    'chi_tiet_bai_kiem_tra_id' => $chiTietBaiKiemTra->id,
+                    'ngan_hang_cau_hoi_id' => $chiTietBaiKiemTra->ngan_hang_cau_hoi_id,
+                ]);
+            }
+        });
 
         return redirect()
             ->route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id)
-            ->with('success', 'Da bat dau lam bai. Hay nhap noi dung bai lam va nop bai khi hoan thanh.');
+            ->with('success', 'Da bat dau lam bai. Hay hoan thanh va nop bai truoc khi het han.');
     }
 
     public function nopBai(Request $request, int $id)
     {
         $user = auth()->user();
         $baiKiemTra = $this->findBaiKiemTraHocVien($id, $user->ma_nguoi_dung);
+        $baiLam = $baiKiemTra->baiLams->firstWhere('trang_thai', 'dang_lam');
+
+        if (!$baiLam) {
+            return redirect()
+                ->route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id)
+                ->with('error', 'Ban can bat dau bai kiem tra truoc khi nop bai.');
+        }
 
         if (!$baiKiemTra->can_student_start) {
             return redirect()
@@ -96,29 +141,87 @@ class BaiKiemTraController extends Controller
                 ->with('error', 'Khong the nop bai vi bai kiem tra nay da dong hoac chua den gio mo.');
         }
 
-        $request->validate([
-            'noi_dung_bai_lam' => 'required|string|max:50000',
-        ]);
+        if ($baiKiemTra->chiTietCauHois->isEmpty()) {
+            $validated = $request->validate([
+                'noi_dung_bai_lam' => 'required|string|max:50000',
+            ]);
 
-        $baiLam = BaiLamBaiKiemTra::firstOrNew([
-            'bai_kiem_tra_id' => $baiKiemTra->id,
-            'hoc_vien_id' => $user->ma_nguoi_dung,
-        ]);
+            DB::transaction(function () use ($baiLam, $baiKiemTra, $validated) {
+                $baiLam->update([
+                    'noi_dung_bai_lam' => $validated['noi_dung_bai_lam'],
+                    'trang_thai' => 'cho_cham',
+                    'trang_thai_cham' => 'cho_cham',
+                    'nop_luc' => now(),
+                ]);
 
-        if ($baiLam->is_submitted) {
+                $this->ketQuaHocTapService->refreshForCourseStudent($baiKiemTra->khoa_hoc_id, $baiLam->hoc_vien_id);
+            });
+
             return redirect()
                 ->route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id)
-                ->with('info', 'Ban da nop bai kiem tra nay roi.');
+                ->with('success', 'Da nop bai kiem tra thanh cong.');
         }
 
-        if (!$baiLam->bat_dau_luc) {
-            $baiLam->bat_dau_luc = now();
+        $answerPayloads = $request->input('answers', []);
+        $essaySummary = [];
+
+        foreach ($baiKiemTra->chiTietCauHois as $chiTietBaiKiemTra) {
+            $question = $chiTietBaiKiemTra->cauHoi;
+            $payload = $answerPayloads[$chiTietBaiKiemTra->id] ?? [];
+
+            if ($question?->loai_cau_hoi === 'trac_nghiem') {
+                $dapAnId = $payload['dap_an_cau_hoi_id'] ?? null;
+
+                if ($chiTietBaiKiemTra->bat_buoc && !$dapAnId) {
+                    throw ValidationException::withMessages([
+                        'answers.' . $chiTietBaiKiemTra->id . '.dap_an_cau_hoi_id' => 'Vui long chon dap an cho cau hoi trac nghiem.',
+                    ]);
+                }
+            } else {
+                $cauTraLoi = trim((string) ($payload['cau_tra_loi_text'] ?? ''));
+
+                if ($chiTietBaiKiemTra->bat_buoc && $cauTraLoi === '') {
+                    throw ValidationException::withMessages([
+                        'answers.' . $chiTietBaiKiemTra->id . '.cau_tra_loi_text' => 'Vui long nhap cau tra loi cho cau hoi tu luan.',
+                    ]);
+                }
+
+                if ($cauTraLoi !== '') {
+                    $essaySummary[] = $cauTraLoi;
+                }
+            }
         }
 
-        $baiLam->noi_dung_bai_lam = $request->noi_dung_bai_lam;
-        $baiLam->trang_thai = 'da_nop';
-        $baiLam->nop_luc = now();
-        $baiLam->save();
+        DB::transaction(function () use ($baiLam, $baiKiemTra, $answerPayloads, $essaySummary) {
+            foreach ($baiKiemTra->chiTietCauHois as $chiTietBaiKiemTra) {
+                $payload = $answerPayloads[$chiTietBaiKiemTra->id] ?? [];
+
+                $baiLam->chiTietTraLois()->updateOrCreate(
+                    [
+                        'chi_tiet_bai_kiem_tra_id' => $chiTietBaiKiemTra->id,
+                    ],
+                    [
+                        'ngan_hang_cau_hoi_id' => $chiTietBaiKiemTra->ngan_hang_cau_hoi_id,
+                        'dap_an_cau_hoi_id' => $payload['dap_an_cau_hoi_id'] ?? null,
+                        'cau_tra_loi_text' => $payload['cau_tra_loi_text'] ?? null,
+                    ]
+                );
+            }
+
+            $baiLam->update([
+                'noi_dung_bai_lam' => $essaySummary !== [] ? implode("\n\n", $essaySummary) : null,
+                'trang_thai' => 'da_nop',
+                'nop_luc' => now(),
+            ]);
+
+            $baiLam = $this->scoringService->autoGrade($baiLam->fresh());
+
+            $baiLam->update([
+                'trang_thai' => $baiLam->trang_thai_cham === 'cho_cham' ? 'cho_cham' : 'da_cham',
+            ]);
+
+            $this->ketQuaHocTapService->refreshForCourseStudent($baiKiemTra->khoa_hoc_id, $baiLam->hoc_vien_id);
+        });
 
         return redirect()
             ->route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id)
@@ -134,12 +237,18 @@ class BaiKiemTraController extends Controller
 
         return BaiKiemTra::query()
             ->where('trang_thai', true)
+            ->where('trang_thai_duyet', 'da_duyet')
+            ->where('trang_thai_phat_hanh', 'phat_hanh')
             ->whereIn('khoa_hoc_id', $khoaHocIds)
             ->with([
                 'khoaHoc:id,ten_khoa_hoc,ma_khoa_hoc',
                 'moduleHoc:id,ten_module,ma_module',
                 'lichHoc:id,khoa_hoc_id,module_hoc_id,buoi_so,ngay_hoc',
-                'baiLams' => fn ($query) => $query->where('hoc_vien_id', $hocVienId),
+                'chiTietCauHois.cauHoi.dapAns',
+                'baiLams' => fn ($query) => $query
+                    ->where('hoc_vien_id', $hocVienId)
+                    ->with(['chiTietTraLois.cauHoi', 'chiTietTraLois.dapAn'])
+                    ->orderByDesc('lan_lam_thu'),
             ])
             ->orderByDesc('created_at');
     }

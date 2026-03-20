@@ -22,6 +22,9 @@ class KhoaHoc extends Model
         'hinh_anh',
         'cap_do',
         'tong_so_module',
+        'phuong_thuc_danh_gia',
+        'ty_trong_diem_danh',
+        'ty_trong_kiem_tra',
         'trang_thai',
         'loai',
         'trang_thai_van_hanh',
@@ -37,6 +40,8 @@ class KhoaHoc extends Model
     protected $casts = [
         'trang_thai' => 'boolean',
         'tong_so_module' => 'integer',
+        'ty_trong_diem_danh' => 'decimal:2',
+        'ty_trong_kiem_tra' => 'decimal:2',
         'lan_mo_thu' => 'integer',
         'ngay_khai_giang' => 'date',
         'ngay_mo_lop' => 'date',
@@ -124,6 +129,21 @@ class KhoaHoc extends Model
         return $this->hasMany(LichHoc::class, 'khoa_hoc_id')
                     ->orderBy('ngay_hoc')
                     ->orderBy('gio_bat_dau');
+    }
+
+    public function baiKiemTras(): HasMany
+    {
+        return $this->hasMany(BaiKiemTra::class, 'khoa_hoc_id')->orderByDesc('created_at');
+    }
+
+    public function nganHangCauHois(): HasMany
+    {
+        return $this->hasMany(NganHangCauHoi::class, 'khoa_hoc_id')->orderByDesc('created_at');
+    }
+
+    public function ketQuaHocTaps(): HasMany
+    {
+        return $this->hasMany(KetQuaHocTap::class, 'khoa_hoc_id');
     }
 
     /**
@@ -241,6 +261,14 @@ class KhoaHoc extends Model
     public function getSoModuleThucTeAttribute(): int
     {
         return $this->module_hocs_count ?? $this->moduleHocs()->count();
+    }
+
+    public function getPhuongThucDanhGiaLabelAttribute(): string
+    {
+        return match ($this->phuong_thuc_danh_gia) {
+            'theo_module' => 'Kiem tra theo module',
+            default => 'Kiem tra cuoi khoa',
+        };
     }
 
     /**

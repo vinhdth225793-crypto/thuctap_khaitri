@@ -156,7 +156,7 @@
                                                         <div class="smaller text-muted">{{ $test->thoi_gian_lam_bai }} phút</div>
                                                     </div>
                                                     <div class="d-flex gap-1">
-                                                        <a href="#" class="btn btn-xs btn-outline-danger p-1" title="Câu hỏi"><i class="fas fa-tasks"></i></a>
+                                                        <a href="{{ route('giang-vien.bai-kiem-tra.edit', $test->id) }}" class="btn btn-xs btn-outline-danger p-1" title="Cau hinh de"><i class="fas fa-tasks"></i></a>
                                                         <form action="{{ route('giang-vien.bai-kiem-tra.destroy', $test->id) }}" method="POST" onsubmit="return confirm('Xóa bài kiểm tra này?')">
                                                             @csrf @method('DELETE')
                                                             <button type="submit" class="btn btn-xs btn-link p-1 text-danger"><i class="fas fa-trash-alt"></i></button>

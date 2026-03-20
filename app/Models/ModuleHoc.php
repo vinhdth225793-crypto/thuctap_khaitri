@@ -73,6 +73,16 @@ class ModuleHoc extends Model
         return $this->hasMany(LichHoc::class, 'module_hoc_id')->orderBy('ngay_hoc');
     }
 
+    public function baiKiemTras()
+    {
+        return $this->hasMany(BaiKiemTra::class, 'module_hoc_id')->orderByDesc('created_at');
+    }
+
+    public function nganHangCauHois()
+    {
+        return $this->hasMany(NganHangCauHoi::class, 'module_hoc_id')->orderByDesc('created_at');
+    }
+
     /**
      * Accessor: Tổng số buổi đã lên lịch thực tế
      */

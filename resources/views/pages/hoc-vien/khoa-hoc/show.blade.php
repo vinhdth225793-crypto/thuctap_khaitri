@@ -180,82 +180,37 @@
                                                 <div class="resource-area mt-3 pt-3 border-top border-light">
                                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                                         <p class="smaller fw-bold text-muted mb-0">
-                                                            <i class="fas fa-layer-group me-1"></i> Tài liệu công khai
+                                                            <i class="fas fa-chalkboard-teacher me-1"></i> Bài giảng và tài liệu
                                                         </p>
-                                                        <span class="badge bg-light text-dark border">{{ $lich->taiNguyen->count() }}</span>
+                                                        <span class="badge bg-light text-dark border">{{ $lich->baiGiangs->count() }}</span>
                                                     </div>
 
-                                                    @if($lich->taiNguyen->isNotEmpty())
+                                                    @if($lich->baiGiangs->isNotEmpty())
                                                         <div class="row g-3">
-                                                            @foreach($lich->taiNguyen as $tn)
+                                                            @foreach($lich->baiGiangs as $bg)
                                                                 <div class="col-md-6">
-                                                                    <div class="p-3 rounded-3 border bg-white h-100 shadow-xs d-flex align-items-start resource-card">
-                                                                        <div class="bg-{{ $tn->loai_color }}-soft rounded-circle text-{{ $tn->loai_color }} d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; flex-shrink: 0;">
-                                                                            <i class="fas {{ $tn->is_external ? 'fa-link' : $tn->loai_icon }}"></i>
+                                                                    <div class="p-3 rounded-3 border bg-white h-100 shadow-xs d-flex align-items-start resource-card position-relative">
+                                                                        <div class="bg-primary-soft rounded-circle text-primary d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; flex-shrink: 0;">
+                                                                            <i class="fas fa-book-reader"></i>
                                                                         </div>
                                                                         <div class="min-w-0 flex-grow-1">
-                                                                            <div class="d-flex flex-wrap gap-2 mb-2">
-                                                                                <span class="badge bg-{{ $tn->loai_color }}-soft text-{{ $tn->loai_color }} border-0 smaller py-1 px-2">{{ $tn->loai_label }}</span>
-                                                                                <span class="badge bg-{{ $tn->nguon_hien_thi_color }}-soft text-{{ $tn->nguon_hien_thi_color }} border-0 smaller py-1 px-2">{{ $tn->nguon_hien_thi_label }}</span>
+                                                                            <div class="mb-1">
+                                                                                <span class="badge bg-light text-dark border smaller py-1 px-2">{{ $bg->loai_bai_giang }}</span>
                                                                             </div>
-
-                                                                            <h6 class="small fw-bold text-dark mb-2" title="{{ $tn->tieu_de }}">{{ $tn->tieu_de }}</h6>
-                                                                            <p class="smaller text-muted mb-2">
-                                                                                {{ $tn->mo_ta ?: 'Chưa có mô tả cho tài nguyên này.' }}
+                                                                            <h6 class="small fw-bold text-dark mb-2">{{ $bg->tieu_de }}</h6>
+                                                                            <p class="smaller text-muted mb-3 line-clamp-2">
+                                                                                {{ $bg->mo_ta ?: 'Click để xem chi tiết bài giảng này.' }}
                                                                             </p>
-
-                                                                            @if($tn->is_external)
-                                                                                <div class="smaller text-info mb-2 text-break">
-                                                                                    <i class="fas fa-external-link-alt me-1"></i>{{ $tn->file_url }}
-                                                                                </div>
-                                                                            @elseif($tn->original_file_name)
-                                                                                <div class="smaller text-muted mb-2 text-break">
-                                                                                    <i class="fas fa-file me-1"></i>{{ $tn->original_file_name }}
-                                                                                </div>
-                                                                            @endif
-
-                                                                            @if($tn->file_url)
-                                                                                <div class="d-flex flex-wrap gap-2 mt-2">
-                                                                                    <button type="button"
-                                                                                            class="btn btn-sm btn-primary fw-bold px-3 btn-view-resource"
-                                                                                            data-title="{{ $tn->tieu_de }}"
-                                                                                            data-loai="{{ $tn->loai_label }}"
-                                                                                            data-desc="{{ $tn->mo_ta ?: 'Không có mô tả.' }}"
-                                                                                            data-url="{{ $tn->file_url }}"
-                                                                                            data-color="{{ $tn->loai_color }}"
-                                                                                            data-icon="{{ $tn->is_external ? 'fa-link' : $tn->loai_icon }}"
-                                                                                            data-downloadable="{{ $tn->is_downloadable ? 'true' : 'false' }}"
-                                                                                            data-openable="{{ ($tn->is_external || $tn->is_file_exists) ? 'true' : 'false' }}"
-                                                                                            data-filename="{{ $tn->original_file_name }}"
-                                                                                            data-source="{{ $tn->nguon_hien_thi_label }}"
-                                                                                            data-status="{{ $tn->file_status_message }}">
-                                                                                        <i class="fas fa-info-circle me-1"></i> Xem chi tiết
-                                                                                    </button>
-
-                                                                                    @if($tn->is_external)
-                                                                                        <a href="{{ $tn->file_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-info fw-bold px-3">
-                                                                                            <i class="fas fa-link me-1"></i> Mở liên kết
-                                                                                        </a>
-                                                                                    @elseif($tn->is_downloadable)
-                                                                                        <a href="{{ $tn->file_url }}" download="{{ $tn->original_file_name }}" class="btn btn-sm btn-outline-success fw-bold px-3">
-                                                                                            <i class="fas fa-download me-1"></i> Tải về
-                                                                                        </a>
-                                                                                    @endif
-                                                                                </div>
-                                                                            @endif
-
-                                                                            @if(!$tn->is_external && !$tn->is_file_exists)
-                                                                                <div class="alert alert-warning border-0 py-2 px-3 small mt-3 mb-0">
-                                                                                    <i class="fas fa-exclamation-triangle me-1"></i>{{ $tn->file_status_message }}
-                                                                                </div>
-                                                                            @endif
+                                                                            <a href="{{ route('hoc-vien.bai-giang.show', $bg->id) }}" class="btn btn-sm btn-primary fw-bold px-3 stretched-link">
+                                                                                <i class="fas fa-arrow-right me-1"></i> Vào học
+                                                                            </a>
                                                                         </div>
                                                                     </div>
                                                                 </div>
                                                             @endforeach
                                                         </div>
                                                     @else
-                                                        <span class="smaller text-muted italic">Buổi học này chưa có tài liệu công khai.</span>
+                                                        <span class="smaller text-muted italic">Buổi học này chưa có bài giảng công bố.</span>
                                                     @endif
                                                 </div>
                                             </div>

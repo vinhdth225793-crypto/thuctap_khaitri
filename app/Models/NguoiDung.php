@@ -103,4 +103,29 @@ class NguoiDung extends Authenticatable
     {
         return $this->hasMany(BaiLamBaiKiemTra::class, 'hoc_vien_id', 'ma_nguoi_dung');
     }
+
+    public function baiKiemTrasDaTao()
+    {
+        return $this->hasMany(BaiKiemTra::class, 'nguoi_tao_id', 'ma_nguoi_dung');
+    }
+
+    public function baiKiemTrasDaDuyet()
+    {
+        return $this->hasMany(BaiKiemTra::class, 'nguoi_duyet_id', 'ma_nguoi_dung');
+    }
+
+    public function nganHangCauHoisTao()
+    {
+        return $this->hasMany(NganHangCauHoi::class, 'nguoi_tao_id', 'ma_nguoi_dung');
+    }
+
+    public function baiLamDaCham()
+    {
+        return $this->hasMany(BaiLamBaiKiemTra::class, 'nguoi_cham_id', 'ma_nguoi_dung');
+    }
+
+    public function ketQuaHocTaps()
+    {
+        return $this->hasMany(KetQuaHocTap::class, 'hoc_vien_id', 'ma_nguoi_dung');
+    }
 }

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BaiKiemTra extends Model
@@ -23,12 +24,31 @@ class BaiKiemTra extends Model
         'ngay_mo',
         'ngay_dong',
         'pham_vi',
+        'loai_bai_kiem_tra',
+        'loai_noi_dung',
+        'trang_thai_duyet',
+        'trang_thai_phat_hanh',
+        'tong_diem',
+        'so_lan_duoc_lam',
+        'randomize_questions',
+        'nguoi_tao_id',
+        'nguoi_duyet_id',
+        'de_xuat_duyet_luc',
+        'duyet_luc',
+        'phat_hanh_luc',
+        'ghi_chu_duyet',
         'trang_thai',
     ];
 
     protected $casts = [
         'ngay_mo' => 'datetime',
         'ngay_dong' => 'datetime',
+        'tong_diem' => 'decimal:2',
+        'so_lan_duoc_lam' => 'integer',
+        'randomize_questions' => 'boolean',
+        'de_xuat_duyet_luc' => 'datetime',
+        'duyet_luc' => 'datetime',
+        'phat_hanh_luc' => 'datetime',
         'trang_thai' => 'boolean',
     ];
 
@@ -52,18 +72,88 @@ class BaiKiemTra extends Model
         return $this->hasMany(BaiLamBaiKiemTra::class, 'bai_kiem_tra_id');
     }
 
+    public function chiTietCauHois(): HasMany
+    {
+        return $this->hasMany(ChiTietBaiKiemTra::class, 'bai_kiem_tra_id')->orderBy('thu_tu');
+    }
+
+    public function cauHois(): BelongsToMany
+    {
+        return $this->belongsToMany(NganHangCauHoi::class, 'chi_tiet_bai_kiem_tra', 'bai_kiem_tra_id', 'ngan_hang_cau_hoi_id')
+            ->withPivot(['id', 'thu_tu', 'diem_so', 'bat_buoc'])
+            ->withTimestamps();
+    }
+
+    public function nguoiTao(): BelongsTo
+    {
+        return $this->belongsTo(NguoiDung::class, 'nguoi_tao_id', 'ma_nguoi_dung');
+    }
+
+    public function nguoiDuyet(): BelongsTo
+    {
+        return $this->belongsTo(NguoiDung::class, 'nguoi_duyet_id', 'ma_nguoi_dung');
+    }
+
     public function getPhamViLabelAttribute(): string
     {
         return match ($this->pham_vi) {
             'module' => 'Theo module',
             'buoi_hoc' => 'Theo buoi hoc',
+            'cuoi_khoa' => 'Cuoi khoa',
             default => 'Khong xac dinh',
         };
     }
 
+    public function getLoaiBaiKiemTraLabelAttribute(): string
+    {
+        return match ($this->loai_bai_kiem_tra) {
+            'cuoi_khoa' => 'Cuoi khoa',
+            'buoi_hoc' => 'Theo buoi hoc',
+            default => 'Theo module',
+        };
+    }
+
+    public function getLoaiNoiDungLabelAttribute(): string
+    {
+        return match ($this->loai_noi_dung) {
+            'trac_nghiem' => 'Trac nghiem',
+            'tu_luan' => 'Tu luan',
+            'hon_hop' => 'Hon hop',
+            default => 'Khong xac dinh',
+        };
+    }
+
+    public function getTrangThaiDuyetLabelAttribute(): string
+    {
+        return match ($this->trang_thai_duyet) {
+            'nhap' => 'Nhap',
+            'cho_duyet' => 'Cho duyet',
+            'da_duyet' => 'Da duyet',
+            'tu_choi' => 'Tu choi',
+            default => 'Khong xac dinh',
+        };
+    }
+
+    public function getTrangThaiPhatHanhLabelAttribute(): string
+    {
+        return match ($this->trang_thai_phat_hanh) {
+            'nhap' => 'Nhap',
+            'phat_hanh' => 'Phat hanh',
+            'dong' => 'Dong',
+            default => 'Khong xac dinh',
+        };
+    }
+
+    public function getIsPublishedForStudentsAttribute(): bool
+    {
+        return $this->trang_thai
+            && $this->trang_thai_duyet === 'da_duyet'
+            && $this->trang_thai_phat_hanh === 'phat_hanh';
+    }
+
     public function getAccessStatusKeyAttribute(): string
     {
-        if (!$this->trang_thai) {
+        if (!$this->is_published_for_students) {
             return 'an';
         }
 
@@ -103,5 +193,20 @@ class BaiKiemTra extends Model
     public function getCanStudentStartAttribute(): bool
     {
         return $this->access_status_key === 'dang_mo';
+    }
+
+    public function getQuestionCountAttribute(): int
+    {
+        return $this->chi_tiet_cau_hois_count ?? $this->chiTietCauHois()->count();
+    }
+
+    public function getHasEssayQuestionsAttribute(): bool
+    {
+        return in_array($this->loai_noi_dung, ['tu_luan', 'hon_hop'], true);
+    }
+
+    public function getHasMultipleChoiceQuestionsAttribute(): bool
+    {
+        return in_array($this->loai_noi_dung, ['trac_nghiem', 'hon_hop'], true);
     }
 }

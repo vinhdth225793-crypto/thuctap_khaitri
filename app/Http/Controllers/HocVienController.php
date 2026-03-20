@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\DiemDanh;
 use App\Models\HocVienKhoaHoc;
+use App\Models\KetQuaHocTap;
 use App\Models\KhoaHoc;
 use App\Models\LichHoc;
 use App\Models\TaiNguyenBuoiHoc;
@@ -201,8 +202,8 @@ class HocVienController extends Controller
                         'lichHocs' => function ($lichHocQuery) use ($id) {
                             $lichHocQuery->where('khoa_hoc_id', $id)
                                 ->with([
-                                    'taiNguyen' => function ($taiNguyenQuery) {
-                                        $taiNguyenQuery->hienThi()
+                                    'baiGiangs' => function ($bgQuery) {
+                                        $bgQuery->hienThiChoHocVien()
                                             ->orderBy('thu_tu_hien_thi');
                                     },
                                 ])
@@ -221,6 +222,24 @@ class HocVienController extends Controller
         ];
 
         return view('pages.hoc-vien.khoa-hoc.show', compact('khoaHoc', 'ghiDanh', 'stats'));
+    }
+
+    public function chiTietBaiGiang($id)
+    {
+        $baiGiang = BaiGiang::with(['taiNguyenChinh', 'taiNguyenPhu', 'khoaHoc', 'moduleHoc'])
+            ->hienThiChoHocVien()
+            ->findOrFail($id);
+
+        // Kiểm tra học viên có đăng ký khóa học này không
+        $daGhiDanh = HocVienKhoaHoc::where('khoa_hoc_id', $baiGiang->khoa_hoc_id)
+            ->where('hoc_vien_id', auth()->user()->ma_nguoi_dung)
+            ->exists();
+
+        if (!$daGhiDanh) {
+            return redirect()->route('hoc-vien.khoa-hoc-cua-toi')->with('error', 'Bạn chưa đăng ký khóa học này.');
+        }
+
+        return view('pages.hoc-vien.bai-giang.show', compact('baiGiang'));
     }
 
     private function buildHocTapData($user): array
@@ -316,6 +335,12 @@ class HocVienController extends Controller
             $diemDanhTheoKhoaHoc = $diemDanhGanDay->groupBy(fn ($item) => optional($item->lichHoc)->khoa_hoc_id);
         }
 
+        $ketQuaHocTapTheoKhoaHoc = KetQuaHocTap::query()
+            ->where('hoc_vien_id', $user->ma_nguoi_dung)
+            ->whereIn('khoa_hoc_id', $tatCaKhoaHocIds->all())
+            ->get()
+            ->keyBy('khoa_hoc_id');
+
         $soCoMat = $diemDanhGanDay->where('trang_thai', 'co_mat')->count();
         $soVaoTre = $diemDanhGanDay->where('trang_thai', 'vao_tre')->count();
         $soVangMat = $diemDanhGanDay->where('trang_thai', 'vang_mat')->count();
@@ -355,7 +380,7 @@ class HocVienController extends Controller
             'ty_le_chuyen_can' => $tyLeChuyenCan,
         ];
 
-        $tienDoKhoaHoc = $ghiDanhKhoaHoc->map(function (HocVienKhoaHoc $ghiDanh) use ($lichHocTheoKhoaHoc, $diemDanhTheoKhoaHoc, $hienTai) {
+        $tienDoKhoaHoc = $ghiDanhKhoaHoc->map(function (HocVienKhoaHoc $ghiDanh) use ($lichHocTheoKhoaHoc, $diemDanhTheoKhoaHoc, $ketQuaHocTapTheoKhoaHoc, $hienTai) {
             $cacBuoiHoc = $lichHocTheoKhoaHoc->get($ghiDanh->khoa_hoc_id, collect());
             $tongBuoi = $cacBuoiHoc->count();
             $buoiHoanThanh = $cacBuoiHoc
@@ -380,6 +405,8 @@ class HocVienController extends Controller
                 ->sortBy(fn (LichHoc $lichHoc) => $lichHoc->starts_at?->getTimestamp() ?? PHP_INT_MAX)
                 ->first();
 
+            $ketQuaHocTap = $ketQuaHocTapTheoKhoaHoc->get($ghiDanh->khoa_hoc_id);
+
             return [
                 'ghi_danh' => $ghiDanh,
                 'khoa_hoc' => $ghiDanh->khoaHoc,
@@ -393,6 +420,7 @@ class HocVienController extends Controller
                 'vang_mat' => $vangMat,
                 'tong_diem_danh' => $tongDiemDanh,
                 'ty_le_tham_du' => $tyLeThamDu,
+                'ket_qua_hoc_tap' => $ketQuaHocTap,
             ];
         });
 

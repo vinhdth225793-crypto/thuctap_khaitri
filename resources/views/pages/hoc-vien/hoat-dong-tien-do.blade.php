@@ -357,6 +357,26 @@
                                             <strong>{{ $dong['vang_mat'] }}</strong>
                                         </div>
                                     </div>
+                                    @if($dong['ket_qua_hoc_tap'])
+                                        <div class="col-sm-4">
+                                            <div class="info-chip">
+                                                <span class="label">Diem chuyen can</span>
+                                                <strong>{{ $dong['ket_qua_hoc_tap']->diem_diem_danh !== null ? number_format((float) $dong['ket_qua_hoc_tap']->diem_diem_danh, 2) : 'Chua co' }}</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <div class="info-chip">
+                                                <span class="label">Diem kiem tra</span>
+                                                <strong>{{ $dong['ket_qua_hoc_tap']->diem_kiem_tra !== null ? number_format((float) $dong['ket_qua_hoc_tap']->diem_kiem_tra, 2) : 'Chua co' }}</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <div class="info-chip success-chip">
+                                                <span class="label">Tong ket</span>
+                                                <strong>{{ $dong['ket_qua_hoc_tap']->diem_tong_ket !== null ? number_format((float) $dong['ket_qua_hoc_tap']->diem_tong_ket, 2) : 'Dang tinh' }}</strong>
+                                            </div>
+                                        </div>
+                                    @endif
                                 </div>
 
                                 @if($dong['buoi_sap_toi'])

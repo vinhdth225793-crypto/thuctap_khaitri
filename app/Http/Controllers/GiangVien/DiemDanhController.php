@@ -7,12 +7,18 @@ use App\Models\DiemDanh;
 use App\Models\HocVienKhoaHoc;
 use App\Models\LichHoc;
 use App\Models\PhanCongModuleGiangVien;
+use App\Services\KetQuaHocTapService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class DiemDanhController extends Controller
 {
+    public function __construct(
+        private readonly KetQuaHocTapService $ketQuaHocTapService,
+    ) {
+    }
+
     /**
      * Láº¥y danh sÃ¡ch há»c viÃªn Ä‘á»ƒ hiá»ƒn thá»‹ trong Modal Ä‘iá»ƒm danh (Flow 4 - Phase 1)
      */
@@ -86,6 +92,7 @@ class DiemDanhController extends Controller
 
         try {
             DB::beginTransaction();
+            $updatedHocVienIds = [];
 
             foreach ($request->attendance as $item) {
                 DiemDanh::updateOrCreate(
@@ -98,9 +105,15 @@ class DiemDanhController extends Controller
                         'ghi_chu' => $item['ghi_chu'] ?? null,
                     ]
                 );
+
+                $updatedHocVienIds[] = (int) $item['hoc_vien_id'];
             }
 
             DB::commit();
+
+            foreach (array_values(array_unique($updatedHocVienIds)) as $hocVienId) {
+                $this->ketQuaHocTapService->refreshForCourseStudent((int) $lichHoc->khoa_hoc_id, $hocVienId);
+            }
 
             return back()->with('success', 'ÄÃ£ lÆ°u dá»¯ liá»‡u Ä‘iá»ƒm danh thÃ nh cÃ´ng.');
         } catch (\Exception $e) {

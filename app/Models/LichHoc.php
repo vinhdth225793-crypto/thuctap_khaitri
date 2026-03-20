@@ -47,6 +47,14 @@ class LichHoc extends Model
     }
 
     /**
+     * Relationship: Một buổi học có nhiều bài giảng
+     */
+    public function baiGiangs(): HasMany
+    {
+        return $this->hasMany(BaiGiang::class, 'lich_hoc_id');
+    }
+
+    /**
      * Relationship: Má»™t buá»•i há»c cÃ³ nhiá»u bÃ i kiá»ƒm tra
      */
     public function baiKiemTras(): HasMany

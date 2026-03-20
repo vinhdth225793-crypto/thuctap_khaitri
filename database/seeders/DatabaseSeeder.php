@@ -81,5 +81,9 @@ class DatabaseSeeder extends Seeder
                 ]);
             }
         }
+
+        $this->call([
+            NganHangCauHoiSeeder::class,
+        ]);
     }
 }

@@ -15,6 +15,150 @@ use Illuminate\Support\Str;
 
 class TaiNguyenController extends Controller
 {
+    public function index()
+    {
+        $giangVien = auth()->user()->giangVien;
+        if (!$giangVien) {
+            return redirect()->route('home')->with('error', 'Tài khoản chưa được liên kết với giảng viên.');
+        }
+
+        $taiNguyens = TaiNguyenBuoiHoc::where('nguoi_tao_id', auth()->user()->ma_nguoi_dung)
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+
+        return view('pages.giang-vien.thu-vien.index', compact('taiNguyens'));
+    }
+
+    public function create()
+    {
+        return view('pages.giang-vien.thu-vien.create');
+    }
+
+    public function storeLibrary(Request $request)
+    {
+        $validated = $request->validate([
+            'tieu_de' => 'required|string|max:255',
+            'mo_ta' => 'nullable|string',
+            'loai_tai_nguyen' => 'required|string',
+            'link_ngoai' => 'nullable|url',
+            'file_dinh_kem' => 'nullable|file|max:51200', // 50MB
+            'pham_vi_su_dung' => 'required|in:ca_nhan,khoa_hoc,cong_khai',
+        ]);
+
+        $data = [
+            'tieu_de' => $validated['tieu_de'],
+            'mo_ta' => $validated['mo_ta'],
+            'loai_tai_nguyen' => $validated['loai_tai_nguyen'],
+            'link_ngoai' => $validated['link_ngoai'],
+            'pham_vi_su_dung' => $validated['pham_vi_su_dung'],
+            'nguoi_tao_id' => auth()->user()->ma_nguoi_dung,
+            'vai_tro_nguoi_tao' => 'giang_vien',
+            'trang_thai_duyet' => TaiNguyenBuoiHoc::STATUS_DUYET_NHAP,
+            'trang_thai_xu_ly' => TaiNguyenBuoiHoc::STATUS_XU_LY_NONE,
+        ];
+
+        if ($request->hasFile('file_dinh_kem')) {
+            $file = $request->file('file_dinh_kem');
+            $path = $this->storeUploadedFileSimple($file);
+            
+            $data['duong_dan_file'] = $path;
+            $data['file_name'] = $file->getClientOriginalName();
+            $data['file_extension'] = $file->getClientOriginalExtension();
+            $data['file_size'] = $file->getSize();
+            $data['mime_type'] = $file->getMimeType();
+            
+            if ($data['loai_tai_nguyen'] === 'video') {
+                $data['trang_thai_xu_ly'] = TaiNguyenBuoiHoc::STATUS_XU_LY_SAN_SANG; // TODO: Implement transcoding
+            }
+        }
+
+        TaiNguyenBuoiHoc::create($data);
+
+        return redirect()->route('giang-vien.thu-vien.index')->with('success', 'Đã thêm tài nguyên vào thư viện.');
+    }
+
+    public function edit($id)
+    {
+        $taiNguyen = TaiNguyenBuoiHoc::where('nguoi_tao_id', auth()->user()->ma_nguoi_dung)->findOrFail($id);
+        return view('pages.giang-vien.thu-vien.edit', compact('taiNguyen'));
+    }
+
+    public function updateLibrary(Request $request, $id)
+    {
+        $taiNguyen = TaiNguyenBuoiHoc::where('nguoi_tao_id', auth()->user()->ma_nguoi_dung)->findOrFail($id);
+
+        $validated = $request->validate([
+            'tieu_de' => 'required|string|max:255',
+            'mo_ta' => 'nullable|string',
+            'loai_tai_nguyen' => 'required|string',
+            'link_ngoai' => 'nullable|url',
+            'file_dinh_kem' => 'nullable|file|max:51200',
+            'pham_vi_su_dung' => 'required|in:ca_nhan,khoa_hoc,cong_khai',
+        ]);
+
+        $data = [
+            'tieu_de' => $validated['tieu_de'],
+            'mo_ta' => $validated['mo_ta'],
+            'loai_tai_nguyen' => $validated['loai_tai_nguyen'],
+            'link_ngoai' => $validated['link_ngoai'],
+            'pham_vi_su_dung' => $validated['pham_vi_su_dung'],
+        ];
+
+        if ($request->hasFile('file_dinh_kem')) {
+            // Xóa file cũ
+            if ($taiNguyen->duong_dan_file) {
+                Storage::disk('public')->delete($taiNguyen->duong_dan_file);
+            }
+
+            $file = $request->file('file_dinh_kem');
+            $path = $this->storeUploadedFileSimple($file);
+            
+            $data['duong_dan_file'] = $path;
+            $data['file_name'] = $file->getClientOriginalName();
+            $data['file_extension'] = $file->getClientOriginalExtension();
+            $data['file_size'] = $file->getSize();
+            $data['mime_type'] = $file->getMimeType();
+        }
+
+        $taiNguyen->update($data);
+
+        return redirect()->route('giang-vien.thu-vien.index')->with('success', 'Đã cập nhật tài nguyên.');
+    }
+
+    public function guiDuyet($id)
+    {
+        $taiNguyen = TaiNguyenBuoiHoc::where('nguoi_tao_id', auth()->user()->ma_nguoi_dung)->findOrFail($id);
+        
+        if ($taiNguyen->trang_thai_duyet !== TaiNguyenBuoiHoc::STATUS_DUYET_DA_DUYET) {
+            $taiNguyen->update([
+                'trang_thai_duyet' => TaiNguyenBuoiHoc::STATUS_DUYET_CHO,
+                'ngay_gui_duyet' => now(),
+            ]);
+            return back()->with('success', 'Đã gửi yêu cầu duyệt tài nguyên.');
+        }
+
+        return back()->with('info', 'Tài nguyên đã được duyệt trước đó.');
+    }
+
+    public function destroyLibrary($id)
+    {
+        $taiNguyen = TaiNguyenBuoiHoc::where('nguoi_tao_id', auth()->user()->ma_nguoi_dung)->findOrFail($id);
+        
+        if ($taiNguyen->duong_dan_file) {
+            Storage::disk('public')->delete($taiNguyen->duong_dan_file);
+        }
+
+        $taiNguyen->delete();
+
+        return redirect()->route('giang-vien.thu-vien.index')->with('success', 'Đã xóa tài nguyên.');
+    }
+
+    private function storeUploadedFileSimple(UploadedFile $file): string
+    {
+        $fileName = now()->format('YmdHis') . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+        return $file->storeAs('uploads/thu-vien', $fileName, 'public');
+    }
+
     public function store(StoreTaiNguyenRequest $request, int $lichHocId): RedirectResponse
     {
         $lichHoc = LichHoc::findOrFail($lichHocId);

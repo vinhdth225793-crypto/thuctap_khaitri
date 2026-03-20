@@ -10,6 +10,8 @@ use App\Http\Controllers\Admin\KhoaHocManagementController;
 use App\Http\Controllers\Admin\HocVienKhoaHocController;
 use App\Http\Controllers\Admin\ModuleHocController;
 use App\Http\Controllers\Admin\LichHocController;
+use App\Http\Controllers\Admin\NganHangCauHoiController;
+use App\Http\Controllers\Admin\BaiKiemTraPheDuyetController;
 use App\Http\Controllers\Admin\PhanCongController as AdminPhanCongController;
 use App\Http\Controllers\GiangVien\PhanCongController;
 use App\Http\Controllers\GiangVien\TaiNguyenController;
@@ -170,6 +172,45 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     Route::get('/yeu-cau-hoc-vien', [App\Http\Controllers\Admin\YeuCauHocVienController::class, 'index'])->name('yeu-cau-hoc-vien.index');
     Route::post('/yeu-cau-hoc-vien/{id}/xac-nhan', [App\Http\Controllers\Admin\YeuCauHocVienController::class, 'xacNhan'])->name('yeu-cau-hoc-vien.xac-nhan');
 
+    // Quản lý Thư viện & Bài giảng (Phase 10 Upgrade)
+    Route::prefix('thu-vien')->name('thu-vien.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\ThuVienController::class, 'index'])->name('index');
+        Route::get('/{id}', [App\Http\Controllers\Admin\ThuVienController::class, 'show'])->name('show');
+        Route::post('/{id}/duyet', [App\Http\Controllers\Admin\ThuVienController::class, 'duyet'])->name('duyet');
+        Route::delete('/{id}', [App\Http\Controllers\Admin\ThuVienController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('bai-giang-phe-duyet')->name('bai-giang.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\BaiGiangController::class, 'index'])->name('index');
+        Route::get('/{id}', [App\Http\Controllers\Admin\BaiGiangController::class, 'show'])->name('show');
+        Route::post('/{id}/duyet', [App\Http\Controllers\Admin\BaiGiangController::class, 'duyet'])->name('duyet');
+        Route::post('/{id}/cong-bo', [App\Http\Controllers\Admin\BaiGiangController::class, 'congBo'])->name('cong-bo');
+    });
+
+    Route::prefix('kiem-tra-online')->name('kiem-tra-online.')->group(function () {
+        Route::prefix('cau-hoi')->name('cau-hoi.')->group(function () {
+            Route::get('/', [NganHangCauHoiController::class, 'index'])->name('index');
+            Route::get('/create', [NganHangCauHoiController::class, 'create'])->name('create');
+            Route::post('/', [NganHangCauHoiController::class, 'store'])->name('store');
+            Route::get('/template', [NganHangCauHoiController::class, 'downloadTemplate'])->name('template');
+            Route::post('/import', [NganHangCauHoiController::class, 'import'])->name('import');
+            Route::get('/preview', [NganHangCauHoiController::class, 'preview'])->name('preview');
+            Route::post('/confirm-import', [NganHangCauHoiController::class, 'confirmImport'])->name('confirm-import');
+            Route::get('/{id}/edit', [NganHangCauHoiController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [NganHangCauHoiController::class, 'update'])->name('update');
+            Route::delete('/{id}', [NganHangCauHoiController::class, 'destroy'])->name('destroy');
+        });
+
+        Route::prefix('phe-duyet')->name('phe-duyet.')->group(function () {
+            Route::get('/', [BaiKiemTraPheDuyetController::class, 'index'])->name('index');
+            Route::get('/{id}', [BaiKiemTraPheDuyetController::class, 'show'])->name('show');
+            Route::post('/{id}/approve', [BaiKiemTraPheDuyetController::class, 'approve'])->name('approve');
+            Route::post('/{id}/reject', [BaiKiemTraPheDuyetController::class, 'reject'])->name('reject');
+            Route::post('/{id}/publish', [BaiKiemTraPheDuyetController::class, 'publish'])->name('publish');
+            Route::post('/{id}/close', [BaiKiemTraPheDuyetController::class, 'close'])->name('close');
+        });
+    });
+
     // Cài đặt hệ thống
     Route::prefix('settings')->group(function () {
         Route::get('/', [AdminController::class, 'showSettings'])->name('settings');
@@ -217,6 +258,29 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
     // Quản lý Bài giảng (Phase 7)
     Route::get('/bai-giang', [BaiGiangController::class, 'index'])->name('bai-giang.index');
 
+    // Quản lý Thư viện tài nguyên (Phase 10 Upgrade)
+    Route::prefix('thu-vien')->name('thu-vien.')->group(function () {
+        Route::get('/', [TaiNguyenController::class, 'index'])->name('index');
+        Route::get('/create', [TaiNguyenController::class, 'create'])->name('create');
+        Route::post('/', [TaiNguyenController::class, 'storeLibrary'])->name('store');
+        Route::get('/{id}/edit', [TaiNguyenController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [TaiNguyenController::class, 'updateLibrary'])->name('update');
+        Route::post('/{id}/gui-duyet', [TaiNguyenController::class, 'guiDuyet'])->name('gui-duyet');
+        Route::delete('/{id}', [TaiNguyenController::class, 'destroyLibrary'])->name('destroy');
+    });
+
+    // Quản lý Bài giảng (Phase 10 Upgrade)
+    Route::prefix('bai-giang')->name('bai-giang.')->group(function () {
+        Route::get('/', [BaiGiangController::class, 'index'])->name('index');
+        Route::get('/create', [BaiGiangController::class, 'create'])->name('create');
+        Route::post('/', [BaiGiangController::class, 'store'])->name('store');
+        Route::get('/{id}/edit', [BaiGiangController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [BaiGiangController::class, 'update'])->name('update');
+        Route::post('/{id}/gui-duyet', [BaiGiangController::class, 'guiDuyet'])->name('gui-duyet');
+        Route::delete('/{id}', [BaiGiangController::class, 'destroy'])->name('destroy');
+        Route::get('/ajax/get-lich-hoc', [BaiGiangController::class, 'getLichHoc'])->name('get-lich-hoc');
+    });
+
     // Điểm danh (Flow 4 - Phase 1)
     Route::get('/buoi-hoc/{lichHocId}/diem-danh', [App\Http\Controllers\GiangVien\DiemDanhController::class, 'show'])->name('buoi-hoc.diem-danh.show');
     Route::post('/buoi-hoc/{lichHocId}/diem-danh', [App\Http\Controllers\GiangVien\DiemDanhController::class, 'store'])->name('buoi-hoc.diem-danh.store');
@@ -224,7 +288,13 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
 
     // Bài kiểm tra (Phase 8)
     Route::post('/bai-kiem-tra', [BaiKiemTraController::class, 'store'])->name('bai-kiem-tra.store');
+    Route::get('/bai-kiem-tra/{id}/edit', [BaiKiemTraController::class, 'edit'])->name('bai-kiem-tra.edit');
+    Route::put('/bai-kiem-tra/{id}', [BaiKiemTraController::class, 'update'])->name('bai-kiem-tra.update');
+    Route::post('/bai-kiem-tra/{id}/gui-duyet', [BaiKiemTraController::class, 'submitForApproval'])->name('bai-kiem-tra.submit');
     Route::delete('/bai-kiem-tra/{id}', [BaiKiemTraController::class, 'destroy'])->name('bai-kiem-tra.destroy');
+    Route::get('/cham-diem/danh-sach', [BaiKiemTraController::class, 'chamDiemIndex'])->name('cham-diem.index');
+    Route::get('/cham-diem/{id}', [BaiKiemTraController::class, 'chamDiemShow'])->name('cham-diem.show');
+    Route::post('/cham-diem/{id}', [BaiKiemTraController::class, 'chamDiemStore'])->name('cham-diem.store');
     
     // Giữ route cũ cho backward compatibility nếu cần (nhưng ta sẽ cập nhật các view chính)
     Route::get('/phan-cong', [PhanCongController::class, 'index'])->name('phan-cong.index');
@@ -232,8 +302,8 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
 
     // Các tính năng khác (Placeholder)
     Route::get('/tao-bai-giang', function () { return "Tính năng Tạo bài giảng đang được phát triển"; })->name('tao-bai-giang');
-    Route::get('/tao-bai-kiem-tra', function () { return "Tính năng Tạo bài kiểm tra đang được phát triển"; })->name('tao-bai-kiem-tra');
-    Route::get('/cham-diem', function () { return "Tính năng Chấm điểm đang được phát triển"; })->name('cham-diem');
+    Route::redirect('/tao-bai-kiem-tra', '/giang-vien/khoa-hoc')->name('tao-bai-kiem-tra');
+    Route::redirect('/cham-diem', '/giang-vien/cham-diem/danh-sach')->name('cham-diem');
 });
 
 // =========== HỌC VIÊN ROUTES ===========
@@ -249,6 +319,7 @@ Route::prefix('hoc-vien')->name('hoc-vien.')->middleware(['auth', \App\Http\Midd
     Route::get('/khoa-hoc-tham-gia', [HocVienController::class, 'khoaHocCoTheThamGia'])->name('khoa-hoc-tham-gia');
     Route::post('/khoa-hoc/{khoaHocId}/xin-tham-gia', [HocVienController::class, 'guiYeuCauThamGia'])->name('khoa-hoc.gui-yeu-cau-tham-gia');
     Route::get('/khoa-hoc/{id}', [HocVienController::class, 'chiTietKhoaHoc'])->name('chi-tiet-khoa-hoc');
+    Route::get('/bai-giang/{id}', [HocVienController::class, 'chiTietBaiGiang'])->name('bai-giang.show');
     
     Route::get('/profile', [HocVienController::class, 'profile'])->name('profile');
     Route::post('/profile', [HocVienController::class, 'updateProfile'])->name('profile.update');
