@@ -12,6 +12,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+
         DB::statement("ALTER TABLE phan_cong_module_giang_vien
                        MODIFY COLUMN trang_thai
                        ENUM('cho_xac_nhan','da_nhan','tu_choi')
@@ -23,6 +27,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+
         DB::statement("ALTER TABLE phan_cong_module_giang_vien
                        MODIFY COLUMN trang_thai
                        ENUM('cho_xac_nhan','da_nhan','tu_choi')

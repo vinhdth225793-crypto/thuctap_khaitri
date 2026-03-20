@@ -1046,6 +1046,8 @@ class AdminController extends Controller
             'email' => 'nullable|email',
             'facebook' => 'nullable|url',
             'zalo' => 'nullable|url',
+            'address' => 'nullable|string',
+            'general_notification' => 'nullable|string',
         ]);
 
         if ($request->hasFile('site_logo')) {
@@ -1102,6 +1104,8 @@ class AdminController extends Controller
             'site_logo' => SystemSetting::get('site_logo', ''),
             'hotline' => SystemSetting::get('hotline', ''),
             'email' => SystemSetting::get('email', ''),
+            'address' => SystemSetting::get('address', ''),
+            'general_notification' => SystemSetting::get('general_notification', ''),
             'banner_images' => collect(json_decode(SystemSetting::get('banner_images', '[]'), true) ?: [])
                                 ->map(fn($p) => asset($p))
                                 ->toArray(),

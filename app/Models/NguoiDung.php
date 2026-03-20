@@ -98,4 +98,9 @@ class NguoiDung extends Authenticatable
     {
         return $this->hasMany(DiemDanh::class, 'hoc_vien_id', 'ma_nguoi_dung');
     }
+
+    public function baiLamBaiKiemTras()
+    {
+        return $this->hasMany(BaiLamBaiKiemTra::class, 'hoc_vien_id', 'ma_nguoi_dung');
+    }
 }

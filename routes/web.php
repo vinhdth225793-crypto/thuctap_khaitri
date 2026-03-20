@@ -16,6 +16,7 @@ use App\Http\Controllers\GiangVien\TaiNguyenController;
 use App\Http\Controllers\GiangVien\DiemDanhController;
 use App\Http\Controllers\GiangVien\BaiKiemTraController;
 use App\Http\Controllers\GiangVien\BaiGiangController;
+use App\Http\Controllers\HocVien\BaiKiemTraController as HocVienBaiKiemTraController;
 use App\Http\Controllers\GiangVienController;
 use App\Http\Controllers\HocVienController;
 use App\Http\Controllers\ThongBaoController;
@@ -193,7 +194,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
 });
 
 // =========== GIẢNG VIÊN ROUTES ===========
-Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', \App\Http\Middleware\CheckGiangVien::class])->group(function () {
+Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vien'])->group(function () {
     Route::get('/dashboard', [GiangVienController::class, 'dashboard'])->name('dashboard');
     Route::get('/profile', [GiangVienController::class, 'profile'])->name('profile');
     Route::post('/profile', [GiangVienController::class, 'updateProfile'])->name('profile.update');
@@ -237,11 +238,16 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', \App\Http\
 
 // =========== HỌC VIÊN ROUTES ===========
 Route::prefix('hoc-vien')->name('hoc-vien.')->middleware(['auth', \App\Http\Middleware\CheckHocVien::class])->group(function () {
-    Route::get('/dashboard', function () {
-        return view('pages.hoc-vien.dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [HocVienController::class, 'dashboard'])->name('dashboard');
+    Route::get('/hoat-dong-tien-do', [HocVienController::class, 'hoatDongVaTienDo'])->name('hoat-dong-tien-do');
+    Route::get('/bai-kiem-tra', [HocVienBaiKiemTraController::class, 'index'])->name('bai-kiem-tra');
+    Route::get('/bai-kiem-tra/{id}', [HocVienBaiKiemTraController::class, 'show'])->name('bai-kiem-tra.show');
+    Route::post('/bai-kiem-tra/{id}/bat-dau', [HocVienBaiKiemTraController::class, 'batDau'])->name('bai-kiem-tra.bat-dau');
+    Route::post('/bai-kiem-tra/{id}/nop', [HocVienBaiKiemTraController::class, 'nopBai'])->name('bai-kiem-tra.nop');
     
     Route::get('/khoa-hoc-cua-toi', [HocVienController::class, 'khoaHocCuaToi'])->name('khoa-hoc-cua-toi');
+    Route::get('/khoa-hoc-tham-gia', [HocVienController::class, 'khoaHocCoTheThamGia'])->name('khoa-hoc-tham-gia');
+    Route::post('/khoa-hoc/{khoaHocId}/xin-tham-gia', [HocVienController::class, 'guiYeuCauThamGia'])->name('khoa-hoc.gui-yeu-cau-tham-gia');
     Route::get('/khoa-hoc/{id}', [HocVienController::class, 'chiTietKhoaHoc'])->name('chi-tiet-khoa-hoc');
     
     Route::get('/profile', [HocVienController::class, 'profile'])->name('profile');

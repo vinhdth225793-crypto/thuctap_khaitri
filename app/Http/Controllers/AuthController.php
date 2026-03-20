@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Models\NguoiDung;
 use App\Models\TaiKhoanChoPheDuyet;
 use Illuminate\Support\Facades\Hash;
@@ -89,21 +90,28 @@ class AuthController extends Controller
         }
 
         if ($request->vai_tro === 'hoc_vien') {
-            // Tạo tài khoản học viên ngay lập tức
-            $nguoiDung = NguoiDung::create([
-                'ho_ten' => $request->ho_ten,
-                'email' => $request->email,
-                'mat_khau' => Hash::make($request->mat_khau),
-                'password' => Hash::make($request->mat_khau), // Để tương thích nếu model dùng 'password'
-                'vai_tro' => $request->vai_tro,
-                'so_dien_thoai' => $request->so_dien_thoai,
-                'ngay_sinh' => $request->ngay_sinh,
-                'dia_chi' => $request->dia_chi,
-                'trang_thai' => true,
-            ]);
+            // Tạo tài khoản học viên và hồ sơ học viên cơ bản ngay lập tức
+            $nguoiDung = DB::transaction(function () use ($request) {
+                $nguoiDung = NguoiDung::create([
+                    'ho_ten' => $request->ho_ten,
+                    'email' => $request->email,
+                    'mat_khau' => Hash::make($request->mat_khau),
+                    'vai_tro' => $request->vai_tro,
+                    'so_dien_thoai' => $request->so_dien_thoai,
+                    'ngay_sinh' => $request->ngay_sinh,
+                    'dia_chi' => $request->dia_chi,
+                    'trang_thai' => true,
+                ]);
+
+                $nguoiDung->hocVien()->create([]);
+
+                return $nguoiDung;
+            });
 
             // Đăng nhập tự động
             Auth::login($nguoiDung);
+            $request->session()->regenerate();
+
             return redirect()->route('hoc-vien.dashboard')->with('success', 'Đăng ký tài khoản học viên thành công!');
         } else {
             // Lưu tài khoản giảng viên vào bảng chờ phê duyệt

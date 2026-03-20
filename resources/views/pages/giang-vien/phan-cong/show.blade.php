@@ -175,6 +175,9 @@
                                         <div class="row g-2">
                                             @foreach($lich->taiNguyen->sortBy('thu_tu_hien_thi') as $tn)
                                                 <div class="col-md-6">
+                                                    @php
+                                                        $taiNguyenUrl = $tn->link_ngoai ?: asset('storage/' . ltrim((string) $tn->duong_dan_file, '/'));
+                                                    @endphp
                                                     <div class="resource-card p-2 rounded border bg-white shadow-xs d-flex align-items-center hover-bg-light transition-all h-100">
                                                         {{-- Icon loại tài liệu --}}
                                                         <div class="bg-{{ $tn->loai_color }}-soft text-{{ $tn->loai_color }} rounded d-flex align-items-center justify-content-center me-3 shadow-xs" style="width: 40px; height: 40px; flex-shrink: 0;">
@@ -204,6 +207,10 @@
 
                                                         {{-- Nhóm nút chức năng --}}
                                                         <div class="d-flex gap-1 align-items-center flex-shrink-0 border-start ps-2">
+                                                            <a href="{{ $taiNguyenUrl }}" target="_blank" class="btn btn-icon-xs text-primary" title="Xem file">
+                                                                <i class="fas fa-link"></i>
+                                                            </a>
+
                                                             {{-- Toggle Status --}}
                                                             <form action="{{ route('giang-vien.buoi-hoc.tai-nguyen.toggle', $tn->id) }}" method="POST" class="d-inline">
                                                                 @csrf @method('PATCH')
@@ -214,7 +221,7 @@
                                                             </form>
 
                                                             <button type="button" class="btn btn-icon-xs text-primary btn-preview-file" 
-                                                                    data-url="{{ $tn->file_url }}" data-title="{{ $tn->tieu_de }}" title="Xem">
+                                                                    data-url="{{ $taiNguyenUrl }}" data-title="{{ $tn->tieu_de }}" title="Xem">
                                                                 <i class="fas fa-eye"></i>
                                                             </button>
                                                             
@@ -537,6 +544,7 @@
             </div>
             <form id="formAddResource" method="POST" action="" enctype="multipart/form-data">
                 @csrf
+                <input type="hidden" name="selected_lich_hoc_id" id="selected-lich-hoc-id">
                 <div class="modal-body p-4">
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -545,7 +553,6 @@
                                 <option value="bai_giang">Bài giảng (Slide/Video)</option>
                                 <option value="tai_lieu">Tài liệu tham khảo</option>
                                 <option value="bai_tap">Bài tập về nhà</option>
-                                <option value="link_ngoai">Link liên kết ngoài</option>
                             </select>
                         </div>
                         <div class="col-md-6">
@@ -567,10 +574,11 @@
                     <div class="mt-3">
                         <label class="form-label small fw-bold">Link ngoài (Youtube/Drive/...)</label>
                         <input type="url" name="link_ngoai" class="form-control vip-form-control" placeholder="https://...">
+                        <div class="smaller text-muted mt-1 italic">Nhập link ngoài nếu không tải file lên.</div>
                     </div>
 
                     <div class="mt-3">
-                        <label class="form-label small fw-bold">Tải lên file (Tối đa 20MB) *</label>
+                        <label class="form-label small fw-bold">Tải lên file (Tối đa 10MB)</label>
                         <input type="file" name="file_dinh_kem" id="add-res-file" class="form-control vip-form-control">
                         <div class="smaller text-muted mt-1 italic">Hỗ trợ: PDF, Word, PowerPoint, Excel, ZIP, RAR</div>
                     </div>
@@ -635,7 +643,6 @@
                                 <option value="bai_giang">Bài giảng (Slide/Video)</option>
                                 <option value="tai_lieu">Tài liệu tham khảo</option>
                                 <option value="bai_tap">Bài tập về nhà</option>
-                                <option value="link_ngoai">Link liên kết ngoài</option>
                             </select>
                         </div>
                         <div class="col-md-6">
@@ -1072,11 +1079,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Xử lý Modal Đăng tài nguyên
     const modalRes = new bootstrap.Modal(document.getElementById('modalAddResource'));
     const formRes = document.getElementById('formAddResource');
+    const selectedLichHocInput = document.getElementById('selected-lich-hoc-id');
 
     document.querySelectorAll('.btn-add-resource').forEach(btn => {
         btn.addEventListener('click', function() {
             const d = this.dataset;
+            formRes.reset();
             document.getElementById('res-buoi-label').textContent = d.buoi;
+            if (selectedLichHocInput) {
+                selectedLichHocInput.value = d.id;
+            }
             formRes.action = "{{ route('giang-vien.buoi-hoc.tai-nguyen.store', ':id') }}".replace(':id', d.id);
             modalRes.show();
         });
@@ -1182,6 +1194,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         </td>
                                         <td class="text-center">
                                             <select name="attendance[${i}][trang_thai]" class="form-select form-select-sm att-select">
+                                                <option value="" ${!hv.trang_thai ? 'selected' : ''}>Chon trang thai</option>
                                                 <option value="co_mat" ${hv.trang_thai === 'co_mat' ? 'selected' : ''}>Có mặt</option>
                                                 <option value="vang_mat" ${hv.trang_thai === 'vang_mat' ? 'selected' : ''}>Vắng</option>
                                                 <option value="vao_tre" ${hv.trang_thai === 'vao_tre' ? 'selected' : ''}>Trễ</option>

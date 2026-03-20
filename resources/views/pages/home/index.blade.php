@@ -1,490 +1,1435 @@
 @extends('layouts.home')
-@section('title', 'Trang chủ')
+
+@section('title', ($settings['site_name'] ?: 'Trang chu') . ' - Khong gian hoc tap')
 
 @section('content')
-
-{{-- ===== BANNER QUAY LẠI DASHBOARD (chỉ hiện khi đã đăng nhập) ===== --}}
-@auth
 @php
-    $authUser  = auth()->user();
-    $dashRoute = match($authUser->vai_tro) {
-        'admin'      => route('admin.dashboard'),
-        'giang_vien' => route('giang-vien.dashboard'),
-        default      => route('hoc-vien.dashboard'),
-    };
+    $levelLabels = [
+        'co_ban' => ['label' => 'Co ban', 'class' => 'level-basic'],
+        'trung_binh' => ['label' => 'Trung binh', 'class' => 'level-mid'],
+        'nang_cao' => ['label' => 'Nang cao', 'class' => 'level-advanced'],
+    ];
 
-    // Label nút theo vai trò
-    $dashLabel = match($authUser->vai_tro) {
-        'admin'      => '⚙️ Quay lại Dashboard quản trị',
-        'giang_vien' => '📚 Hoạt động dạy của ' . $authUser->ho_ten,
-        default      => '🎓 Hoạt động học của ' . $authUser->ho_ten,
-    };
+    $statusLabels = [
+        'dang_day' => ['label' => 'Dang giang day', 'class' => 'status-live'],
+        'san_sang' => ['label' => 'San sang khai giang', 'class' => 'status-ready'],
+        'cho_giang_vien' => ['label' => 'Dang hoan thien lich hoc', 'class' => 'status-waiting'],
+    ];
 
-    // Màu sắc theo vai trò
-    $dashColor = match($authUser->vai_tro) {
-        'admin'      => '#dc2626',   // đỏ
-        'giang_vien' => '#2563eb',   // xanh dương
-        default      => '#16a34a',   // xanh lá
-    };
-
-    $homeAvatar2 = $authUser->anh_dai_dien ? asset($authUser->anh_dai_dien) : null;
+    $homeUser = auth()->user();
 @endphp
 
-<div style="background: {{ $dashColor }}; color:white; padding:8px 20px;
-            display:flex; align-items:center; justify-content:space-between;
-            position:sticky; top:0; z-index:2000;
-            box-shadow:0 2px 10px rgba(0,0,0,.2); gap:12px; flex-wrap:wrap;">
-
-    {{-- Thông tin user --}}
-    <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
-        @if($homeAvatar2)
-            <img src="{{ $homeAvatar2 }}" alt="{{ $authUser->ho_ten }}"
-                 style="width:30px; height:30px; border-radius:50%; object-fit:cover;
-                        border:2px solid rgba(255,255,255,0.7);">
-        @else
-            <div style="width:30px; height:30px; border-radius:50%;
-                        background:rgba(255,255,255,0.25); color:white; font-weight:800;
-                        font-size:13px; display:flex; align-items:center; justify-content:center;
-                        border:2px solid rgba(255,255,255,0.5);">
-                {{ strtoupper(mb_substr($authUser->ho_ten, 0, 1)) }}
-            </div>
-        @endif
-        <span style="font-size:13px; font-weight:600; opacity:.9;">
-            Xin chào, <strong>{{ $authUser->ho_ten }}</strong>
-        </span>
-    </div>
-
-    {{-- Nút quay lại dashboard --}}
-    <a href="{{ $dashRoute }}"
-       style="background:white; color:{{ $dashColor }}; border:none; border-radius:20px;
-              padding:5px 18px; font-size:13px; font-weight:800; text-decoration:none;
-              display:flex; align-items:center; gap:6px; white-space:nowrap;
-              transition:all .2s; box-shadow:0 2px 8px rgba(0,0,0,.15);"
-       onmouseover="this.style.transform='scale(1.04)'"
-       onmouseout="this.style.transform='scale(1)'">
-        {{ $dashLabel }}
-    </a>
-
-</div>
-@endauth
-{{-- ===== END BANNER ===== --}}
-
-<!-- ========== HEADER & NAVBAR ========== -->
-<nav class="navbar navbar-expand-lg navbar-dark sticky-top" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); box-shadow: 0 2px 15px rgba(0,0,0,0.1);">
-    <div class="container">
-        <a class="navbar-brand d-flex align-items-center" href="{{ route('home') }}" style="font-size: 1.5rem; font-weight: 700; color: white;">
-            @if(isset($settings['site_logo']) && $settings['site_logo'])
-                <img src="{{ asset($settings['site_logo']) }}" alt="Logo" style="height: 2rem; margin-right:0.5rem; object-fit: contain;">
-            @else
-                <i class="fas fa-graduation-cap" style="font-size: 2rem; margin-right: 0.5rem;"></i>
-            @endif
-            <span>{{ $settings['site_name'] ?? 'EduClick' }}</span>
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto align-items-center">
-                <li class="nav-item">
-                    <a class="nav-link active" href="{{ route('home') }}" style="color: rgba(255,255,255,0.85) !important; font-weight: 500; margin: 0 0.5rem;">
-                        <i class="fas fa-home"></i> Trang chủ
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#" style="color: rgba(255,255,255,0.85) !important; font-weight: 500; margin: 0 0.5rem;">
-                        <i class="fas fa-bullhorn"></i> Tuyển sinh
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#" style="color: rgba(255,255,255,0.85) !important; font-weight: 500; margin: 0 0.5rem;">
-                        <i class="fas fa-newspaper"></i> Tin tức
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#" style="color: rgba(255,255,255,0.85) !important; font-weight: 500; margin: 0 0.5rem;">
-                        <i class="fas fa-globe"></i> Du học
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('dang-ky') }}" style="color: rgba(255,255,255,0.85) !important; font-weight: 500; margin: 0 0.5rem;">
-                        <i class="fas fa-book-open"></i> Đăng kí học
-                    </a>
-                </li>
-                @auth
-                    @php
-                        $homeUser   = auth()->user();
-                        $homeAvatar = $homeUser->anh_dai_dien ? asset($homeUser->anh_dai_dien) : null;
-                    @endphp
-                    <li class="nav-item dropdown" style="margin-left: 1rem;">
-                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: rgba(255,255,255,0.85) !important; padding: 0; gap: 0.5rem;">
-                            @if($homeAvatar)
-                                <img src="{{ $homeAvatar }}"
-                                     alt="{{ $homeUser->ho_ten }}"
-                                     style="width:36px; height:36px; border-radius:50%; object-fit:cover;
-                                            border:2px solid rgba(255,255,255,0.6); flex-shrink:0;">
-                            @else
-                                <div style="width:36px; height:36px; border-radius:50%;
-                                            background:rgba(255,255,255,0.25);
-                                            display:flex; align-items:center; justify-content:center;
-                                            color:white; font-weight:800; font-size:15px;
-                                            border:2px solid rgba(255,255,255,0.5); flex-shrink:0;">
-                                    {{ strtoupper(mb_substr($homeUser->ho_ten, 0, 1)) }}
-                                </div>
-                            @endif
-                            <span style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ $homeUser->ho_ten }}</span>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown" style="background: white; border: none; box-shadow: 0 5px 20px rgba(0,0,0,0.15);">
-                            <li>
-                                <div style="padding:12px 16px; display:flex; align-items:center; gap:10px;
-                                            background:linear-gradient(135deg,rgba(102,126,234,.08),rgba(102,126,234,.03));
-                                            border-bottom:1px solid #f1f5f9;">
-                                    @if($homeAvatar)
-                                        <img src="{{ $homeAvatar }}"
-                                             style="width:38px; height:38px; border-radius:50%; object-fit:cover;
-                                                    border:2px solid #c7d2fe;">
-                                    @else
-                                        <div style="width:38px; height:38px; border-radius:50%; background:#667eea;
-                                                    display:flex; align-items:center; justify-content:center;
-                                                    color:white; font-weight:800; font-size:15px;">
-                                            {{ strtoupper(mb_substr($homeUser->ho_ten, 0, 1)) }}
-                                        </div>
-                                    @endif
-                                    <div>
-                                        <div style="font-weight:700; color:#1e293b; font-size:13px; line-height:1.2;">
-                                            {{ $homeUser->ho_ten }}
-                                        </div>
-                                        <div style="font-size:11px; color:#64748b; margin-top:2px;">
-                                            @if($homeUser->vai_tro === 'admin') Quản trị viên
-                                            @elseif($homeUser->vai_tro === 'giang_vien') Giảng viên
-                                            @else Học viên
-                                            @endif
-                                            &middot; {{ $homeUser->email }}
-                                        </div>
-                                    </div>
-                                </div>
-                            </li>
-                            <li><hr class="dropdown-divider" style="margin:4px 0;"></li>
-                            <li>
-                                <a class="dropdown-item" style="color:#1d4ed8; font-weight:600;"
-                                   href="@if($homeUser->vai_tro === 'admin'){{ route('admin.dashboard') }}
-                                         @elseif($homeUser->vai_tro === 'giang_vien'){{ route('giang-vien.dashboard') }}
-                                         @else{{ route('hoc-vien.dashboard') }}@endif">
-                                    <i class="fas fa-tachometer-alt" style="color:#2563eb;"></i>
-                                    Vào Dashboard
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="{{ route('profile') }}" style="color: #333;">
-                                    <i class="fas fa-user" style="color: #667eea;"></i> Hồ sơ cá nhân
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item" href="#"
-                                   onclick="event.preventDefault(); document.getElementById('home-logout-form').submit();"
-                                   style="color:#d32f2f;">
-                                    <i class="fas fa-sign-out-alt"></i> Đăng xuất
-                                </a>
-                                <form id="home-logout-form" action="{{ route('dang-xuat') }}" method="POST" style="display:none;">
-                                    @csrf
-                                </form>
-                            </li>
-                        </ul>
-                    </li>
-                @else
-                    <li class="nav-item" style="margin-left: 1rem;">
-                        <a class="btn" href="{{ route('dang-nhap') }}" style="background-color: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); border-radius: 25px; padding: 0.4rem 1.2rem; font-weight: 600; text-decoration: none; transition: all 0.3s ease;">
-                            <i class="fas fa-sign-in-alt"></i> Đăng nhập
-                        </a>
-                    </li>
-                @endauth
-            </ul>
+@if(filled($settings['general_notification']))
+    <div class="announcement-bar">
+        <div class="container announcement-inner">
+            <div class="announcement-label">Thong bao tu he thong</div>
+            <div class="announcement-content">{!! $settings['general_notification'] !!}</div>
         </div>
     </div>
-</nav>
-
-@if(isset($banners) && $banners->isNotEmpty())
-<div id="mainBannerSlider" class="carousel slide shadow-sm" data-bs-ride="carousel" data-bs-interval="5000">
-    <div class="carousel-inner">
-        @foreach($banners as $i => $banner)
-        <div class="carousel-item {{ $i === 0 ? 'active' : '' }}">
-            @if($banner->link)<a href="{{ $banner->link }}">@endif
-            <img src="{{ asset($banner->duong_dan_anh) }}" class="d-block w-100"
-                 alt="{{ $banner->tieu_de }}" style="height:420px; object-fit:cover;">
-            @if($banner->link)</a>@endif
-            <div class="carousel-caption d-none d-md-block text-start bg-dark bg-opacity-25 p-4 rounded-3"
-                 style="left:6%; bottom:40px; text-shadow:0 2px 10px rgba(0,0,0,0.5); backdrop-filter: blur(2px);">
-                <h2 class="fw-bold display-6 mb-2">{{ $banner->tieu_de }}</h2>
-                @if($banner->mo_ta)<div class="lead mb-0 opacity-90">{!! $banner->mo_ta !!}</div>@endif
-            </div>
-        </div>
-        @endforeach
-    </div>
-    @if($banners->count() > 1)
-    <button class="carousel-control-prev" type="button" data-bs-target="#mainBannerSlider" data-bs-slide="prev">
-        <span class="carousel-control-prev-icon shadow-sm" aria-hidden="true"></span>
-        <span class="visually-hidden">Previous</span>
-    </button>
-    <button class="carousel-control-next" type="button" data-bs-target="#mainBannerSlider" data-bs-slide="next">
-        <span class="carousel-control-next-icon shadow-sm" aria-hidden="true"></span>
-        <span class="visually-hidden">Next</span>
-    </button>
-    <div class="carousel-indicators">
-        @foreach($banners as $i => $b)
-        <button type="button" data-bs-target="#mainBannerSlider" data-bs-slide-to="{{ $i }}" class="{{ $i===0?'active':'' }}" aria-current="{{ $i===0?'true':'false' }}" aria-label="Slide {{ $i+1 }}"></button>
-        @endforeach
-    </div>
-    @endif
-</div>
 @endif
 
-<!-- ========== HERO SECTION ========== -->
-<section style="padding: 100px 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; position: relative; overflow: hidden;" id="home">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-6" data-aos="fade-right">
-                <h1 style="font-size: 3.5rem; font-weight: 700; margin-bottom: 1.5rem; line-height: 1.2;">Nền Tảng Học Tập Thông Minh</h1>
-                <p style="font-size: 1.25rem; margin-bottom: 2rem; opacity: 0.95;">Kết nối học viên với giảng viên chuyên môn, học tập linh hoạt và phát triển kỹ năng thực tế.</p>
-                <div style="display: flex; flex-wrap: wrap; gap: 1rem;">
+<header class="site-header">
+    <div class="container header-shell">
+        <a href="{{ route('home') }}" class="brand-mark">
+            <div class="brand-logo">
+                @if(!empty($settings['site_logo']))
+                    <img src="{{ asset($settings['site_logo']) }}" alt="{{ $settings['site_name'] ?: 'Logo he thong' }}">
+                @else
+                    <span>K</span>
+                @endif
+            </div>
+            <div>
+                <div class="brand-kicker">He thong dao tao</div>
+                <div class="brand-name">{{ $settings['site_name'] ?: 'Khai Tri Education' }}</div>
+            </div>
+        </a>
+
+        <nav class="site-nav">
+            <a href="#hero">Trang chu</a>
+            <a href="#courses">Khoa hoc</a>
+            <a href="#instructors">Giang vien</a>
+            <a href="#contact">Lien he</a>
+        </nav>
+
+        <div class="header-actions">
+            @if(filled($settings['hotline']))
+                <a href="tel:{{ preg_replace('/\s+/', '', $settings['hotline']) }}" class="contact-pill">
+                    <i class="fas fa-phone-alt"></i>
+                    <span>{{ $settings['hotline'] }}</span>
+                </a>
+            @endif
+
+            @auth
+                @php
+                    $dashboardRoute = match($homeUser->vai_tro) {
+                        'admin' => route('admin.dashboard'),
+                        'giang_vien' => route('giang-vien.dashboard'),
+                        default => route('hoc-vien.dashboard'),
+                    };
+                @endphp
+                <a href="{{ $dashboardRoute }}" class="btn-primary-surface">Vao dashboard</a>
+            @else
+                <a href="{{ route('dang-nhap') }}" class="btn-ghost-surface">Dang nhap</a>
+                <a href="{{ route('dang-ky') }}" class="btn-primary-surface">Tao tai khoan</a>
+            @endauth
+        </div>
+    </div>
+</header>
+
+<main class="home-landing">
+    <section class="hero-edu" id="hero">
+        <div class="hero-backdrop hero-backdrop-one"></div>
+        <div class="hero-backdrop hero-backdrop-two"></div>
+        <div class="container hero-grid">
+            <div class="hero-copy" data-aos="fade-right">
+                <div class="hero-badge">Learning hub cho nguoi hoc moi</div>
+                <h1>Kham pha cac khoa hoc dang mo ngay tu trang chu.</h1>
+                <p class="hero-lead">
+                    {{ $settings['site_name'] ?: 'He thong Khai Tri' }} hien thi cong khai cac khoa hoc dang hoat dong,
+                    thong tin lien he tu admin va doi ngu giang vien noi bat de nguoi dung chua co tai khoan van co the tim hieu truoc khi dang ky.
+                </p>
+
+                <div class="hero-actions">
+                    <a href="#courses" class="btn-primary-surface">Xem khoa hoc</a>
                     @guest
-                        <a href="{{ route('dang-ky') }}" class="btn" style="background: white; color: #667eea; padding: 0.75rem 2.5rem; border-radius: 25px; font-weight: 600; border: none; cursor: pointer; text-decoration: none;">
-                            <i class="fas fa-rocket me-2"></i> Đăng ký ngay
-                        </a>
-                        <a href="{{ route('dang-nhap') }}" class="btn" style="background: rgba(255,255,255,0.2); color: white; padding: 0.75rem 2.5rem; border-radius: 25px; font-weight: 600; border: 2px solid white; cursor: pointer; text-decoration: none;">
-                            <i class="fas fa-sign-in-alt me-2"></i> Đăng nhập
-                        </a>
+                        <a href="{{ route('dang-ky') }}" class="btn-outline-surface">Dang ky hoc vien</a>
                     @else
-                        <a href="@if(auth()->user()->vai_tro === 'admin'){{ route('admin.dashboard') }}@elseif(auth()->user()->vai_tro === 'giang_vien'){{ route('giang-vien.dashboard') }}@else{{ route('hoc-vien.dashboard') }}@endif" class="btn" style="background: white; color: #667eea; padding: 0.75rem 2.5rem; border-radius: 25px; font-weight: 600; border: none; cursor: pointer; text-decoration: none;">
-                            <i class="fas fa-arrow-right me-2"></i> Vào Dashboard
-                        </a>
+                        <a href="#contact" class="btn-outline-surface">Xem thong tin lien he</a>
                     @endguest
                 </div>
-            </div>
-            <div class="col-lg-6" data-aos="fade-left">
-                <img src="https://cdn.pixabay.com/photo/2016/11/21/14/31/machine-learning-1846618_1280.jpg" alt="Học tập thông minh" class="img-fluid" style="border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
-            </div>
-        </div>
-    </div>
-</section>
 
-<!-- ========== FEATURES SECTION ========== -->
-<section style="padding: 80px 0; background: #f8f9fa;" id="features">
-    <div class="container">
-        <h2 style="font-size: 2.5rem; font-weight: 700; text-align: center; margin-bottom: 1rem; color: #333;">Tính Năng Nổi Bật</h2>
-        <p style="text-align: center; color: #666; margin-bottom: 3rem; font-size: 1.1rem;">Trải nghiệm hệ thống với đầy đủ tính năng hiện đại</p>
-        
-        <div class="row g-4">
-            <div class="col-md-6 col-lg-4" data-aos="fade-up">
-                <div style="background: white; padding: 2rem; border-radius: 15px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.08);">
-                    <i class="fas fa-chalkboard-teacher" style="font-size: 2.5rem; color: #667eea; margin-bottom: 1rem;"></i>
-                    <h4 style="margin-bottom: 1rem; color: #333;">Giảng Dạy Thông Minh</h4>
-                    <p style="color: #666;">Các giảng viên dày dạn kinh nghiệm hướng dẫn một cách trực quan và hiệu quả.</p>
+                <div class="hero-metrics">
+                    <article class="metric-card" data-aos="fade-up" data-aos-delay="50">
+                        <span class="metric-label">Khoa hoc cong khai</span>
+                        <strong>{{ number_format($stats['tong_khoa_hoc']) }}</strong>
+                        <small>{{ number_format($stats['sap_khai_giang']) }} khoa sap khai giang</small>
+                    </article>
+                    <article class="metric-card" data-aos="fade-up" data-aos-delay="120">
+                        <span class="metric-label">Hoc vien dang hoc</span>
+                        <strong>{{ number_format($stats['tong_hoc_vien']) }}</strong>
+                        <small>Du lieu that tu he thong dao tao</small>
+                    </article>
+                    <article class="metric-card" data-aos="fade-up" data-aos-delay="190">
+                        <span class="metric-label">Module chuyen mon</span>
+                        <strong>{{ number_format($stats['tong_module']) }}</strong>
+                        <small>{{ number_format($stats['tong_giang_vien_noi_bat']) }} giang vien noi bat</small>
+                    </article>
                 </div>
             </div>
-            <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="100">
-                <div style="background: white; padding: 2rem; border-radius: 15px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.08);">
-                    <i class="fas fa-user-tie" style="font-size: 2.5rem; color: #667eea; margin-bottom: 1rem;"></i>
-                    <h4 style="margin-bottom: 1rem; color: #333;">Học Tập Cá Nhân</h4>
-                    <p style="color: #666;">Chương trình học được tùy chỉnh theo nhu cầu và tốc độ học tập của bạn.</p>
-                </div>
-            </div>
-            <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="200">
-                <div style="background: white; padding: 2rem; border-radius: 15px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.08);">
-                    <i class="fas fa-chart-line" style="font-size: 2.5rem; color: #667eea; margin-bottom: 1rem;"></i>
-                    <h4 style="margin-bottom: 1rem; color: #333;">Theo Dõi Tiến Độ</h4>
-                    <p style="color: #666;">Xem chi tiết tiến độ học tập của bạn qua các biểu đồ trực quan.</p>
-                </div>
-            </div>
-            <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="300">
-                <div style="background: white; padding: 2rem; border-radius: 15px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.08);">
-                    <i class="fas fa-tasks" style="font-size: 2.5rem; color: #667eea; margin-bottom: 1rem;"></i>
-                    <h4 style="margin-bottom: 1rem; color: #333;">Đánh Giá Đa Dạng</h4>
-                    <p style="color: #666;">Nhiều hình thức kiểm tra để đánh giá toàn diện kiến thức của bạn.</p>
-                </div>
-            </div>
-            <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="400">
-                <div style="background: white; padding: 2rem; border-radius: 15px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.08);">
-                    <i class="fas fa-comments" style="font-size: 2.5rem; color: #667eea; margin-bottom: 1rem;"></i>
-                    <h4 style="margin-bottom: 1rem; color: #333;">Tương Tác Hai Chiều</h4>
-                    <p style="color: #666;">Giao tiếp trực tiếp với giảng viên và cộng đồng học viên.</p>
-                </div>
-            </div>
-            <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="500">
-                <div style="background: white; padding: 2rem; border-radius: 15px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.08);">
-                    <i class="fas fa-mobile-alt" style="font-size: 2.5rem; color: #667eea; margin-bottom: 1rem;"></i>
-                    <h4 style="margin-bottom: 1rem; color: #333;">Đa Nền Tảng</h4>
-                    <p style="color: #666;">Truy cập mọi lúc, mọi nơi trên các thiết bị khác nhau.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
 
-<!-- ========== STATS SECTION ========== -->
-<section style="padding: 80px 0; background: white;">
-    <div class="container">
-        <div class="row g-4">
-            <div class="col-md-6 col-lg-3" data-aos="zoom-in">
-                <div style="text-align: center; padding: 2rem; border-radius: 15px; background: linear-gradient(135deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%);">
-                    <h3 style="color: #667eea; font-size: 2.5rem; font-weight: 700; margin: 0;">1000+</h3>
-                    <p style="color: #666; margin-top: 0.5rem;">Học viên</p>
-                </div>
-            </div>
-            <div class="col-md-6 col-lg-3" data-aos="zoom-in" data-aos-delay="100">
-                <div style="text-align: center; padding: 2rem; border-radius: 15px; background: linear-gradient(135deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%);">
-                    <h3 style="color: #667eea; font-size: 2.5rem; font-weight: 700; margin: 0;">50+</h3>
-                    <p style="color: #666; margin-top: 0.5rem;">Giảng viên</p>
-                </div>
-            </div>
-            <div class="col-md-6 col-lg-3" data-aos="zoom-in" data-aos-delay="200">
-                <div style="text-align: center; padding: 2rem; border-radius: 15px; background: linear-gradient(135deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%);">
-                    <h3 style="color: #667eea; font-size: 2.5rem; font-weight: 700; margin: 0;">100+</h3>
-                    <p style="color: #666; margin-top: 0.5rem;">Khóa học</p>
-                </div>
-            </div>
-            <div class="col-md-6 col-lg-3" data-aos="zoom-in" data-aos-delay="300">
-                <div style="text-align: center; padding: 2rem; border-radius: 15px; background: linear-gradient(135deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%);">
-                    <h3 style="color: #667eea; font-size: 2.5rem; font-weight: 700; margin: 0;">95%</h3>
-                    <p style="color: #666; margin-top: 0.5rem;">Sự hài lòng</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- ========== INSTRUCTORS SECTION ========== -->
-<section style="padding: 80px 0; background: #f8f9fa;" id="instructors">
-    <div class="container">
-        <h2 style="font-size: 2.5rem; font-weight: 700; text-align: center; margin-bottom: 1rem; color: #333;">Giảng Viên Nổi Bật</h2>
-        <p style="text-align: center; color: #666; margin-bottom: 3rem; font-size: 1.1rem;">Gặp gỡ những chuyên gia giàu kinh nghiệm trong lĩnh vực của họ</p>
-        
-        <div class="row g-4">
-            @if(isset($giangVienFeatured) && $giangVienFeatured->count() > 0)
-                @foreach($giangVienFeatured as $gv)
-                <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="{{ $loop->index * 100 }}">
-                    <div style="background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.08); transition: all 0.3s ease;">
-                        <div style="width: 100%; height: 250px; object-fit: cover; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem;">
-                            <i class="fas fa-user-circle"></i>
+            <div class="hero-side" data-aos="fade-left">
+                @if($featuredCourse)
+                    <article class="spotlight-card">
+                        <div class="spotlight-head">
+                            <span class="eyebrow">Khoa hoc noi bat</span>
+                            @php $status = $statusLabels[$featuredCourse->trang_thai_van_hanh] ?? ['label' => 'Dang cap nhat', 'class' => 'status-waiting']; @endphp
+                            <span class="status-pill {{ $status['class'] }}">{{ $status['label'] }}</span>
                         </div>
-                        <div style="padding: 1.5rem;">
-                            <h4 style="color: #333; margin-bottom: 0.5rem;">{{ $gv->ten_giang_vien ?? 'N/A' }}</h4>
-                            <p style="color: #667eea; font-size: 0.9rem; margin-bottom: 0.5rem;">{{ $gv->chuyen_khoa ?? 'Chuyên gia' }}</p>
-                            <p style="color: #666; font-size: 0.85rem; margin-bottom: 1rem;">{{ $gv->hoc_van ?? 'Bằng cấp' }}</p>
-                            <a href="#" class="btn" style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; text-align: center; font-weight: 600;">
-                                <i class="fas fa-phone me-1"></i> Liên hệ
-                            </a>
+
+                        <h2>{{ $featuredCourse->ten_khoa_hoc }}</h2>
+                        <p>
+                            {{ $featuredCourse->mo_ta_ngan ?: 'Khoa hoc dang hoat dong va san sang de nguoi hoc tim hieu truoc khi tao tai khoan tham gia.' }}
+                        </p>
+
+                        <div class="spotlight-meta">
+                            <div>
+                                <span>Ma khoa</span>
+                                <strong>{{ $featuredCourse->ma_khoa_hoc }}</strong>
+                            </div>
+                            <div>
+                                <span>Nhom nganh</span>
+                                <strong>{{ optional($featuredCourse->nhomNganh)->ten_nhom_nganh ?: 'Da linh vuc' }}</strong>
+                            </div>
+                            <div>
+                                <span>Module</span>
+                                <strong>{{ number_format($featuredCourse->module_hocs_count ?? 0) }}</strong>
+                            </div>
+                            <div>
+                                <span>Hoc vien</span>
+                                <strong>{{ number_format($featuredCourse->hoc_vien_dang_hoc_count ?? 0) }}</strong>
+                            </div>
                         </div>
+
+                        <div class="spotlight-footer">
+                            @php $levelInfo = $levelLabels[$featuredCourse->cap_do] ?? ['label' => 'Tong hop', 'class' => 'level-basic']; @endphp
+                            <span class="level-pill {{ $levelInfo['class'] }}">{{ $levelInfo['label'] }}</span>
+                            @if($featuredCourse->ngay_khai_giang)
+                                <span class="date-pill">
+                                    <i class="far fa-calendar-alt"></i>
+                                    {{ $featuredCourse->ngay_khai_giang->format('d/m/Y') }}
+                                </span>
+                            @endif
+                        </div>
+                    </article>
+                @endif
+
+                <div class="contact-surface">
+                    <div>
+                        <span class="eyebrow">Thong tin he thong</span>
+                        <h3>Kenh lien he danh cho hoc vien moi</h3>
                     </div>
+                    <ul class="contact-list">
+                        @if(filled($settings['email']))
+                            <li>
+                                <i class="far fa-envelope"></i>
+                                <a href="mailto:{{ $settings['email'] }}">{{ $settings['email'] }}</a>
+                            </li>
+                        @endif
+                        @if(filled($settings['hotline']))
+                            <li>
+                                <i class="fas fa-phone-alt"></i>
+                                <a href="tel:{{ preg_replace('/\s+/', '', $settings['hotline']) }}">{{ $settings['hotline'] }}</a>
+                            </li>
+                        @endif
+                        @if(filled($settings['facebook']))
+                            <li>
+                                <i class="fab fa-facebook-f"></i>
+                                <a href="{{ $settings['facebook'] }}" target="_blank" rel="noopener noreferrer">Facebook chinh thuc</a>
+                            </li>
+                        @endif
+                        @if(filled($settings['zalo']))
+                            <li>
+                                <i class="fas fa-comment-dots"></i>
+                                <a href="{{ $settings['zalo'] }}" target="_blank" rel="noopener noreferrer">Zalo ho tro</a>
+                            </li>
+                        @endif
+                    </ul>
                 </div>
-                @endforeach
-            @else
-                <div class="col-12 text-center py-5">
-                    <p style="color: #666;">Chưa có giảng viên nổi bật</p>
+            </div>
+        </div>
+    </section>
+
+    @if($banners->isNotEmpty())
+        <section class="banner-spotlight">
+            <div class="container">
+                <div id="homeBannerCarousel" class="carousel slide spotlight-carousel" data-bs-ride="carousel" data-bs-interval="5000">
+                    <div class="carousel-inner">
+                        @foreach($banners as $index => $banner)
+                            <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
+                                <div class="banner-frame">
+                                    <img src="{{ asset($banner->duong_dan_anh) }}" alt="{{ $banner->tieu_de }}">
+                                    <div class="banner-overlay">
+                                        <span class="eyebrow">Diem nhan tu admin</span>
+                                        <h2>{{ $banner->tieu_de }}</h2>
+                                        @if($banner->mo_ta)
+                                            <div class="banner-copy">{!! $banner->mo_ta !!}</div>
+                                        @endif
+                                        @if($banner->link)
+                                            <a href="{{ $banner->link }}" target="_blank" rel="noopener noreferrer" class="btn-primary-surface">Xem them</a>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    @if($banners->count() > 1)
+                        <button class="carousel-control-prev" type="button" data-bs-target="#homeBannerCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#homeBannerCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                    @endif
+                </div>
+            </div>
+        </section>
+    @endif
+
+    <section class="category-wave">
+        <div class="container">
+            <div class="section-heading">
+                <div>
+                    <span class="section-kicker">Danh muc noi bat</span>
+                    <h2>Nhung nhom nganh dang co khoa hoc cong khai</h2>
+                </div>
+                <p>Nguoi dung chua co tai khoan van co the duyet nhanh linh vuc dang dao tao truoc khi quyet dinh dang ky.</p>
+            </div>
+
+            <div class="category-cloud">
+                @forelse($categories as $item)
+                    <a href="{{ route('home', ['category' => $item->id]) }}#courses" class="category-chip {{ (string) $filters['category'] === (string) $item->id ? 'is-active' : '' }}">
+                        <span>{{ $item->ten_nhom_nganh }}</span>
+                        <strong>{{ $item->public_course_count }}</strong>
+                    </a>
+                @empty
+                    <div class="empty-public-block">Hien chua co nhom nganh cong khai de hien thi tren trang chu.</div>
+                @endforelse
+            </div>
+        </div>
+    </section>
+
+    <section class="courses-zone" id="courses">
+        <div class="container">
+            <div class="section-heading">
+                <div>
+                    <span class="section-kicker">Khoa hoc cong khai</span>
+                    <h2>Khong can tai khoan van xem duoc danh sach khoa hoc</h2>
+                </div>
+                <p>Trang chu da lay truc tiep tu he thong quan tri: khoa dang hoat dong, mo ta ngan, hinh anh, cap do va ngay khai giang.</p>
+            </div>
+
+            <form method="GET" action="{{ route('home') }}" class="course-filter">
+                <div class="filter-field">
+                    <label for="q">Tim khoa hoc</label>
+                    <input id="q" type="text" name="q" value="{{ $filters['q'] }}" placeholder="Ten khoa hoc, ma khoa hoc hoac mo ta ngan">
+                </div>
+                <div class="filter-field">
+                    <label for="level">Cap do</label>
+                    <select id="level" name="level">
+                        <option value="">Tat ca cap do</option>
+                        <option value="co_ban" @selected($filters['level'] === 'co_ban')>Co ban</option>
+                        <option value="trung_binh" @selected($filters['level'] === 'trung_binh')>Trung binh</option>
+                        <option value="nang_cao" @selected($filters['level'] === 'nang_cao')>Nang cao</option>
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label for="category">Nhom nganh</label>
+                    <select id="category" name="category">
+                        <option value="">Tat ca nhom nganh</option>
+                        @foreach($categories as $item)
+                            <option value="{{ $item->id }}" @selected((string) $filters['category'] === (string) $item->id)>{{ $item->ten_nhom_nganh }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="filter-actions">
+                    <button type="submit" class="btn-primary-surface">Loc khoa hoc</button>
+                    <a href="{{ route('home') }}#courses" class="btn-outline-surface">Dat lai</a>
+                </div>
+            </form>
+
+            <div class="course-grid">
+                @forelse($courses as $course)
+                    @php
+                        $levelInfo = $levelLabels[$course->cap_do] ?? ['label' => 'Tong hop', 'class' => 'level-basic'];
+                        $status = $statusLabels[$course->trang_thai_van_hanh] ?? ['label' => 'Dang cap nhat', 'class' => 'status-waiting'];
+                    @endphp
+                    <article class="course-card" data-aos="fade-up">
+                        <div class="course-cover">
+                            @if($course->hinh_anh)
+                                <img src="{{ asset($course->hinh_anh) }}" alt="{{ $course->ten_khoa_hoc }}">
+                            @else
+                                <div class="course-cover-fallback">
+                                    <span>{{ strtoupper(mb_substr($course->ten_khoa_hoc, 0, 1)) }}</span>
+                                </div>
+                            @endif
+                            <div class="course-overlay-top">
+                                <span class="status-pill {{ $status['class'] }}">{{ $status['label'] }}</span>
+                                <span class="level-pill {{ $levelInfo['class'] }}">{{ $levelInfo['label'] }}</span>
+                            </div>
+                        </div>
+
+                        <div class="course-body">
+                            <div class="course-meta">
+                                <span>{{ optional($course->nhomNganh)->ten_nhom_nganh ?: 'Da linh vuc' }}</span>
+                                <strong>{{ $course->ma_khoa_hoc }}</strong>
+                            </div>
+
+                            <h3>{{ $course->ten_khoa_hoc }}</h3>
+                            <p>{{ \Illuminate\Support\Str::limit($course->mo_ta_ngan ?: 'Khoa hoc cong khai dang duoc hien thi tren trang chu de hoc vien moi co the tim hieu truoc khi dang ky.', 140) }}</p>
+
+                            <div class="course-data-grid">
+                                <div>
+                                    <span>Module</span>
+                                    <strong>{{ number_format($course->module_hocs_count ?? 0) }}</strong>
+                                </div>
+                                <div>
+                                    <span>Lich hoc</span>
+                                    <strong>{{ number_format($course->lich_hocs_count ?? 0) }}</strong>
+                                </div>
+                                <div>
+                                    <span>Hoc vien</span>
+                                    <strong>{{ number_format($course->hoc_vien_dang_hoc_count ?? 0) }}</strong>
+                                </div>
+                                <div>
+                                    <span>Khai giang</span>
+                                    <strong>{{ $course->ngay_khai_giang ? $course->ngay_khai_giang->format('d/m/Y') : 'Dang cap nhat' }}</strong>
+                                </div>
+                            </div>
+
+                            <div class="course-actions">
+                                @guest
+                                    <a href="{{ route('dang-ky') }}" class="btn-primary-surface">Tao tai khoan de tham gia</a>
+                                    <a href="{{ route('dang-nhap') }}" class="btn-outline-surface">Da co tai khoan</a>
+                                @else
+                                    <a href="{{ route('hoc-vien.khoa-hoc-tham-gia') }}" class="btn-primary-surface">Xem luong tham gia</a>
+                                    <a href="{{ route('hoc-vien.dashboard') }}" class="btn-outline-surface">Vao khu hoc vien</a>
+                                @endguest
+                            </div>
+                        </div>
+                    </article>
+                @empty
+                    <div class="empty-public-block large">
+                        <h3>Chua co khoa hoc phu hop</h3>
+                        <p>Hay thu bo bot bo loc hoac quay lai sau khi admin mo them khoa hoc moi.</p>
+                        <a href="{{ route('home') }}#courses" class="btn-primary-surface">Xem lai toan bo</a>
+                    </div>
+                @endforelse
+            </div>
+
+            @if($courses->hasPages())
+                <div class="pagination-shell">
+                    {{ $courses->links('pagination::bootstrap-5') }}
                 </div>
             @endif
         </div>
-    </div>
-</section>
+    </section>
 
-<!-- ========== CTA SECTION ========== -->
-<section style="padding: 60px 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-8">
-                <h2 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 1rem;">Sẵn sàng bắt đầu học tập?</h2>
-                <p style="margin-bottom: 0;">Đăng ký ngay để trải nghiệm hệ thống học tập thông minh</p>
+    <section class="cta-strip">
+        <div class="container cta-grid">
+            <div>
+                <span class="section-kicker">San sang bat dau?</span>
+                <h2>Tao tai khoan de theo doi khoa hoc, tai lieu va lich hoc ca nhan.</h2>
             </div>
-            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
-                <a href="{{ route('dang-ky') }}" class="btn" style="background: white; color: #667eea; padding: 0.75rem 2.5rem; border-radius: 25px; font-weight: 600; border: none; cursor: pointer; text-decoration: none;">
-                    <i class="fas fa-rocket me-2"></i> Đăng ký ngay
-                </a>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- ========== FOOTER ========== -->
-<footer id="footer" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: white; padding: 60px 0 20px; margin-top: 80px;">
-    <div class="container">
-        <div class="row">
-            <div class="col-md-4 mb-4 mb-md-0">
-                <h5 style="font-weight: 600; margin-bottom: 1.5rem; color: white;">
-                    <i class="fas fa-graduation-cap me-2"></i> EduClick
-                </h5>
-                <p style="opacity: 0.85;">Hệ thống quản lý khóa học hiện đại, kết nối học viên và giảng viên chuyên môn. Nâng cao chất lượng giáo dục qua công nghệ.</p>
-                <div style="display: flex; gap: 1rem;">
-                    @if(isset($settings['facebook']))
-                        <a href="{{ $settings['facebook'] }}" target="_blank" style="width: 40px; height: 40px; border-radius: 50%; background: #667eea; color: white; display: flex; align-items: center; justify-content: center; text-decoration: none;">
-                            <i class="fab fa-facebook-f"></i>
-                        </a>
-                    @endif
-                    @if(isset($settings['zalo']))
-                        <a href="{{ $settings['zalo'] }}" target="_blank" style="width: 40px; height: 40px; border-radius: 50%; background: #667eea; color: white; display: flex; align-items: center; justify-content: center; text-decoration: none;">
-                            <i class="fas fa-comments"></i>
-                        </a>
-                    @endif
-                </div>
-            </div>
-
-            <div class="col-md-4 mb-4 mb-md-0">
-                <h5 style="font-weight: 600; margin-bottom: 1.5rem; color: white;">Liên Kết Nhanh</h5>
-                <ul style="list-style: none; padding: 0;">
-                    <li style="margin-bottom: 0.75rem;">
-                        <a href="{{ route('home') }}" style="color: rgba(255,255,255,0.75); text-decoration: none;">Trang chủ</a>
-                    </li>
-                    <li style="margin-bottom: 0.75rem;">
-                        <a href="#features" style="color: rgba(255,255,255,0.75); text-decoration: none;">Tính năng</a>
-                    </li>
-                    <li style="margin-bottom: 0.75rem;">
-                        <a href="#instructors" style="color: rgba(255,255,255,0.75); text-decoration: none;">Giảng viên</a>
-                    </li>
-                    <li style="margin-bottom: 0.75rem;">
-                        <a href="{{ route('dang-ky') }}" style="color: rgba(255,255,255,0.75); text-decoration: none;">Đăng ký</a>
-                    </li>
-                    <li style="margin-bottom: 0.75rem;">
-                        <a href="{{ route('dang-nhap') }}" style="color: rgba(255,255,255,0.75); text-decoration: none;">Đăng nhập</a>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="col-md-4">
-                <h5 style="font-weight: 600; margin-bottom: 1.5rem; color: white;">Liên Hệ Với Chúng Tôi</h5>
-                @if(isset($settings['hotline']))
-                <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem;">
-                    <i class="fas fa-phone" style="color: #667eea; font-size: 1.25rem;"></i>
-                    <div>
-                        <div style="font-size: 0.85rem; opacity: 0.75;">Hotline</div>
-                        <strong>{{ $settings['hotline'] }}</strong>
-                    </div>
-                </div>
-                @endif
-                @if(isset($settings['email']))
-                <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem;">
-                    <i class="fas fa-envelope" style="color: #667eea; font-size: 1.25rem;"></i>
-                    <div>
-                        <div style="font-size: 0.85rem; opacity: 0.75;">Email</div>
-                        <strong>{{ $settings['email'] }}</strong>
-                    </div>
-                </div>
-                @endif
+            <div class="cta-actions">
+                @guest
+                    <a href="{{ route('dang-ky') }}" class="btn-primary-surface">Dang ky hoc vien</a>
+                    <a href="{{ route('dang-nhap') }}" class="btn-outline-surface">Dang nhap</a>
+                @else
+                    <a href="{{ route('hoc-vien.dashboard') }}" class="btn-primary-surface">Vao dashboard</a>
+                    <a href="#courses" class="btn-outline-surface">Tiep tuc xem khoa hoc</a>
+                @endguest
             </div>
         </div>
+    </section>
 
-        <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 2rem; margin-top: 2rem; text-align: center; color: rgba(255,255,255,0.75);">
-            <p>&copy; 2026 EduClick. Bảo lưu mọi quyền.</p>
+    <section class="instructors-zone" id="instructors">
+        <div class="container">
+            <div class="section-heading">
+                <div>
+                    <span class="section-kicker">Giang vien noi bat</span>
+                    <h2>Danh sach duoc admin chon hien thi tren trang chu</h2>
+                </div>
+                <p>Phan nay lay truc tiep tu cau hinh giang vien noi bat trong khu quan tri, khong con la du lieu mau cung.</p>
+            </div>
+
+            <div class="instructor-grid">
+                @forelse($featuredInstructors as $giangVien)
+                    <article class="instructor-card-public" data-aos="fade-up">
+                        <div class="instructor-avatar">
+                            @if(optional($giangVien->nguoiDung)->anh_dai_dien)
+                                <img src="{{ asset($giangVien->nguoiDung->anh_dai_dien) }}" alt="{{ $giangVien->nguoiDung->ho_ten }}">
+                            @elseif($giangVien->avatar_url)
+                                <img src="{{ asset($giangVien->avatar_url) }}" alt="{{ $giangVien->nguoiDung->ho_ten }}">
+                            @else
+                                <span>{{ strtoupper(mb_substr($giangVien->nguoiDung->ho_ten ?? 'G', 0, 1)) }}</span>
+                            @endif
+                        </div>
+                        <div class="instructor-copy">
+                            <span class="instructor-badge">{{ $giangVien->chuyen_nganh ?: 'Dang cap nhat chuyen nganh' }}</span>
+                            <h3>{{ $giangVien->nguoiDung->ho_ten ?? 'Giang vien' }}</h3>
+                            <p>{{ $giangVien->mo_ta_ngan ?: 'Giang vien duoc admin lua chon de dai dien cho nang luc dao tao tren trang chu.' }}</p>
+                        </div>
+                        <div class="instructor-foot">
+                            <span>
+                                <i class="fas fa-graduation-cap"></i>
+                                {{ $giangVien->hoc_vi ?: 'Dang cap nhat hoc vi' }}
+                            </span>
+                            <span>
+                                <i class="far fa-clock"></i>
+                                {{ number_format((int) $giangVien->so_gio_day) }} gio giang day
+                            </span>
+                        </div>
+                    </article>
+                @empty
+                    <div class="empty-public-block">
+                        Chua co giang vien noi bat duoc chon trong phan cai dat he thong.
+                    </div>
+                @endforelse
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer class="site-footer" id="contact">
+    <div class="container footer-grid">
+        <div>
+            <div class="brand-mark footer-brand">
+                <div class="brand-logo">
+                    @if(!empty($settings['site_logo']))
+                        <img src="{{ asset($settings['site_logo']) }}" alt="{{ $settings['site_name'] ?: 'Logo he thong' }}">
+                    @else
+                        <span>K</span>
+                    @endif
+                </div>
+                <div>
+                    <div class="brand-kicker">Cong thong tin cong khai</div>
+                    <div class="brand-name">{{ $settings['site_name'] ?: 'Khai Tri Education' }}</div>
+                </div>
+            </div>
+            <p class="footer-copy">
+                Trang chu cong khai danh cho nguoi dung chua co tai khoan: xem khoa hoc, xem giang vien noi bat va kiem tra thong tin lien he do admin cau hinh.
+            </p>
+        </div>
+
+        <div>
+            <h3>Lien he</h3>
+            <ul class="footer-list">
+                @if(filled($settings['hotline']))
+                    <li><i class="fas fa-phone-alt"></i><a href="tel:{{ preg_replace('/\s+/', '', $settings['hotline']) }}">{{ $settings['hotline'] }}</a></li>
+                @endif
+                @if(filled($settings['email']))
+                    <li><i class="far fa-envelope"></i><a href="mailto:{{ $settings['email'] }}">{{ $settings['email'] }}</a></li>
+                @endif
+                @if(filled($settings['address']))
+                    <li class="address-line">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <div>{!! $settings['address'] !!}</div>
+                    </li>
+                @endif
+            </ul>
+        </div>
+
+        <div>
+            <h3>Mang xa hoi</h3>
+            <div class="social-links-public">
+                @if(filled($settings['facebook']))
+                    <a href="{{ $settings['facebook'] }}" target="_blank" rel="noopener noreferrer">Facebook</a>
+                @endif
+                @if(filled($settings['zalo']))
+                    <a href="{{ $settings['zalo'] }}" target="_blank" rel="noopener noreferrer">Zalo</a>
+                @endif
+                <a href="{{ route('home') }}#courses">Khoa hoc</a>
+                <a href="{{ route('dang-ky') }}">Dang ky</a>
+            </div>
         </div>
     </div>
 </footer>
-
-@push('scripts')
-<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-<script>
-    AOS.init({
-        duration: 800,
-        easing: 'ease-in-out',
-        once: true
-    });
-</script>
-@endpush
-
 @endsection
+
+@push('styles')
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+    :root {
+        --home-bg: #f8f5ee;
+        --ink: #10231f;
+        --muted: #5e6f6b;
+        --brand: #0f766e;
+        --brand-dark: #0b5d56;
+        --accent-soft: rgba(245, 158, 11, 0.14);
+        --shadow-lg: 0 30px 60px rgba(18, 40, 35, 0.12);
+        --shadow-md: 0 18px 36px rgba(18, 40, 35, 0.10);
+        --radius-xl: 32px;
+        --radius-md: 18px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+        background: radial-gradient(circle at top left, #fff7e4 0%, var(--home-bg) 48%, #f7fbf8 100%);
+        color: var(--ink);
+        font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    h1, h2, h3, h4, .brand-name {
+        font-family: 'Space Grotesk', sans-serif;
+        letter-spacing: -0.03em;
+    }
+
+    a { text-decoration: none; }
+
+    .announcement-bar {
+        background: linear-gradient(90deg, #103f3b, #0f766e 52%, #127c73);
+        color: #f7fffb;
+        padding: 0.9rem 0;
+    }
+
+    .announcement-inner {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 1rem;
+        align-items: start;
+    }
+
+    .announcement-label {
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        opacity: 0.8;
+    }
+
+    .announcement-content {
+        font-size: 0.95rem;
+        line-height: 1.7;
+    }
+
+    .announcement-content p:last-child { margin-bottom: 0; }
+
+    .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 1100;
+        backdrop-filter: blur(18px);
+        background: rgba(248, 245, 238, 0.78);
+        border-bottom: 1px solid rgba(16, 35, 31, 0.08);
+    }
+
+    .header-shell {
+        min-height: 86px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .brand-mark {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.9rem;
+        color: var(--ink);
+    }
+
+    .brand-logo {
+        width: 54px;
+        height: 54px;
+        border-radius: 18px;
+        background: linear-gradient(145deg, #0f766e, #1f9d89);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        color: #fff;
+        font-weight: 700;
+        font-size: 1.2rem;
+        box-shadow: 0 14px 28px rgba(15, 118, 110, 0.24);
+    }
+
+    .brand-logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .brand-kicker {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: var(--muted);
+        margin-bottom: 0.15rem;
+    }
+
+    .brand-name {
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
+
+    .site-nav {
+        display: flex;
+        align-items: center;
+        gap: 1.2rem;
+    }
+
+    .site-nav a {
+        color: var(--muted);
+        font-weight: 600;
+        transition: color 0.2s ease;
+    }
+
+    .site-nav a:hover { color: var(--brand); }
+
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .contact-pill,
+    .btn-primary-surface,
+    .btn-outline-surface,
+    .btn-ghost-surface {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.55rem;
+        min-height: 48px;
+        border-radius: 999px;
+        padding: 0 1.15rem;
+        font-weight: 700;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
+    }
+
+    .contact-pill:hover,
+    .btn-primary-surface:hover,
+    .btn-outline-surface:hover,
+    .btn-ghost-surface:hover { transform: translateY(-1px); }
+
+    .contact-pill {
+        background: rgba(15, 118, 110, 0.10);
+        color: var(--brand-dark);
+        border: 1px solid rgba(15, 118, 110, 0.12);
+    }
+
+    .btn-primary-surface {
+        background: linear-gradient(135deg, #0f766e, #0a5d56);
+        color: #fff;
+        box-shadow: 0 14px 28px rgba(15, 118, 110, 0.20);
+    }
+
+    .btn-outline-surface {
+        background: transparent;
+        color: var(--ink);
+        border: 1px solid rgba(16, 35, 31, 0.16);
+    }
+
+    .btn-ghost-surface {
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--ink);
+        border: 1px solid rgba(16, 35, 31, 0.08);
+    }
+
+    .hero-edu {
+        position: relative;
+        overflow: hidden;
+        padding: 6rem 0 4rem;
+    }
+
+    .hero-backdrop {
+        position: absolute;
+        border-radius: 999px;
+        filter: blur(20px);
+        opacity: 0.55;
+        pointer-events: none;
+    }
+
+    .hero-backdrop-one {
+        width: 380px;
+        height: 380px;
+        background: rgba(245, 158, 11, 0.16);
+        top: -70px;
+        left: -80px;
+    }
+
+    .hero-backdrop-two {
+        width: 420px;
+        height: 420px;
+        background: rgba(15, 118, 110, 0.12);
+        right: -110px;
+        bottom: -120px;
+    }
+
+    .hero-grid {
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+        gap: 2rem;
+        align-items: start;
+    }
+
+    .hero-badge,
+    .section-kicker,
+    .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.45rem 0.85rem;
+        border-radius: 999px;
+        background: rgba(15, 118, 110, 0.08);
+        color: var(--brand-dark);
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+    }
+
+    .hero-copy h1 {
+        font-size: clamp(2.8rem, 5vw, 5rem);
+        line-height: 1.02;
+        margin: 1.15rem 0 1.3rem;
+        max-width: 10ch;
+    }
+
+    .hero-lead {
+        font-size: 1.08rem;
+        line-height: 1.85;
+        color: var(--muted);
+        max-width: 60ch;
+    }
+
+    .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.85rem;
+        margin: 2rem 0;
+    }
+
+    .hero-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .metric-card,
+    .spotlight-card,
+    .contact-surface,
+    .course-card,
+    .instructor-card-public,
+    .empty-public-block {
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.65);
+        box-shadow: var(--shadow-md);
+        backdrop-filter: blur(10px);
+    }
+
+    .metric-card {
+        border-radius: var(--radius-md);
+        padding: 1.15rem;
+    }
+
+    .metric-label {
+        display: block;
+        color: var(--muted);
+        font-size: 0.84rem;
+        margin-bottom: 0.65rem;
+    }
+
+    .metric-card strong {
+        display: block;
+        font-size: 2rem;
+        line-height: 1;
+    }
+
+    .metric-card small {
+        display: block;
+        color: var(--muted);
+        margin-top: 0.65rem;
+    }
+
+    .hero-side {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .spotlight-card,
+    .contact-surface {
+        border-radius: var(--radius-xl);
+        padding: 1.6rem;
+    }
+
+    .spotlight-head,
+    .spotlight-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .spotlight-card h2 {
+        margin: 1rem 0 0.8rem;
+        font-size: 1.85rem;
+    }
+
+    .spotlight-card p,
+    .contact-surface p {
+        color: var(--muted);
+        line-height: 1.8;
+    }
+
+    .spotlight-meta {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.9rem;
+        margin: 1.4rem 0;
+    }
+
+    .spotlight-meta div {
+        padding: 0.95rem 1rem;
+        border-radius: 18px;
+        background: rgba(245, 237, 224, 0.78);
+        border: 1px solid rgba(16, 35, 31, 0.06);
+    }
+
+    .spotlight-meta span,
+    .course-data-grid span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.82rem;
+        margin-bottom: 0.35rem;
+    }
+
+    .spotlight-meta strong,
+    .course-data-grid strong { font-size: 1rem; }
+
+    .status-pill,
+    .level-pill,
+    .date-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.45rem 0.8rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+
+    .status-live {
+        background: rgba(16, 185, 129, 0.16);
+        color: #0f8a61;
+    }
+
+    .status-ready {
+        background: rgba(59, 130, 246, 0.14);
+        color: #2563eb;
+    }
+
+    .status-waiting {
+        background: rgba(245, 158, 11, 0.16);
+        color: #c57900;
+    }
+
+    .level-basic {
+        background: rgba(15, 118, 110, 0.12);
+        color: var(--brand-dark);
+    }
+
+    .level-mid {
+        background: rgba(245, 158, 11, 0.16);
+        color: #ba6b00;
+    }
+
+    .level-advanced {
+        background: rgba(190, 24, 93, 0.14);
+        color: #be185d;
+    }
+
+    .date-pill {
+        background: rgba(16, 35, 31, 0.07);
+        color: var(--ink);
+    }
+
+    .contact-surface h3 {
+        margin: 0.9rem 0 0.35rem;
+        font-size: 1.5rem;
+    }
+
+    .contact-list {
+        list-style: none;
+        padding: 0;
+        margin: 1.35rem 0 0;
+        display: grid;
+        gap: 0.9rem;
+    }
+
+    .contact-list li {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        color: var(--ink);
+    }
+
+    .contact-list i {
+        width: 1.1rem;
+        color: var(--brand);
+        text-align: center;
+    }
+
+    .contact-list a { color: var(--ink); }
+
+    .banner-spotlight,
+    .category-wave,
+    .courses-zone,
+    .cta-strip,
+    .instructors-zone {
+        padding: 2rem 0 4rem;
+    }
+
+    .spotlight-carousel,
+    .banner-frame {
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+    }
+
+    .banner-frame {
+        position: relative;
+        min-height: 430px;
+        box-shadow: var(--shadow-lg);
+        background: #1a2a27;
+    }
+
+    .banner-frame img {
+        width: 100%;
+        height: 430px;
+        object-fit: cover;
+        opacity: 0.8;
+    }
+
+    .banner-overlay {
+        position: absolute;
+        inset: 0;
+        padding: 2.5rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: end;
+        background: linear-gradient(180deg, rgba(8, 20, 18, 0.05), rgba(8, 20, 18, 0.72));
+        color: #fff;
+    }
+
+    .banner-overlay h2 {
+        font-size: clamp(2rem, 3vw, 3.3rem);
+        margin: 1rem 0 0.65rem;
+    }
+
+    .banner-copy {
+        max-width: 60ch;
+        line-height: 1.8;
+        margin-bottom: 1.35rem;
+    }
+
+    .section-heading {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(260px, 0.7fr);
+        gap: 1rem;
+        align-items: end;
+        margin-bottom: 1.8rem;
+    }
+
+    .section-heading h2 {
+        margin: 0.8rem 0 0;
+        font-size: clamp(2rem, 3vw, 3rem);
+    }
+
+    .section-heading p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.75;
+    }
+
+    .category-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.85rem;
+    }
+
+    .category-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.9rem;
+        padding: 0.9rem 1.15rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.84);
+        border: 1px solid rgba(16, 35, 31, 0.08);
+        color: var(--ink);
+        font-weight: 700;
+        box-shadow: 0 12px 24px rgba(16, 35, 31, 0.06);
+    }
+
+    .category-chip strong {
+        min-width: 2rem;
+        height: 2rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        background: rgba(15, 118, 110, 0.12);
+        color: var(--brand-dark);
+    }
+
+    .category-chip.is-active {
+        background: linear-gradient(135deg, #0f766e, #0c5c55);
+        color: #fff;
+    }
+
+    .category-chip.is-active strong {
+        background: rgba(255, 255, 255, 0.16);
+        color: #fff;
+    }
+
+    .course-filter {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr auto;
+        gap: 1rem;
+        padding: 1.2rem;
+        border-radius: 26px;
+        background: rgba(255, 255, 255, 0.84);
+        box-shadow: var(--shadow-md);
+        margin-bottom: 1.8rem;
+        border: 1px solid rgba(255, 255, 255, 0.7);
+    }
+
+    .filter-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+    }
+
+    .filter-field label {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
+
+    .filter-field input,
+    .filter-field select {
+        width: 100%;
+        min-height: 52px;
+        border-radius: 16px;
+        border: 1px solid rgba(16, 35, 31, 0.12);
+        background: rgba(255, 253, 248, 0.94);
+        padding: 0 1rem;
+        color: var(--ink);
+    }
+
+    .filter-actions {
+        display: flex;
+        align-items: end;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .course-grid,
+    .instructor-grid,
+    .footer-grid {
+        display: grid;
+        gap: 1.3rem;
+    }
+
+    .course-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .course-card {
+        border-radius: 30px;
+        overflow: hidden;
+    }
+
+    .course-cover {
+        position: relative;
+        height: 220px;
+        background: linear-gradient(145deg, #114a45, #0f766e);
+    }
+
+    .course-cover img,
+    .instructor-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .course-overlay-top {
+        position: absolute;
+        inset: 1rem 1rem auto 1rem;
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .course-cover-fallback,
+    .instructor-avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .course-cover-fallback {
+        height: 100%;
+        font-size: 4rem;
+        background: linear-gradient(135deg, #0f766e, #1b9c74, #f59e0b);
+    }
+
+    .course-body { padding: 1.35rem; }
+
+    .course-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        color: var(--muted);
+        font-size: 0.88rem;
+        margin-bottom: 0.85rem;
+    }
+
+    .course-body h3 {
+        font-size: 1.45rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .course-body p {
+        color: var(--muted);
+        line-height: 1.75;
+        min-height: 4.9rem;
+    }
+
+    .course-data-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.85rem;
+        margin: 1.2rem 0 1.25rem;
+    }
+
+    .course-data-grid > div {
+        background: rgba(245, 237, 224, 0.68);
+        border-radius: 18px;
+        padding: 0.9rem 1rem;
+    }
+
+    .course-actions {
+        display: flex;
+        gap: 0.7rem;
+        flex-wrap: wrap;
+    }
+
+    .cta-strip { padding-top: 0; }
+
+    .cta-grid {
+        border-radius: 36px;
+        background: linear-gradient(135deg, #10231f 0%, #0f4e49 55%, #106b62 100%);
+        color: #fff;
+        padding: 2rem;
+        box-shadow: var(--shadow-lg);
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 1.5rem;
+        align-items: center;
+    }
+
+    .cta-grid h2 {
+        margin: 0.8rem 0 0;
+        max-width: 18ch;
+    }
+
+    .cta-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .cta-grid .btn-outline-surface {
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.24);
+    }
+
+    .instructor-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .instructor-card-public {
+        border-radius: 28px;
+        padding: 1.35rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .instructor-avatar {
+        width: 84px;
+        height: 84px;
+        border-radius: 24px;
+        overflow: hidden;
+        background: linear-gradient(135deg, #0f766e, #f59e0b);
+        font-size: 2rem;
+    }
+
+    .instructor-badge {
+        display: inline-flex;
+        padding: 0.45rem 0.75rem;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: #b66900;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+
+    .instructor-copy h3 {
+        margin: 0.8rem 0 0.55rem;
+        font-size: 1.45rem;
+    }
+
+    .instructor-copy p {
+        color: var(--muted);
+        line-height: 1.7;
+    }
+
+    .instructor-foot {
+        margin-top: auto;
+        display: grid;
+        gap: 0.55rem;
+        color: var(--muted);
+        font-size: 0.94rem;
+    }
+
+    .instructor-foot span {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+
+    .site-footer {
+        padding: 2.5rem 0 3rem;
+        background: #10231f;
+        color: rgba(255, 255, 255, 0.78);
+    }
+
+    .footer-grid {
+        grid-template-columns: 1.15fr 1fr 0.8fr;
+        align-items: start;
+    }
+
+    .footer-brand {
+        color: #fff;
+        margin-bottom: 1rem;
+    }
+
+    .footer-copy {
+        max-width: 48ch;
+        line-height: 1.85;
+    }
+
+    .site-footer h3 {
+        color: #fff;
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+    }
+
+    .footer-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 0.8rem;
+    }
+
+    .footer-list li {
+        display: flex;
+        align-items: start;
+        gap: 0.75rem;
+    }
+
+    .footer-list i {
+        width: 1rem;
+        color: #f8c36d;
+        margin-top: 0.2rem;
+    }
+
+    .footer-list a,
+    .social-links-public a {
+        color: rgba(255, 255, 255, 0.88);
+    }
+
+    .social-links-public {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .empty-public-block {
+        border-radius: 28px;
+        padding: 1.5rem;
+        text-align: center;
+        color: var(--muted);
+    }
+
+    .empty-public-block.large {
+        padding: 2.5rem 1.5rem;
+        grid-column: 1 / -1;
+    }
+
+    .pagination-shell {
+        margin-top: 2rem;
+        display: flex;
+        justify-content: center;
+    }
+
+    .pagination-shell .pagination { gap: 0.35rem; }
+
+    .pagination-shell .page-link {
+        border-radius: 999px;
+        border: none;
+        color: var(--ink);
+        min-width: 44px;
+        height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 10px 20px rgba(16, 35, 31, 0.08);
+    }
+
+    .pagination-shell .active > .page-link {
+        background: var(--brand);
+        color: #fff;
+    }
+
+    @media (max-width: 1199px) {
+        .hero-grid,
+        .section-heading,
+        .cta-grid,
+        .footer-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .course-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .instructor-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .course-filter {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 991px) {
+        .header-shell,
+        .header-actions {
+            flex-wrap: wrap;
+        }
+
+        .site-nav {
+            width: 100%;
+            order: 3;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .hero-copy h1 {
+            max-width: none;
+        }
+
+        .hero-metrics {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .hero-edu { padding-top: 4rem; }
+
+        .course-grid,
+        .instructor-grid,
+        .course-filter,
+        .announcement-inner {
+            grid-template-columns: 1fr;
+        }
+
+        .brand-mark { width: 100%; }
+
+        .header-actions {
+            width: 100%;
+            justify-content: flex-start;
+        }
+
+        .banner-frame,
+        .banner-frame img {
+            min-height: 360px;
+            height: 360px;
+        }
+
+        .banner-overlay { padding: 1.5rem; }
+
+        .spotlight-meta,
+        .course-data-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+@endpush

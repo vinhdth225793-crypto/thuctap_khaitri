@@ -31,7 +31,11 @@
                 <div class="col-md-4 text-md-end mt-3 mt-md-0">
                     <div class="d-flex justify-content-md-end gap-2">
                         <div class="text-center bg-white bg-opacity-10 rounded-3 p-2 px-3">
-                            <h5 class="mb-0 fw-bold">{{ $lichHocs->count() }}</h5>
+                            <h5 class="mb-0 fw-bold">{{ $stats['tong_module'] }}</h5>
+                            <small class="smaller opacity-75">Module</small>
+                        </div>
+                        <div class="text-center bg-white bg-opacity-10 rounded-3 p-2 px-3">
+                            <h5 class="mb-0 fw-bold">{{ $stats['tong_buoi_hoc'] }}</h5>
                             <small class="smaller opacity-75">Buổi học</small>
                         </div>
                     </div>
@@ -44,21 +48,59 @@
         <!-- Main Content: Timeline of Sessions -->
         <div class="col-lg-8">
             <h5 class="fw-bold mb-3 d-flex align-items-center">
-                <i class="fas fa-stream me-2 text-primary"></i> Lộ trình bài giảng & Tài liệu
+                <i class="fas fa-stream me-2 text-primary"></i> Danh sách buổi học và tài liệu công khai
             </h5>
-            
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-4 col-sm-6">
+                    <div class="vip-card border-0 shadow-sm p-3 h-100">
+                        <div class="text-muted text-uppercase smaller fw-bold">Tổng module</div>
+                        <div class="fs-4 fw-bold text-dark">{{ $stats['tong_module'] }}</div>
+                        <div class="small text-muted">Trong khóa học này</div>
+                    </div>
+                </div>
+                <div class="col-md-4 col-sm-6">
+                    <div class="vip-card border-0 shadow-sm p-3 h-100">
+                        <div class="text-muted text-uppercase smaller fw-bold">Module có lịch</div>
+                        <div class="fs-4 fw-bold text-primary">{{ $stats['module_co_lich'] }}</div>
+                        <div class="small text-muted">Đã có buổi học cụ thể</div>
+                    </div>
+                </div>
+                <div class="col-md-4 col-sm-6">
+                    <div class="vip-card border-0 shadow-sm p-3 h-100">
+                        <div class="text-muted text-uppercase smaller fw-bold">Buổi online</div>
+                        <div class="fs-4 fw-bold text-info">{{ $stats['buoi_online'] }}</div>
+                        <div class="small text-muted">Có link học trực tuyến</div>
+                    </div>
+                </div>
+            </div>
+
             <div class="session-timeline">
-                @foreach($lichHocs->groupBy('module_hoc_id') as $moduleId => $sessions)
-                    @php $module = $sessions->first()->moduleHoc; @endphp
+                @forelse($khoaHoc->moduleHocs as $module)
                     <div class="module-group mb-4">
                         <div class="module-header bg-light p-3 rounded-3 border-start border-4 border-primary mb-3 shadow-xs">
-                            <h6 class="fw-bold mb-0 text-dark">
-                                <i class="fas fa-folder-open me-2 text-warning"></i> Module: {{ $module->ten_module }}
-                            </h6>
+                            <div class="d-flex justify-content-between align-items-start gap-3">
+                                <div>
+                                    <div class="smaller text-muted mb-1">
+                                        <i class="fas fa-hashtag me-1"></i>{{ $module->ma_module }}
+                                    </div>
+                                    <h6 class="fw-bold mb-0 text-dark">
+                                        <i class="fas fa-folder-open me-2 text-warning"></i> Module: {{ $module->ten_module }}
+                                    </h6>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-primary-soft text-primary border-0 shadow-xs">
+                                        {{ $module->lichHocs->count() }} buổi
+                                    </span>
+                                    @if(!is_null($module->so_buoi))
+                                        <div class="smaller text-muted mt-1">Kế hoạch: {{ $module->so_buoi }} buổi</div>
+                                    @endif
+                                </div>
+                            </div>
                         </div>
 
                         <div class="session-list">
-                            @foreach($sessions as $lich)
+                            @forelse($module->lichHocs as $lich)
                                 <div class="card vip-card border-0 shadow-sm mb-3 session-item overflow-hidden">
                                     <div class="card-body p-0">
                                         <div class="d-flex align-items-stretch">
@@ -73,12 +115,6 @@
                                                         <h6 class="fw-bold text-dark mb-1">Buổi #{{ $lich->buoi_so }}</h6>
                                                         <div class="smaller text-muted">
                                                             <i class="far fa-clock me-1"></i> {{ \Carbon\Carbon::parse($lich->gio_bat_dau)->format('H:i') }} - {{ \Carbon\Carbon::parse($lich->gio_ket_thuc)->format('H:i') }}
-                                                            <span class="mx-2">|</span>
-                                                            @if($lich->hinh_thuc === 'online')
-                                                                <span class="text-info"><i class="fas fa-video me-1"></i> Học Online</span>
-                                                            @else
-                                                                <span class="text-success"><i class="fas fa-door-open me-1"></i> Tại lớp: {{ $lich->phong_hoc }}</span>
-                                                            @endif
                                                         </div>
                                                     </div>
                                                     <div class="text-end">
@@ -88,54 +124,130 @@
                                                     </div>
                                                 </div>
 
-                                                @if($lich->hinh_thuc === 'online' && $lich->link_online && $lich->trang_thai === 'dang_hoc')
-                                                    <div class="alert alert-info py-2 px-3 small border-0 mb-3 shadow-xs d-flex justify-content-between align-items-center">
-                                                        <span><i class="fas fa-broadcast-tower me-2"></i> Buổi học đang diễn ra Online</span>
-                                                        <a href="{{ $lich->link_online }}" target="_blank" class="btn btn-sm btn-info text-white fw-bold px-3">VÀO PHÒNG HỌC</a>
+                                                <div class="row g-3 smaller text-muted">
+                                                    <div class="col-md-4">
+                                                        <div class="fw-bold text-dark mb-1">Hình thức học</div>
+                                                        <span class="badge bg-{{ $lich->hinh_thuc_color }}-soft text-{{ $lich->hinh_thuc_color }} border-0">
+                                                            <i class="fas {{ $lich->hinh_thuc === 'online' ? 'fa-video' : 'fa-door-open' }} me-1"></i>{{ $lich->hinh_thuc_label }}
+                                                        </span>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <div class="fw-bold text-dark mb-1">{{ $lich->hinh_thuc === 'online' ? 'Trạng thái phòng học' : 'Phòng học' }}</div>
+                                                        @if($lich->hinh_thuc === 'online')
+                                                            <span class="badge bg-{{ $lich->online_join_state_color }}-soft text-{{ $lich->online_join_state_color }} border-0">
+                                                                {{ $lich->online_join_state_label }}
+                                                            </span>
+                                                            <div class="mt-2">{{ $lich->online_join_message }}</div>
+                                                        @else
+                                                            <span>{{ $lich->phong_hoc ?: 'Chưa cập nhật phòng học' }}</span>
+                                                        @endif
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <div class="fw-bold text-dark mb-1">Ghi chú</div>
+                                                        <span>{{ $lich->ghi_chu ?: 'Chưa có ghi chú cho buổi học này' }}</span>
+                                                    </div>
+                                                </div>
+
+                                                @if($lich->hinh_thuc === 'online')
+                                                    <div class="alert alert-{{ $lich->online_join_state_color }} py-3 px-3 small border-0 mt-3 mb-0 shadow-xs">
+                                                        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                                                            <div class="flex-grow-1">
+                                                                <div class="fw-bold mb-1">
+                                                                    <i class="fas fa-broadcast-tower me-2"></i>Lớp học online
+                                                                </div>
+                                                                <div>{{ $lich->online_join_message }}</div>
+
+                                                                <div class="d-flex flex-wrap gap-3 mt-2 smaller">
+                                                                    <span><i class="fas fa-layer-group me-1"></i>Nền tảng: {{ $lich->nen_tang_label }}</span>
+                                                                    @if($lich->can_join_online && $lich->meeting_id)
+                                                                        <span><i class="fas fa-id-card me-1"></i>Meeting ID: {{ $lich->meeting_id }}</span>
+                                                                    @endif
+                                                                    @if($lich->can_join_online && $lich->mat_khau_cuoc_hop)
+                                                                        <span><i class="fas fa-key me-1"></i>Mật khẩu: {{ $lich->mat_khau_cuoc_hop }}</span>
+                                                                    @endif
+                                                                </div>
+                                                            </div>
+
+                                                            @if($lich->can_join_online)
+                                                                <a href="{{ $lich->link_online }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-info text-white fw-bold px-3">
+                                                                    VÀO PHÒNG HỌC
+                                                                </a>
+                                                            @endif
+                                                        </div>
                                                     </div>
                                                 @endif
 
-                                                {{-- Resources List (Phase 3 Upgrade) --}}
                                                 <div class="resource-area mt-3 pt-3 border-top border-light">
-                                                    @if($lich->taiNguyen->count() > 0)
-                                                        <p class="smaller fw-bold text-muted mb-3"><i class="fas fa-layer-group me-1"></i> Tài liệu học tập:</p>
+                                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                                        <p class="smaller fw-bold text-muted mb-0">
+                                                            <i class="fas fa-layer-group me-1"></i> Tài liệu công khai
+                                                        </p>
+                                                        <span class="badge bg-light text-dark border">{{ $lich->taiNguyen->count() }}</span>
+                                                    </div>
+
+                                                    @if($lich->taiNguyen->isNotEmpty())
                                                         <div class="row g-3">
                                                             @foreach($lich->taiNguyen as $tn)
                                                                 <div class="col-md-6">
-                                                                    <div class="p-3 rounded-3 border bg-white h-100 hover-bg-light transition-all shadow-xs d-flex align-items-start">
-                                                                        <div class="bg-{{ $tn->loai_color }}-soft rounded-circle text-{{ $tn->loai_color }} d-flex align-items-center justify-content-center me-3" style="width: 38px; height: 38px; flex-shrink: 0;">
-                                                                            <i class="fas {{ $tn->loai_icon }}"></i>
+                                                                    <div class="p-3 rounded-3 border bg-white h-100 shadow-xs d-flex align-items-start resource-card">
+                                                                        <div class="bg-{{ $tn->loai_color }}-soft rounded-circle text-{{ $tn->loai_color }} d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; flex-shrink: 0;">
+                                                                            <i class="fas {{ $tn->is_external ? 'fa-link' : $tn->loai_icon }}"></i>
                                                                         </div>
                                                                         <div class="min-w-0 flex-grow-1">
-                                                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                                                            <div class="d-flex flex-wrap gap-2 mb-2">
                                                                                 <span class="badge bg-{{ $tn->loai_color }}-soft text-{{ $tn->loai_color }} border-0 smaller py-1 px-2">{{ $tn->loai_label }}</span>
-                                                                                <span class="smaller text-muted">{{ $tn->created_at->format('d/m/Y') }}</span>
+                                                                                <span class="badge bg-{{ $tn->nguon_hien_thi_color }}-soft text-{{ $tn->nguon_hien_thi_color }} border-0 smaller py-1 px-2">{{ $tn->nguon_hien_thi_label }}</span>
                                                                             </div>
-                                                                            <h6 class="smaller fw-bold text-dark mb-2 text-truncate" title="{{ $tn->tieu_de }}">{{ $tn->tieu_de }}</h6>
 
-                                                                            @if($tn->is_file_exists)
-                                                                                <div class="d-flex align-items-center gap-2 mt-2">
-                                                                                    <button type="button" class="btn btn-xs btn-primary fw-bold px-3 btn-view-resource"
+                                                                            <h6 class="small fw-bold text-dark mb-2" title="{{ $tn->tieu_de }}">{{ $tn->tieu_de }}</h6>
+                                                                            <p class="smaller text-muted mb-2">
+                                                                                {{ $tn->mo_ta ?: 'Chưa có mô tả cho tài nguyên này.' }}
+                                                                            </p>
+
+                                                                            @if($tn->is_external)
+                                                                                <div class="smaller text-info mb-2 text-break">
+                                                                                    <i class="fas fa-external-link-alt me-1"></i>{{ $tn->file_url }}
+                                                                                </div>
+                                                                            @elseif($tn->original_file_name)
+                                                                                <div class="smaller text-muted mb-2 text-break">
+                                                                                    <i class="fas fa-file me-1"></i>{{ $tn->original_file_name }}
+                                                                                </div>
+                                                                            @endif
+
+                                                                            @if($tn->file_url)
+                                                                                <div class="d-flex flex-wrap gap-2 mt-2">
+                                                                                    <button type="button"
+                                                                                            class="btn btn-sm btn-primary fw-bold px-3 btn-view-resource"
                                                                                             data-title="{{ $tn->tieu_de }}"
                                                                                             data-loai="{{ $tn->loai_label }}"
                                                                                             data-desc="{{ $tn->mo_ta ?: 'Không có mô tả.' }}"
                                                                                             data-url="{{ $tn->file_url }}"
                                                                                             data-color="{{ $tn->loai_color }}"
-                                                                                            data-icon="{{ $tn->loai_icon }}"
+                                                                                            data-icon="{{ $tn->is_external ? 'fa-link' : $tn->loai_icon }}"
                                                                                             data-downloadable="{{ $tn->is_downloadable ? 'true' : 'false' }}"
-                                                                                            data-filename="{{ $tn->original_file_name }}">
+                                                                                            data-openable="{{ ($tn->is_external || $tn->is_file_exists) ? 'true' : 'false' }}"
+                                                                                            data-filename="{{ $tn->original_file_name }}"
+                                                                                            data-source="{{ $tn->nguon_hien_thi_label }}"
+                                                                                            data-status="{{ $tn->file_status_message }}">
                                                                                         <i class="fas fa-info-circle me-1"></i> Xem chi tiết
                                                                                     </button>
-                                                                                    @if($tn->is_downloadable)
-                                                                                        <a href="{{ $tn->file_url }}" download="{{ $tn->original_file_name }}" class="btn btn-xs btn-outline-success fw-bold px-3">
+
+                                                                                    @if($tn->is_external)
+                                                                                        <a href="{{ $tn->file_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-info fw-bold px-3">
+                                                                                            <i class="fas fa-link me-1"></i> Mở liên kết
+                                                                                        </a>
+                                                                                    @elseif($tn->is_downloadable)
+                                                                                        <a href="{{ $tn->file_url }}" download="{{ $tn->original_file_name }}" class="btn btn-sm btn-outline-success fw-bold px-3">
                                                                                             <i class="fas fa-download me-1"></i> Tải về
                                                                                         </a>
                                                                                     @endif
                                                                                 </div>
-                                                                            @else
-                                                                                <span class="smaller fw-bold text-danger d-block" title="Tệp không tồn tại">
-                                                                                    <i class="fas fa-exclamation-triangle me-1"></i> Liên hệ giảng viên (Lỗi file)
-                                                                                </span>
+                                                                            @endif
+
+                                                                            @if(!$tn->is_external && !$tn->is_file_exists)
+                                                                                <div class="alert alert-warning border-0 py-2 px-3 small mt-3 mb-0">
+                                                                                    <i class="fas fa-exclamation-triangle me-1"></i>{{ $tn->file_status_message }}
+                                                                                </div>
                                                                             @endif
                                                                         </div>
                                                                     </div>
@@ -143,18 +255,25 @@
                                                             @endforeach
                                                         </div>
                                                     @else
-                                                        <span class="smaller text-muted italic">Chưa có tài liệu đính kèm cho buổi này.</span>
+                                                        <span class="smaller text-muted italic">Buổi học này chưa có tài liệu công khai.</span>
                                                     @endif
                                                 </div>
-
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            @endforeach
+                            @empty
+                                <div class="alert alert-light border shadow-xs smaller text-muted mb-3">
+                                    <i class="fas fa-calendar-times me-2"></i> Module này chưa có buổi học nào được lên lịch.
+                                </div>
+                            @endforelse
                         </div>
                     </div>
-                @endforeach
+                @empty
+                    <div class="alert alert-light border shadow-sm text-muted">
+                        <i class="fas fa-folder-open me-2"></i> Khóa học này hiện chưa có module nào để hiển thị.
+                    </div>
+                @endforelse
             </div>
         </div>
 
@@ -183,6 +302,14 @@
                         <div class="col-6">
                             <label class="text-muted d-block smaller">Trình độ</label>
                             <span class="fw-bold text-dark text-capitalize">{{ ['co_ban'=>'Cơ bản','trung_binh'=>'Trung bình','nang_cao'=>'Nâng cao'][$khoaHoc->cap_do] ?? 'N/A' }}</span>
+                        </div>
+                        <div class="col-6">
+                            <label class="text-muted d-block smaller">Trạng thái ghi danh</label>
+                            <span class="badge {{ $ghiDanh->trang_thai_badge }}">{{ $ghiDanh->trang_thai_label }}</span>
+                        </div>
+                        <div class="col-6">
+                            <label class="text-muted d-block smaller">Ngày ghi danh</label>
+                            <span class="fw-bold text-dark">{{ $ghiDanh->ngay_tham_gia?->format('d/m/Y') ?: '—' }}</span>
                         </div>
                         <div class="col-12">
                             <hr class="my-2 opacity-50">
@@ -218,6 +345,16 @@
                     <label class="smaller text-muted d-block mb-1">Hướng dẫn / Mô tả nội dung</label>
                     <div id="res-detail-desc" class="p-3 bg-light rounded border small text-dark lh-base"></div>
                 </div>
+
+                <div class="mt-3">
+                    <label class="smaller text-muted d-block mb-1">Nguồn tài nguyên</label>
+                    <div id="res-detail-source" class="small text-dark fw-semibold"></div>
+                </div>
+
+                <div class="mt-3">
+                    <label class="smaller text-muted d-block mb-1">Trạng thái truy cập</label>
+                    <div id="res-detail-status" class="small text-muted"></div>
+                </div>
             </div>
             <div class="modal-footer border-0 p-3 justify-content-center gap-2 bg-light">
                 <a id="res-detail-open" href="#" target="_blank" class="btn btn-primary px-4 fw-bold shadow-sm">
@@ -244,6 +381,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Đổ dữ liệu
             document.getElementById('res-detail-title').textContent = d.title;
             document.getElementById('res-detail-desc').innerHTML = d.desc.replace(/\n/g, '<br>');
+            document.getElementById('res-detail-source').textContent = d.source;
+            document.getElementById('res-detail-status').textContent = d.status;
             
             // UI
             const badge = document.getElementById('res-detail-badge');
@@ -258,7 +397,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Link actions
             const openBtn = document.getElementById('res-detail-open');
-            openBtn.href = d.url;
+            if (d.openable === 'true') {
+                openBtn.style.display = 'inline-block';
+                openBtn.href = d.url;
+            } else {
+                openBtn.style.display = 'none';
+                openBtn.removeAttribute('href');
+            }
             
             const downloadBtn = document.getElementById('res-detail-download');
             if (d.downloadable === 'true') {
@@ -290,6 +435,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     .session-item { border-radius: 12px; }
     .session-date { background: #f8f9fa; }
+    .resource-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .resource-card:hover { transform: translateY(-2px); box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.08) !important; }
     
     .module-group .module-header {
         position: relative;

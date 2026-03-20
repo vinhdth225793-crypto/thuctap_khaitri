@@ -24,7 +24,7 @@ class CheckHocVien
         $user = Auth::user();
         
         if (!$user->isHocVien()) {
-            return redirect()->route('trang-chu')->with('error', 'Bạn không có quyền truy cập khu vực học viên.');
+            return redirect()->route('home')->with('error', 'Bạn không có quyền truy cập khu vực học viên.');
         }
 
         return $next($request);

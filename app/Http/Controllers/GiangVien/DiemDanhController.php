@@ -3,64 +3,83 @@
 namespace App\Http\Controllers\GiangVien;
 
 use App\Http\Controllers\Controller;
-use App\Models\LichHoc;
-use App\Models\HocVienKhoaHoc;
 use App\Models\DiemDanh;
+use App\Models\HocVienKhoaHoc;
+use App\Models\LichHoc;
+use App\Models\PhanCongModuleGiangVien;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class DiemDanhController extends Controller
 {
     /**
-     * Lấy danh sách học viên để hiển thị trong Modal điểm danh (Flow 4 - Phase 1)
+     * Láº¥y danh sÃ¡ch há»c viÃªn Ä‘á»ƒ hiá»ƒn thá»‹ trong Modal Ä‘iá»ƒm danh (Flow 4 - Phase 1)
      */
-    public function show($lichHocId)
+    public function show(Request $request, $lichHocId)
     {
-        $giangVien = auth()->user()->giangVien;
         $lichHoc = LichHoc::findOrFail($lichHocId);
 
-        // Lấy danh sách học viên của khóa học này
+        if ($response = $this->authorizeGiangVienForLichHoc($lichHoc, true)) {
+            return $response;
+        }
+
         $hocViens = HocVienKhoaHoc::with('hocVien')
             ->where('khoa_hoc_id', $lichHoc->khoa_hoc_id)
+            ->where('trang_thai', 'dang_hoc')
+            ->orderBy('created_at')
             ->get();
 
-        // Lấy dữ liệu điểm danh đã có (nếu giảng viên muốn sửa)
         $diemDanhs = DiemDanh::where('lich_hoc_id', $lichHocId)
             ->get()
             ->keyBy('hoc_vien_id');
 
-        $data = $hocViens->map(function($item) use ($diemDanhs) {
+        $data = $hocViens->map(function ($item) use ($diemDanhs) {
             $existing = $diemDanhs->get($item->hoc_vien_id);
+
             return [
                 'ma_nguoi_dung' => $item->hoc_vien_id,
-                'ho_ten'        => $item->hocVien ? $item->hocVien->ho_ten : 'N/A (Học viên không tồn tại)',
-                'trang_thai'    => $existing ? $existing->trang_thai : 'co_mat', // Mặc định là có mặt
-                'ghi_chu'       => $existing ? $existing->ghi_chu : '',
+                'ho_ten' => $item->hocVien ? $item->hocVien->ho_ten : 'N/A (Há»c viÃªn khÃ´ng tá»“n táº¡i)',
+                'trang_thai' => $existing ? $existing->trang_thai : null,
+                'ghi_chu' => $existing ? $existing->ghi_chu : '',
             ];
         });
 
         return response()->json([
             'success' => true,
-            'ngay'    => $lichHoc->ngay_hoc->format('d/m/Y'),
+            'ngay' => $lichHoc->ngay_hoc->format('d/m/Y'),
             'bao_cao' => $lichHoc->bao_cao_giang_vien,
             'trang_thai_bao_cao' => $lichHoc->trang_thai_bao_cao,
-            'data'    => $data
+            'data' => $data,
         ]);
     }
 
     /**
-     * Lưu hoặc cập nhật dữ liệu điểm danh (Flow 4 - Phase 2)
+     * LÆ°u hoáº·c cáº­p nháº­t dá»¯ liá»‡u Ä‘iá»ƒm danh (Flow 4 - Phase 2)
      */
     public function store(Request $request, $lichHocId)
     {
-        // Nếu không có học viên nào để điểm danh
+        $lichHoc = LichHoc::findOrFail($lichHocId);
+        $this->authorizeGiangVienForLichHoc($lichHoc);
+
+        $hocVienIds = HocVienKhoaHoc::query()
+            ->where('khoa_hoc_id', $lichHoc->khoa_hoc_id)
+            ->where('trang_thai', 'dang_hoc')
+            ->pluck('hoc_vien_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        if ($hocVienIds === []) {
+            return back()->with('info', 'KhÃ³a há»c nÃ y hiá»‡n khÃ´ng cÃ³ há»c viÃªn Ä‘ang há»c Ä‘á»ƒ Ä‘iá»ƒm danh.');
+        }
+
         if (!$request->has('attendance') || empty($request->attendance)) {
-            return back()->with('info', 'Không có dữ liệu điểm danh để lưu.');
+            return back()->with('info', 'KhÃ´ng cÃ³ dá»¯ liá»‡u Ä‘iá»ƒm danh Ä‘á»ƒ lÆ°u.');
         }
 
         $request->validate([
             'attendance' => 'required|array',
-            'attendance.*.hoc_vien_id' => 'required',
+            'attendance.*.hoc_vien_id' => ['required', 'integer', Rule::in($hocVienIds)],
             'attendance.*.trang_thai' => 'required|in:co_mat,vang_mat,vao_tre',
             'attendance.*.ghi_chu' => 'nullable|string|max:255',
         ]);
@@ -76,26 +95,28 @@ class DiemDanhController extends Controller
                     ],
                     [
                         'trang_thai' => $item['trang_thai'],
-                        'ghi_chu'    => $item['ghi_chu'] ?? null,
+                        'ghi_chu' => $item['ghi_chu'] ?? null,
                     ]
                 );
             }
 
             DB::commit();
 
-            return back()->with('success', 'Đã lưu dữ liệu điểm danh thành công.');
+            return back()->with('success', 'ÄÃ£ lÆ°u dá»¯ liá»‡u Ä‘iá»ƒm danh thÃ nh cÃ´ng.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Lỗi khi lưu điểm danh: ' . $e->getMessage());
+
+            return back()->with('error', 'Lá»—i khi lÆ°u Ä‘iá»ƒm danh: ' . $e->getMessage());
         }
     }
 
     /**
-     * Gửi báo cáo điểm danh cho Admin
+     * Gá»­i bÃ¡o cÃ¡o Ä‘iá»ƒm danh cho Admin
      */
     public function report(Request $request, $lichHocId)
     {
         $lichHoc = LichHoc::findOrFail($lichHocId);
+        $this->authorizeGiangVienForLichHoc($lichHoc);
 
         $request->validate([
             'bao_cao_giang_vien' => 'required|string|max:1000',
@@ -104,13 +125,37 @@ class DiemDanhController extends Controller
         try {
             $lichHoc->update([
                 'bao_cao_giang_vien' => $request->bao_cao_giang_vien,
-                'thoi_gian_bao_cao'  => now(),
+                'thoi_gian_bao_cao' => now(),
                 'trang_thai_bao_cao' => 'da_bao_cao',
             ]);
 
-            return back()->with('success', 'Đã gửi báo cáo điểm danh cho Admin thành công.');
+            return back()->with('success', 'ÄÃ£ gá»­i bÃ¡o cÃ¡o Ä‘iá»ƒm danh cho Admin thÃ nh cÃ´ng.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Lỗi khi gửi báo cáo: ' . $e->getMessage());
+            return back()->with('error', 'Lá»—i khi gá»­i bÃ¡o cÃ¡o: ' . $e->getMessage());
         }
+    }
+
+    private function authorizeGiangVienForLichHoc(LichHoc $lichHoc, bool $jsonResponse = false)
+    {
+        $giangVien = auth()->user()?->giangVien;
+
+        $isAssigned = $giangVien && PhanCongModuleGiangVien::query()
+            ->where('module_hoc_id', $lichHoc->module_hoc_id)
+            ->where('giao_vien_id', $giangVien->id)
+            ->where('trang_thai', 'da_nhan')
+            ->exists();
+
+        if ($isAssigned) {
+            return null;
+        }
+
+        if ($jsonResponse) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Báº¡n khÃ´ng Ä‘Æ°á»£c phÃ¢n cÃ´ng dáº¡y buá»•i há»c nÃ y.',
+            ], 403);
+        }
+
+        abort(403, 'Báº¡n khÃ´ng Ä‘Æ°á»£c phÃ¢n cÃ´ng dáº¡y buá»•i há»c nÃ y.');
     }
 }

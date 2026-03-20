@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('yeu_cau_hoc_vien', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('khoa_hoc_id');
-            $table->unsignedBigInteger('giang_vien_id');
+            $table->unsignedBigInteger('giang_vien_id')->nullable();
             $table->string('loai_yeu_cau'); // them, xoa, sua
             $table->json('du_lieu_yeu_cau'); // Luu thong tin HV can thay doi
             $table->text('ly_do')->nullable();
@@ -20,7 +20,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('khoa_hoc_id')->references('id')->on('khoa_hoc')->onDelete('cascade');
-            $table->foreign('giang_vien_id')->references('id')->on('giang_vien')->onDelete('cascade');
+            $table->foreign('giang_vien_id')->references('id')->on('giang_vien')->nullOnDelete();
         });
     }
 

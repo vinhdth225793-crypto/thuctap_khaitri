@@ -29,9 +29,45 @@
                 </div>
             </div>
         </div>
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            <a href="{{ route('hoc-vien.khoa-hoc-tham-gia') }}" class="btn btn-outline-primary fw-bold shadow-sm">
+                <i class="fas fa-user-plus me-2"></i>XIN VÀO LỚP
+            </a>
+        </div>
     </div>
 
     @include('components.alert')
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-sm-6">
+            <div class="vip-card border-0 shadow-sm p-3 h-100">
+                <div class="text-muted text-uppercase smaller fw-bold">Tổng khóa học</div>
+                <div class="fs-3 fw-bold text-dark">{{ $stats['tong'] }}</div>
+                <div class="small text-muted">Các khóa đã được ghi danh</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="vip-card border-0 shadow-sm p-3 h-100">
+                <div class="text-muted text-uppercase smaller fw-bold">Đang học</div>
+                <div class="fs-3 fw-bold text-success">{{ $stats['dang_hoc'] }}</div>
+                <div class="small text-muted">Khóa đang theo học</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="vip-card border-0 shadow-sm p-3 h-100">
+                <div class="text-muted text-uppercase smaller fw-bold">Hoàn thành</div>
+                <div class="fs-3 fw-bold text-primary">{{ $stats['hoan_thanh'] }}</div>
+                <div class="small text-muted">Khóa đã hoàn thành</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="vip-card border-0 shadow-sm p-3 h-100">
+                <div class="text-muted text-uppercase smaller fw-bold">Ngừng học</div>
+                <div class="fs-3 fw-bold text-danger">{{ $stats['ngung_hoc'] }}</div>
+                <div class="small text-muted">Khóa đang tạm dừng</div>
+            </div>
+        </div>
+    </div>
 
     <div class="row">
         @forelse($khoaHocs as $kh)
@@ -40,6 +76,7 @@
                 <div class="card vip-card border-0 shadow-sm h-100 overflow-hidden hover-lift">
                     <div class="position-relative">
                         <img src="{{ $khoa->hinh_anh ? asset($khoa->hinh_anh) : asset('images/default-course.svg') }}" 
+                             alt="{{ $khoa->ten_khoa_hoc }}"
                              class="card-img-top object-fit-cover" style="height: 180px;">
                         <div class="position-absolute top-0 end-0 m-3">
                             <span class="badge {{ $kh->trang_thai_badge }} shadow-sm px-3 py-2">
@@ -54,11 +91,19 @@
                             </span>
                         </div>
                         <h5 class="card-title fw-bold text-dark mb-3 line-clamp-2" style="height: 3rem;">{{ $khoa->ten_khoa_hoc }}</h5>
+
+                        <div class="small text-muted mb-3">
+                            <i class="fas fa-fingerprint me-1"></i>
+                            Mã khóa học: <span class="fw-semibold text-dark">{{ $khoa->ma_khoa_hoc }}</span>
+                        </div>
                         
                         <div class="row g-2 mb-4 small text-muted">
                             <div class="col-6"><i class="far fa-calendar-alt me-1"></i> Khai giảng:</div>
                             <div class="col-6 text-end fw-bold text-dark">{{ $khoa->ngay_khai_giang?->format('d/m/Y') ?: '—' }}</div>
                             
+                            <div class="col-6"><i class="fas fa-user-check me-1"></i> Ghi danh:</div>
+                            <div class="col-6 text-end fw-bold text-dark">{{ $kh->ngay_tham_gia?->format('d/m/Y') ?: '—' }}</div>
+
                             <div class="col-6"><i class="fas fa-signal me-1"></i> Trình độ:</div>
                             <div class="col-6 text-end fw-bold text-dark text-capitalize">{{ ['co_ban'=>'Cơ bản','trung_binh'=>'Trung bình','nang_cao'=>'Nâng cao'][$khoa->cap_do] ?? 'N/A' }}</div>
                         </div>
@@ -78,9 +123,18 @@
                 </div>
                 <h5 class="text-muted">Bạn chưa tham gia khóa học nào.</h5>
                 <p class="text-muted small">Hãy liên hệ với quản trị viên để được ghi danh vào lớp học.</p>
+                <a href="{{ route('hoc-vien.khoa-hoc-tham-gia') }}" class="btn btn-primary fw-bold px-4 mt-2">
+                    <i class="fas fa-search me-2"></i>Xem khóa học có thể tham gia
+                </a>
             </div>
         @endforelse
     </div>
+
+    @if($khoaHocs->hasPages())
+        <div class="d-flex justify-content-center mt-2">
+            {{ $khoaHocs->links('pagination::bootstrap-5') }}
+        </div>
+    @endif
 </div>
 
 <style>

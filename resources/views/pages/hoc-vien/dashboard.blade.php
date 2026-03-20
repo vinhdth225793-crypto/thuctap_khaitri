@@ -1,219 +1,285 @@
-@extends('layouts.app', ['title' => 'Dashboard Học Viên'])
+@extends('layouts.app', ['title' => 'Dashboard Hoc Vien'])
 
 @section('content')
+@php
+    $hasBaiKiemTraRoute = Route::has('hoc-vien.bai-kiem-tra');
+    $hasKetQuaRoute = Route::has('hoc-vien.ket-qua');
+@endphp
+
 <div class="container-fluid">
-    <!-- Welcome Card -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card vip-card border-0 shadow-sm overflow-hidden welcome-card">
-                <div class="card-body p-4">
-                    <div class="row align-items-center">
-                        <div class="col-md-8">
-                            <h2 class="mb-2 fw-bold">Chào mừng trở lại, {{ auth()->user()->ho_ten }}! 👋</h2>
-                            <p class="text-muted mb-0">Hôm nay bạn có {{ rand(2, 5) }} bài tập cần hoàn thành</p>
-                            <div class="mt-3">
-                                <span class="badge bg-primary me-2">Học viên</span>
-                                <span class="badge bg-success">Active</span>
-                            </div>
-                        </div>
-                        <div class="col-md-4 text-md-end">
-                            <div class="dashboard-illustration">
-                                <i class="fas fa-user-graduate fa-4x text-primary"></i>
-                            </div>
-                        </div>
+    <div class="card vip-card border-0 mb-4 student-hero">
+        <div class="card-body p-4 p-lg-5">
+            <div class="row align-items-center g-4">
+                <div class="col-lg-8">
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <span class="badge rounded-pill bg-light text-primary">Hoc vien</span>
+                        <span class="badge rounded-pill bg-light text-success">
+                            {{ $dashboardStats['khoa_hoc_dang_hoc'] }} khoa hoc dang hoc
+                        </span>
+                        @if($dashboardStats['yeu_cau_dang_cho_duyet'] > 0)
+                            <span class="badge rounded-pill bg-light text-warning">
+                                {{ $dashboardStats['yeu_cau_dang_cho_duyet'] }} yeu cau cho duyet
+                            </span>
+                        @endif
+                    </div>
+
+                    <h2 class="fw-bold mb-2">Chao mung tro lai, {{ auth()->user()->ho_ten }}!</h2>
+
+                    @if($dashboardStats['khoa_hoc_dang_hoc'] > 0)
+                        <p class="mb-0 hero-text">
+                            Hom nay ban co {{ $dashboardStats['buoi_hoc_hom_nay'] }} buoi hoc,
+                            {{ $dashboardStats['buoi_hoc_sap_toi'] }} buoi sap toi
+                            va {{ $dashboardStats['tai_lieu_moi_7_ngay'] }} tai lieu moi trong 7 ngay gan day.
+                        </p>
+                    @else
+                        <p class="mb-0 hero-text">
+                            Ban chua co khoa hoc dang hoc. Hay vao danh sach khoa hoc co the tham gia de gui yeu cau vao lop.
+                        </p>
+                    @endif
+                </div>
+
+                <div class="col-lg-4 text-lg-end">
+                    <div class="hero-box ms-lg-auto">
+                        <i class="fas fa-user-graduate"></i>
+                        <div class="small mt-3 text-white-50">Tien do tong quan</div>
+                        <div class="fs-3 fw-bold">{{ $dashboardStats['tien_do_tong_quan'] }}%</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Stats Cards -->
     <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-4">
-            <x-stat-card 
-                title="Khóa học đang học"
-                value="{{ rand(3, 8) }}"
-                icon="fas fa-book"
-                color="primary"
-                trend="up"
-                trendValue="+2"
-                description="Tổng số khóa học"
-            />
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card vip-card stat-panel h-100">
+                <div class="card-body">
+                    <div class="stat-icon text-primary"><i class="fas fa-book-open"></i></div>
+                    <div class="stat-label">Khoa hoc dang hoc</div>
+                    <div class="stat-value">{{ $dashboardStats['khoa_hoc_dang_hoc'] }}</div>
+                    <div class="stat-note">{{ $tienDoKhoaHoc->count() }} khoa hoc da ghi danh</div>
+                </div>
+            </div>
         </div>
-        <div class="col-xl-3 col-md-6 mb-4">
-            <x-stat-card 
-                title="Bài tập chưa làm"
-                value="{{ rand(1, 5) }}"
-                icon="fas fa-tasks"
-                color="warning"
-                trend="down"
-                trendValue="-3"
-                description="Cần hoàn thành"
-            />
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card vip-card stat-panel h-100">
+                <div class="card-body">
+                    <div class="stat-icon text-info"><i class="fas fa-calendar-day"></i></div>
+                    <div class="stat-label">Buoi hoc sap toi</div>
+                    <div class="stat-value">{{ $dashboardStats['buoi_hoc_sap_toi'] }}</div>
+                    <div class="stat-note">{{ $dashboardStats['buoi_hoc_hom_nay'] }} buoi dien ra hom nay</div>
+                </div>
+            </div>
         </div>
-        <div class="col-xl-3 col-md-6 mb-4">
-            <x-stat-card 
-                title="Điểm trung bình"
-                value="{{ rand(75, 95) }}"
-                icon="fas fa-star"
-                color="success"
-                trend="up"
-                trendValue="+5%"
-                description="Tổng điểm"
-            />
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card vip-card stat-panel h-100">
+                <div class="card-body">
+                    <div class="stat-icon text-success"><i class="fas fa-folder-open"></i></div>
+                    <div class="stat-label">Tai lieu cong khai</div>
+                    <div class="stat-value">{{ $dashboardStats['tai_lieu_cong_khai'] }}</div>
+                    <div class="stat-note">{{ $dashboardStats['buoi_co_tai_lieu'] }} buoi da co tai lieu</div>
+                </div>
+            </div>
         </div>
-        <div class="col-xl-3 col-md-6 mb-4">
-            <x-stat-card 
-                title="Ngày học liên tiếp"
-                value="{{ rand(5, 30) }}"
-                icon="fas fa-calendar-check"
-                color="info"
-                trend="up"
-                trendValue="+{{ rand(1, 5) }}"
-                description="Streak"
-            />
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card vip-card stat-panel h-100">
+                <div class="card-body">
+                    <div class="stat-icon text-warning"><i class="fas fa-chart-line"></i></div>
+                    <div class="stat-label">Tien do tong quan</div>
+                    <div class="stat-value">{{ $dashboardStats['tien_do_tong_quan'] }}%</div>
+                    <div class="stat-note">
+                        {{ $dashboardStats['tong_buoi_hoan_thanh'] }}/{{ $dashboardStats['tong_buoi_hoc'] }} buoi da hoan thanh
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Progress & Courses -->
     <div class="row">
-        <!-- Progress Overview -->
-        <div class="col-lg-8 mb-4">
-            <div class="card vip-card">
+        <div class="col-xl-8 mb-4">
+            <div class="card vip-card h-100">
                 <div class="card-header border-0 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-semibold">Tiến độ học tập</h5>
+                    <div>
+                        <h5 class="mb-1 fw-semibold">Tien do theo khoa hoc</h5>
+                        <p class="text-muted small mb-0">Du lieu duoc tinh tu cac buoi hoc da len lich trong tung khoa.</p>
+                    </div>
                     <a href="{{ route('hoc-vien.khoa-hoc-cua-toi') }}" class="btn vip-btn vip-btn-primary btn-sm">
-                        Xem tất cả
+                        Xem khoa hoc cua toi
                     </a>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Khóa học</th>
-                                    <th>Giảng viên</th>
-                                    <th>Tiến độ</th>
-                                    <th>Điểm</th>
-                                    <th>Trạng thái</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach([
-                                    ['name' => 'Lập trình Web PHP', 'teacher' => 'Nguyễn Văn A', 'progress' => 85, 'score' => 92, 'status' => 'Đang học'],
-                                    ['name' => 'Thiết kế UI/UX', 'teacher' => 'Trần Thị B', 'progress' => 60, 'score' => 88, 'status' => 'Đang học'],
-                                    ['name' => 'Cơ sở dữ liệu', 'teacher' => 'Phạm Văn C', 'progress' => 100, 'score' => 95, 'status' => 'Hoàn thành'],
-                                    ['name' => 'Toán cao cấp', 'teacher' => 'Lê Thị D', 'progress' => 45, 'score' => 78, 'status' => 'Đang học'],
-                                    ['name' => 'Tiếng Anh chuyên ngành', 'teacher' => 'Hoàng Văn E', 'progress' => 75, 'score' => 85, 'status' => 'Đang học'],
-                                ] as $course)
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="course-icon me-3">
-                                                <i class="fas fa-book text-primary"></i>
-                                            </div>
-                                            <div>
-                                                <h6 class="mb-0">{{ $course['name'] }}</h6>
-                                                <small class="text-muted">Bắt đầu: 15/01/2024</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>{{ $course['teacher'] }}</td>
-                                    <td>
-                                        <div class="progress-wrapper">
-                                            <div class="d-flex justify-content-between mb-1">
-                                                <small>{{ $course['progress'] }}%</small>
-                                            </div>
-                                            <div class="progress" style="height: 6px;">
-                                                <div class="progress-bar bg-primary" 
-                                                     style="width: {{ $course['progress'] }}%"></div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-success">{{ $course['score'] }}/100</span>
-                                    </td>
-                                    <td>
-                                        <span class="badge {{ $course['status'] == 'Hoàn thành' ? 'bg-success' : 'bg-info' }}">
-                                            {{ $course['status'] }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
+                    @if($tienDoKhoaHoc->isNotEmpty())
+                        <div class="table-responsive">
+                            <table class="table align-middle dashboard-table">
+                                <thead>
+                                    <tr>
+                                        <th>Khoa hoc</th>
+                                        <th>Nhom nganh</th>
+                                        <th>Tien do</th>
+                                        <th>Buoi ke tiep</th>
+                                        <th>Trang thai</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($tienDoKhoaHoc as $dong)
+                                        @php
+                                            $khoaHoc = $dong['khoa_hoc'];
+                                            $ghiDanh = $dong['ghi_danh'];
+                                            $buoiSapToiTheoKhoa = $dong['buoi_sap_toi'];
+                                        @endphp
+                                        <tr>
+                                            <td>
+                                                <div class="fw-semibold text-dark">{{ $khoaHoc->ten_khoa_hoc }}</div>
+                                                <div class="small text-muted">{{ $khoaHoc->ma_khoa_hoc ?: 'Chua co ma khoa hoc' }}</div>
+                                                <div class="small text-muted">
+                                                    Tham gia:
+                                                    {{ optional($ghiDanh->ngay_tham_gia)->format('d/m/Y') ?: optional($ghiDanh->created_at)->format('d/m/Y') }}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div>{{ optional($khoaHoc->nhomNganh)->ten_nhom_nganh ?: 'Chua cap nhat' }}</div>
+                                                <div class="small text-muted">{{ $dong['buoi_online'] }} buoi online</div>
+                                            </td>
+                                            <td style="min-width: 220px;">
+                                                <div class="d-flex justify-content-between small mb-2">
+                                                    <span>{{ $dong['buoi_hoan_thanh'] }}/{{ $dong['tong_buoi'] }} buoi</span>
+                                                    <strong>{{ $dong['tien_do'] }}%</strong>
+                                                </div>
+                                                <div class="progress progress-thin">
+                                                    <div class="progress-bar bg-primary progress-live"
+                                                         role="progressbar"
+                                                         style="width: {{ $dong['tien_do'] }}%;"
+                                                         aria-valuenow="{{ $dong['tien_do'] }}"
+                                                         aria-valuemin="0"
+                                                         aria-valuemax="100"></div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                @if($buoiSapToiTheoKhoa)
+                                                    <div class="fw-semibold text-dark">{{ $buoiSapToiTheoKhoa->ngay_hoc->format('d/m/Y') }}</div>
+                                                    <div class="small text-muted">
+                                                        {{ $buoiSapToiTheoKhoa->gio_bat_dau ?: '--:--' }}
+                                                        @if($buoiSapToiTheoKhoa->gio_ket_thuc)
+                                                            - {{ $buoiSapToiTheoKhoa->gio_ket_thuc }}
+                                                        @endif
+                                                    </div>
+                                                    <div class="small text-muted">{{ $buoiSapToiTheoKhoa->hinh_thuc_label }}</div>
+                                                @else
+                                                    <span class="text-muted small">Chua co buoi hoc sap toi</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <span class="badge {{ $ghiDanh->trang_thai_badge }}">{{ $ghiDanh->trang_thai_label }}</span>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="text-center py-5">
+                            <div class="empty-icon mb-3"><i class="fas fa-book-reader"></i></div>
+                            <h5 class="fw-semibold">Ban chua co khoa hoc nao</h5>
+                            <p class="text-muted mb-3">Tien do hoc tap se xuat hien tai day khi ban duoc them vao khoa hoc.</p>
+                            <a href="{{ route('hoc-vien.khoa-hoc-tham-gia') }}" class="btn vip-btn vip-btn-primary">
+                                Xem khoa hoc co the tham gia
+                            </a>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
 
-        <!-- Upcoming Tasks & Quick Actions -->
-        <div class="col-lg-4 mb-4">
-            <!-- Upcoming Tasks -->
+        <div class="col-xl-4 mb-4">
             <div class="card vip-card mb-4">
                 <div class="card-header border-0">
-                    <h5 class="mb-0 fw-semibold">Bài tập sắp đến hạn</h5>
+                    <h5 class="mb-1 fw-semibold">Buoi hoc sap toi</h5>
+                    <p class="text-muted small mb-0">Chi hien thi cac buoi thuoc khoa hoc dang hoc.</p>
                 </div>
                 <div class="card-body">
-                    <div class="task-list">
-                        @foreach([
-                            ['title' => 'Bài tập PHP Laravel', 'course' => 'Lập trình Web', 'due' => 'Hôm nay', 'priority' => 'high'],
-                            ['title' => 'Thiết kế Landing Page', 'course' => 'UI/UX Design', 'due' => '2 ngày', 'priority' => 'medium'],
-                            ['title' => 'Bài kiểm tra SQL', 'course' => 'Cơ sở dữ liệu', 'due' => '3 ngày', 'priority' => 'low'],
-                            ['title' => 'Bài luận tiếng Anh', 'course' => 'Tiếng Anh', 'due' => '5 ngày', 'priority' => 'low'],
-                        ] as $task)
-                        <div class="task-item d-flex align-items-center mb-3">
-                            <div class="task-icon me-3">
-                                <i class="fas fa-circle text-{{ $task['priority'] == 'high' ? 'danger' : ($task['priority'] == 'medium' ? 'warning' : 'success') }}"></i>
+                    @forelse($buoiSapToi as $lichHoc)
+                        <div class="upcoming-item">
+                            <div class="fw-semibold text-dark">{{ $lichHoc->khoaHoc->ten_khoa_hoc }}</div>
+                            <div class="small text-muted">{{ $lichHoc->moduleHoc->ten_module ?? 'Chua gan module' }}</div>
+                            <div class="small text-muted">
+                                {{ $lichHoc->ngay_hoc->format('d/m/Y') }} •
+                                {{ $lichHoc->gio_bat_dau ?: '--:--' }}
+                                @if($lichHoc->gio_ket_thuc)
+                                    - {{ $lichHoc->gio_ket_thuc }}
+                                @endif
                             </div>
-                            <div class="flex-grow-1">
-                                <h6 class="mb-0">{{ $task['title'] }}</h6>
-                                <small class="text-muted">{{ $task['course'] }} • Hạn: {{ $task['due'] }}</small>
+                            <div class="d-flex flex-wrap gap-2 mt-2">
+                                <span class="badge bg-{{ $lichHoc->hinh_thuc_color }}">{{ $lichHoc->hinh_thuc_label }}</span>
+                                <span class="badge bg-{{ $lichHoc->trang_thai_color }}">{{ $lichHoc->trang_thai_label }}</span>
                             </div>
-                            <button class="btn btn-sm vip-btn vip-btn-outline-primary">
-                                <i class="fas fa-arrow-right"></i>
-                            </button>
+                            <div class="d-flex flex-wrap gap-2 mt-3">
+                                <a href="{{ route('hoc-vien.chi-tiet-khoa-hoc', $lichHoc->khoa_hoc_id) }}" class="btn btn-sm btn-outline-primary">
+                                    Xem khoa hoc
+                                </a>
+                                @if($lichHoc->can_join_online)
+                                    <a href="{{ $lichHoc->link_online }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary">
+                                        Vao phong hoc
+                                    </a>
+                                @endif
+                            </div>
                         </div>
-                        @endforeach
-                    </div>
-                    <div class="text-center mt-3">
-                        <a href="{{ route('hoc-vien.bai-kiem-tra') }}" class="btn vip-btn vip-btn-primary btn-sm">
-                            Xem tất cả bài tập
-                        </a>
-                    </div>
+                    @empty
+                        <div class="text-center py-4">
+                            <div class="empty-icon mb-3"><i class="fas fa-calendar-check"></i></div>
+                            <p class="text-muted mb-0">Chua co buoi hoc sap toi.</p>
+                        </div>
+                    @endforelse
                 </div>
             </div>
 
-            <!-- Quick Actions -->
             <div class="card vip-card">
                 <div class="card-header border-0">
-                    <h5 class="mb-0 fw-semibold">Thao tác nhanh</h5>
+                    <h5 class="mb-0 fw-semibold">Thao tac nhanh</h5>
                 </div>
                 <div class="card-body">
                     <div class="row g-2">
                         <div class="col-6">
-                            <a href="{{ route('hoc-vien.khoa-hoc-cua-toi') }}" class="btn vip-btn vip-btn-outline-primary d-block p-3">
-                                <i class="fas fa-book fa-2x mb-2"></i>
-                                <span>Khóa học của tôi</span>
+                            <a href="{{ route('hoc-vien.khoa-hoc-cua-toi') }}" class="btn btn-outline-primary w-100 quick-btn">
+                                <i class="fas fa-book-open mb-2"></i>
+                                <span>Khoa hoc cua toi</span>
                             </a>
                         </div>
                         <div class="col-6">
-                            <a href="{{ route('hoc-vien.bai-kiem-tra') }}" class="btn vip-btn vip-btn-outline-success d-block p-3">
-                                <i class="fas fa-tasks fa-2x mb-2"></i>
-                                <span>Bài kiểm tra</span>
+                            <a href="{{ route('hoc-vien.khoa-hoc-tham-gia') }}" class="btn btn-outline-success w-100 quick-btn">
+                                <i class="fas fa-door-open mb-2"></i>
+                                <span>Xin vao lop</span>
                             </a>
                         </div>
                         <div class="col-6">
-                            <a href="{{ route('hoc-vien.ket-qua') }}" class="btn vip-btn vip-btn-outline-info d-block p-3">
-                                <i class="fas fa-chart-bar fa-2x mb-2"></i>
-                                <span>Kết quả học tập</span>
+                            <a href="{{ route('hoc-vien.profile') }}" class="btn btn-outline-warning w-100 quick-btn">
+                                <i class="fas fa-user mb-2"></i>
+                                <span>Ho so ca nhan</span>
                             </a>
                         </div>
                         <div class="col-6">
-                            <a href="{{ route('profile') }}" class="btn vip-btn vip-btn-outline-warning d-block p-3">
-                                <i class="fas fa-user fa-2x mb-2"></i>
-                                <span>Hồ sơ cá nhân</span>
-                            </a>
+                            @if($hasKetQuaRoute)
+                                <a href="{{ route('hoc-vien.ket-qua') }}" class="btn btn-outline-info w-100 quick-btn">
+                                    <i class="fas fa-chart-column mb-2"></i>
+                                    <span>Ket qua hoc tap</span>
+                                </a>
+                            @else
+                                <button type="button" class="btn btn-outline-secondary w-100 quick-btn" disabled>
+                                    <i class="fas fa-chart-column mb-2"></i>
+                                    <span>Ket qua hoc tap</span>
+                                </button>
+                            @endif
+                        </div>
+                        <div class="col-12">
+                            @if($hasBaiKiemTraRoute)
+                                <a href="{{ route('hoc-vien.bai-kiem-tra') }}" class="btn btn-outline-dark w-100 quick-btn">
+                                    <i class="fas fa-list-check mb-2"></i>
+                                    <span>Bai kiem tra</span>
+                                </a>
+                            @else
+                                <button type="button" class="btn btn-outline-secondary w-100 quick-btn" disabled>
+                                    <i class="fas fa-list-check mb-2"></i>
+                                    <span>Bai kiem tra se mo o phase sau</span>
+                                </button>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -221,186 +287,234 @@
         </div>
     </div>
 
-    <!-- Recent Activities -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card vip-card">
-                <div class="card-header border-0">
-                    <h5 class="mb-0 fw-semibold">Hoạt động gần đây</h5>
-                </div>
-                <div class="card-body">
-                    <div class="timeline">
-                        @foreach([
-                            ['icon' => 'fa-check-circle', 'color' => 'success', 'title' => 'Hoàn thành bài kiểm tra', 'desc' => 'Bài kiểm tra PHP Laravel', 'time' => '2 giờ trước'],
-                            ['icon' => 'fa-comment', 'color' => 'info', 'title' => 'Bình luận mới', 'desc' => 'Trong bài "Database Design"', 'time' => '4 giờ trước'],
-                            ['icon' => 'fa-video', 'color' => 'primary', 'title' => 'Xem video bài giảng', 'desc' => 'Chương 5: Advanced Queries', 'time' => 'Hôm qua'],
-                            ['icon' => 'fa-file-upload', 'color' => 'warning', 'title' => 'Nộp bài tập', 'desc' => 'Bài tập thiết kế UI', 'time' => '2 ngày trước'],
-                            ['icon' => 'fa-trophy', 'color' => 'danger', 'title' => 'Nhận huy hiệu', 'desc' => 'Huy hiệu "Xuất sắc"', 'time' => '3 ngày trước'],
-                        ] as $activity)
-                        <div class="timeline-item d-flex mb-3">
-                            <div class="timeline-icon me-3">
-                                <div class="icon-wrapper bg-{{ $activity['color'] }}">
-                                    <i class="fas {{ $activity['icon'] }} text-white"></i>
+    <div class="card vip-card">
+        <div class="card-header border-0 d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="mb-1 fw-semibold">Tai lieu moi duoc mo</h5>
+                <p class="text-muted small mb-0">Chi lay cac tai lieu giang vien da cong khai cho hoc vien.</p>
+            </div>
+            <span class="badge bg-light text-success">{{ $dashboardStats['tai_lieu_moi_7_ngay'] }} moi / 7 ngay</span>
+        </div>
+        <div class="card-body">
+            @if($taiLieuMoi->isNotEmpty())
+                <div class="row g-3">
+                    @foreach($taiLieuMoi as $taiLieu)
+                        <div class="col-xl-4 col-md-6">
+                            <div class="resource-box h-100">
+                                <div class="d-flex flex-wrap gap-2 mb-3">
+                                    <span class="badge bg-{{ $taiLieu->loai_color }}">{{ $taiLieu->loai_label }}</span>
+                                    <span class="badge bg-light text-{{ $taiLieu->nguon_hien_thi_color }} border">
+                                        {{ $taiLieu->nguon_hien_thi_label }}
+                                    </span>
+                                </div>
+
+                                <h6 class="fw-semibold text-dark">{{ $taiLieu->tieu_de }}</h6>
+                                <p class="text-muted small mb-3">
+                                    {{ \Illuminate\Support\Str::limit($taiLieu->mo_ta ?: $taiLieu->file_status_message, 120) }}
+                                </p>
+
+                                <div class="small text-muted mb-1">
+                                    <i class="fas fa-book me-1"></i>
+                                    {{ optional(optional($taiLieu->lichHoc)->khoaHoc)->ten_khoa_hoc ?: 'Chua xac dinh khoa hoc' }}
+                                </div>
+                                <div class="small text-muted mb-1">
+                                    <i class="fas fa-layer-group me-1"></i>
+                                    {{ optional(optional($taiLieu->lichHoc)->moduleHoc)->ten_module ?: 'Chua gan module' }}
+                                </div>
+                                <div class="small text-muted mb-3">
+                                    <i class="far fa-clock me-1"></i>
+                                    {{ optional($taiLieu->created_at)->diffForHumans() }}
+                                </div>
+
+                                <div class="d-flex flex-wrap gap-2 mt-auto">
+                                    <a href="{{ route('hoc-vien.chi-tiet-khoa-hoc', optional($taiLieu->lichHoc)->khoa_hoc_id) }}" class="btn btn-sm btn-outline-primary">
+                                        Xem trong khoa hoc
+                                    </a>
+                                    @if($taiLieu->is_external)
+                                        <a href="{{ $taiLieu->file_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary">
+                                            Mo lien ket
+                                        </a>
+                                    @elseif($taiLieu->is_downloadable)
+                                        <a href="{{ $taiLieu->file_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary">
+                                            Xem file
+                                        </a>
+                                    @else
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" disabled>
+                                            File khong kha dung
+                                        </button>
+                                    @endif
                                 </div>
                             </div>
-                            <div class="flex-grow-1">
-                                <h6 class="mb-0">{{ $activity['title'] }}</h6>
-                                <p class="mb-1 text-muted">{{ $activity['desc'] }}</p>
-                                <small class="text-muted">{{ $activity['time'] }}</small>
-                            </div>
                         </div>
-                        @endforeach
-                    </div>
+                    @endforeach
                 </div>
-            </div>
+            @else
+                <div class="text-center py-5">
+                    <div class="empty-icon mb-3"><i class="fas fa-folder-open"></i></div>
+                    <h5 class="fw-semibold">Chua co tai lieu cong khai moi</h5>
+                    <p class="text-muted mb-0">Khi giang vien dang va bat hien thi tai lieu cho buoi hoc, chung se xuat hien tai day.</p>
+                </div>
+            @endif
         </div>
     </div>
 </div>
 
 @push('styles')
 <style>
-    /* Dashboard Custom Styles */
-    .welcome-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
+    .student-hero {
+        background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0f766e 100%);
+        color: #fff;
     }
-    
-    .welcome-card .text-muted {
-        color: rgba(255, 255, 255, 0.8) !important;
+
+    .hero-text {
+        color: rgba(255, 255, 255, 0.86);
+        line-height: 1.7;
     }
-    
-    .dashboard-illustration {
-        animation: float 3s ease-in-out infinite;
-    }
-    
-    .course-icon {
-        width: 40px;
-        height: 40px;
-        background: rgba(102, 126, 234, 0.1);
-        border-radius: 10px;
-        display: flex;
+
+    .hero-box {
+        width: 170px;
+        min-height: 170px;
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        display: inline-flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.2);
     }
-    
-    .task-item {
-        padding: 10px;
-        border-radius: 10px;
-        transition: all 0.3s;
+
+    .hero-box i {
+        font-size: 2.8rem;
     }
-    
-    .task-item:hover {
-        background: #f8f9fa;
-        transform: translateX(5px);
+
+    .stat-panel .card-body {
+        padding: 1.5rem;
     }
-    
-    .task-icon {
-        width: 30px;
-        text-align: center;
+
+    .stat-icon {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
     }
-    
-    .timeline-icon .icon-wrapper {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+
+    .stat-label {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #64748b;
+        margin-bottom: 0.35rem;
     }
-    
-    .bg-primary { background-color: #667eea !important; }
-    .bg-success { background-color: #43e97b !important; }
-    .bg-info { background-color: #4facfe !important; }
-    .bg-warning { background-color: #fa709a !important; }
-    .bg-danger { background-color: #f72585 !important; }
-    
-    .progress-wrapper {
-        min-width: 150px;
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1.1;
+        margin-bottom: 0.35rem;
     }
-    
-    .btn-block {
+
+    .stat-note {
+        color: #64748b;
+        font-size: 0.92rem;
+    }
+
+    .dashboard-table thead th {
+        border-top: none;
+        color: #475569;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .progress-thin {
+        height: 8px;
+        border-radius: 999px;
+        background: #e2e8f0;
+    }
+
+    .upcoming-item {
+        padding: 1rem 0;
+        border-bottom: 1px solid #eef2f7;
+    }
+
+    .upcoming-item:first-child {
+        padding-top: 0;
+    }
+
+    .upcoming-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .quick-btn {
+        min-height: 104px;
+        border-radius: 16px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        height: 100%;
-    }
-    
-    @keyframes float {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-10px); }
-    }
-    
-    /* Table styling */
-    .table-hover tbody tr:hover {
-        background-color: rgba(102, 126, 234, 0.05);
-        transform: translateY(-2px);
-        transition: all 0.3s;
-    }
-    
-    .table th {
         font-weight: 600;
-        color: #495057;
-        border-top: none;
-        border-bottom: 2px solid #dee2e6;
+        gap: 0.25rem;
     }
-    
-    .table td {
-        vertical-align: middle;
+
+    .resource-box {
+        border: 1px solid #e2e8f0;
+        border-radius: 18px;
+        padding: 1.25rem;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .resource-box:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 18px 32px rgba(15, 23, 42, 0.08);
+    }
+
+    .empty-icon {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto;
+        border-radius: 18px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
     }
 </style>
 @endpush
 
 @push('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize tooltips
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-        
-        // Animate progress bars on scroll
-        const progressBars = document.querySelectorAll('.progress-bar');
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const bar = entry.target;
-                    const width = bar.style.width;
-                    bar.style.width = '0%';
-                    setTimeout(() => {
-                        bar.style.width = width;
-                    }, 300);
-                }
-            });
-        });
-        
-        progressBars.forEach(bar => observer.observe(bar));
-        
-        // Update current time
-        function updateTime() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString('vi-VN', { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                hour12: false 
-            });
-            const dateString = now.toLocaleDateString('vi-VN', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-            
-            const timeElement = document.getElementById('current-time');
-            const dateElement = document.getElementById('current-date');
-            
-            if (timeElement) timeElement.textContent = timeString;
-            if (dateElement) dateElement.textContent = dateString;
+    document.addEventListener('DOMContentLoaded', function () {
+        const bars = document.querySelectorAll('.progress-live');
+
+        if (!bars.length || typeof IntersectionObserver === 'undefined') {
+            return;
         }
-        
-        updateTime();
-        setInterval(updateTime, 60000);
+
+        const observer = new IntersectionObserver((entries, currentObserver) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) {
+                    return;
+                }
+
+                const bar = entry.target;
+                const finalWidth = bar.style.width;
+                bar.style.width = '0%';
+
+                window.setTimeout(() => {
+                    bar.style.width = finalWidth;
+                }, 120);
+
+                currentObserver.unobserve(bar);
+            });
+        }, { threshold: 0.3 });
+
+        bars.forEach((bar) => observer.observe(bar));
     });
 </script>
 @endpush

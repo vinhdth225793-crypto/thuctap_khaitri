@@ -13,7 +13,7 @@ class YeuCauHocVienController extends Controller
 {
     public function index()
     {
-        $yeuCaus = YeuCauHocVien::with(['khoaHoc', 'giangVien'])
+        $yeuCaus = YeuCauHocVien::with(['khoaHoc', 'giangVien.nguoiDung', 'hocVienNguoiDung', 'admin'])
             ->orderByRaw("FIELD(trang_thai, 'cho_duyet', 'da_duyet', 'tu_choi')")
             ->orderBy('created_at', 'desc')
             ->get();
@@ -43,10 +43,16 @@ class YeuCauHocVienController extends Controller
             if ($request->hanh_dong === 'da_duyet') {
                 switch ($yeuCau->loai_yeu_cau) {
                     case 'them':
-                        // Kiểm tra học viên đã tồn tại chưa (qua email)
-                        $hocVien = NguoiDung::where('email', $data['email'])->first();
+                        $hocVien = $yeuCau->hoc_vien_id
+                            ? NguoiDung::where('ma_nguoi_dung', $yeuCau->hoc_vien_id)->first()
+                            : NguoiDung::where('email', $data['email'])->first();
+
                         if (!$hocVien) {
                             throw new \Exception('Học viên với email này chưa đăng ký tài khoản hệ thống.');
+                        }
+
+                        if (!$hocVien->isHocVien()) {
+                            throw new \Exception('Tài khoản được yêu cầu không phải vai trò học viên.');
                         }
                         
                         // Thêm vào khóa học

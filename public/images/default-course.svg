@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-labelledby="title desc">
+  <title id="title">Course placeholder</title>
+  <desc id="desc">Simple placeholder image for course cards.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#dbeafe"/>
+      <stop offset="100%" stop-color="#bfdbfe"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg)"/>
+  <circle cx="108" cy="82" r="56" fill="#93c5fd" opacity="0.65"/>
+  <circle cx="560" cy="292" r="84" fill="#60a5fa" opacity="0.28"/>
+  <rect x="94" y="78" width="452" height="214" rx="24" fill="url(#panel)"/>
+  <rect x="126" y="114" width="162" height="120" rx="16" fill="#eff6ff" opacity="0.96"/>
+  <path d="M160 156h94" stroke="#2563eb" stroke-width="16" stroke-linecap="round"/>
+  <path d="M160 190h70" stroke="#60a5fa" stroke-width="16" stroke-linecap="round"/>
+  <path d="M334 136h138" stroke="#dbeafe" stroke-width="16" stroke-linecap="round"/>
+  <path d="M334 176h162" stroke="#bfdbfe" stroke-width="16" stroke-linecap="round"/>
+  <path d="M334 216h118" stroke="#93c5fd" stroke-width="16" stroke-linecap="round"/>
+  <rect x="334" y="246" width="92" height="20" rx="10" fill="#eff6ff" opacity="0.78"/>
+</svg>

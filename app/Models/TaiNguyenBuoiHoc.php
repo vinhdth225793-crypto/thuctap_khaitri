@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TaiNguyenBuoiHoc extends Model
 {
@@ -13,7 +14,7 @@ class TaiNguyenBuoiHoc extends Model
 
     protected $fillable = [
         'lich_hoc_id',
-        'loai_tai_nguyen', // bai_giang, tai_lieu, bai_tap, link_ngoai
+        'loai_tai_nguyen', // bai_giang, tai_lieu, bai_tap
         'tieu_de',
         'mo_ta',
         'duong_dan_file',
@@ -35,8 +36,12 @@ class TaiNguyenBuoiHoc extends Model
      */
     public function getFileUrlAttribute()
     {
-        if ($this->loai_tai_nguyen === 'link_ngoai' || empty($this->duong_dan_file)) {
+        if (!empty($this->link_ngoai)) {
             return $this->link_ngoai;
+        }
+
+        if (empty($this->duong_dan_file)) {
+            return null;
         }
 
         // Nếu path bắt đầu bằng uploads/ (cách lưu mới)
@@ -53,7 +58,7 @@ class TaiNguyenBuoiHoc extends Model
      */
     public function getIsExternalAttribute()
     {
-        return $this->loai_tai_nguyen === 'link_ngoai' || !empty($this->link_ngoai);
+        return !empty($this->link_ngoai);
     }
 
     /**
@@ -84,7 +89,7 @@ class TaiNguyenBuoiHoc extends Model
     public function getStoragePathAttribute()
     {
         if ($this->getIsExternalAttribute() || empty($this->duong_dan_file)) {
-            return 'N/A (Link ngoài)';
+            return 'N/A';
         }
 
         if (file_exists(public_path($this->duong_dan_file))) {
@@ -124,7 +129,6 @@ class TaiNguyenBuoiHoc extends Model
             'bai_giang' => 'Bài giảng',
             'tai_lieu'  => 'Tài liệu',
             'bai_tap'   => 'Bài tập',
-            'link_ngoai'=> 'Liên kết',
             default     => 'Đính kèm'
         };
     }
@@ -138,7 +142,6 @@ class TaiNguyenBuoiHoc extends Model
             'bai_giang' => 'fa-chalkboard',
             'tai_lieu'  => 'fa-file-alt',
             'bai_tap'   => 'fa-pencil-alt',
-            'link_ngoai'=> 'fa-link',
             default     => 'fa-paperclip'
         };
     }
@@ -152,15 +155,46 @@ class TaiNguyenBuoiHoc extends Model
             'bai_giang' => 'primary',
             'tai_lieu'  => 'success',
             'bai_tap'   => 'warning',
-            'link_ngoai'=> 'info',
             default     => 'secondary'
         };
     }
 
     /**
+     * Accessor: Nhãn nguồn hiển thị của tài nguyên
+     */
+    public function getNguonHienThiLabelAttribute()
+    {
+        return $this->is_external ? 'Link ngoài' : 'File nội bộ';
+    }
+
+    /**
+     * Accessor: Màu hiển thị theo nguồn tài nguyên
+     */
+    public function getNguonHienThiColorAttribute()
+    {
+        return $this->is_external ? 'info' : 'dark';
+    }
+
+    /**
+     * Accessor: Trạng thái file/link cho học viên
+     */
+    public function getFileStatusMessageAttribute()
+    {
+        if ($this->is_external) {
+            return 'Tài nguyên được cung cấp qua liên kết ngoài.';
+        }
+
+        if ($this->is_file_exists) {
+            return 'Tệp sẵn sàng để xem hoặc tải về.';
+        }
+
+        return 'Tệp đính kèm hiện không còn tồn tại trên hệ thống.';
+    }
+
+    /**
      * Relationship: Thuộc về một buổi học cụ thể
      */
-    public function lichHoc()
+    public function lichHoc(): BelongsTo
     {
         return $this->belongsTo(LichHoc::class, 'lich_hoc_id');
     }

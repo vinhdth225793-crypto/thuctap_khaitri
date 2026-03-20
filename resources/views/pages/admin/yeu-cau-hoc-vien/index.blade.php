@@ -6,8 +6,8 @@
 <div class="container-fluid">
     <div class="row mb-4">
         <div class="col-12">
-            <h3 class="fw-bold text-dark"><i class="fas fa-user-edit me-2"></i> Yêu cầu từ Giảng viên</h3>
-            <p class="text-muted">Danh sách các yêu cầu thêm, xóa hoặc cập nhật học viên từ giảng viên.</p>
+            <h3 class="fw-bold text-dark"><i class="fas fa-user-edit me-2"></i> Yêu cầu liên quan đến học viên</h3>
+            <p class="text-muted">Danh sách yêu cầu thêm học viên, xin vào lớp và các thay đổi học viên cần admin duyệt.</p>
         </div>
     </div>
 
@@ -20,7 +20,7 @@
                     <thead class="bg-light smaller text-muted text-uppercase">
                         <tr>
                             <th class="ps-4">Thời gian</th>
-                            <th>Giảng viên</th>
+                            <th>Người gửi</th>
                             <th>Khóa học</th>
                             <th>Loại yêu cầu</th>
                             <th>Nội dung yêu cầu</th>
@@ -33,8 +33,11 @@
                             <tr>
                                 <td class="ps-4 small">{{ $yc->created_at->format('d/m/Y H:i') }}</td>
                                 <td>
-                                    <div class="fw-bold text-dark">{{ $yc->giangVien->ho_ten }}</div>
-                                    <code class="smaller text-muted">#{{ $yc->giangVien->id }}</code>
+                                    <div class="d-flex flex-column gap-1">
+                                        <span class="badge bg-light text-dark border smaller align-self-start">{{ $yc->nguon_yeu_cau_label }}</span>
+                                        <div class="fw-bold text-dark">{{ $yc->nguoi_gui_ten }}</div>
+                                        <code class="smaller text-muted">{{ $yc->nguoi_gui_mo_ta }}</code>
+                                    </div>
                                 </td>
                                 <td>
                                     <div class="text-truncate" style="max-width: 200px;" title="{{ $yc->khoaHoc->ten_khoa_hoc }}">
@@ -52,7 +55,10 @@
                                         @php
                                             $data = is_array($yc->du_lieu_yeu_cau) ? $yc->du_lieu_yeu_cau : json_decode($yc->du_lieu_yeu_cau, true);
                                         @endphp
-                                        @if($yc->loai_yeu_cau === 'them')
+                                        @if($yc->hoc_vien_id)
+                                            <strong>Học viên:</strong> {{ $data['ten'] ?? $yc->hocVienNguoiDung?->ho_ten ?? 'N/A' }}
+                                            <div class="text-muted mt-1">Email: {{ $data['email'] ?? $yc->hocVienNguoiDung?->email ?? 'N/A' }}</div>
+                                        @elseif($yc->loai_yeu_cau === 'them')
                                             <strong>HV:</strong> {{ $data['ten'] ?? 'N/A' }} ({{ $data['email'] ?? 'N/A' }})
                                         @else
                                             <strong>Mã HV:</strong> #{{ $data['id'] ?? 'N/A' }}
@@ -61,8 +67,8 @@
                                     </div>
                                 </td>
                                 <td class="text-center">
-                                    <span class="badge bg-{{ $yc->trang_thai === 'cho_duyet' ? 'warning' : ($yc->trang_thai === 'da_duyet' ? 'success' : 'danger') }} rounded-pill">
-                                        {{ $yc->trang_thai === 'cho_duyet' ? 'Chờ duyệt' : ($yc->trang_thai === 'da_duyet' ? 'Đã duyệt' : 'Từ chối') }}
+                                    <span class="badge bg-{{ $yc->trang_thai_badge }} rounded-pill">
+                                        {{ $yc->trang_thai_label }}
                                     </span>
                                 </td>
                                 <td class="pe-4 text-center">
@@ -91,7 +97,7 @@
                                                             </div>
                                                             <div class="mb-0">
                                                                 <label class="form-label small fw-bold">Phản hồi của Admin</label>
-                                                                <textarea name="phan_hoi" class="form-control" rows="3" placeholder="Nhập lý do từ chối hoặc lời nhắn cho giảng viên..."></textarea>
+                                                                <textarea name="phan_hoi" class="form-control" rows="3" placeholder="Nhập lý do từ chối hoặc lời nhắn phản hồi..."></textarea>
                                                             </div>
                                                         </div>
                                                         <div class="modal-footer border-0 p-3 justify-content-center gap-2">
