@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Xin vào lớp')
+@section('title', 'Xin v�o l?p')
 
 @section('content')
 <div class="container-fluid">
@@ -9,7 +9,7 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0">
                     <li class="breadcrumb-item"><a href="{{ route('hoc-vien.dashboard') }}">Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Xin vào lớp</li>
+                    <li class="breadcrumb-item active" aria-current="page">Xin v�o l?p</li>
                 </ol>
             </nav>
         </div>
@@ -22,8 +22,8 @@
                     <i class="fas fa-user-plus fa-lg"></i>
                 </div>
                 <div>
-                    <h3 class="fw-bold mb-0 text-dark">Khóa học có thể tham gia</h3>
-                    <div class="text-muted small mt-1">Gửi yêu cầu tham gia khóa học để admin xem xét và phê duyệt.</div>
+                    <h3 class="fw-bold mb-0 text-dark">Kh�a h?c c� th? tham gia</h3>
+                    <div class="text-muted small mt-1">G?i y�u c?u tham gia kh�a h?c d? admin xem x�t v� ph� duy?t.</div>
                 </div>
             </div>
         </div>
@@ -34,9 +34,9 @@
     <div class="row g-3 mb-4">
         <div class="col-md-4 col-sm-6">
             <div class="vip-card border-0 shadow-sm p-3 h-100">
-                <div class="text-muted text-uppercase smaller fw-bold">Có thể tham gia</div>
+                <div class="text-muted text-uppercase smaller fw-bold">C� th? tham gia</div>
                 <div class="fs-3 fw-bold text-dark">{{ $stats['co_the_tham_gia'] }}</div>
-                <div class="small text-muted">Khóa học đang mở để xin vào lớp</div>
+                <div class="small text-muted">Kh�a h?c dang m? d? xin v�o l?p</div>
             </div>
         </div>
         <div class="col-md-4 col-sm-6">
@@ -50,7 +50,7 @@
             <div class="vip-card border-0 shadow-sm p-3 h-100">
                 <div class="text-muted text-uppercase smaller fw-bold">Đã gửi yêu cầu</div>
                 <div class="fs-3 fw-bold text-primary">{{ $stats['da_gui'] }}</div>
-                <div class="small text-muted">Tổng số yêu cầu tham gia đã gửi</div>
+                <div class="small text-muted">T?ng s? y�u c?u tham gia d� g?i</div>
             </div>
         </div>
     </div>
@@ -59,9 +59,9 @@
         <div class="col-lg-8">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="fw-bold mb-0 text-dark">
-                    <i class="fas fa-graduation-cap me-2 text-primary"></i>Danh sách khóa học mở
+                    <i class="fas fa-graduation-cap me-2 text-primary"></i>Danh s�ch kh�a h?c m?
                 </h5>
-                <span class="badge bg-light text-dark border">{{ $khoaHocs->total() }} khóa học</span>
+                <span class="badge bg-light text-dark border">{{ $khoaHocs->total() }} kh�a h?c</span>
             </div>
 
             <div class="row">
@@ -93,28 +93,28 @@
                                 </div>
 
                                 <p class="text-muted small mb-3 line-clamp-3">
-                                    {{ $khoaHoc->mo_ta_ngan ?: 'Khóa học đang mở cho học viên gửi yêu cầu tham gia.' }}
+                                    {{ $khoaHoc->mo_ta_ngan ?: 'Kh�a h?c dang m? cho h?c vi�n g?i y�u c?u tham gia.' }}
                                 </p>
 
                                 <div class="row g-2 small text-muted mb-4">
-                                    <div class="col-6"><i class="far fa-calendar-alt me-1"></i> Khai giảng:</div>
-                                    <div class="col-6 text-end fw-bold text-dark">{{ $khoaHoc->ngay_khai_giang?->format('d/m/Y') ?: '—' }}</div>
+                                    <div class="col-6"><i class="far fa-calendar-alt me-1"></i> Khai gi?ng:</div>
+                                    <div class="col-6 text-end fw-bold text-dark">{{ $khoaHoc->ngay_khai_giang?->format('d/m/Y') ?: '�' }}</div>
 
                                     <div class="col-6"><i class="fas fa-layer-group me-1"></i> Module:</div>
                                     <div class="col-6 text-end fw-bold text-dark">{{ $khoaHoc->module_hocs_count }}</div>
 
-                                    <div class="col-6"><i class="fas fa-users me-1"></i> Học viên:</div>
+                                    <div class="col-6"><i class="fas fa-users me-1"></i> H?c vi�n:</div>
                                     <div class="col-6 text-end fw-bold text-dark">{{ $khoaHoc->hoc_vien_dang_hoc_count }}</div>
                                 </div>
 
                                 <div class="mt-auto d-grid gap-2">
                                     @if($dangCho)
                                         <button type="button" class="btn btn-secondary fw-bold" disabled>
-                                            <i class="fas fa-clock me-2"></i>ĐÃ GỬI YÊU CẦU
+                                            <i class="fas fa-clock me-2"></i>�� G?I Y�U C?U
                                         </button>
                                     @else
                                         <button type="button" class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#modalXinThamGia{{ $khoaHoc->id }}">
-                                            <i class="fas fa-paper-plane me-2"></i>XIN VÀO LỚP
+                                            <i class="fas fa-paper-plane me-2"></i>XIN V�O L?P
                                         </button>
                                     @endif
                                 </div>
@@ -127,24 +127,24 @@
                             <div class="modal-dialog">
                                 <div class="modal-content border-0">
                                     <div class="modal-header bg-primary text-white border-0">
-                                        <h5 class="modal-title fw-bold">Gửi yêu cầu tham gia khóa học</h5>
+                                        <h5 class="modal-title fw-bold">G?i y�u c?u tham gia kh�a h?c</h5>
                                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                     </div>
                                     <form action="{{ route('hoc-vien.khoa-hoc.gui-yeu-cau-tham-gia', $khoaHoc->id) }}" method="POST">
                                         @csrf
                                         <div class="modal-body p-4">
                                             <div class="mb-3">
-                                                <label class="form-label small fw-bold">Khóa học</label>
+                                                <label class="form-label small fw-bold">Kh�a h?c</label>
                                                 <input type="text" class="form-control" value="{{ $khoaHoc->ten_khoa_hoc }}" readonly>
                                             </div>
                                             <div class="mb-0">
-                                                <label class="form-label small fw-bold">Lý do xin tham gia *</label>
-                                                <textarea name="ly_do" class="form-control vip-form-control" rows="4" placeholder="Ví dụ: Em muốn tham gia để bổ sung kiến thức và theo học cùng lớp..." required></textarea>
+                                                <label class="form-label small fw-bold">L� do xin tham gia *</label>
+                                                <textarea name="ly_do" class="form-control vip-form-control" rows="4" placeholder="V� d?: Em mu?n tham gia d? b? sung ki?n th?c v� theo h?c c�ng l?p..." required></textarea>
                                             </div>
                                         </div>
                                         <div class="modal-footer border-0 p-3 justify-content-center gap-2">
-                                            <button type="button" class="btn btn-light px-4 fw-bold" data-bs-dismiss="modal">Hủy</button>
-                                            <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm">GỬI YÊU CẦU</button>
+                                            <button type="button" class="btn btn-light px-4 fw-bold" data-bs-dismiss="modal">H?y</button>
+                                            <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm">G?I Y�U C?U</button>
                                         </div>
                                     </form>
                                 </div>
@@ -172,23 +172,23 @@
         <div class="col-lg-4">
             <div class="card vip-card border-0 shadow-sm sticky-top" style="top: 20px;">
                 <div class="card-header bg-white border-bottom py-3">
-                    <h6 class="fw-bold mb-0 text-dark">Lịch sử yêu cầu của bạn</h6>
+                    <h6 class="fw-bold mb-0 text-dark">L?ch s? y�u c?u c?a b?n</h6>
                 </div>
                 <div class="card-body p-0">
                     @forelse($yeuCauDaGui as $yeuCau)
                         <div class="p-3 border-bottom">
                             <div class="d-flex justify-content-between align-items-start gap-2">
                                 <div>
-                                    <div class="fw-bold text-dark">{{ $yeuCau->khoaHoc->ten_khoa_hoc ?? 'Khóa học không còn tồn tại' }}</div>
+                                    <div class="fw-bold text-dark">{{ $yeuCau->khoaHoc->ten_khoa_hoc ?? 'Kh�a h?c kh�ng c�n t?n t?i' }}</div>
                                     <div class="small text-muted mt-1">{{ $yeuCau->created_at->format('d/m/Y H:i') }}</div>
                                 </div>
                                 <span class="badge bg-{{ $yeuCau->trang_thai_badge }}">{{ $yeuCau->trang_thai_label }}</span>
                             </div>
 
                             <div class="small text-muted mt-2">
-                                <div><strong>Lý do:</strong> {{ $yeuCau->ly_do }}</div>
+                                <div><strong>L� do:</strong> {{ $yeuCau->ly_do }}</div>
                                 @if($yeuCau->phan_hoi_admin)
-                                    <div class="mt-1"><strong>Phản hồi admin:</strong> {{ $yeuCau->phan_hoi_admin }}</div>
+                                    <div class="mt-1"><strong>Ph?n h?i admin:</strong> {{ $yeuCau->phan_hoi_admin }}</div>
                                 @endif
                             </div>
                         </div>

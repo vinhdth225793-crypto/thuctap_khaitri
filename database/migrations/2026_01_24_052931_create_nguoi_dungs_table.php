@@ -33,6 +33,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('nguoi_dungs');
+        Schema::dropIfExists('nguoi_dung');
     }
 };

@@ -1,11 +1,11 @@
-@extends('layouts.app', ['title' => 'Cham diem tu luan'])
+@extends('layouts.app', ['title' => 'Chấm điểm tự luận'])
 
 @section('content')
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center gap-3 mb-4">
         <div>
-            <h2 class="fw-bold mb-1">Cham diem tu luan</h2>
-            <p class="text-muted mb-0">Danh sach bai lam dang cho giang vien cham tay.</p>
+            <h2 class="fw-bold mb-1">Chấm điểm tự luận</h2>
+            <p class="text-muted mb-0">Danh sách bài làm đang chờ giảng viên chấm tay.</p>
         </div>
     </div>
 
@@ -14,35 +14,35 @@
             <table class="table align-middle mb-0">
                 <thead>
                     <tr>
-                        <th>Hoc vien</th>
-                        <th>Bai kiem tra</th>
-                        <th>Khoa / module</th>
-                        <th>Nop luc</th>
-                        <th>Lan lam</th>
-                        <th class="text-end">Cham bai</th>
+                        <th>Học viên</th>
+                        <th>Bài kiểm tra</th>
+                        <th>Khóa / module</th>
+                        <th>Nộp lúc</th>
+                        <th>Lần làm</th>
+                        <th class="text-end">Chấm bài</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($baiLams as $baiLam)
                         <tr>
                             <td>
-                                <div class="fw-semibold">{{ $baiLam->hocVien->ho_ten ?? 'Hoc vien' }}</div>
-                                <div class="small text-muted">{{ $baiLam->hocVien->email ?? 'Khong co email' }}</div>
+                                <div class="fw-semibold">{{ $baiLam->hocVien->ho_ten ?? 'Học viên' }}</div>
+                                <div class="small text-muted">{{ $baiLam->hocVien->email ?? 'Không có email' }}</div>
                             </td>
                             <td>{{ $baiLam->baiKiemTra->tieu_de }}</td>
                             <td>
-                                <div class="fw-semibold">{{ $baiLam->baiKiemTra->khoaHoc->ten_khoa_hoc ?? 'Khong ro khoa hoc' }}</div>
-                                <div class="small text-muted">{{ $baiLam->baiKiemTra->moduleHoc->ten_module ?? 'Khong gan module' }}</div>
+                                <div class="fw-semibold">{{ $baiLam->baiKiemTra->khoaHoc->ten_khoa_hoc ?? 'Không rõ khóa học' }}</div>
+                                <div class="small text-muted">{{ $baiLam->baiKiemTra->moduleHoc->ten_module ?? 'Không gán module' }}</div>
                             </td>
-                            <td>{{ $baiLam->nop_luc?->format('d/m/Y H:i') ?? 'Chua nop' }}</td>
+                            <td>{{ $baiLam->nop_luc?->format('d/m/Y H:i') ?? 'Chưa nộp' }}</td>
                             <td>{{ $baiLam->lan_lam_thu }}</td>
                             <td class="text-end">
-                                <a href="{{ route('giang-vien.cham-diem.show', $baiLam->id) }}" class="btn btn-sm btn-primary">Mo bai cham</a>
+                                <a href="{{ route('giang-vien.cham-diem.show', $baiLam->id) }}" class="btn btn-sm btn-primary">Mở bài chấm</a>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">Khong co bai lam nao dang cho cham.</td>
+                            <td colspan="6" class="text-center py-5 text-muted">Không có bài làm nào đang chờ chấm.</td>
                         </tr>
                     @endforelse
                 </tbody>

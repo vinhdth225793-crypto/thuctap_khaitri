@@ -65,7 +65,7 @@ class TaiNguyenBuoiHoc extends Model
     public const PHAM_VI_CONG_KHAI = 'cong_khai';
 
     /**
-     * Relationship: Người tạo tài nguyên
+     * Relationship: Ngu?i t?o t�i nguy�n
      */
     public function nguoiTao()
     {
@@ -73,7 +73,7 @@ class TaiNguyenBuoiHoc extends Model
     }
 
     /**
-     * Relationship: Người duyệt tài nguyên
+     * Relationship: Ngu?i duy?t t�i nguy�n
      */
     public function nguoiDuyet()
     {
@@ -81,7 +81,7 @@ class TaiNguyenBuoiHoc extends Model
     }
 
     /**
-     * Relationship: Liên kết tới các bài giảng qua pivot
+     * Relationship: Li�n k?t t?i c�c b�i gi?ng qua pivot
      */
     public function baiGiangs()
     {
@@ -91,7 +91,7 @@ class TaiNguyenBuoiHoc extends Model
     }
 
     /**
-     * Accessor: Lấy URL đầy đủ của tài nguyên
+     * Accessor: L?y URL d?y d? c?a t�i nguy�n
      */
     public function getFileUrlAttribute()
     {
@@ -103,8 +103,8 @@ class TaiNguyenBuoiHoc extends Model
             return null;
         }
 
-        // Tât cả tài nguyên lưu trong storage/app/public đều cần prefix 'storage/' để truy cập qua link public
-        // Nếu path chưa có 'storage/' ở đầu, chúng ta thêm vào
+        // T�t c? t�i nguy�n luu trong storage/app/public d?u c?n prefix 'storage/' d? truy c?p qua link public
+        // N?u path chua c� 'storage/' ? d?u, ch�ng ta th�m v�o
         if (strpos($this->duong_dan_file, 'storage/') === 0) {
             return asset($this->duong_dan_file);
         }
@@ -113,7 +113,7 @@ class TaiNguyenBuoiHoc extends Model
     }
 
     /**
-     * Accessor: Kiểm tra xem tài nguyên là link ngoài hay không
+     * Accessor: Ki?m tra xem t�i nguy�n l� link ngo�i hay kh�ng
      */
     public function getIsExternalAttribute()
     {
@@ -121,7 +121,7 @@ class TaiNguyenBuoiHoc extends Model
     }
 
     /**
-     * Accessor: Kiểm tra file nội bộ có tồn tại không
+     * Accessor: Ki?m tra file n?i b? c� t?n t?i kh�ng
      */
     public function getIsFileExistsAttribute()
     {
@@ -133,17 +133,17 @@ class TaiNguyenBuoiHoc extends Model
             return false;
         }
 
-        // Kiểm tra trong thư mục public (cách lưu mới)
+        // Ki?m tra trong thu m?c public (c�ch luu m?i)
         if (file_exists(public_path($this->duong_dan_file))) {
             return true;
         }
 
-        // Kiểm tra trong disk storage (cách lưu cũ)
+        // Ki?m tra trong disk storage (c�ch luu cu)
         return \Illuminate\Support\Facades\Storage::disk('public')->exists($this->duong_dan_file);
     }
 
     /**
-     * Accessor: Lấy đường dẫn lưu trữ vật lý (để debug/kiểm tra)
+     * Accessor: L?y du?ng d?n luu tr? v?t l� (d? debug/ki?m tra)
      */
     public function getStoragePathAttribute()
     {
@@ -159,7 +159,7 @@ class TaiNguyenBuoiHoc extends Model
     }
 
     /**
-     * Accessor: Lấy tên file gốc (nếu là file nội bộ)
+     * Accessor: L?y t�n file g?c (n?u l� file n?i b?)
      */
     public function getOriginalFileNameAttribute()
     {
@@ -172,7 +172,7 @@ class TaiNguyenBuoiHoc extends Model
     }
 
     /**
-     * Accessor: Kiểm tra tài liệu có thể tải xuống được không (thường là file upload)
+     * Accessor: Ki?m tra t�i li?u c� th? t?i xu?ng du?c kh�ng (thu?ng l� file upload)
      */
     public function getIsDownloadableAttribute()
     {
@@ -180,29 +180,29 @@ class TaiNguyenBuoiHoc extends Model
     }
 
     /**
-     * Accessor: Lấy nhãn hiển thị cho loại tài nguyên
+     * Accessor: L?y nh�n hi?n th? cho lo?i t�i nguy�n
      */
     public function getLoaiLabelAttribute()
     {
         return match($this->loai_tai_nguyen) {
-            'video'         => 'Video bài giảng',
-            'pdf'           => 'Tài liệu PDF',
-            'word'          => 'Tài liệu Word',
-            'powerpoint'    => 'Bài thuyết trình',
-            'excel'         => 'Bảng tính Excel',
-            'image'         => 'Hình ảnh',
-            'audio'         => 'Âm thanh',
-            'archive'       => 'File nén',
-            'link_ngoai'    => 'Liên kết ngoài',
-            'bai_giang'     => 'Bài giảng (Cũ)',
-            'tai_lieu'      => 'Tài liệu (Cũ)',
-            'bai_tap'       => 'Bài tập (Cũ)',
-            default         => 'Đính kèm'
+            'video'         => 'Video b�i gi?ng',
+            'pdf'           => 'T�i li?u PDF',
+            'word'          => 'T�i li?u Word',
+            'powerpoint'    => 'B�i thuy?t tr�nh',
+            'excel'         => 'B?ng t�nh Excel',
+            'image'         => 'H�nh ?nh',
+            'audio'         => '�m thanh',
+            'archive'       => 'File n�n',
+            'link_ngoai'    => 'Li�n k?t ngo�i',
+            'bai_giang'     => 'B�i gi?ng (Cu)',
+            'tai_lieu'      => 'T�i li?u (Cu)',
+            'bai_tap'       => 'B�i t?p (Cu)',
+            default         => '��nh k�m'
         };
     }
 
     /**
-     * Accessor: Lấy icon FontAwesome cho loại tài nguyên
+     * Accessor: L?y icon FontAwesome cho lo?i t�i nguy�n
      */
     public function getLoaiIconAttribute()
     {
@@ -224,7 +224,7 @@ class TaiNguyenBuoiHoc extends Model
     }
 
     /**
-     * Accessor: Lấy màu sắc Bootstrap cho loại tài nguyên
+     * Accessor: L?y m�u s?c Bootstrap cho lo?i t�i nguy�n
      */
     public function getLoaiColorAttribute()
     {
@@ -246,15 +246,15 @@ class TaiNguyenBuoiHoc extends Model
     }
 
     /**
-     * Accessor: Nhãn nguồn hiển thị của tài nguyên
+     * Accessor: Nh�n ngu?n hi?n th? c?a t�i nguy�n
      */
     public function getNguonHienThiLabelAttribute()
     {
-        return $this->is_external ? 'Link ngoài' : 'File nội bộ';
+        return $this->is_external ? 'Link ngo�i' : 'File n?i b?';
     }
 
     /**
-     * Accessor: Màu hiển thị theo nguồn tài nguyên
+     * Accessor: M�u hi?n th? theo ngu?n t�i nguy�n
      */
     public function getNguonHienThiColorAttribute()
     {
@@ -262,23 +262,23 @@ class TaiNguyenBuoiHoc extends Model
     }
 
     /**
-     * Accessor: Trạng thái file/link cho học viên
+     * Accessor: Tr?ng th�i file/link cho h?c vi�n
      */
     public function getFileStatusMessageAttribute()
     {
         if ($this->is_external) {
-            return 'Tài nguyên được cung cấp qua liên kết ngoài.';
+            return 'T�i nguy�n du?c cung c?p qua li�n k?t ngo�i.';
         }
 
         if ($this->is_file_exists) {
-            return 'Tệp sẵn sàng để xem hoặc tải về.';
+            return 'T?p s?n s�ng d? xem ho?c t?i v?.';
         }
 
-        return 'Tệp đính kèm hiện không còn tồn tại trên hệ thống.';
+        return 'T?p d�nh k�m hi?n kh�ng c�n t?n t?i tr�n h? th?ng.';
     }
 
     /**
-     * Relationship: Thuộc về một buổi học cụ thể
+     * Relationship: Thu?c v? m?t bu?i h?c c? th?
      */
     public function lichHoc(): BelongsTo
     {
@@ -286,7 +286,7 @@ class TaiNguyenBuoiHoc extends Model
     }
 
     /**
-     * Scope: Chỉ lấy tài nguyên đã mở cho học viên (legacy)
+     * Scope: Ch? l?y t�i nguy�n d� m? cho h?c vi�n (legacy)
      */
     public function scopeHienThi($query)
     {
@@ -294,7 +294,7 @@ class TaiNguyenBuoiHoc extends Model
     }
 
     /**
-     * Scope: Tài nguyên đã duyệt
+     * Scope: T�i nguy�n d� duy?t
      */
     public function scopeDaDuyet($query)
     {
@@ -302,7 +302,7 @@ class TaiNguyenBuoiHoc extends Model
     }
 
     /**
-     * Scope: Video đã xử lý xong hoặc tài liệu không cần xử lý
+     * Scope: Video d� x? l� xong ho?c t�i li?u kh�ng c?n x? l�
      */
     public function scopeSanSang($query)
     {
@@ -310,7 +310,7 @@ class TaiNguyenBuoiHoc extends Model
     }
 
     /**
-     * Scope: Tài nguyên có thể dùng cho bài giảng (đã duyệt + sẵn sàng)
+     * Scope: T�i nguy�n c� th? d�ng cho b�i gi?ng (d� duy?t + s?n s�ng)
      */
     public function scopeDungDuoc($query)
     {

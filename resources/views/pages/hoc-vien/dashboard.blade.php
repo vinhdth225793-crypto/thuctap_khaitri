@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'Dashboard Hoc Vien'])
+@extends('layouts.app', ['title' => 'Dashboard Học Viên'])
 
 @section('content')
 @php
@@ -12,28 +12,28 @@
             <div class="row align-items-center g-4">
                 <div class="col-lg-8">
                     <div class="d-flex flex-wrap gap-2 mb-3">
-                        <span class="badge rounded-pill bg-light text-primary">Hoc vien</span>
+                        <span class="badge rounded-pill bg-light text-primary">Học viên</span>
                         <span class="badge rounded-pill bg-light text-success">
-                            {{ $dashboardStats['khoa_hoc_dang_hoc'] }} khoa hoc dang hoc
+                            {{ $dashboardStats['khoa_hoc_dang_hoc'] }} khóa học đang học
                         </span>
                         @if($dashboardStats['yeu_cau_dang_cho_duyet'] > 0)
                             <span class="badge rounded-pill bg-light text-warning">
-                                {{ $dashboardStats['yeu_cau_dang_cho_duyet'] }} yeu cau cho duyet
+                                {{ $dashboardStats['yeu_cau_dang_cho_duyet'] }} yêu cầu chờ duyệt
                             </span>
                         @endif
                     </div>
 
-                    <h2 class="fw-bold mb-2">Chao mung tro lai, {{ auth()->user()->ho_ten }}!</h2>
+                    <h2 class="fw-bold mb-2">Chào mừng trở lại, {{ auth()->user()->ho_ten }}!</h2>
 
                     @if($dashboardStats['khoa_hoc_dang_hoc'] > 0)
                         <p class="mb-0 hero-text">
-                            Hom nay ban co {{ $dashboardStats['buoi_hoc_hom_nay'] }} buoi hoc,
-                            {{ $dashboardStats['buoi_hoc_sap_toi'] }} buoi sap toi
-                            va {{ $dashboardStats['tai_lieu_moi_7_ngay'] }} tai lieu moi trong 7 ngay gan day.
+                            Hôm nay bạn có {{ $dashboardStats['buoi_hoc_hom_nay'] }} buổi học,
+                            {{ $dashboardStats['buoi_hoc_sap_toi'] }} buổi sắp tới
+                            và {{ $dashboardStats['tai_lieu_moi_7_ngay'] }} tài liệu mới trong 7 ngày gần đây.
                         </p>
                     @else
                         <p class="mb-0 hero-text">
-                            Ban chua co khoa hoc dang hoc. Hay vao danh sach khoa hoc co the tham gia de gui yeu cau vao lop.
+                            Bạn chưa có khóa học đang học. Hãy vào danh sách khóa học có thể tham gia để gửi yêu cầu vào lớp.
                         </p>
                     @endif
                 </div>
@@ -41,7 +41,7 @@
                 <div class="col-lg-4 text-lg-end">
                     <div class="hero-box ms-lg-auto">
                         <i class="fas fa-user-graduate"></i>
-                        <div class="small mt-3 text-white-50">Tien do tong quan</div>
+                        <div class="small mt-3 text-white-50">Tiến độ tổng quan</div>
                         <div class="fs-3 fw-bold">{{ $dashboardStats['tien_do_tong_quan'] }}%</div>
                     </div>
                 </div>
@@ -54,9 +54,9 @@
             <div class="card vip-card stat-panel h-100">
                 <div class="card-body">
                     <div class="stat-icon text-primary"><i class="fas fa-book-open"></i></div>
-                    <div class="stat-label">Khoa hoc dang hoc</div>
+                    <div class="stat-label">Khóa học đang học</div>
                     <div class="stat-value">{{ $dashboardStats['khoa_hoc_dang_hoc'] }}</div>
-                    <div class="stat-note">{{ $tienDoKhoaHoc->count() }} khoa hoc da ghi danh</div>
+                    <div class="stat-note">{{ $tienDoKhoaHoc->count() }} khóa học đã ghi danh</div>
                 </div>
             </div>
         </div>
@@ -64,9 +64,9 @@
             <div class="card vip-card stat-panel h-100">
                 <div class="card-body">
                     <div class="stat-icon text-info"><i class="fas fa-calendar-day"></i></div>
-                    <div class="stat-label">Buoi hoc sap toi</div>
+                    <div class="stat-label">Buổi học sắp tới</div>
                     <div class="stat-value">{{ $dashboardStats['buoi_hoc_sap_toi'] }}</div>
-                    <div class="stat-note">{{ $dashboardStats['buoi_hoc_hom_nay'] }} buoi dien ra hom nay</div>
+                    <div class="stat-note">{{ $dashboardStats['buoi_hoc_hom_nay'] }} buổi diễn ra hôm nay</div>
                 </div>
             </div>
         </div>
@@ -74,9 +74,9 @@
             <div class="card vip-card stat-panel h-100">
                 <div class="card-body">
                     <div class="stat-icon text-success"><i class="fas fa-folder-open"></i></div>
-                    <div class="stat-label">Tai lieu cong khai</div>
+                    <div class="stat-label">Tài liệu công khai</div>
                     <div class="stat-value">{{ $dashboardStats['tai_lieu_cong_khai'] }}</div>
-                    <div class="stat-note">{{ $dashboardStats['buoi_co_tai_lieu'] }} buoi da co tai lieu</div>
+                    <div class="stat-note">{{ $dashboardStats['buoi_co_tai_lieu'] }} buổi đã có tài liệu</div>
                 </div>
             </div>
         </div>
@@ -84,10 +84,10 @@
             <div class="card vip-card stat-panel h-100">
                 <div class="card-body">
                     <div class="stat-icon text-warning"><i class="fas fa-chart-line"></i></div>
-                    <div class="stat-label">Tien do tong quan</div>
+                    <div class="stat-label">Tiến độ tổng quan</div>
                     <div class="stat-value">{{ $dashboardStats['tien_do_tong_quan'] }}%</div>
                     <div class="stat-note">
-                        {{ $dashboardStats['tong_buoi_hoan_thanh'] }}/{{ $dashboardStats['tong_buoi_hoc'] }} buoi da hoan thanh
+                        {{ $dashboardStats['tong_buoi_hoan_thanh'] }}/{{ $dashboardStats['tong_buoi_hoc'] }} buổi đã hoàn thành
                     </div>
                 </div>
             </div>
@@ -99,11 +99,11 @@
             <div class="card vip-card h-100">
                 <div class="card-header border-0 d-flex justify-content-between align-items-center">
                     <div>
-                        <h5 class="mb-1 fw-semibold">Tien do theo khoa hoc</h5>
-                        <p class="text-muted small mb-0">Du lieu duoc tinh tu cac buoi hoc da len lich trong tung khoa.</p>
+                        <h5 class="mb-1 fw-semibold">Tiến độ theo khóa học</h5>
+                        <p class="text-muted small mb-0">Dữ liệu được tính từ các buổi học đã lên lịch trong từng khóa.</p>
                     </div>
                     <a href="{{ route('hoc-vien.khoa-hoc-cua-toi') }}" class="btn vip-btn vip-btn-primary btn-sm">
-                        Xem khoa hoc cua toi
+                        Xem khóa học của tôi
                     </a>
                 </div>
                 <div class="card-body">
@@ -112,11 +112,11 @@
                             <table class="table align-middle dashboard-table">
                                 <thead>
                                     <tr>
-                                        <th>Khoa hoc</th>
-                                        <th>Nhom nganh</th>
-                                        <th>Tien do</th>
-                                        <th>Buoi ke tiep</th>
-                                        <th>Trang thai</th>
+                                        <th>Khóa học</th>
+                                        <th>Nhóm ngành</th>
+                                        <th>Tiến độ</th>
+                                        <th>Buổi kế tiếp</th>
+                                        <th>Trạng thái</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -129,19 +129,19 @@
                                         <tr>
                                             <td>
                                                 <div class="fw-semibold text-dark">{{ $khoaHoc->ten_khoa_hoc }}</div>
-                                                <div class="small text-muted">{{ $khoaHoc->ma_khoa_hoc ?: 'Chua co ma khoa hoc' }}</div>
+                                                <div class="small text-muted">{{ $khoaHoc->ma_khoa_hoc ?: 'Chưa có mã khóa học' }}</div>
                                                 <div class="small text-muted">
                                                     Tham gia:
                                                     {{ optional($ghiDanh->ngay_tham_gia)->format('d/m/Y') ?: optional($ghiDanh->created_at)->format('d/m/Y') }}
                                                 </div>
                                             </td>
                                             <td>
-                                                <div>{{ optional($khoaHoc->nhomNganh)->ten_nhom_nganh ?: 'Chua cap nhat' }}</div>
-                                                <div class="small text-muted">{{ $dong['buoi_online'] }} buoi online</div>
+                                                <div>{{ optional($khoaHoc->nhomNganh)->ten_nhom_nganh ?: 'Chưa cập nhật' }}</div>
+                                                <div class="small text-muted">{{ $dong['buoi_online'] }} buổi online</div>
                                             </td>
                                             <td style="min-width: 220px;">
                                                 <div class="d-flex justify-content-between small mb-2">
-                                                    <span>{{ $dong['buoi_hoan_thanh'] }}/{{ $dong['tong_buoi'] }} buoi</span>
+                                                    <span>{{ $dong['buoi_hoan_thanh'] }}/{{ $dong['tong_buoi'] }} buổi</span>
                                                     <strong>{{ $dong['tien_do'] }}%</strong>
                                                 </div>
                                                 <div class="progress progress-thin">
@@ -164,7 +164,7 @@
                                                     </div>
                                                     <div class="small text-muted">{{ $buoiSapToiTheoKhoa->hinh_thuc_label }}</div>
                                                 @else
-                                                    <span class="text-muted small">Chua co buoi hoc sap toi</span>
+                                                    <span class="text-muted small">Chưa có buổi học sắp tới</span>
                                                 @endif
                                             </td>
                                             <td>
@@ -178,10 +178,10 @@
                     @else
                         <div class="text-center py-5">
                             <div class="empty-icon mb-3"><i class="fas fa-book-reader"></i></div>
-                            <h5 class="fw-semibold">Ban chua co khoa hoc nao</h5>
-                            <p class="text-muted mb-3">Tien do hoc tap se xuat hien tai day khi ban duoc them vao khoa hoc.</p>
+                            <h5 class="fw-semibold">Bạn chưa có khóa học nào</h5>
+                            <p class="text-muted mb-3">Tiến độ học tập sẽ xuất hiện tại đây khi bạn được thêm vào khóa học.</p>
                             <a href="{{ route('hoc-vien.khoa-hoc-tham-gia') }}" class="btn vip-btn vip-btn-primary">
-                                Xem khoa hoc co the tham gia
+                                Xem khóa học có thể tham gia
                             </a>
                         </div>
                     @endif
@@ -192,14 +192,14 @@
         <div class="col-xl-4 mb-4">
             <div class="card vip-card mb-4">
                 <div class="card-header border-0">
-                    <h5 class="mb-1 fw-semibold">Buoi hoc sap toi</h5>
-                    <p class="text-muted small mb-0">Chi hien thi cac buoi thuoc khoa hoc dang hoc.</p>
+                    <h5 class="mb-1 fw-semibold">Buổi học sắp tới</h5>
+                    <p class="text-muted small mb-0">Chỉ hiển thị các buổi thuộc khóa học đang học.</p>
                 </div>
                 <div class="card-body">
                     @forelse($buoiSapToi as $lichHoc)
                         <div class="upcoming-item">
                             <div class="fw-semibold text-dark">{{ $lichHoc->khoaHoc->ten_khoa_hoc }}</div>
-                            <div class="small text-muted">{{ $lichHoc->moduleHoc->ten_module ?? 'Chua gan module' }}</div>
+                            <div class="small text-muted">{{ $lichHoc->moduleHoc->ten_module ?? 'Chưa gán module' }}</div>
                             <div class="small text-muted">
                                 {{ $lichHoc->ngay_hoc->format('d/m/Y') }} •
                                 {{ $lichHoc->gio_bat_dau ?: '--:--' }}
@@ -213,11 +213,11 @@
                             </div>
                             <div class="d-flex flex-wrap gap-2 mt-3">
                                 <a href="{{ route('hoc-vien.chi-tiet-khoa-hoc', $lichHoc->khoa_hoc_id) }}" class="btn btn-sm btn-outline-primary">
-                                    Xem khoa hoc
+                                    Xem khóa học
                                 </a>
                                 @if($lichHoc->can_join_online)
                                     <a href="{{ $lichHoc->link_online }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary">
-                                        Vao phong hoc
+                                        Vào phòng học
                                     </a>
                                 @endif
                             </div>
@@ -225,7 +225,7 @@
                     @empty
                         <div class="text-center py-4">
                             <div class="empty-icon mb-3"><i class="fas fa-calendar-check"></i></div>
-                            <p class="text-muted mb-0">Chua co buoi hoc sap toi.</p>
+                            <p class="text-muted mb-0">Chưa có buổi học sắp tới.</p>
                         </div>
                     @endforelse
                 </div>
@@ -233,38 +233,38 @@
 
             <div class="card vip-card">
                 <div class="card-header border-0">
-                    <h5 class="mb-0 fw-semibold">Thao tac nhanh</h5>
+                    <h5 class="mb-0 fw-semibold">Thao tác nhanh</h5>
                 </div>
                 <div class="card-body">
                     <div class="row g-2">
                         <div class="col-6">
                             <a href="{{ route('hoc-vien.khoa-hoc-cua-toi') }}" class="btn btn-outline-primary w-100 quick-btn">
                                 <i class="fas fa-book-open mb-2"></i>
-                                <span>Khoa hoc cua toi</span>
+                                <span>Khóa học của tôi</span>
                             </a>
                         </div>
                         <div class="col-6">
                             <a href="{{ route('hoc-vien.khoa-hoc-tham-gia') }}" class="btn btn-outline-success w-100 quick-btn">
                                 <i class="fas fa-door-open mb-2"></i>
-                                <span>Xin vao lop</span>
+                                <span>Xin vào lớp</span>
                             </a>
                         </div>
                         <div class="col-6">
                             <a href="{{ route('hoc-vien.profile') }}" class="btn btn-outline-warning w-100 quick-btn">
                                 <i class="fas fa-user mb-2"></i>
-                                <span>Ho so ca nhan</span>
+                                <span>Hồ sơ cá nhân</span>
                             </a>
                         </div>
                         <div class="col-6">
                             @if($hasKetQuaRoute)
                                 <a href="{{ route('hoc-vien.ket-qua') }}" class="btn btn-outline-info w-100 quick-btn">
                                     <i class="fas fa-chart-column mb-2"></i>
-                                    <span>Ket qua hoc tap</span>
+                                    <span>Kết quả học tập</span>
                                 </a>
                             @else
                                 <button type="button" class="btn btn-outline-secondary w-100 quick-btn" disabled>
                                     <i class="fas fa-chart-column mb-2"></i>
-                                    <span>Ket qua hoc tap</span>
+                                    <span>Kết quả học tập</span>
                                 </button>
                             @endif
                         </div>
@@ -272,12 +272,12 @@
                             @if($hasBaiKiemTraRoute)
                                 <a href="{{ route('hoc-vien.bai-kiem-tra') }}" class="btn btn-outline-dark w-100 quick-btn">
                                     <i class="fas fa-list-check mb-2"></i>
-                                    <span>Bai kiem tra</span>
+                                    <span>Bài kiểm tra</span>
                                 </a>
                             @else
                                 <button type="button" class="btn btn-outline-secondary w-100 quick-btn" disabled>
                                     <i class="fas fa-list-check mb-2"></i>
-                                    <span>Bai kiem tra se mo o phase sau</span>
+                                    <span>Bài kiểm tra sẽ mở ở phase sau</span>
                                 </button>
                             @endif
                         </div>
@@ -290,10 +290,10 @@
     <div class="card vip-card">
         <div class="card-header border-0 d-flex justify-content-between align-items-center">
             <div>
-                <h5 class="mb-1 fw-semibold">Tai lieu moi duoc mo</h5>
-                <p class="text-muted small mb-0">Chi lay cac tai lieu giang vien da cong khai cho hoc vien.</p>
+                <h5 class="mb-1 fw-semibold">Tài liệu mới được mở</h5>
+                <p class="text-muted small mb-0">Chỉ lấy các tài liệu giảng viên đã công khai cho học viên.</p>
             </div>
-            <span class="badge bg-light text-success">{{ $dashboardStats['tai_lieu_moi_7_ngay'] }} moi / 7 ngay</span>
+            <span class="badge bg-light text-success">{{ $dashboardStats['tai_lieu_moi_7_ngay'] }} mới / 7 ngày</span>
         </div>
         <div class="card-body">
             @if($taiLieuMoi->isNotEmpty())
@@ -315,11 +315,11 @@
 
                                 <div class="small text-muted mb-1">
                                     <i class="fas fa-book me-1"></i>
-                                    {{ optional(optional($taiLieu->lichHoc)->khoaHoc)->ten_khoa_hoc ?: 'Chua xac dinh khoa hoc' }}
+                                    {{ optional(optional($taiLieu->lichHoc)->khoaHoc)->ten_khoa_hoc ?: 'Chưa xác định khóa học' }}
                                 </div>
                                 <div class="small text-muted mb-1">
                                     <i class="fas fa-layer-group me-1"></i>
-                                    {{ optional(optional($taiLieu->lichHoc)->moduleHoc)->ten_module ?: 'Chua gan module' }}
+                                    {{ optional(optional($taiLieu->lichHoc)->moduleHoc)->ten_module ?: 'Chưa gán module' }}
                                 </div>
                                 <div class="small text-muted mb-3">
                                     <i class="far fa-clock me-1"></i>
@@ -328,11 +328,11 @@
 
                                 <div class="d-flex flex-wrap gap-2 mt-auto">
                                     <a href="{{ route('hoc-vien.chi-tiet-khoa-hoc', optional($taiLieu->lichHoc)->khoa_hoc_id) }}" class="btn btn-sm btn-outline-primary">
-                                        Xem trong khoa hoc
+                                        Xem trong khóa học
                                     </a>
                                     @if($taiLieu->is_external)
                                         <a href="{{ $taiLieu->file_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary">
-                                            Mo lien ket
+                                            Mở liên kết
                                         </a>
                                     @elseif($taiLieu->is_downloadable)
                                         <a href="{{ $taiLieu->file_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary">
@@ -340,7 +340,7 @@
                                         </a>
                                     @else
                                         <button type="button" class="btn btn-sm btn-outline-secondary" disabled>
-                                            File khong kha dung
+                                            File không khả dụng
                                         </button>
                                     @endif
                                 </div>
@@ -351,8 +351,8 @@
             @else
                 <div class="text-center py-5">
                     <div class="empty-icon mb-3"><i class="fas fa-folder-open"></i></div>
-                    <h5 class="fw-semibold">Chua co tai lieu cong khai moi</h5>
-                    <p class="text-muted mb-0">Khi giang vien dang va bat hien thi tai lieu cho buoi hoc, chung se xuat hien tai day.</p>
+                    <h5 class="fw-semibold">Chưa có tài liệu công khai mới</h5>
+                    <p class="text-muted mb-0">Khi giảng viên đăng và bật hiển thị tài liệu cho buổi học, chúng sẽ xuất hiện tại đây.</p>
                 </div>
             @endif
         </div>

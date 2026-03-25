@@ -184,7 +184,7 @@ class TaiNguyenController extends Controller
 
         TaiNguyenBuoiHoc::create($data);
 
-        return back()->with('success', 'Da luu tai nguyen buoi hoc thanh cong.');
+        return back()->with('success', 'Đã lưu tài nguyên buổi học thành công.');
     }
 
     public function update(Request $request, int $id): RedirectResponse
@@ -212,7 +212,7 @@ class TaiNguyenController extends Controller
             && blank($taiNguyen->link_ngoai)
         ) {
             return back()
-                ->withErrors(['file_dinh_kem' => 'Vui long tai len file hoac nhap link ngoai hop le.'])
+                ->withErrors(['file_dinh_kem' => 'Vui lòng tải lên file hoặc nhập link ngoài hợp lệ.'])
                 ->withInput();
         }
 
@@ -238,7 +238,7 @@ class TaiNguyenController extends Controller
 
         $taiNguyen->update($data);
 
-        return back()->with('success', 'Da cap nhat tai nguyen buoi hoc thanh cong.');
+        return back()->with('success', 'Đã cập nhật tài nguyên buổi học thành công.');
     }
 
     public function toggleHienThi(int $id): RedirectResponse
@@ -253,8 +253,8 @@ class TaiNguyenController extends Controller
         $taiNguyen->save();
 
         $message = $taiNguyen->trang_thai_hien_thi === 'hien'
-            ? 'Da hien tai nguyen cho hoc vien.'
-            : 'Da an tai nguyen voi hoc vien.';
+            ? 'Đã hiển thị tài nguyên cho học viên.'
+            : 'Đã ẩn tài nguyên với học viên.';
 
         return back()->with('success', $message);
     }
@@ -271,22 +271,22 @@ class TaiNguyenController extends Controller
 
         $taiNguyen->delete();
 
-        return back()->with('success', 'Da xoa tai nguyen buoi hoc thanh cong.');
+        return back()->with('success', 'Đã xóa tài nguyên buổi học thành công.');
     }
 
     private function authorizeGiangVienForLichHoc(LichHoc $lichHoc): void
     {
         $giangVien = auth()->user()?->giangVien;
 
-        abort_if(! $giangVien, 403, 'Ban khong co quyen thuc hien thao tac nay.');
+        abort_if(! $giangVien, 403, 'Bạn không có quyền thực hiện thao tác này.');
 
         $isAssigned = PhanCongModuleGiangVien::query()
             ->where('module_hoc_id', $lichHoc->module_hoc_id)
-            ->where('giao_vien_id', $giangVien->id)
+            ->where('giang_vien_id', $giangVien->id)
             ->where('trang_thai', 'da_nhan')
             ->exists();
 
-        abort_unless($isAssigned, 403, 'Ban khong duoc phan cong day buoi hoc nay.');
+        abort_unless($isAssigned, 403, 'Bạn không được phân công dạy buổi học này.');
     }
 
     private function storeUploadedFile(UploadedFile $file, int $lichHocId): string
@@ -310,3 +310,4 @@ class TaiNguyenController extends Controller
         );
     }
 }
+

@@ -98,17 +98,17 @@ class BaiKiemTra extends Model
     {
         return match ($this->pham_vi) {
             'module' => 'Theo module',
-            'buoi_hoc' => 'Theo buoi hoc',
-            'cuoi_khoa' => 'Cuoi khoa',
-            default => 'Khong xac dinh',
+            'buoi_hoc' => 'Theo buổi học',
+            'cuoi_khoa' => 'Cuối khóa',
+            default => 'Không xác định',
         };
     }
 
     public function getLoaiBaiKiemTraLabelAttribute(): string
     {
         return match ($this->loai_bai_kiem_tra) {
-            'cuoi_khoa' => 'Cuoi khoa',
-            'buoi_hoc' => 'Theo buoi hoc',
+            'cuoi_khoa' => 'Cuối khóa',
+            'buoi_hoc' => 'Theo buổi học',
             default => 'Theo module',
         };
     }
@@ -116,31 +116,31 @@ class BaiKiemTra extends Model
     public function getLoaiNoiDungLabelAttribute(): string
     {
         return match ($this->loai_noi_dung) {
-            'trac_nghiem' => 'Trac nghiem',
-            'tu_luan' => 'Tu luan',
-            'hon_hop' => 'Hon hop',
-            default => 'Khong xac dinh',
+            'trac_nghiem' => 'Trắc nghiệm',
+            'tu_luan' => 'Tự luận',
+            'hon_hop' => 'Hỗn hợp',
+            default => 'Không xác định',
         };
     }
 
     public function getTrangThaiDuyetLabelAttribute(): string
     {
         return match ($this->trang_thai_duyet) {
-            'nhap' => 'Nhap',
-            'cho_duyet' => 'Cho duyet',
-            'da_duyet' => 'Da duyet',
-            'tu_choi' => 'Tu choi',
-            default => 'Khong xac dinh',
+            'nhap' => 'Nháp',
+            'cho_duyet' => 'Chờ duyệt',
+            'da_duyet' => 'Đã duyệt',
+            'tu_choi' => 'Từ chối',
+            default => 'Không xác định',
         };
     }
 
     public function getTrangThaiPhatHanhLabelAttribute(): string
     {
         return match ($this->trang_thai_phat_hanh) {
-            'nhap' => 'Nhap',
-            'phat_hanh' => 'Phat hanh',
-            'dong' => 'Dong',
-            default => 'Khong xac dinh',
+            'nhap' => 'Nháp',
+            'phat_hanh' => 'Phát hành',
+            'dong' => 'Đóng',
+            default => 'Không xác định',
         };
     }
 
@@ -171,11 +171,11 @@ class BaiKiemTra extends Model
     public function getAccessStatusLabelAttribute(): string
     {
         return match ($this->access_status_key) {
-            'dang_mo' => 'Dang mo',
-            'sap_mo' => 'Sap mo',
-            'da_dong' => 'Da dong',
-            'an' => 'Tam an',
-            default => 'Khong xac dinh',
+            'dang_mo' => 'Đang mở',
+            'sap_mo' => 'Sắp mở',
+            'da_dong' => 'Đã đóng',
+            'an' => 'Tạm ẩn',
+            default => 'Không xác định',
         };
     }
 

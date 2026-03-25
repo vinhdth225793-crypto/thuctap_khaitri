@@ -7,7 +7,7 @@
     <div class="sidebar-header">
         <div class="sidebar-logo">
             <i class="fas fa-user-graduate"></i>
-            <span>Hoc Vien</span>
+            <span>Học Viên</span>
         </div>
     </div>
 
@@ -22,21 +22,21 @@
         <div class="nav-item">
             <a href="{{ route('hoc-vien.khoa-hoc-cua-toi') }}" class="nav-link {{ request()->routeIs('hoc-vien.khoa-hoc-cua-toi') ? 'active' : '' }}">
                 <i class="fas fa-book"></i>
-                <span>Khoa hoc cua toi</span>
+                <span>Khóa học của tôi</span>
             </a>
         </div>
 
         <div class="nav-item">
             <a href="{{ route('hoc-vien.hoat-dong-tien-do') }}" class="nav-link {{ request()->routeIs('hoc-vien.hoat-dong-tien-do') ? 'active' : '' }}">
                 <i class="fas fa-chart-line"></i>
-                <span>Hoat dong &amp; tien do</span>
+                <span>Hoạt động &amp; tiến độ</span>
             </a>
         </div>
 
         <div class="nav-item">
             <a href="{{ route('hoc-vien.khoa-hoc-tham-gia') }}" class="nav-link {{ request()->routeIs('hoc-vien.khoa-hoc-tham-gia') ? 'active' : '' }}">
                 <i class="fas fa-user-plus"></i>
-                <span>Xin vao lop</span>
+                <span>Xin vào lớp</span>
             </a>
         </div>
 
@@ -44,13 +44,13 @@
             @if($hasBaiKiemTraRoute)
                 <a href="{{ route('hoc-vien.bai-kiem-tra') }}" class="nav-link {{ request()->routeIs('hoc-vien.bai-kiem-tra*') ? 'active' : '' }}">
                     <i class="fas fa-tasks"></i>
-                    <span>Bai kiem tra</span>
+                    <span>Bài kiểm tra</span>
                 </a>
             @else
                 <span class="nav-link opacity-75" aria-disabled="true">
                     <i class="fas fa-tasks"></i>
-                    <span>Bai kiem tra</span>
-                    <span class="badge bg-warning text-dark ms-auto">Sap mo</span>
+                    <span>Bài kiểm tra</span>
+                    <span class="badge bg-warning text-dark ms-auto">Sắp mở</span>
                 </span>
             @endif
         </div>
@@ -59,13 +59,13 @@
             @if($hasKetQuaRoute)
                 <a href="{{ route('hoc-vien.ket-qua') }}" class="nav-link {{ request()->routeIs('hoc-vien.ket-qua') ? 'active' : '' }}">
                     <i class="fas fa-chart-bar"></i>
-                    <span>Ket qua hoc tap</span>
+                    <span>Kết quả học tập</span>
                 </a>
             @else
                 <span class="nav-link opacity-75" aria-disabled="true">
                     <i class="fas fa-chart-bar"></i>
-                    <span>Ket qua hoc tap</span>
-                    <span class="badge bg-warning text-dark ms-auto">Sap mo</span>
+                    <span>Kết quả học tập</span>
+                    <span class="badge bg-warning text-dark ms-auto">Sắp mở</span>
                 </span>
             @endif
         </div>
@@ -73,14 +73,14 @@
         <div class="nav-item">
             <a href="{{ route('home') }}" class="nav-link">
                 <i class="fas fa-home"></i>
-                <span>Trang chu</span>
+                <span>Trang chủ</span>
             </a>
         </div>
 
         <div class="nav-item mt-4">
             <a href="{{ route('hoc-vien.profile') }}" class="nav-link {{ request()->routeIs('hoc-vien.profile') ? 'active' : '' }}">
                 <i class="fas fa-user"></i>
-                <span>Ho so ca nhan</span>
+                <span>Hồ sơ cá nhân</span>
             </a>
         </div>
 
@@ -89,7 +89,7 @@
                 @csrf
                 <a href="#" class="nav-link" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                     <i class="fas fa-sign-out-alt"></i>
-                    <span>Dang xuat</span>
+                    <span>Đăng xuất</span>
                 </a>
             </form>
         </div>

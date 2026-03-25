@@ -4,16 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\KhoaHoc;
+use App\Models\ModuleHoc;
 use App\Models\NganHangCauHoi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class NganHangCauHoiController extends Controller
 {
-    /**
-     * Lấy danh sách khóa học mà người dùng được phép thao tác
-     */
     private function getAccessibleKhoaHocs()
     {
         $user = auth()->user();
@@ -21,39 +20,35 @@ class NganHangCauHoiController extends Controller
 
         if ($user->isGiangVien()) {
             $giangVien = $user->giangVien;
-            $khoaHocIds = $giangVien->khoaHocDuocPhanCong()->pluck('khoa_hoc.id')->unique()->toArray();
+            $khoaHocIds = $giangVien
+                ? $giangVien->khoaHocDuocPhanCong()->pluck('khoa_hoc.id')->unique()->toArray()
+                : [];
+
             $query->whereIn('id', $khoaHocIds);
         }
 
         return $query->orderBy('ten_khoa_hoc')->get(['id', 'ten_khoa_hoc', 'ma_khoa_hoc']);
     }
 
-    /**
-     * Danh sách câu hỏi (Phân trang, Tìm kiếm, Lọc theo khóa học)
-     */
     public function index(Request $request)
     {
         $user = auth()->user();
         $khoaHocs = $this->getAccessibleKhoaHocs();
-        $khoaHocIds = $khoaHocs->pluck('id')->toArray();
+        $khoaHocIds = $khoaHocs->pluck('id')->all();
 
-        // Query danh sách câu hỏi
-        $query = NganHangCauHoi::with(['khoaHoc', 'nguoiTao']);
+        $query = NganHangCauHoi::with(['khoaHoc', 'moduleHoc', 'nguoiTao', 'dapAns']);
 
-        // Phân quyền: Chỉ thấy câu hỏi của khóa học được phép
         if ($user->isGiangVien()) {
             $query->whereIn('khoa_hoc_id', $khoaHocIds);
         }
 
-        // Lọc theo khóa học
         if ($request->filled('khoa_hoc_id')) {
-            $query->where('khoa_hoc_id', $request->khoa_hoc_id);
+            $query->where('khoa_hoc_id', $request->integer('khoa_hoc_id'));
         }
 
-        // Tìm kiếm theo nội dung câu hỏi
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where('noi_dung_cau_hoi', 'like', "%{$search}%");
+            $search = trim((string) $request->string('search'));
+            $query->where('noi_dung', 'like', "%{$search}%");
         }
 
         $cauHois = $query->orderByDesc('created_at')->paginate(15)->withQueryString();
@@ -61,9 +56,6 @@ class NganHangCauHoiController extends Controller
         return view('pages.admin.kiem-tra-online.cau-hoi.index', compact('cauHois', 'khoaHocs'));
     }
 
-    /**
-     * Form thêm mới
-     */
     public function create()
     {
         return view('pages.admin.kiem-tra-online.cau-hoi.form', [
@@ -71,178 +63,108 @@ class NganHangCauHoiController extends Controller
             'khoaHocs' => $this->getAccessibleKhoaHocs(),
             'action' => route('admin.kiem-tra-online.cau-hoi.store'),
             'method' => 'POST',
-            'title' => 'Thêm mới câu hỏi thủ công'
+            'title' => 'Thêm mới câu hỏi thủ công',
         ]);
     }
 
-    /**
-     * Lưu câu hỏi mới
-     */
     public function store(Request $request)
     {
         $user = auth()->user();
-        
-        $validated = $request->validate([
-            'khoa_hoc_id' => 'required|exists:khoa_hoc,id',
-            'noi_dung_cau_hoi' => 'required|string',
-            'dap_an_sai_1' => 'required|string',
-            'dap_an_sai_2' => 'required|string',
-            'dap_an_sai_3' => 'required|string',
-            'dap_an_dung' => 'required|string',
-        ]);
+        $payload = $this->buildQuestionPayload($request);
 
-        // Kiểm tra phân quyền giảng viên
-        if ($user->isGiangVien()) {
-            $giangVien = $user->giangVien;
-            $isAssigned = $giangVien->khoaHocDuocPhanCong()->where('khoa_hoc.id', $validated['khoa_hoc_id'])->exists();
-            if (!$isAssigned) {
-                abort(403, 'Bạn không được phân công cho khóa học này.');
-            }
-        }
+        $this->authorizeCourseAccess($user, $payload['khoa_hoc_id']);
 
-        // Kiểm tra logic đáp án
-        $this->validateAnswers($validated);
-
-        // Kiểm tra trùng lặp câu hỏi trong cùng khóa học
-        if (NganHangCauHoi::isDuplicate($validated['khoa_hoc_id'], $validated['noi_dung_cau_hoi'])) {
+        if (NganHangCauHoi::isDuplicate($payload['khoa_hoc_id'], $payload['noi_dung'])) {
             throw ValidationException::withMessages([
-                'noi_dung_cau_hoi' => 'Nội dung câu hỏi này đã tồn tại trong khóa học này.'
+                'noi_dung_cau_hoi' => 'Nội dung câu hỏi này đã tồn tại trong khóa học này.',
             ]);
         }
 
-        $validated['nguoi_tao_id'] = $user->ma_nguoi_dung;
-        
-        NganHangCauHoi::create($validated);
+        DB::transaction(function () use ($payload, $user) {
+            $cauHoi = NganHangCauHoi::create([
+                'khoa_hoc_id' => $payload['khoa_hoc_id'],
+                'module_hoc_id' => $payload['module_hoc_id'],
+                'nguoi_tao_id' => $user->ma_nguoi_dung,
+                'ma_cau_hoi' => $payload['ma_cau_hoi'],
+                'noi_dung' => $payload['noi_dung'],
+                'loai_cau_hoi' => $payload['loai_cau_hoi'],
+                'muc_do' => $payload['muc_do'],
+                'diem_mac_dinh' => $payload['diem_mac_dinh'],
+                'trang_thai' => $payload['trang_thai'],
+                'co_the_tai_su_dung' => $payload['co_the_tai_su_dung'],
+            ]);
+
+            $this->syncAnswers($cauHoi, $payload['answers']);
+        });
 
         return redirect()
             ->route('admin.kiem-tra-online.cau-hoi.index')
             ->with('success', 'Đã thêm câu hỏi thành công.');
     }
 
-    /**
-     * Form chỉnh sửa
-     */
     public function edit($id)
     {
         $user = auth()->user();
-        $cauHoi = NganHangCauHoi::findOrFail($id);
+        $cauHoi = NganHangCauHoi::with('dapAns')->findOrFail($id);
 
-        // Kiểm tra phân quyền: nếu là giảng viên thì phải được phân công khóa học này
-        if ($user->isGiangVien()) {
-            $giangVien = $user->giangVien;
-            $isAssigned = $giangVien->khoaHocDuocPhanCong()->where('khoa_hoc.id', $cauHoi->khoa_hoc_id)->exists();
-            if (!$isAssigned) {
-                abort(403, 'Bạn không có quyền chỉnh sửa câu hỏi này.');
-            }
-        }
+        $this->authorizeCourseAccess($user, (int) $cauHoi->khoa_hoc_id);
 
         return view('pages.admin.kiem-tra-online.cau-hoi.form', [
             'cauHoi' => $cauHoi,
             'khoaHocs' => $this->getAccessibleKhoaHocs(),
             'action' => route('admin.kiem-tra-online.cau-hoi.update', $cauHoi->id),
             'method' => 'PUT',
-            'title' => 'Chỉnh sửa câu hỏi'
+            'title' => 'Chỉnh sửa câu hỏi',
         ]);
     }
 
-    /**
-     * Cập nhật câu hỏi
-     */
     public function update(Request $request, $id)
     {
         $user = auth()->user();
-        $cauHoi = NganHangCauHoi::findOrFail($id);
+        $cauHoi = NganHangCauHoi::with('dapAns')->findOrFail($id);
+        $payload = $this->buildQuestionPayload($request, $cauHoi);
 
-        $validated = $request->validate([
-            'khoa_hoc_id' => 'required|exists:khoa_hoc,id',
-            'noi_dung_cau_hoi' => 'required|string',
-            'dap_an_sai_1' => 'required|string',
-            'dap_an_sai_2' => 'required|string',
-            'dap_an_sai_3' => 'required|string',
-            'dap_an_dung' => 'required|string',
-        ]);
+        $this->authorizeCourseAccess($user, $payload['khoa_hoc_id'], (int) $cauHoi->khoa_hoc_id);
 
-        // Kiểm tra phân quyền
-        if ($user->isGiangVien()) {
-            $giangVien = $user->giangVien;
-            // Kiểm tra khóa học cũ và khóa học mới (nếu thay đổi)
-            $isAssignedOld = $giangVien->khoaHocDuocPhanCong()->where('khoa_hoc.id', $cauHoi->khoa_hoc_id)->exists();
-            $isAssignedNew = $giangVien->khoaHocDuocPhanCong()->where('khoa_hoc.id', $validated['khoa_hoc_id'])->exists();
-            
-            if (!$isAssignedOld || !$isAssignedNew) {
-                abort(403, 'Bạn không có quyền thao tác trên khóa học này.');
-            }
-        }
-
-        // Kiểm tra logic đáp án
-        $this->validateAnswers($validated);
-
-        // Kiểm tra trùng lặp
-        if (NganHangCauHoi::isDuplicate($validated['khoa_hoc_id'], $validated['noi_dung_cau_hoi'], $cauHoi->id)) {
+        if (NganHangCauHoi::isDuplicate($payload['khoa_hoc_id'], $payload['noi_dung'], $cauHoi->id)) {
             throw ValidationException::withMessages([
-                'noi_dung_cau_hoi' => 'Nội dung câu hỏi này đã tồn tại trong khóa học này.'
+                'noi_dung_cau_hoi' => 'Nội dung câu hỏi này đã tồn tại trong khóa học này.',
             ]);
         }
 
-        $cauHoi->update($validated);
+        DB::transaction(function () use ($cauHoi, $payload) {
+            $cauHoi->update([
+                'khoa_hoc_id' => $payload['khoa_hoc_id'],
+                'module_hoc_id' => $payload['module_hoc_id'],
+                'ma_cau_hoi' => $payload['ma_cau_hoi'] ?: $cauHoi->ma_cau_hoi ?: NganHangCauHoi::generateQuestionCode(),
+                'noi_dung' => $payload['noi_dung'],
+                'loai_cau_hoi' => $payload['loai_cau_hoi'],
+                'muc_do' => $payload['muc_do'],
+                'diem_mac_dinh' => $payload['diem_mac_dinh'],
+                'trang_thai' => $payload['trang_thai'],
+                'co_the_tai_su_dung' => $payload['co_the_tai_su_dung'],
+            ]);
+
+            $this->syncAnswers($cauHoi, $payload['answers']);
+        });
 
         return redirect()
             ->route('admin.kiem-tra-online.cau-hoi.index')
             ->with('success', 'Đã cập nhật câu hỏi thành công.');
     }
 
-    /**
-     * Xóa câu hỏi
-     */
     public function destroy($id)
     {
         $user = auth()->user();
         $cauHoi = NganHangCauHoi::findOrFail($id);
 
-        // Kiểm tra phân quyền
-        if ($user->isGiangVien()) {
-            $giangVien = $user->giangVien;
-            $isAssigned = $giangVien->khoaHocDuocPhanCong()->where('khoa_hoc.id', $cauHoi->khoa_hoc_id)->exists();
-            if (!$isAssigned) {
-                abort(403, 'Bạn không có quyền xóa câu hỏi này.');
-            }
-        }
+        $this->authorizeCourseAccess($user, (int) $cauHoi->khoa_hoc_id);
 
         $cauHoi->delete();
 
         return back()->with('success', 'Đã xóa câu hỏi.');
     }
 
-    /**
-     * Logic validate đáp án: các đáp án sai không trùng nhau, đáp án đúng không trùng đáp án sai
-     */
-    private function validateAnswers(array $data)
-    {
-        $sai1 = NganHangCauHoi::normalizeString($data['dap_an_sai_1']);
-        $sai2 = NganHangCauHoi::normalizeString($data['dap_an_sai_2']);
-        $sai3 = NganHangCauHoi::normalizeString($data['dap_an_sai_3']);
-        $dung = NganHangCauHoi::normalizeString($data['dap_an_dung']);
-
-        $saiSet = [$sai1, $sai2, $sai3];
-        
-        // Kiểm tra trùng nhau giữa 3 đáp án sai
-        if (count(array_unique($saiSet)) < 3) {
-            throw ValidationException::withMessages([
-                'dap_an_sai_1' => 'Các đáp án sai không được trùng nhau.'
-            ]);
-        }
-
-        // Kiểm tra đáp án đúng trùng đáp án sai
-        if (in_array($dung, $saiSet)) {
-            throw ValidationException::withMessages([
-                'dap_an_dung' => 'Đáp án đúng không được trùng với bất kỳ đáp án sai nào.'
-            ]);
-        }
-    }
-
-    /**
-     * Tải file mẫu CSV (Phase 2)
-     */
     public function downloadTemplate()
     {
         $headers = [
@@ -272,10 +194,7 @@ class NganHangCauHoiController extends Controller
 
         return response()->streamDownload(function () use ($headers, $sampleRows) {
             $handle = fopen('php://output', 'wb');
-            
-            // Thêm BOM để Excel nhận diện được UTF-8
-            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
-            
+            fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
             fputcsv($handle, $headers);
 
             foreach ($sampleRows as $row) {
@@ -288,9 +207,6 @@ class NganHangCauHoiController extends Controller
         ]);
     }
 
-    /**
-     * Upload và Preview (Phase 3 & 4)
-     */
     public function import(Request $request)
     {
         $user = auth()->user();
@@ -299,31 +215,20 @@ class NganHangCauHoiController extends Controller
             'file_import' => 'required|file|mimes:csv,txt|max:2048',
         ]);
 
-        $khoaHocId = $request->khoa_hoc_id;
-        $khoaHoc = KhoaHoc::findOrFail($khoaHocId);
-        
-        // Kiểm tra phân quyền giảng viên
-        if ($user->isGiangVien()) {
-            $giangVien = $user->giangVien;
-            $isAssigned = $giangVien->khoaHocDuocPhanCong()->where('khoa_hoc.id', $khoaHocId)->exists();
-            if (!$isAssigned) {
-                abort(403, 'Bạn không được phân công cho khóa học này.');
-            }
-        }
+        $khoaHocId = $request->integer('khoa_hoc_id');
+        $this->authorizeCourseAccess($user, $khoaHocId);
 
-        // Đọc tệp CSV
+        $khoaHoc = KhoaHoc::findOrFail($khoaHocId);
         $path = $request->file('file_import')->getRealPath();
         $file = fopen($path, 'r');
-        
-        // Bỏ qua BOM nếu có
+
         $bom = fread($file, 3);
         if ($bom !== "\xEF\xBB\xBF") {
             rewind($file);
         }
 
-        // Đọc header
-        $header = fgetcsv($file);
-        
+        fgetcsv($file);
+
         $previewData = [];
         $summary = [
             'total' => 0,
@@ -332,57 +237,52 @@ class NganHangCauHoiController extends Controller
             'duplicate_db' => 0,
             'error' => 0,
         ];
-
         $contentSetInFile = [];
 
         while (($row = fgetcsv($file)) !== false) {
-            if (empty(array_filter($row))) continue;
+            if (empty(array_filter($row, fn ($value) => $value !== null && trim((string) $value) !== ''))) {
+                continue;
+            }
 
             $summary['total']++;
-            
-            $rawCauHoi = $row[0] ?? '';
-            $rawSai1 = $row[1] ?? '';
-            $rawSai2 = $row[2] ?? '';
-            $rawSai3 = $row[3] ?? '';
-            $rawDung = $row[4] ?? '';
+
+            $rawCauHoi = trim((string) ($row[0] ?? ''));
+            $rawSai1 = trim((string) ($row[1] ?? ''));
+            $rawSai2 = trim((string) ($row[2] ?? ''));
+            $rawSai3 = trim((string) ($row[3] ?? ''));
+            $rawDung = trim((string) ($row[4] ?? ''));
 
             $status = 'hop_le';
             $note = '';
 
-            // 1. Kiểm tra trống
-            if (empty($rawCauHoi) || empty($rawSai1) || empty($rawSai2) || empty($rawSai3) || empty($rawDung)) {
+            if ($rawCauHoi === '' || $rawSai1 === '' || $rawSai2 === '' || $rawSai3 === '' || $rawDung === '') {
                 $status = 'loi_du_lieu';
                 $note = 'Thiếu thông tin bắt buộc.';
-            } 
-            else {
-                // 2. Kiểm tra logic đáp án
-                $s1 = NganHangCauHoi::normalizeString($rawSai1);
-                $s2 = NganHangCauHoi::normalizeString($rawSai2);
-                $s3 = NganHangCauHoi::normalizeString($rawSai3);
-                $d = NganHangCauHoi::normalizeString($rawDung);
-                
-                $saiSet = [$s1, $s2, $s3];
-                if (count(array_unique($saiSet)) < 3) {
+            } else {
+                $answers = [
+                    ['ky_hieu' => 'A', 'noi_dung' => $rawDung, 'is_dap_an_dung' => true],
+                    ['ky_hieu' => 'B', 'noi_dung' => $rawSai1, 'is_dap_an_dung' => false],
+                    ['ky_hieu' => 'C', 'noi_dung' => $rawSai2, 'is_dap_an_dung' => false],
+                    ['ky_hieu' => 'D', 'noi_dung' => $rawSai3, 'is_dap_an_dung' => false],
+                ];
+
+                try {
+                    $this->validateAnswers($answers);
+                } catch (ValidationException $exception) {
                     $status = 'loi_du_lieu';
-                    $note = 'Các đáp án sai bị trùng nhau.';
-                } elseif (in_array($d, $saiSet)) {
-                    $status = 'loi_du_lieu';
-                    $note = 'Đáp án đúng trùng với đáp án sai.';
+                    $note = collect($exception->errors())->flatten()->first() ?? 'Dữ liệu đáp án không hợp lệ.';
                 }
             }
 
-            // 3. Kiểm tra trùng lặp (nếu chưa có lỗi dữ liệu)
             if ($status === 'hop_le') {
                 $normalizedContent = NganHangCauHoi::normalizeString($rawCauHoi);
 
-                // Kiểm tra trong file
                 if (isset($contentSetInFile[$normalizedContent])) {
                     $status = 'trung_lap_trong_file';
                     $note = 'Trùng với câu hỏi tại dòng ' . ($contentSetInFile[$normalizedContent] + 1) . ' trong file.';
                 } else {
                     $contentSetInFile[$normalizedContent] = $summary['total'];
 
-                    // Kiểm tra trong database
                     if (NganHangCauHoi::isDuplicate($khoaHocId, $rawCauHoi)) {
                         $status = 'trung_lap_trong_he_thong';
                         $note = 'Câu hỏi đã tồn tại trong ngân hàng của khóa học này.';
@@ -390,8 +290,12 @@ class NganHangCauHoiController extends Controller
                 }
             }
 
-            // Cập nhật thống kê
-            $summary[$status]++;
+            match ($status) {
+                'hop_le' => $summary['valid']++,
+                'trung_lap_trong_file' => $summary['duplicate_file']++,
+                'trung_lap_trong_he_thong' => $summary['duplicate_db']++,
+                default => $summary['error']++,
+            };
 
             $previewData[] = [
                 'noi_dung_cau_hoi' => $rawCauHoi,
@@ -406,21 +310,17 @@ class NganHangCauHoiController extends Controller
 
         fclose($file);
 
-        // Lưu session
         session(['import_preview' => [
             'khoa_hoc_id' => $khoaHocId,
             'khoa_hoc_ten' => $khoaHoc->ten_khoa_hoc,
             'data' => $previewData,
             'summary' => $summary,
-            'user_id' => $user->id, // Lưu user_id để verify lúc confirm
+            'user_id' => auth()->id(),
         ]]);
 
         return redirect()->route('admin.kiem-tra-online.cau-hoi.preview');
     }
 
-    /**
-     * Hiển thị màn hình preview (Phase 3)
-     */
     public function preview()
     {
         $preview = session('import_preview');
@@ -431,9 +331,6 @@ class NganHangCauHoiController extends Controller
         return view('pages.admin.kiem-tra-online.cau-hoi.preview', compact('preview'));
     }
 
-    /**
-     * Xác nhận lưu (Phase 5)
-     */
     public function confirmImport(Request $request)
     {
         $preview = session('import_preview');
@@ -442,24 +339,37 @@ class NganHangCauHoiController extends Controller
             return redirect()->route('admin.kiem-tra-online.cau-hoi.index')->with('error', 'Hết hạn phiên làm việc hoặc phiên không hợp lệ. Hãy thử import lại.');
         }
 
-        $khoaHocId = $preview['khoa_hoc_id'];
+        $khoaHocId = (int) $preview['khoa_hoc_id'];
         $data = $preview['data'];
         $createdCount = 0;
+        $userId = auth()->user()->ma_nguoi_dung;
 
-        DB::transaction(function () use ($khoaHocId, $data, &$createdCount) {
+        DB::transaction(function () use ($khoaHocId, $data, &$createdCount, $userId) {
             foreach ($data as $item) {
-                if ($item['status'] === 'hop_le') {
-                    NganHangCauHoi::create([
-                        'khoa_hoc_id' => $khoaHocId,
-                        'noi_dung_cau_hoi' => $item['noi_dung_cau_hoi'],
-                        'dap_an_sai_1' => $item['dap_an_sai_1'],
-                        'dap_an_sai_2' => $item['dap_an_sai_2'],
-                        'dap_an_sai_3' => $item['dap_an_sai_3'],
-                        'dap_an_dung' => $item['dap_an_dung'],
-                        'nguoi_tao_id' => auth()->id(),
-                    ]);
-                    $createdCount++;
+                if ($item['status'] !== 'hop_le') {
+                    continue;
                 }
+
+                $cauHoi = NganHangCauHoi::create([
+                    'khoa_hoc_id' => $khoaHocId,
+                    'nguoi_tao_id' => $userId,
+                    'ma_cau_hoi' => NganHangCauHoi::generateQuestionCode(),
+                    'noi_dung' => $item['noi_dung_cau_hoi'],
+                    'loai_cau_hoi' => 'trac_nghiem',
+                    'muc_do' => 'trung_binh',
+                    'diem_mac_dinh' => 1,
+                    'trang_thai' => 'san_sang',
+                    'co_the_tai_su_dung' => true,
+                ]);
+
+                $this->syncAnswers($cauHoi, [
+                    ['ky_hieu' => 'A', 'noi_dung' => $item['dap_an_dung'], 'is_dap_an_dung' => true],
+                    ['ky_hieu' => 'B', 'noi_dung' => $item['dap_an_sai_1'], 'is_dap_an_dung' => false],
+                    ['ky_hieu' => 'C', 'noi_dung' => $item['dap_an_sai_2'], 'is_dap_an_dung' => false],
+                    ['ky_hieu' => 'D', 'noi_dung' => $item['dap_an_sai_3'], 'is_dap_an_dung' => false],
+                ]);
+
+                $createdCount++;
             }
         });
 
@@ -467,6 +377,199 @@ class NganHangCauHoiController extends Controller
 
         return redirect()
             ->route('admin.kiem-tra-online.cau-hoi.index')
-            ->with('success', "Đã import thành công $createdCount câu hỏi.");
+            ->with('success', "Đã import thành công {$createdCount} câu hỏi.");
+    }
+
+    private function authorizeCourseAccess($user, int $khoaHocId, ?int $secondKhoaHocId = null): void
+    {
+        if (!$user->isGiangVien()) {
+            return;
+        }
+
+        $giangVien = $user->giangVien;
+        $courseIds = $giangVien
+            ? $giangVien->khoaHocDuocPhanCong()->pluck('khoa_hoc.id')->unique()->map(fn ($id) => (int) $id)->all()
+            : [];
+
+        foreach (array_filter([$khoaHocId, $secondKhoaHocId]) as $courseId) {
+            abort_unless(in_array((int) $courseId, $courseIds, true), 403, 'Bạn không được phân công cho khóa học này.');
+        }
+    }
+
+    private function buildQuestionPayload(Request $request, ?NganHangCauHoi $existing = null): array
+    {
+        $validated = $request->validate([
+            'khoa_hoc_id' => 'required|exists:khoa_hoc,id',
+            'module_hoc_id' => 'nullable|exists:module_hoc,id',
+            'ma_cau_hoi' => [
+                'nullable',
+                'string',
+                'max:60',
+                Rule::unique('ngan_hang_cau_hoi', 'ma_cau_hoi')->ignore($existing?->id),
+            ],
+            'noi_dung' => 'nullable|string',
+            'noi_dung_cau_hoi' => 'nullable|string',
+            'loai_cau_hoi' => 'nullable|in:trac_nghiem,tu_luan',
+            'muc_do' => 'nullable|in:de,trung_binh,kho',
+            'diem_mac_dinh' => 'nullable|numeric|min:0.25|max:100',
+            'trang_thai' => 'nullable|string|max:50',
+            'co_the_tai_su_dung' => 'nullable|boolean',
+            'dap_an_dung' => 'nullable|string',
+            'dap_an_sai_1' => 'nullable|string',
+            'dap_an_sai_2' => 'nullable|string',
+            'dap_an_sai_3' => 'nullable|string',
+            'dap_ans' => 'nullable|array|min:2',
+            'dap_ans.*.ky_hieu' => 'nullable|string|max:20',
+            'dap_ans.*.noi_dung' => 'nullable|string',
+        ]);
+
+        $noiDung = trim((string) ($validated['noi_dung'] ?? $validated['noi_dung_cau_hoi'] ?? ''));
+        if ($noiDung === '') {
+            throw ValidationException::withMessages([
+                'noi_dung_cau_hoi' => 'Nội dung câu hỏi là bắt buộc.',
+            ]);
+        }
+
+        $moduleHocId = isset($validated['module_hoc_id']) && $validated['module_hoc_id'] !== null
+            ? (int) $validated['module_hoc_id']
+            : null;
+
+        if ($moduleHocId !== null) {
+            $moduleBelongsToCourse = ModuleHoc::query()
+                ->where('id', $moduleHocId)
+                ->where('khoa_hoc_id', (int) $validated['khoa_hoc_id'])
+                ->exists();
+
+            if (!$moduleBelongsToCourse) {
+                throw ValidationException::withMessages([
+                    'module_hoc_id' => 'Module không thuộc khóa học đã chọn.',
+                ]);
+            }
+        }
+
+        $loaiCauHoi = $validated['loai_cau_hoi'] ?? 'trac_nghiem';
+        $answers = [];
+
+        if ($loaiCauHoi === 'trac_nghiem') {
+            $answers = !empty($validated['dap_ans'])
+                ? $this->normalizeStructuredAnswers($validated)
+                : $this->normalizeLegacyAnswers($validated);
+
+            $this->validateAnswers($answers);
+        }
+
+        return [
+            'khoa_hoc_id' => (int) $validated['khoa_hoc_id'],
+            'module_hoc_id' => $moduleHocId,
+            'ma_cau_hoi' => trim((string) ($validated['ma_cau_hoi'] ?? '')) ?: null,
+            'noi_dung' => $noiDung,
+            'loai_cau_hoi' => $loaiCauHoi,
+            'muc_do' => $validated['muc_do'] ?? 'trung_binh',
+            'diem_mac_dinh' => (float) ($validated['diem_mac_dinh'] ?? 1),
+            'trang_thai' => $validated['trang_thai'] ?? 'san_sang',
+            'co_the_tai_su_dung' => array_key_exists('co_the_tai_su_dung', $validated)
+                ? (bool) $validated['co_the_tai_su_dung']
+                : true,
+            'answers' => $answers,
+        ];
+    }
+
+    private function normalizeStructuredAnswers(array $validated): array
+    {
+        $correctToken = NganHangCauHoi::normalizeString($validated['dap_an_dung'] ?? '');
+        $answers = [];
+
+        foreach (array_values($validated['dap_ans'] ?? []) as $index => $answer) {
+            $noiDung = trim((string) ($answer['noi_dung'] ?? ''));
+            if ($noiDung === '') {
+                continue;
+            }
+
+            $kyHieu = trim((string) ($answer['ky_hieu'] ?? ''));
+            if ($kyHieu === '') {
+                $kyHieu = chr(65 + $index);
+            }
+
+            $answers[] = [
+                'ky_hieu' => $kyHieu,
+                'noi_dung' => $noiDung,
+                'is_dap_an_dung' => $correctToken !== '' && (
+                    NganHangCauHoi::normalizeString($kyHieu) === $correctToken
+                    || NganHangCauHoi::normalizeString($noiDung) === $correctToken
+                ),
+            ];
+        }
+
+        return $answers;
+    }
+
+    private function normalizeLegacyAnswers(array $validated): array
+    {
+        $requiredFields = ['dap_an_dung', 'dap_an_sai_1', 'dap_an_sai_2', 'dap_an_sai_3'];
+        foreach ($requiredFields as $field) {
+            if (blank($validated[$field] ?? null)) {
+                throw ValidationException::withMessages([
+                    $field => 'Vui lòng nhập đầy đủ 4 đáp án cho câu hỏi trắc nghiệm.',
+                ]);
+            }
+        }
+
+        return [
+            ['ky_hieu' => 'A', 'noi_dung' => trim((string) $validated['dap_an_dung']), 'is_dap_an_dung' => true],
+            ['ky_hieu' => 'B', 'noi_dung' => trim((string) $validated['dap_an_sai_1']), 'is_dap_an_dung' => false],
+            ['ky_hieu' => 'C', 'noi_dung' => trim((string) $validated['dap_an_sai_2']), 'is_dap_an_dung' => false],
+            ['ky_hieu' => 'D', 'noi_dung' => trim((string) $validated['dap_an_sai_3']), 'is_dap_an_dung' => false],
+        ];
+    }
+
+    private function validateAnswers(array $answers): void
+    {
+        if (count($answers) < 2) {
+            throw ValidationException::withMessages([
+                'dap_ans' => 'Câu hỏi trắc nghiệm cần ít nhất 2 đáp án.',
+            ]);
+        }
+
+        $normalizedContents = collect($answers)
+            ->map(fn ($answer) => NganHangCauHoi::normalizeString($answer['noi_dung'] ?? ''));
+
+        if ($normalizedContents->contains('')) {
+            throw ValidationException::withMessages([
+                'dap_ans' => 'Nội dung đáp án không được để trống.',
+            ]);
+        }
+
+        if ($normalizedContents->unique()->count() !== $normalizedContents->count()) {
+            throw ValidationException::withMessages([
+                'dap_ans' => 'Các đáp án không được trùng nhau.',
+            ]);
+        }
+
+        $correctCount = collect($answers)->where('is_dap_an_dung', true)->count();
+        if ($correctCount !== 1) {
+            throw ValidationException::withMessages([
+                'dap_an_dung' => 'Phải xác định chính xác 1 đáp án đúng.',
+            ]);
+        }
+    }
+
+    private function syncAnswers(NganHangCauHoi $cauHoi, array $answers): void
+    {
+        $cauHoi->dapAns()->delete();
+
+        if ($answers === []) {
+            return;
+        }
+
+        $cauHoi->dapAns()->createMany(
+            collect($answers)->values()->map(function (array $answer, int $index) {
+                return [
+                    'ky_hieu' => $answer['ky_hieu'] ?? chr(65 + $index),
+                    'noi_dung' => $answer['noi_dung'],
+                    'is_dap_an_dung' => (bool) ($answer['is_dap_an_dung'] ?? false),
+                    'thu_tu' => $index + 1,
+                ];
+            })->all()
+        );
     }
 }

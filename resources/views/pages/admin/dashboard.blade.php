@@ -71,15 +71,15 @@
 
                     <!-- Section 1 — Phase 5: Đào tạo & Module (4 Stat Cards) -->
                     <div class="row g-3 mb-4 mt-3">
-                        <!-- Môn học -->
+                        <!-- Nhóm ngành -->
                         <div class="col-md-3">
                             <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #0d6efd !important;">
                                 <div class="card-body p-3">
                                     <div class="d-flex justify-content-between">
                                         <div>
-                                            <p class="text-muted mb-1 small fw-bold text-uppercase">Môn học</p>
-                                            <h3 class="mb-0 fw-bold">{{ $stats['tong_mon_hoc'] }}</h3>
-                                            <small class="text-success fw-bold">{{ $stats['mon_hoc_hoat_dong'] }} Active</small>
+                                            <p class="text-muted mb-1 small fw-bold text-uppercase">Nhóm ngành</p>
+                                            <h3 class="mb-0 fw-bold">{{ $stats['tong_nhom_nganh'] }}</h3>
+                                            <small class="text-success fw-bold">{{ $stats['nhom_nganh_hoat_dong'] }} Active</small>
                                         </div>
                                         <div class="align-self-center text-primary opacity-25">
                                             <i class="fas fa-book fa-2x"></i>

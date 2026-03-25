@@ -273,7 +273,7 @@ class KhoaHocManagementController extends Controller
                     PhanCongModuleGiangVien::create([
                         'khoa_hoc_id'    => $khoaMoi->id,
                         'module_hoc_id'  => $moduleMoi->id,
-                        'giao_vien_id'   => $giangVienId,
+                        'giang_vien_id'   => $giangVienId,
                         'ngay_phan_cong' => now(),
                         'trang_thai'     => 'cho_xac_nhan',
                         'created_by'     => Auth::user()->ma_nguoi_dung,
@@ -387,3 +387,4 @@ class KhoaHocManagementController extends Controller
         return redirect()->route('admin.khoa-hoc.show', $id)->with('success', 'Đã mở lớp học chính thức!');
     }
 }
+

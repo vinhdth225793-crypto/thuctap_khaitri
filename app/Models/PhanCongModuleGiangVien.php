@@ -14,15 +14,11 @@ class PhanCongModuleGiangVien extends Model
     protected $fillable = [
         'khoa_hoc_id',
         'module_hoc_id',
-        'giao_vien_id',
+        'giang_vien_id', // Đã đổi từ giang_vien_id
         'ngay_phan_cong',
         'trang_thai',
         'ghi_chu',
-        'created_by',
-    ];
-
-    protected $attributes = [
-        'trang_thai' => 'cho_xac_nhan',
+        'created_by'
     ];
 
     protected $casts = [
@@ -32,21 +28,7 @@ class PhanCongModuleGiangVien extends Model
     ];
 
     /**
-     * Accessor: Lấy nhãn trạng thái phân công
-     */
-    public function getTrangThaiLabelAttribute(): array
-    {
-        $map = [
-            'cho_xac_nhan' => ['label' => 'Chờ xác nhận', 'color' => 'warning',  'icon' => 'fa-clock'],
-            'da_nhan'      => ['label' => 'Đã xác nhận',  'color' => 'success',  'icon' => 'fa-check-circle'],
-            'tu_choi'      => ['label' => 'Từ chối',       'color' => 'danger',   'icon' => 'fa-times-circle'],
-        ];
-        return $map[$this->trang_thai]
-            ?? ['label' => 'Không xác định', 'color' => 'secondary', 'icon' => 'fa-question'];
-    }
-
-    /**
-     * Relationship: Phân công thuộc về khóa học
+     * Relationship: Thuộc về một khóa học
      */
     public function khoaHoc()
     {
@@ -54,7 +36,7 @@ class PhanCongModuleGiangVien extends Model
     }
 
     /**
-     * Relationship: Phân công thuộc về module học
+     * Relationship: Thuộc về một module cụ thể
      */
     public function moduleHoc()
     {
@@ -62,23 +44,15 @@ class PhanCongModuleGiangVien extends Model
     }
 
     /**
-     * Relationship: Phân công thuộc về giảng viên
+     * Relationship: Giảng viên được phân công
      */
     public function giangVien()
     {
-        return $this->belongsTo(GiangVien::class, 'giao_vien_id');
+        return $this->belongsTo(GiangVien::class, 'giang_vien_id');
     }
 
     /**
-     * Relationship: Phân công được tạo bởi người dùng nào
-     */
-    public function nguoiTao()
-    {
-        return $this->belongsTo(NguoiDung::class, 'created_by', 'ma_nguoi_dung');
-    }
-
-    /**
-     * Scope: Lấy phân công đã nhận
+     * Scope: Lấy phân công đã được chấp nhận
      */
     public function scopeDaNhan($query)
     {
@@ -93,3 +67,4 @@ class PhanCongModuleGiangVien extends Model
         return $query->where('trang_thai', 'cho_xac_nhan');
     }
 }
+

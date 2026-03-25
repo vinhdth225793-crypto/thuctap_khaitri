@@ -112,7 +112,7 @@ class KiemTraOnlineDemoSeeder extends Seeder
         PhanCongModuleGiangVien::firstOrCreate([
             'khoa_hoc_id' => $course->id,
             'module_hoc_id' => $module->id,
-            'giao_vien_id' => $teacher->id,
+            'giang_vien_id' => $teacher->id,
         ], [
             'ngay_phan_cong' => now(),
             'trang_thai' => 'da_nhan',
@@ -223,3 +223,4 @@ class KiemTraOnlineDemoSeeder extends Seeder
         }
     }
 }
+

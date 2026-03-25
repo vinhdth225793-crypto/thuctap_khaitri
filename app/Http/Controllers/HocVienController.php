@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BaiGiang;
 use App\Models\DiemDanh;
 use App\Models\HocVienKhoaHoc;
 use App\Models\KetQuaHocTap;
@@ -146,7 +147,7 @@ class HocVienController extends Controller
             ->exists();
 
         if ($daThamGia) {
-            return back()->with('error', 'Ban da o trong khoa hoc nay roi.');
+            return back()->with('error', 'Bạn đã ở trong khóa học này rồi.');
         }
 
         $dangChoDuyet = YeuCauHocVien::query()
@@ -157,7 +158,7 @@ class HocVienController extends Controller
             ->exists();
 
         if ($dangChoDuyet) {
-            return back()->with('error', 'Ban da gui yeu cau tham gia khoa hoc nay va dang cho duyet.');
+            return back()->with('error', 'Bạn đã gửi yêu cầu tham gia khóa học này và đang chờ duyệt.');
         }
 
         YeuCauHocVien::create([
@@ -176,7 +177,7 @@ class HocVienController extends Controller
 
         return redirect()
             ->route('hoc-vien.khoa-hoc-tham-gia')
-            ->with('success', 'Da gui yeu cau tham gia khoa hoc. Vui long cho admin duyet.');
+            ->with('success', 'Đã gửi yêu cầu tham gia khóa học. Vui lòng chờ admin duyệt.');
     }
 
     /**
@@ -191,7 +192,7 @@ class HocVienController extends Controller
             ->first();
 
         if (!$ghiDanh || $ghiDanh->trang_thai === 'ngung_hoc') {
-            return redirect()->route('hoc-vien.khoa-hoc-cua-toi')->with('error', 'Ban khong co quyen truy cap khoa hoc nay.');
+            return redirect()->route('hoc-vien.khoa-hoc-cua-toi')->with('error', 'Bạn không có quyền truy cập khóa học này.');
         }
 
         $khoaHoc = KhoaHoc::with([
@@ -230,13 +231,13 @@ class HocVienController extends Controller
             ->hienThiChoHocVien()
             ->findOrFail($id);
 
-        // Kiểm tra học viên có đăng ký khóa học này không
+        // Ki?m tra h?c vi�n c� dang k� kh�a h?c n�y kh�ng
         $daGhiDanh = HocVienKhoaHoc::where('khoa_hoc_id', $baiGiang->khoa_hoc_id)
             ->where('hoc_vien_id', auth()->user()->ma_nguoi_dung)
             ->exists();
 
         if (!$daGhiDanh) {
-            return redirect()->route('hoc-vien.khoa-hoc-cua-toi')->with('error', 'Bạn chưa đăng ký khóa học này.');
+            return redirect()->route('hoc-vien.khoa-hoc-cua-toi')->with('error', 'B?n chua dang k� kh�a h?c n�y.');
         }
 
         return view('pages.hoc-vien.bai-giang.show', compact('baiGiang'));
@@ -496,15 +497,15 @@ class HocVienController extends Controller
                     default => 'secondary',
                 },
                 'title' => match ($trangThai) {
-                    'co_mat' => 'Diem danh: co mat',
-                    'vao_tre' => 'Diem danh: vao tre',
-                    'vang_mat' => 'Diem danh: vang mat',
-                    default => 'Cap nhat diem danh',
+                    'co_mat' => 'Điểm danh: có mặt',
+                    'vao_tre' => 'Điểm danh: vào trễ',
+                    'vang_mat' => 'Điểm danh: vắng mặt',
+                    default => 'Cập nhật điểm danh',
                 },
                 'description' => trim(collect([
                     optional(optional($diemDanh->lichHoc)->khoaHoc)->ten_khoa_hoc,
                     optional(optional($diemDanh->lichHoc)->moduleHoc)->ten_module,
-                ])->filter()->implode(' â€¢ ')),
+                ])->filter()->implode(' • ')),
                 'meta' => optional(optional($diemDanh->lichHoc)->ngay_hoc)->format('d/m/Y'),
             ];
         });
@@ -534,7 +535,7 @@ class HocVienController extends Controller
                 'description' => trim(collect([
                     optional($lichHoc->khoaHoc)->ten_khoa_hoc,
                     optional($lichHoc->moduleHoc)->ten_module,
-                ])->filter()->implode(' â€¢ ')),
+                ])->filter()->implode(' • ')),
                 'meta' => optional($lichHoc->ngay_hoc)->format('d/m/Y'),
             ];
         });

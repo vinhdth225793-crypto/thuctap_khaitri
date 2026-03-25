@@ -179,7 +179,7 @@ class ModuleHocController extends Controller
     public function assign(Request $request, $moduleId)
     {
         $request->validate([
-            'giao_vien_id' => 'required|exists:giang_vien,id',
+            'giang_vien_id' => 'required|exists:giang_vien,id',
             'ghi_chu' => 'nullable|string|max:500'
         ]);
 
@@ -187,7 +187,7 @@ class ModuleHocController extends Controller
 
         // Kiểm tra xem đã phân công chưa
         $exists = PhanCongModuleGiangVien::where('module_hoc_id', $moduleId)
-            ->where('giao_vien_id', $request->giao_vien_id)
+            ->where('giang_vien_id', $request->giang_vien_id)
             ->exists();
 
         if ($exists) {
@@ -197,7 +197,7 @@ class ModuleHocController extends Controller
         PhanCongModuleGiangVien::create([
             'khoa_hoc_id' => $module->khoa_hoc_id,
             'module_hoc_id' => $moduleId,
-            'giao_vien_id' => $request->giao_vien_id,
+            'giang_vien_id' => $request->giang_vien_id,
             'ngay_phan_cong' => now(),
             'trang_thai' => 'cho_xac_nhan',
             'ghi_chu' => $request->ghi_chu,
@@ -207,3 +207,4 @@ class ModuleHocController extends Controller
         return back()->with('success', 'Đã gửi yêu cầu phân công cho giảng viên.');
     }
 }
+

@@ -39,8 +39,8 @@ class AdminController extends Controller
 
         // 2. Thống kê đào tạo & Module (Phase 5)
         $trainingStats = [
-            'tong_mon_hoc'        => NhomNganh::count(),
-            'mon_hoc_hoat_dong'   => NhomNganh::active()->count(),
+            'tong_nhom_nganh'        => NhomNganh::count(),
+            'nhom_nganh_hoat_dong'   => NhomNganh::active()->count(),
             'tong_khoa_hoc'       => KhoaHoc::count(),
             'khoa_hoc_hoat_dong'  => KhoaHoc::active()->count(),
             'tong_module'         => ModuleHoc::count(),
@@ -852,17 +852,17 @@ class AdminController extends Controller
         }
 
         $stats = [
-            'dang_day' => PhanCongModuleGiangVien::where('giao_vien_id', $giangVienId)
+            'dang_day' => PhanCongModuleGiangVien::where('giang_vien_id', $giangVienId)
                 ->where('trang_thai', 'da_nhan')
                 ->count(),
-            'cho_xac_nhan' => PhanCongModuleGiangVien::where('giao_vien_id', $giangVienId)
+            'cho_xac_nhan' => PhanCongModuleGiangVien::where('giang_vien_id', $giangVienId)
                 ->where('trang_thai', 'cho_xac_nhan')
                 ->count(),
             'tong_hoc_vien' => DB::table('hoc_vien_khoa_hoc')
                 ->whereIn('khoa_hoc_id', function($query) use ($giangVienId) {
                     $query->select('khoa_hoc_id')
                         ->from('phan_cong_module_giang_vien')
-                        ->where('giao_vien_id', $giangVienId);
+                        ->where('giang_vien_id', $giangVienId);
                 })
                 ->count(),
             'so_gio_day' => auth()->user()->giangVien->so_gio_day ?? 0,
@@ -870,7 +870,7 @@ class AdminController extends Controller
 
         // Lấy danh sách phân công mới nhất cần xác nhận
         $phanCongMoi = PhanCongModuleGiangVien::with(['moduleHoc.khoaHoc.nhomNganh'])
-            ->where('giao_vien_id', $giangVienId)
+            ->where('giang_vien_id', $giangVienId)
             ->where('trang_thai', 'cho_xac_nhan')
             ->latest()
             ->take(5)
@@ -878,7 +878,7 @@ class AdminController extends Controller
 
         // Lấy danh sách lớp đang dạy (từ các module đã nhận)
         $lopDangDay = PhanCongModuleGiangVien::with(['moduleHoc.khoaHoc.nhomNganh'])
-            ->where('giao_vien_id', $giangVienId)
+            ->where('giang_vien_id', $giangVienId)
             ->where('trang_thai', 'da_nhan')
             ->latest()
             ->take(5)
@@ -1136,3 +1136,4 @@ class AdminController extends Controller
         return view('pages.admin.settings.instructors', compact('instructors'));
     }
 }
+

@@ -33,7 +33,7 @@ class BaiGiangController extends Controller
         
         // Lấy danh sách khóa học và module mà giảng viên được phân công
         $phanCongs = PhanCongModuleGiangVien::with(['khoaHoc', 'moduleHoc'])
-            ->where('giao_vien_id', $giangVien->id)
+            ->where('giang_vien_id', $giangVien->id)
             ->where('trang_thai', 'da_nhan')
             ->get();
 
@@ -90,7 +90,7 @@ class BaiGiangController extends Controller
         
         $giangVien = auth()->user()->giangVien;
         $phanCongs = PhanCongModuleGiangVien::with(['khoaHoc', 'moduleHoc'])
-            ->where('giao_vien_id', $giangVien->id)
+            ->where('giang_vien_id', $giangVien->id)
             ->where('trang_thai', 'da_nhan')
             ->get();
 
@@ -173,3 +173,4 @@ class BaiGiangController extends Controller
         return response()->json($lichHocs);
     }
 }
+

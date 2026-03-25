@@ -101,7 +101,7 @@
                         <div class="row g-3 align-items-end">
                             <div class="col-md-5">
                                 <label class="form-label small fw-bold text-dark">Chọn giảng viên</label>
-                                <select name="giao_vien_id" class="form-select vip-form-control shadow-sm" required>
+                                <select name="giang_vien_id" class="form-select vip-form-control shadow-sm" required>
                                     <option value="">-- Chọn giảng viên --</option>
                                     @foreach($giangViens as $gv)
                                         <option value="{{ $gv->id }}">
@@ -287,3 +287,4 @@
     .btn-xs { padding: 0.2rem 0.4rem; font-size: 0.75rem; border-radius: 4px; }
 </style>
 @endsection
+

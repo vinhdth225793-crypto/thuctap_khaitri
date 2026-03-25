@@ -1,19 +1,19 @@
 @extends('layouts.home')
 
-@section('title', ($settings['site_name'] ?: 'Trang chu') . ' - Khong gian hoc tap')
+@section('title', ($settings['site_name'] ?: 'Trang chủ') . ' - Không gian học tập')
 
 @section('content')
 @php
     $levelLabels = [
-        'co_ban' => ['label' => 'Co ban', 'class' => 'level-basic'],
-        'trung_binh' => ['label' => 'Trung binh', 'class' => 'level-mid'],
-        'nang_cao' => ['label' => 'Nang cao', 'class' => 'level-advanced'],
+        'co_ban' => ['label' => 'Cơ bản', 'class' => 'level-basic'],
+        'trung_binh' => ['label' => 'Trung bình', 'class' => 'level-mid'],
+        'nang_cao' => ['label' => 'Nâng cao', 'class' => 'level-advanced'],
     ];
 
     $statusLabels = [
-        'dang_day' => ['label' => 'Dang giang day', 'class' => 'status-live'],
-        'san_sang' => ['label' => 'San sang khai giang', 'class' => 'status-ready'],
-        'cho_giang_vien' => ['label' => 'Dang hoan thien lich hoc', 'class' => 'status-waiting'],
+        'dang_day' => ['label' => 'Đang giảng dạy', 'class' => 'status-live'],
+        'san_sang' => ['label' => 'Sẵn sàng khai giảng', 'class' => 'status-ready'],
+        'cho_giang_vien' => ['label' => 'Đang hoàn thiện lịch học', 'class' => 'status-waiting'],
     ];
 
     $homeUser = auth()->user();
@@ -22,7 +22,7 @@
 @if(filled($settings['general_notification']))
     <div class="announcement-bar">
         <div class="container announcement-inner">
-            <div class="announcement-label">Thong bao tu he thong</div>
+            <div class="announcement-label">Thông báo từ hệ thống</div>
             <div class="announcement-content">{!! $settings['general_notification'] !!}</div>
         </div>
     </div>
@@ -33,22 +33,22 @@
         <a href="{{ route('home') }}" class="brand-mark">
             <div class="brand-logo">
                 @if(!empty($settings['site_logo']))
-                    <img src="{{ asset($settings['site_logo']) }}" alt="{{ $settings['site_name'] ?: 'Logo he thong' }}">
+                    <img src="{{ asset($settings['site_logo']) }}" alt="{{ $settings['site_name'] ?: 'Logo hệ thống' }}">
                 @else
                     <span>K</span>
                 @endif
             </div>
             <div>
-                <div class="brand-kicker">He thong dao tao</div>
+                <div class="brand-kicker">Hệ thống đào tạo</div>
                 <div class="brand-name">{{ $settings['site_name'] ?: 'Khai Tri Education' }}</div>
             </div>
         </a>
 
         <nav class="site-nav">
-            <a href="#hero">Trang chu</a>
-            <a href="#courses">Khoa hoc</a>
-            <a href="#instructors">Giang vien</a>
-            <a href="#contact">Lien he</a>
+            <a href="#hero">Trang chủ</a>
+            <a href="#courses">Khóa học</a>
+            <a href="#instructors">Giảng viên</a>
+            <a href="#contact">Liên hệ</a>
         </nav>
 
         <div class="header-actions">
@@ -67,10 +67,10 @@
                         default => route('hoc-vien.dashboard'),
                     };
                 @endphp
-                <a href="{{ $dashboardRoute }}" class="btn-primary-surface">Vao dashboard</a>
+                <a href="{{ $dashboardRoute }}" class="btn-primary-surface">Vào dashboard</a>
             @else
-                <a href="{{ route('dang-nhap') }}" class="btn-ghost-surface">Dang nhap</a>
-                <a href="{{ route('dang-ky') }}" class="btn-primary-surface">Tao tai khoan</a>
+                <a href="{{ route('dang-nhap') }}" class="btn-ghost-surface">Đăng nhập</a>
+                <a href="{{ route('dang-ky') }}" class="btn-primary-surface">Tạo tài khoản</a>
             @endauth
         </div>
     </div>
@@ -82,37 +82,37 @@
         <div class="hero-backdrop hero-backdrop-two"></div>
         <div class="container hero-grid">
             <div class="hero-copy" data-aos="fade-right">
-                <div class="hero-badge">Learning hub cho nguoi hoc moi</div>
-                <h1>Kham pha cac khoa hoc dang mo ngay tu trang chu.</h1>
+                <div class="hero-badge">Learning hub cho người học mới</div>
+                <h1>Khám phá các khóa học đang mở ngay từ trang chủ.</h1>
                 <p class="hero-lead">
-                    {{ $settings['site_name'] ?: 'He thong Khai Tri' }} hien thi cong khai cac khoa hoc dang hoat dong,
-                    thong tin lien he tu admin va doi ngu giang vien noi bat de nguoi dung chua co tai khoan van co the tim hieu truoc khi dang ky.
+                    {{ $settings['site_name'] ?: 'Hệ thống Khai Trí' }} hiển thị công khai các khóa học đang hoạt động,
+                    thông tin liên hệ từ admin và đội ngũ giảng viên nổi bật để người dùng chưa có tài khoản vẫn có thể tìm hiểu trước khi đăng ký.
                 </p>
 
                 <div class="hero-actions">
-                    <a href="#courses" class="btn-primary-surface">Xem khoa hoc</a>
+                    <a href="#courses" class="btn-primary-surface">Xem khóa học</a>
                     @guest
-                        <a href="{{ route('dang-ky') }}" class="btn-outline-surface">Dang ky hoc vien</a>
+                        <a href="{{ route('dang-ky') }}" class="btn-outline-surface">Đăng ký học viên</a>
                     @else
-                        <a href="#contact" class="btn-outline-surface">Xem thong tin lien he</a>
+                        <a href="#contact" class="btn-outline-surface">Xem thông tin liên hệ</a>
                     @endguest
                 </div>
 
                 <div class="hero-metrics">
                     <article class="metric-card" data-aos="fade-up" data-aos-delay="50">
-                        <span class="metric-label">Khoa hoc cong khai</span>
+                        <span class="metric-label">Khóa học công khai</span>
                         <strong>{{ number_format($stats['tong_khoa_hoc']) }}</strong>
-                        <small>{{ number_format($stats['sap_khai_giang']) }} khoa sap khai giang</small>
+                        <small>{{ number_format($stats['sap_khai_giang']) }} khóa sắp khai giảng</small>
                     </article>
                     <article class="metric-card" data-aos="fade-up" data-aos-delay="120">
-                        <span class="metric-label">Hoc vien dang hoc</span>
+                        <span class="metric-label">Học viên đang học</span>
                         <strong>{{ number_format($stats['tong_hoc_vien']) }}</strong>
-                        <small>Du lieu that tu he thong dao tao</small>
+                        <small>Dữ liệu thật từ hệ thống đào tạo</small>
                     </article>
                     <article class="metric-card" data-aos="fade-up" data-aos-delay="190">
-                        <span class="metric-label">Module chuyen mon</span>
+                        <span class="metric-label">Module chuyên môn</span>
                         <strong>{{ number_format($stats['tong_module']) }}</strong>
-                        <small>{{ number_format($stats['tong_giang_vien_noi_bat']) }} giang vien noi bat</small>
+                        <small>{{ number_format($stats['tong_giang_vien_noi_bat']) }} giảng viên nổi bật</small>
                     </article>
                 </div>
             </div>
@@ -121,37 +121,37 @@
                 @if($featuredCourse)
                     <article class="spotlight-card">
                         <div class="spotlight-head">
-                            <span class="eyebrow">Khoa hoc noi bat</span>
-                            @php $status = $statusLabels[$featuredCourse->trang_thai_van_hanh] ?? ['label' => 'Dang cap nhat', 'class' => 'status-waiting']; @endphp
+                            <span class="eyebrow">Khóa học nổi bật</span>
+                            @php $status = $statusLabels[$featuredCourse->trang_thai_van_hanh] ?? ['label' => 'Đang cập nhật', 'class' => 'status-waiting']; @endphp
                             <span class="status-pill {{ $status['class'] }}">{{ $status['label'] }}</span>
                         </div>
 
                         <h2>{{ $featuredCourse->ten_khoa_hoc }}</h2>
                         <p>
-                            {{ $featuredCourse->mo_ta_ngan ?: 'Khoa hoc dang hoat dong va san sang de nguoi hoc tim hieu truoc khi tao tai khoan tham gia.' }}
+                            {{ $featuredCourse->mo_ta_ngan ?: 'Khóa học đang hoạt động và sẵn sàng để người học tìm hiểu trước khi tạo tài khoản tham gia.' }}
                         </p>
 
                         <div class="spotlight-meta">
                             <div>
-                                <span>Ma khoa</span>
+                                <span>Mã khóa</span>
                                 <strong>{{ $featuredCourse->ma_khoa_hoc }}</strong>
                             </div>
                             <div>
-                                <span>Nhom nganh</span>
-                                <strong>{{ optional($featuredCourse->nhomNganh)->ten_nhom_nganh ?: 'Da linh vuc' }}</strong>
+                                <span>Nhóm ngành</span>
+                                <strong>{{ optional($featuredCourse->nhomNganh)->ten_nhom_nganh ?: 'Đa lĩnh vực' }}</strong>
                             </div>
                             <div>
                                 <span>Module</span>
                                 <strong>{{ number_format($featuredCourse->module_hocs_count ?? 0) }}</strong>
                             </div>
                             <div>
-                                <span>Hoc vien</span>
+                                <span>Học viên</span>
                                 <strong>{{ number_format($featuredCourse->hoc_vien_dang_hoc_count ?? 0) }}</strong>
                             </div>
                         </div>
 
                         <div class="spotlight-footer">
-                            @php $levelInfo = $levelLabels[$featuredCourse->cap_do] ?? ['label' => 'Tong hop', 'class' => 'level-basic']; @endphp
+                            @php $levelInfo = $levelLabels[$featuredCourse->cap_do] ?? ['label' => 'Tổng hợp', 'class' => 'level-basic']; @endphp
                             <span class="level-pill {{ $levelInfo['class'] }}">{{ $levelInfo['label'] }}</span>
                             @if($featuredCourse->ngay_khai_giang)
                                 <span class="date-pill">
@@ -165,8 +165,8 @@
 
                 <div class="contact-surface">
                     <div>
-                        <span class="eyebrow">Thong tin he thong</span>
-                        <h3>Kenh lien he danh cho hoc vien moi</h3>
+                        <span class="eyebrow">Thông tin hệ thống</span>
+                        <h3>Kênh liên hệ dành cho học viên mới</h3>
                     </div>
                     <ul class="contact-list">
                         @if(filled($settings['email']))
@@ -184,13 +184,13 @@
                         @if(filled($settings['facebook']))
                             <li>
                                 <i class="fab fa-facebook-f"></i>
-                                <a href="{{ $settings['facebook'] }}" target="_blank" rel="noopener noreferrer">Facebook chinh thuc</a>
+                                <a href="{{ $settings['facebook'] }}" target="_blank" rel="noopener noreferrer">Facebook chính thức</a>
                             </li>
                         @endif
                         @if(filled($settings['zalo']))
                             <li>
                                 <i class="fas fa-comment-dots"></i>
-                                <a href="{{ $settings['zalo'] }}" target="_blank" rel="noopener noreferrer">Zalo ho tro</a>
+                                <a href="{{ $settings['zalo'] }}" target="_blank" rel="noopener noreferrer">Zalo hỗ trợ</a>
                             </li>
                         @endif
                     </ul>
@@ -209,13 +209,13 @@
                                 <div class="banner-frame">
                                     <img src="{{ asset($banner->duong_dan_anh) }}" alt="{{ $banner->tieu_de }}">
                                     <div class="banner-overlay">
-                                        <span class="eyebrow">Diem nhan tu admin</span>
+                                        <span class="eyebrow">Điểm nhấn từ admin</span>
                                         <h2>{{ $banner->tieu_de }}</h2>
                                         @if($banner->mo_ta)
                                             <div class="banner-copy">{!! $banner->mo_ta !!}</div>
                                         @endif
                                         @if($banner->link)
-                                            <a href="{{ $banner->link }}" target="_blank" rel="noopener noreferrer" class="btn-primary-surface">Xem them</a>
+                                            <a href="{{ $banner->link }}" target="_blank" rel="noopener noreferrer" class="btn-primary-surface">Xem thêm</a>
                                         @endif
                                     </div>
                                 </div>
@@ -242,10 +242,10 @@
         <div class="container">
             <div class="section-heading">
                 <div>
-                    <span class="section-kicker">Danh muc noi bat</span>
-                    <h2>Nhung nhom nganh dang co khoa hoc cong khai</h2>
+                    <span class="section-kicker">Danh mục nổi bật</span>
+                    <h2>Những nhóm ngành đang có khóa học công khai</h2>
                 </div>
-                <p>Nguoi dung chua co tai khoan van co the duyet nhanh linh vuc dang dao tao truoc khi quyet dinh dang ky.</p>
+                <p>Người dùng chưa có tài khoản vẫn có thể duyệt nhanh lĩnh vực đang đào tạo trước khi quyết định đăng ký.</p>
             </div>
 
             <div class="category-cloud">
@@ -255,7 +255,7 @@
                         <strong>{{ $item->public_course_count }}</strong>
                     </a>
                 @empty
-                    <div class="empty-public-block">Hien chua co nhom nganh cong khai de hien thi tren trang chu.</div>
+                    <div class="empty-public-block">Hiện chưa có nhóm ngành công khai để hiển thị trên trang chủ.</div>
                 @endforelse
             </div>
         </div>
@@ -265,46 +265,46 @@
         <div class="container">
             <div class="section-heading">
                 <div>
-                    <span class="section-kicker">Khoa hoc cong khai</span>
-                    <h2>Khong can tai khoan van xem duoc danh sach khoa hoc</h2>
+                    <span class="section-kicker">Khóa học công khai</span>
+                    <h2>Không cần tài khoản vẫn xem được danh sách khóa học</h2>
                 </div>
-                <p>Trang chu da lay truc tiep tu he thong quan tri: khoa dang hoat dong, mo ta ngan, hinh anh, cap do va ngay khai giang.</p>
+                <p>Trang chủ đã lấy trực tiếp từ hệ thống quản trị: khóa đang hoạt động, mô tả ngắn, hình ảnh, cấp độ và ngày khai giảng.</p>
             </div>
 
             <form method="GET" action="{{ route('home') }}" class="course-filter">
                 <div class="filter-field">
-                    <label for="q">Tim khoa hoc</label>
-                    <input id="q" type="text" name="q" value="{{ $filters['q'] }}" placeholder="Ten khoa hoc, ma khoa hoc hoac mo ta ngan">
+                    <label for="q">Tìm khóa học</label>
+                    <input id="q" type="text" name="q" value="{{ $filters['q'] }}" placeholder="Tên khóa học, mã khóa học hoặc mô tả ngắn">
                 </div>
                 <div class="filter-field">
-                    <label for="level">Cap do</label>
+                    <label for="level">Cấp độ</label>
                     <select id="level" name="level">
-                        <option value="">Tat ca cap do</option>
-                        <option value="co_ban" @selected($filters['level'] === 'co_ban')>Co ban</option>
-                        <option value="trung_binh" @selected($filters['level'] === 'trung_binh')>Trung binh</option>
-                        <option value="nang_cao" @selected($filters['level'] === 'nang_cao')>Nang cao</option>
+                        <option value="">Tất cả cấp độ</option>
+                        <option value="co_ban" @selected($filters['level'] === 'co_ban')>Cơ bản</option>
+                        <option value="trung_binh" @selected($filters['level'] === 'trung_binh')>Trung bình</option>
+                        <option value="nang_cao" @selected($filters['level'] === 'nang_cao')>Nâng cao</option>
                     </select>
                 </div>
                 <div class="filter-field">
-                    <label for="category">Nhom nganh</label>
+                    <label for="category">Nhóm ngành</label>
                     <select id="category" name="category">
-                        <option value="">Tat ca nhom nganh</option>
+                        <option value="">Tất cả nhóm ngành</option>
                         @foreach($categories as $item)
                             <option value="{{ $item->id }}" @selected((string) $filters['category'] === (string) $item->id)>{{ $item->ten_nhom_nganh }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div class="filter-actions">
-                    <button type="submit" class="btn-primary-surface">Loc khoa hoc</button>
-                    <a href="{{ route('home') }}#courses" class="btn-outline-surface">Dat lai</a>
+                    <button type="submit" class="btn-primary-surface">Lọc khóa học</button>
+                    <a href="{{ route('home') }}#courses" class="btn-outline-surface">Đặt lại</a>
                 </div>
             </form>
 
             <div class="course-grid">
                 @forelse($courses as $course)
                     @php
-                        $levelInfo = $levelLabels[$course->cap_do] ?? ['label' => 'Tong hop', 'class' => 'level-basic'];
-                        $status = $statusLabels[$course->trang_thai_van_hanh] ?? ['label' => 'Dang cap nhat', 'class' => 'status-waiting'];
+                        $levelInfo = $levelLabels[$course->cap_do] ?? ['label' => 'Tổng hợp', 'class' => 'level-basic'];
+                        $status = $statusLabels[$course->trang_thai_van_hanh] ?? ['label' => 'Đang cập nhật', 'class' => 'status-waiting'];
                     @endphp
                     <article class="course-card" data-aos="fade-up">
                         <div class="course-cover">
@@ -323,12 +323,12 @@
 
                         <div class="course-body">
                             <div class="course-meta">
-                                <span>{{ optional($course->nhomNganh)->ten_nhom_nganh ?: 'Da linh vuc' }}</span>
+                                <span>{{ optional($course->nhomNganh)->ten_nhom_nganh ?: 'Đa lĩnh vực' }}</span>
                                 <strong>{{ $course->ma_khoa_hoc }}</strong>
                             </div>
 
                             <h3>{{ $course->ten_khoa_hoc }}</h3>
-                            <p>{{ \Illuminate\Support\Str::limit($course->mo_ta_ngan ?: 'Khoa hoc cong khai dang duoc hien thi tren trang chu de hoc vien moi co the tim hieu truoc khi dang ky.', 140) }}</p>
+                            <p>{{ \Illuminate\Support\Str::limit($course->mo_ta_ngan ?: 'Khóa học công khai đang được hiển thị trên trang chủ để học viên mới có thể tìm hiểu trước khi đăng ký.', 140) }}</p>
 
                             <div class="course-data-grid">
                                 <div>
@@ -336,35 +336,35 @@
                                     <strong>{{ number_format($course->module_hocs_count ?? 0) }}</strong>
                                 </div>
                                 <div>
-                                    <span>Lich hoc</span>
+                                    <span>Lịch học</span>
                                     <strong>{{ number_format($course->lich_hocs_count ?? 0) }}</strong>
                                 </div>
                                 <div>
-                                    <span>Hoc vien</span>
+                                    <span>Học viên</span>
                                     <strong>{{ number_format($course->hoc_vien_dang_hoc_count ?? 0) }}</strong>
                                 </div>
                                 <div>
-                                    <span>Khai giang</span>
-                                    <strong>{{ $course->ngay_khai_giang ? $course->ngay_khai_giang->format('d/m/Y') : 'Dang cap nhat' }}</strong>
+                                    <span>Khai giảng</span>
+                                    <strong>{{ $course->ngay_khai_giang ? $course->ngay_khai_giang->format('d/m/Y') : 'Đang cập nhật' }}</strong>
                                 </div>
                             </div>
 
                             <div class="course-actions">
                                 @guest
-                                    <a href="{{ route('dang-ky') }}" class="btn-primary-surface">Tao tai khoan de tham gia</a>
-                                    <a href="{{ route('dang-nhap') }}" class="btn-outline-surface">Da co tai khoan</a>
+                                    <a href="{{ route('dang-ky') }}" class="btn-primary-surface">Tạo tài khoản để tham gia</a>
+                                    <a href="{{ route('dang-nhap') }}" class="btn-outline-surface">Đã có tài khoản</a>
                                 @else
-                                    <a href="{{ route('hoc-vien.khoa-hoc-tham-gia') }}" class="btn-primary-surface">Xem luong tham gia</a>
-                                    <a href="{{ route('hoc-vien.dashboard') }}" class="btn-outline-surface">Vao khu hoc vien</a>
+                                    <a href="{{ route('hoc-vien.khoa-hoc-tham-gia') }}" class="btn-primary-surface">Xem luồng tham gia</a>
+                                    <a href="{{ route('hoc-vien.dashboard') }}" class="btn-outline-surface">Vào khu học viên</a>
                                 @endguest
                             </div>
                         </div>
                     </article>
                 @empty
                     <div class="empty-public-block large">
-                        <h3>Chua co khoa hoc phu hop</h3>
-                        <p>Hay thu bo bot bo loc hoac quay lai sau khi admin mo them khoa hoc moi.</p>
-                        <a href="{{ route('home') }}#courses" class="btn-primary-surface">Xem lai toan bo</a>
+                        <h3>Chưa có khóa học phù hợp</h3>
+                        <p>Hãy thử bỏ bớt bộ lọc hoặc quay lại sau khi admin mở thêm khóa học mới.</p>
+                        <a href="{{ route('home') }}#courses" class="btn-primary-surface">Xem lại toàn bộ</a>
                     </div>
                 @endforelse
             </div>
@@ -380,16 +380,16 @@
     <section class="cta-strip">
         <div class="container cta-grid">
             <div>
-                <span class="section-kicker">San sang bat dau?</span>
-                <h2>Tao tai khoan de theo doi khoa hoc, tai lieu va lich hoc ca nhan.</h2>
+                <span class="section-kicker">Sẵn sàng bắt đầu?</span>
+                <h2>Tạo tài khoản để theo dõi khóa học, tài liệu và lịch học cá nhân.</h2>
             </div>
             <div class="cta-actions">
                 @guest
-                    <a href="{{ route('dang-ky') }}" class="btn-primary-surface">Dang ky hoc vien</a>
-                    <a href="{{ route('dang-nhap') }}" class="btn-outline-surface">Dang nhap</a>
+                    <a href="{{ route('dang-ky') }}" class="btn-primary-surface">Đăng ký học viên</a>
+                    <a href="{{ route('dang-nhap') }}" class="btn-outline-surface">Đăng nhập</a>
                 @else
-                    <a href="{{ route('hoc-vien.dashboard') }}" class="btn-primary-surface">Vao dashboard</a>
-                    <a href="#courses" class="btn-outline-surface">Tiep tuc xem khoa hoc</a>
+                    <a href="{{ route('hoc-vien.dashboard') }}" class="btn-primary-surface">Vào dashboard</a>
+                    <a href="#courses" class="btn-outline-surface">Tiếp tục xem khóa học</a>
                 @endguest
             </div>
         </div>
@@ -399,10 +399,10 @@
         <div class="container">
             <div class="section-heading">
                 <div>
-                    <span class="section-kicker">Giang vien noi bat</span>
-                    <h2>Danh sach duoc admin chon hien thi tren trang chu</h2>
+                    <span class="section-kicker">Giảng viên nổi bật</span>
+                    <h2>Danh sách được admin chọn hiển thị trên trang chủ</h2>
                 </div>
-                <p>Phan nay lay truc tiep tu cau hinh giang vien noi bat trong khu quan tri, khong con la du lieu mau cung.</p>
+                <p>Phần này lấy trực tiếp từ cấu hình giảng viên nổi bật trong khu quản trị, không còn là dữ liệu mẫu cứng.</p>
             </div>
 
             <div class="instructor-grid">
@@ -418,24 +418,24 @@
                             @endif
                         </div>
                         <div class="instructor-copy">
-                            <span class="instructor-badge">{{ $giangVien->chuyen_nganh ?: 'Dang cap nhat chuyen nganh' }}</span>
-                            <h3>{{ $giangVien->nguoiDung->ho_ten ?? 'Giang vien' }}</h3>
-                            <p>{{ $giangVien->mo_ta_ngan ?: 'Giang vien duoc admin lua chon de dai dien cho nang luc dao tao tren trang chu.' }}</p>
+                            <span class="instructor-badge">{{ $giangVien->chuyen_nganh ?: 'Đang cập nhật chuyên ngành' }}</span>
+                            <h3>{{ $giangVien->nguoiDung->ho_ten ?? 'Giảng viên' }}</h3>
+                            <p>{{ $giangVien->mo_ta_ngan ?: 'Giảng viên được admin lựa chọn để đại diện cho năng lực đào tạo trên trang chủ.' }}</p>
                         </div>
                         <div class="instructor-foot">
                             <span>
                                 <i class="fas fa-graduation-cap"></i>
-                                {{ $giangVien->hoc_vi ?: 'Dang cap nhat hoc vi' }}
+                                {{ $giangVien->hoc_vi ?: 'Đang cập nhật học vị' }}
                             </span>
                             <span>
                                 <i class="far fa-clock"></i>
-                                {{ number_format((int) $giangVien->so_gio_day) }} gio giang day
+                                {{ number_format((int) $giangVien->so_gio_day) }} giờ giảng dạy
                             </span>
                         </div>
                     </article>
                 @empty
                     <div class="empty-public-block">
-                        Chua co giang vien noi bat duoc chon trong phan cai dat he thong.
+                        Chưa có giảng viên nổi bật được chọn trong phần cài đặt hệ thống.
                     </div>
                 @endforelse
             </div>
@@ -449,23 +449,23 @@
             <div class="brand-mark footer-brand">
                 <div class="brand-logo">
                     @if(!empty($settings['site_logo']))
-                        <img src="{{ asset($settings['site_logo']) }}" alt="{{ $settings['site_name'] ?: 'Logo he thong' }}">
+                        <img src="{{ asset($settings['site_logo']) }}" alt="{{ $settings['site_name'] ?: 'Logo hệ thống' }}">
                     @else
                         <span>K</span>
                     @endif
                 </div>
                 <div>
-                    <div class="brand-kicker">Cong thong tin cong khai</div>
+                    <div class="brand-kicker">Cổng thông tin công khai</div>
                     <div class="brand-name">{{ $settings['site_name'] ?: 'Khai Tri Education' }}</div>
                 </div>
             </div>
             <p class="footer-copy">
-                Trang chu cong khai danh cho nguoi dung chua co tai khoan: xem khoa hoc, xem giang vien noi bat va kiem tra thong tin lien he do admin cau hinh.
+                Trang chủ công khai dành cho người dùng chưa có tài khoản: xem khóa học, xem giảng viên nổi bật và kiểm tra thông tin liên hệ do admin cấu hình.
             </p>
         </div>
 
         <div>
-            <h3>Lien he</h3>
+            <h3>Liên hệ</h3>
             <ul class="footer-list">
                 @if(filled($settings['hotline']))
                     <li><i class="fas fa-phone-alt"></i><a href="tel:{{ preg_replace('/\s+/', '', $settings['hotline']) }}">{{ $settings['hotline'] }}</a></li>
@@ -483,7 +483,7 @@
         </div>
 
         <div>
-            <h3>Mang xa hoi</h3>
+            <h3>Mạng xã hội</h3>
             <div class="social-links-public">
                 @if(filled($settings['facebook']))
                     <a href="{{ $settings['facebook'] }}" target="_blank" rel="noopener noreferrer">Facebook</a>
@@ -491,8 +491,8 @@
                 @if(filled($settings['zalo']))
                     <a href="{{ $settings['zalo'] }}" target="_blank" rel="noopener noreferrer">Zalo</a>
                 @endif
-                <a href="{{ route('home') }}#courses">Khoa hoc</a>
-                <a href="{{ route('dang-ky') }}">Dang ky</a>
+                <a href="{{ route('home') }}#courses">Khóa học</a>
+                <a href="{{ route('dang-ky') }}">Đăng ký</a>
             </div>
         </div>
     </div>
@@ -504,14 +504,14 @@
     @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
     :root {
-        --home-bg: #f8f5ee;
-        --ink: #10231f;
-        --muted: #5e6f6b;
-        --brand: #0f766e;
-        --brand-dark: #0b5d56;
-        --accent-soft: rgba(245, 158, 11, 0.14);
-        --shadow-lg: 0 30px 60px rgba(18, 40, 35, 0.12);
-        --shadow-md: 0 18px 36px rgba(18, 40, 35, 0.10);
+        --home-bg: #f3f8ff;
+        --ink: #102a43;
+        --muted: #5f6f8a;
+        --brand: #0d6efd;
+        --brand-dark: #0a58ca;
+        --accent-soft: rgba(13, 110, 253, 0.14);
+        --shadow-lg: 0 30px 60px rgba(13, 42, 100, 0.14);
+        --shadow-md: 0 18px 36px rgba(13, 42, 100, 0.10);
         --radius-xl: 32px;
         --radius-md: 18px;
     }
@@ -519,7 +519,7 @@
     html { scroll-behavior: smooth; }
 
     body {
-        background: radial-gradient(circle at top left, #fff7e4 0%, var(--home-bg) 48%, #f7fbf8 100%);
+        background: radial-gradient(circle at top left, #dfeeff 0%, var(--home-bg) 48%, #f8fbff 100%);
         color: var(--ink);
         font-family: 'Plus Jakarta Sans', sans-serif;
     }
@@ -532,8 +532,8 @@
     a { text-decoration: none; }
 
     .announcement-bar {
-        background: linear-gradient(90deg, #103f3b, #0f766e 52%, #127c73);
-        color: #f7fffb;
+        background: linear-gradient(90deg, #0a3d91, #0d6efd 52%, #3b82f6);
+        color: #f8fbff;
         padding: 0.9rem 0;
     }
 
@@ -564,8 +564,8 @@
         top: 0;
         z-index: 1100;
         backdrop-filter: blur(18px);
-        background: rgba(248, 245, 238, 0.78);
-        border-bottom: 1px solid rgba(16, 35, 31, 0.08);
+        background: rgba(243, 248, 255, 0.82);
+        border-bottom: 1px solid rgba(13, 42, 100, 0.08);
     }
 
     .header-shell {
@@ -587,7 +587,7 @@
         width: 54px;
         height: 54px;
         border-radius: 18px;
-        background: linear-gradient(145deg, #0f766e, #1f9d89);
+        background: linear-gradient(145deg, #0d6efd, #60a5fa);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -595,7 +595,7 @@
         color: #fff;
         font-weight: 700;
         font-size: 1.2rem;
-        box-shadow: 0 14px 28px rgba(15, 118, 110, 0.24);
+        box-shadow: 0 14px 28px rgba(13, 110, 253, 0.24);
     }
 
     .brand-logo img {
@@ -658,27 +658,27 @@
     .btn-ghost-surface:hover { transform: translateY(-1px); }
 
     .contact-pill {
-        background: rgba(15, 118, 110, 0.10);
+        background: rgba(13, 110, 253, 0.10);
         color: var(--brand-dark);
-        border: 1px solid rgba(15, 118, 110, 0.12);
+        border: 1px solid rgba(13, 110, 253, 0.12);
     }
 
     .btn-primary-surface {
-        background: linear-gradient(135deg, #0f766e, #0a5d56);
+        background: linear-gradient(135deg, #0d6efd, #0a58ca);
         color: #fff;
-        box-shadow: 0 14px 28px rgba(15, 118, 110, 0.20);
+        box-shadow: 0 14px 28px rgba(13, 110, 253, 0.22);
     }
 
     .btn-outline-surface {
         background: transparent;
         color: var(--ink);
-        border: 1px solid rgba(16, 35, 31, 0.16);
+        border: 1px solid rgba(13, 42, 100, 0.16);
     }
 
     .btn-ghost-surface {
         background: rgba(255, 255, 255, 0.72);
         color: var(--ink);
-        border: 1px solid rgba(16, 35, 31, 0.08);
+        border: 1px solid rgba(13, 42, 100, 0.08);
     }
 
     .hero-edu {
@@ -698,7 +698,7 @@
     .hero-backdrop-one {
         width: 380px;
         height: 380px;
-        background: rgba(245, 158, 11, 0.16);
+        background: rgba(96, 165, 250, 0.22);
         top: -70px;
         left: -80px;
     }
@@ -706,7 +706,7 @@
     .hero-backdrop-two {
         width: 420px;
         height: 420px;
-        background: rgba(15, 118, 110, 0.12);
+        background: rgba(13, 110, 253, 0.16);
         right: -110px;
         bottom: -120px;
     }
@@ -727,7 +727,7 @@
         gap: 0.45rem;
         padding: 0.45rem 0.85rem;
         border-radius: 999px;
-        background: rgba(15, 118, 110, 0.08);
+        background: rgba(13, 110, 253, 0.08);
         color: var(--brand-dark);
         font-size: 0.78rem;
         font-weight: 700;
@@ -839,8 +839,8 @@
     .spotlight-meta div {
         padding: 0.95rem 1rem;
         border-radius: 18px;
-        background: rgba(245, 237, 224, 0.78);
-        border: 1px solid rgba(16, 35, 31, 0.06);
+        background: rgba(227, 238, 255, 0.82);
+        border: 1px solid rgba(13, 42, 100, 0.06);
     }
 
     .spotlight-meta span,
@@ -877,27 +877,27 @@
     }
 
     .status-waiting {
-        background: rgba(245, 158, 11, 0.16);
-        color: #c57900;
+        background: rgba(96, 165, 250, 0.18);
+        color: #1d4ed8;
     }
 
     .level-basic {
-        background: rgba(15, 118, 110, 0.12);
+        background: rgba(13, 110, 253, 0.12);
         color: var(--brand-dark);
     }
 
     .level-mid {
-        background: rgba(245, 158, 11, 0.16);
-        color: #ba6b00;
+        background: rgba(59, 130, 246, 0.12);
+        color: #2563eb;
     }
 
     .level-advanced {
-        background: rgba(190, 24, 93, 0.14);
-        color: #be185d;
+        background: rgba(79, 70, 229, 0.14);
+        color: #4338ca;
     }
 
     .date-pill {
-        background: rgba(16, 35, 31, 0.07);
+        background: rgba(13, 42, 100, 0.07);
         color: var(--ink);
     }
 
@@ -947,7 +947,7 @@
         position: relative;
         min-height: 430px;
         box-shadow: var(--shadow-lg);
-        background: #1a2a27;
+        background: #102a43;
     }
 
     .banner-frame img {
@@ -964,7 +964,7 @@
         display: flex;
         flex-direction: column;
         justify-content: end;
-        background: linear-gradient(180deg, rgba(8, 20, 18, 0.05), rgba(8, 20, 18, 0.72));
+        background: linear-gradient(180deg, rgba(10, 31, 68, 0.08), rgba(10, 31, 68, 0.76));
         color: #fff;
     }
 
@@ -1011,10 +1011,10 @@
         padding: 0.9rem 1.15rem;
         border-radius: 999px;
         background: rgba(255, 255, 255, 0.84);
-        border: 1px solid rgba(16, 35, 31, 0.08);
+        border: 1px solid rgba(13, 42, 100, 0.08);
         color: var(--ink);
         font-weight: 700;
-        box-shadow: 0 12px 24px rgba(16, 35, 31, 0.06);
+        box-shadow: 0 12px 24px rgba(13, 42, 100, 0.06);
     }
 
     .category-chip strong {
@@ -1024,12 +1024,12 @@
         align-items: center;
         justify-content: center;
         border-radius: 999px;
-        background: rgba(15, 118, 110, 0.12);
+        background: rgba(13, 110, 253, 0.12);
         color: var(--brand-dark);
     }
 
     .category-chip.is-active {
-        background: linear-gradient(135deg, #0f766e, #0c5c55);
+        background: linear-gradient(135deg, #0d6efd, #0a58ca);
         color: #fff;
     }
 
@@ -1047,7 +1047,7 @@
         background: rgba(255, 255, 255, 0.84);
         box-shadow: var(--shadow-md);
         margin-bottom: 1.8rem;
-        border: 1px solid rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.74);
     }
 
     .filter-field {
@@ -1069,8 +1069,8 @@
         width: 100%;
         min-height: 52px;
         border-radius: 16px;
-        border: 1px solid rgba(16, 35, 31, 0.12);
-        background: rgba(255, 253, 248, 0.94);
+        border: 1px solid rgba(13, 42, 100, 0.12);
+        background: rgba(250, 252, 255, 0.96);
         padding: 0 1rem;
         color: var(--ink);
     }
@@ -1101,7 +1101,7 @@
     .course-cover {
         position: relative;
         height: 220px;
-        background: linear-gradient(145deg, #114a45, #0f766e);
+        background: linear-gradient(145deg, #0a58ca, #0d6efd);
     }
 
     .course-cover img,
@@ -1133,7 +1133,7 @@
     .course-cover-fallback {
         height: 100%;
         font-size: 4rem;
-        background: linear-gradient(135deg, #0f766e, #1b9c74, #f59e0b);
+        background: linear-gradient(135deg, #0a58ca, #0d6efd, #60a5fa);
     }
 
     .course-body { padding: 1.35rem; }
@@ -1167,7 +1167,7 @@
     }
 
     .course-data-grid > div {
-        background: rgba(245, 237, 224, 0.68);
+        background: rgba(227, 238, 255, 0.74);
         border-radius: 18px;
         padding: 0.9rem 1rem;
     }
@@ -1182,7 +1182,7 @@
 
     .cta-grid {
         border-radius: 36px;
-        background: linear-gradient(135deg, #10231f 0%, #0f4e49 55%, #106b62 100%);
+        background: linear-gradient(135deg, #102a43 0%, #0a58ca 55%, #0d6efd 100%);
         color: #fff;
         padding: 2rem;
         box-shadow: var(--shadow-lg);
@@ -1225,7 +1225,7 @@
         height: 84px;
         border-radius: 24px;
         overflow: hidden;
-        background: linear-gradient(135deg, #0f766e, #f59e0b);
+        background: linear-gradient(135deg, #0a58ca, #60a5fa);
         font-size: 2rem;
     }
 
@@ -1234,7 +1234,7 @@
         padding: 0.45rem 0.75rem;
         border-radius: 999px;
         background: var(--accent-soft);
-        color: #b66900;
+        color: var(--brand-dark);
         font-size: 0.78rem;
         font-weight: 700;
     }
@@ -1265,7 +1265,7 @@
 
     .site-footer {
         padding: 2.5rem 0 3rem;
-        background: #10231f;
+        background: #102a43;
         color: rgba(255, 255, 255, 0.78);
     }
 
@@ -1306,7 +1306,7 @@
 
     .footer-list i {
         width: 1rem;
-        color: #f8c36d;
+        color: #93c5fd;
         margin-top: 0.2rem;
     }
 
@@ -1350,7 +1350,7 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 10px 20px rgba(16, 35, 31, 0.08);
+        box-shadow: 0 10px 20px rgba(13, 42, 100, 0.08);
     }
 
     .pagination-shell .active > .page-link {

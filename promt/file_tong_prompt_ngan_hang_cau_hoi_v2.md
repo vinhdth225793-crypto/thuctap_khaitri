@@ -1,519 +1,395 @@
-# FILE TỔNG PROMPT NGÂN HÀNG CÂU HỎI
-
-## Mục tiêu module
-Triển khai module **Ngân hàng câu hỏi trắc nghiệm** cho hệ thống Laravel `thuctap_khaitri` theo từng phase nhỏ, làm xong phần nào dứt phần đó.
-
-### Nghiệp vụ chốt
-- Ngân hàng câu hỏi được lưu theo **KHÓA HỌC**
-- Chỉ làm **câu hỏi trắc nghiệm** ở giai đoạn này
-- Mỗi câu hỏi gồm:
-  - 1 cột câu hỏi
-  - 3 cột đáp án sai
-  - 1 cột đáp án đúng
-- Hệ thống phải kiểm tra **trùng lặp câu hỏi** trong cùng khóa học
-- Có **file Excel mẫu** để admin hoặc giảng viên tải về nhập câu hỏi
-- Có chức năng **import Excel**
-- Khi import phải có bước:
-  - preview dữ liệu
-  - kiểm tra lỗi dữ liệu
-  - kiểm tra trùng lặp trong file
-  - kiểm tra trùng lặp với hệ thống
-  - chỉ lưu các dòng hợp lệ sau khi xác nhận
-- **Admin** toàn quyền
-- **Giảng viên** chỉ thao tác với khóa học mà mình phụ trách
-- **Học viên** không có quyền
-
----
-
-# PROMPT TỔNG ĐIỀU PHỐI
-
-```text
-Bạn đang làm việc trên repo Laravel hiện có của tôi: thuctap_khaitri.
-
-Tôi muốn bạn triển khai module “Ngân hàng câu hỏi trắc nghiệm” theo từng phase nhỏ. Chỉ làm đúng phase tôi gửi, không làm lan sang phase khác.
-
-Bối cảnh nghiệp vụ:
-- Ngân hàng câu hỏi lưu theo KHÓA HỌC
-- Chỉ làm câu hỏi trắc nghiệm ở giai đoạn này
-- Mỗi câu hỏi gồm:
-  - 1 cột câu hỏi
-  - 3 cột đáp án sai
-  - 1 cột đáp án đúng
-- Hệ thống phải kiểm tra trùng lặp câu hỏi trong cùng khóa học
-- Có file Excel mẫu để admin hoặc giảng viên tải về nhập câu hỏi
-- Có chức năng import Excel
-- Khi import phải có bước preview, kiểm tra lỗi dữ liệu, kiểm tra trùng lặp trong file và trùng với hệ thống rồi mới cho lưu
-- Admin toàn quyền
-- Giảng viên chỉ thao tác được với khóa học mà mình phụ trách
-- Học viên không có quyền
-
-Nguyên tắc làm việc:
-1. Luôn phân tích code hiện có trước khi sửa
-2. Không phá các chức năng cũ đang chạy
-3. Giữ code Laravel rõ ràng, dễ bảo trì
-4. Ưu tiên blade đơn giản, dễ dùng
-5. Nếu cần, tách logic ra service thay vì nhét hết vào controller
-6. Sau mỗi phase phải liệt kê:
-   - file tạo
-   - file sửa
-   - route mới
-   - cách test thủ công
-
-Bây giờ hãy chờ tôi gửi Phase 1.
-```
-
----
-
-# PHASE 1 — TẠO NỀN DỮ LIỆU VÀ CRUD THỦ CÔNG
-
-```text
-Bạn đang làm việc trên repo Laravel hiện có của tôi: thuctap_khaitri.
-
-Tôi muốn bạn triển khai Phase 1 của module “Ngân hàng câu hỏi trắc nghiệm”.
-
-Mục tiêu phase này:
-- Tạo cấu trúc dữ liệu cho ngân hàng câu hỏi
-- Lưu câu hỏi theo KHÓA HỌC
-- Làm CRUD thủ công cơ bản
-- Có kiểm tra trùng lặp khi thêm/sửa thủ công
-- Chưa làm import/export Excel ở phase này
-
-Bối cảnh dự án:
-- Hệ thống đã có phân quyền admin, giảng viên, học viên
-- Đã có khóa học, module, lịch học, bài kiểm tra cơ bản
-- Giai đoạn này chỉ làm câu hỏi TRẮC NGHIỆM
-- Mỗi câu hỏi gồm:
-  - nội dung câu hỏi
-  - 3 đáp án sai
-  - 1 đáp án đúng
-
-Yêu cầu thực hiện:
-
-1. Tạo migration và model cho bảng ngân_hang_cau_hoi với các cột:
-- id
-- khoa_hoc_id
-- noi_dung_cau_hoi
-- dap_an_sai_1
-- dap_an_sai_2
-- dap_an_sai_3
-- dap_an_dung
-- nguoi_tao_id
-- created_at
-- updated_at
-- deleted_at nếu dùng soft delete thì thêm
-
-2. Thiết lập quan hệ model:
-- CauHoi thuộc KhoaHoc
-- CauHoi thuộc NguoiDung
-- KhoaHoc có nhiều CauHoi
-
-3. Kiểm tra trùng lặp câu hỏi trong cùng khóa học:
-- Chuẩn hóa nội dung trước khi so sánh:
-  - trim khoảng trắng đầu cuối
-  - gộp nhiều khoảng trắng thành 1
-  - lowercase
-- Nếu cùng khóa học mà nội dung câu hỏi bị trùng thì không cho lưu
-- Áp dụng cho cả thêm mới và cập nhật
-
-4. Tạo module CRUD cơ bản:
-- Danh sách câu hỏi
-- Thêm mới câu hỏi
-- Sửa câu hỏi
-- Xóa câu hỏi
-- Tìm kiếm theo nội dung câu hỏi
-- Lọc theo khóa học
-- Phân trang
-
-5. Validate dữ liệu:
-- không được để trống nội dung câu hỏi
-- không được để trống 3 đáp án sai và 1 đáp án đúng
-- đáp án đúng không được trùng với bất kỳ đáp án sai nào
-- 3 đáp án sai không được trùng nhau
-- nếu thêm/sửa thủ công mà câu hỏi trùng thì báo lỗi rõ ràng
-
-6. Phân quyền:
-- Admin được xem và thao tác toàn bộ ngân hàng câu hỏi
-- Giảng viên chỉ được xem/thêm/sửa/xóa câu hỏi của khóa học mà mình được phân công
-- Học viên không có quyền truy cập module này
-
-7. Tạo route, controller, request validation, blade view theo phong cách repo hiện có
-
-8. Giao diện:
-- đơn giản, sạch, dễ dùng
-- dùng blade
-- không cần giao diện quá cầu kỳ
-
-Không làm trong phase này:
-- Không export Excel
-- Không import Excel
-- Không preview import
-- Không gắn câu hỏi vào bài kiểm tra
-- Không làm câu hỏi tự luận
-
-Đầu ra bắt buộc:
-1. Liệt kê các file đã tạo
-2. Liệt kê các file đã sửa
-3. Liệt kê các route mới
-4. Hướng dẫn migrate
-5. Hướng dẫn test thủ công
-6. Giải thích cách kiểm tra trùng lặp đang xử lý
-```
-
----
-
-# PHASE 2 — EXPORT FILE EXCEL MẪU
-
-```text
-Tiếp tục trên repo Laravel hiện có của tôi: thuctap_khaitri.
-
-Hãy triển khai Phase 2 của module “Ngân hàng câu hỏi trắc nghiệm”.
-
-Bối cảnh:
-- Phase 1 đã có bảng ngân hàng câu hỏi và CRUD thủ công
-- Câu hỏi đang lưu theo khóa học
-- Mỗi câu hỏi gồm:
-  - nội dung câu hỏi
-  - 3 đáp án sai
-  - 1 đáp án đúng
-
-Mục tiêu phase này:
-- Tạo chức năng tải xuống file Excel mẫu
-- File mẫu dùng để admin hoặc giảng viên nhập nhiều câu hỏi trắc nghiệm
-- Chưa làm import ở phase này
-
-Yêu cầu thực hiện:
-
-1. Tạo chức năng export file Excel mẫu
-2. File Excel mẫu phải có đúng 5 cột:
-- cau_hoi
-- dap_an_sai_1
-- dap_an_sai_2
-- dap_an_sai_3
-- dap_an_dung
-
-3. Dòng đầu tiên là header rõ ràng
-4. Có thể thêm dòng ví dụ mẫu nếu thấy hợp lý, nhưng ưu tiên file sạch, dễ nhập
-5. Nếu tiện thì có thể thêm 1 sheet hướng dẫn ngắn, nhưng không bắt buộc
-6. Chỉ export file mẫu nhập liệu, chưa export dữ liệu thật từ database
-
-7. Phân quyền:
-- Admin tải được file mẫu
-- Giảng viên tải được file mẫu
-- Học viên không có quyền
-
-8. Tạo route và nút tải file mẫu trong giao diện quản lý ngân hàng câu hỏi
-
-9. Nếu cần package Laravel Excel thì cài đặt gọn gàng và ghi rõ hướng dẫn cài
-
-Không làm trong phase này:
-- Không import Excel
-- Không đọc file Excel
-- Không preview dữ liệu
-- Không lưu dữ liệu từ file
-
-Đầu ra bắt buộc:
-1. Liệt kê file tạo/sửa
-2. Liệt kê route mới
-3. Nếu có package mới thì ghi lệnh cài
-4. Hướng dẫn test chức năng tải file mẫu
-5. Mô tả cấu trúc file Excel mẫu
-```
-
----
-
-# PHASE 3 — UPLOAD FILE VÀ PREVIEW DỮ LIỆU
-
-```text
-Tiếp tục trên repo Laravel hiện có của tôi: thuctap_khaitri.
-
-Hãy triển khai Phase 3 của module “Ngân hàng câu hỏi trắc nghiệm”.
-
-Bối cảnh:
-- Đã có CRUD thủ công
-- Đã có file Excel mẫu
-- Giờ tôi muốn upload file Excel và xem trước dữ liệu trước khi lưu
-
-Mục tiêu phase này:
-- Cho admin hoặc giảng viên upload file Excel
-- Đọc dữ liệu từ file
-- Hiển thị preview danh sách câu hỏi chuẩn bị import
-- Chưa lưu thật vào database ngay ở bước đầu
-
-Yêu cầu thực hiện:
-
-1. Tạo giao diện import gồm:
-- chọn khóa học
-- chọn file Excel
-- nút đọc file / xem trước
-
-2. Khi upload file:
-- đọc toàn bộ dòng dữ liệu
-- bỏ qua dòng header
-- parse dữ liệu theo đúng 5 cột:
-  - cau_hoi
-  - dap_an_sai_1
-  - dap_an_sai_2
-  - dap_an_sai_3
-  - dap_an_dung
-
-3. Hiển thị preview dữ liệu trên giao diện dưới dạng bảng, gồm:
-- STT
-- Câu hỏi
-- Đáp án sai 1
-- Đáp án sai 2
-- Đáp án sai 3
-- Đáp án đúng
-- Trạng thái
-- Ghi chú
-
-4. Chưa lưu vào database ở bước preview
-5. Dữ liệu preview có thể lưu tạm ở session, cache hoặc bảng tạm tùy giải pháp đơn giản và ổn định nhất
-
-6. Validate từng dòng:
-- thiếu câu hỏi => lỗi
-- thiếu 1 trong 4 đáp án => lỗi
-- đáp án đúng trùng với 1 đáp án sai => lỗi
-- các đáp án bị trùng nhau => lỗi
-
-7. Phân quyền:
-- Admin được import
-- Giảng viên chỉ import cho khóa học mình phụ trách
-- Học viên không có quyền
-
-8. Giao diện preview phải dễ hiểu, đơn giản, hiển thị được trạng thái từng dòng
-
-Không làm trong phase này:
-- Chưa kiểm tra trùng lặp trong file và database ở mức hoàn chỉnh nếu chưa cần
-- Chưa lưu dữ liệu thật vào database
-- Chưa xác nhận import cuối cùng
-
-Đầu ra bắt buộc:
-1. Liệt kê file tạo/sửa
-2. Liệt kê route mới
-3. Hướng dẫn test upload và preview
-4. Giải thích cách dữ liệu preview đang được lưu tạm
-```
-
----
-
-# PHASE 4 — KIỂM TRA TRÙNG LẶP
-
-```text
-Tiếp tục trên repo Laravel hiện có của tôi: thuctap_khaitri.
-
-Hãy triển khai Phase 4 của module “Ngân hàng câu hỏi trắc nghiệm”.
-
-Bối cảnh:
-- Đã có upload và preview dữ liệu Excel
-- Giờ tôi muốn kiểm tra trùng lặp thật rõ trước khi lưu
-
-Mục tiêu phase này:
-- Phát hiện câu hỏi trùng trong chính file import
-- Phát hiện câu hỏi trùng với database của cùng khóa học
-- Hiển thị trạng thái rõ ràng cho từng dòng
-
-Yêu cầu thực hiện:
-
-1. Chuẩn hóa nội dung câu hỏi trước khi so sánh:
-- trim khoảng trắng đầu cuối
-- thay nhiều khoảng trắng liên tiếp thành 1 khoảng trắng
-- chuyển về lowercase
-
-2. Kiểm tra 2 loại trùng:
-- trung_lap_trong_file
-- trung_lap_trong_he_thong
-
-3. Trùng lặp chỉ tính trong phạm vi cùng khóa học
-
-4. Với mỗi dòng preview, xác định một trong các trạng thái:
-- hop_le
-- trung_lap_trong_file
-- trung_lap_trong_he_thong
-- loi_du_lieu
-
-5. Hiển thị tổng kết trên màn hình preview:
-- tổng số dòng
-- số dòng hợp lệ
-- số dòng trùng trong file
-- số dòng trùng trong hệ thống
-- số dòng lỗi
-
-6. Hiển thị ghi chú rõ ràng cho từng dòng
-Ví dụ:
-- Trùng với dòng 3 trong file
-- Trùng với câu hỏi đã có trong hệ thống
-- Thiếu đáp án đúng
-- Đáp án đúng bị trùng với đáp án sai
-
-7. Không cho import tự động các dòng trùng hoặc lỗi
-
-8. Tách logic kiểm tra trùng lặp ra service hoặc helper rõ ràng, không nhét quá nhiều vào controller
-
-Không làm trong phase này:
-- Chưa lưu dữ liệu vào database
-- Chưa xác nhận import cuối cùng
-
-Đầu ra bắt buộc:
-1. Liệt kê file tạo/sửa
-2. Giải thích rõ thuật toán kiểm tra trùng lặp
-3. Hướng dẫn test với 3 trường hợp:
-   - file hợp lệ
-   - file có dòng trùng nhau
-   - file trùng với dữ liệu đã có trong hệ thống
-```
-
----
-
-# PHASE 5 — XÁC NHẬN IMPORT VÀ CHỈ LƯU DÒNG HỢP LỆ
-
-```text
-Tiếp tục trên repo Laravel hiện có của tôi: thuctap_khaitri.
-
-Hãy triển khai Phase 5 của module “Ngân hàng câu hỏi trắc nghiệm”.
-
-Bối cảnh:
-- Đã có upload file
-- Đã có preview
-- Đã có kiểm tra lỗi dữ liệu và trùng lặp
-- Giờ tôi muốn xác nhận import và lưu vào database
-
-Mục tiêu phase này:
-- Cho người dùng bấm xác nhận import
-- Chỉ lưu các dòng hợp lệ
-- Bỏ qua các dòng trùng hoặc lỗi
-- Hiển thị kết quả import rõ ràng
-
-Yêu cầu thực hiện:
-
-1. Thêm nút “Xác nhận import”
-2. Khi người dùng bấm xác nhận:
-- chỉ lưu các dòng có trạng thái hop_le
-- không lưu các dòng trung_lap_trong_file
-- không lưu các dòng trung_lap_trong_he_thong
-- không lưu các dòng loi_du_lieu
-
-3. Sau khi import xong, hiển thị kết quả:
-- đã thêm bao nhiêu câu hỏi
-- bao nhiêu dòng trùng trong file
-- bao nhiêu dòng trùng trong hệ thống
-- bao nhiêu dòng lỗi
-- bao nhiêu dòng bị bỏ qua
-
-4. Sau khi import thành công:
-- xóa dữ liệu preview tạm
-- quay về danh sách ngân hàng câu hỏi hoặc trang kết quả import
-
-5. Ghi nhận nguoi_tao_id đúng theo tài khoản đang đăng nhập
-
-6. Kiểm tra phân quyền kỹ:
-- admin import toàn quyền
-- giảng viên chỉ import cho khóa học mình được phép
-
-7. Đảm bảo import không bị lưu trùng nếu bấm submit nhiều lần
-- cần có cách chống double submit đơn giản
-
-Không làm trong phase này:
-- Không làm import tự luận
-- Không làm random đề
-- Không làm gắn vào bài kiểm tra
-
-Đầu ra bắt buộc:
-1. Liệt kê file tạo/sửa
-2. Mô tả flow import hoàn chỉnh
-3. Hướng dẫn test end-to-end
-4. Giải thích cách tránh lưu trùng khi submit lại
-```
-
----
-
-# PHASE 6 — HOÀN THIỆN, DỌN CODE, KIỂM THỬ
-
-```text
-Tiếp tục trên repo Laravel hiện có của tôi: thuctap_khaitri.
-
-Hãy triển khai Phase 6 để hoàn thiện module “Ngân hàng câu hỏi trắc nghiệm”.
-
+Bạn là senior Laravel architect + refactor engineer.
+
+Tôi đang làm đồ án web học tập và kiểm tra online bằng Laravel.
+Repo của tôi:
+https://github.com/vinhdth225793-crypto/thuctap_khaitri.git
+
+Nhiệm vụ của bạn là đọc TOÀN BỘ repo, đặc biệt:
+- database/migrations
+- app/Models
+- app/Http/Controllers
+- routes/web.php
+- resources/views
+- các logic liên quan tới:
+  - người dùng / phân quyền
+  - khóa học / module / buổi học
+  - thư viện tài nguyên
+  - bài giảng
+  - bài kiểm tra
+  - học viên khóa học
+  - phân công giảng viên
+
+MỤC TIÊU CHÍNH:
+1. Kiểm tra các bảng hoặc chức năng có dấu hiệu trùng nhau, chồng chéo nhau, hoặc làm cùng một việc nhưng khác tên.
+2. Kiểm tra các migrations có bị sửa đi sửa lại nhiều lần, logic thiếu nhất quán, hoặc gây khó bảo trì.
+3. Đề xuất cách chuẩn hóa schema tốt nhất nhưng phải ưu tiên:
+   - tận dụng tối đa code cũ
+   - không phá vỡ flow hiện tại nếu chưa cần
+   - tránh xóa dữ liệu đang có
+4. Sau khi phân tích xong, thực hiện refactor theo PHASE, mỗi phase làm dứt điểm một nhóm vấn đề.
+
+YÊU CẦU RẤT QUAN TRỌNG:
+- Không code ngay lập tức.
+- Bước đầu tiên phải AUDIT toàn bộ repo.
+- Phải đọc kỹ các migration hiện có, model hiện có, controller hiện có, route hiện có.
+- Phải chỉ ra rõ:
+  - bảng nào trùng ý nghĩa
+  - bảng nào gần giống nhau
+  - bảng nào đang gánh nhiều trách nhiệm
+  - model nào có nhưng migration chưa đầy đủ
+  - migration nào bổ sung hợp lý
+  - migration nào bị chồng chéo
+  - cột nào nên giữ
+  - cột nào nên bỏ
+  - khóa ngoại nào chưa thống nhất
+- Chỉ được refactor theo hướng ít phá hệ thống nhất.
+- Nếu có 2 cách, hãy chọn cách ít rủi ro hơn cho đồ án.
+
+==================================================
+PHẦN 1 - CÁCH LÀM VIỆC BẮT BUỘC
+==================================================
+
+Hãy làm theo đúng thứ tự sau:
+
+BƯỚC A - AUDIT TOÀN BỘ REPO
+1. Đọc toàn bộ cấu trúc project.
+2. Liệt kê:
+   - models chính
+   - migrations chính
+   - các bảng nghiệp vụ chính
+   - các route chính
+   - các controller chính
+3. Tạo bảng phân tích theo format:
+
+| Nhóm chức năng | Thành phần hiện có | Bị trùng/chồng chéo với | Mức độ vấn đề | Đề xuất xử lý |
+
+4. Tạo thêm bảng audit CSDL theo format:
+
+| Tên bảng | Mục đích hiện tại | Có đang dùng thật không | Trùng/gần giống bảng nào | Nên giữ/gộp/bỏ | Ghi chú |
+
+5. Tạo thêm bảng audit migration theo format:
+
+| File migration | Mục đích | Hợp lý / Chồng chéo / Nghi ngờ | Ảnh hưởng | Đề xuất |
+
+BƯỚC B - CHỐT KIẾN TRÚC SAU KHI CHUẨN HÓA
+Sau khi audit xong, hãy đề xuất:
+1. Schema mục tiêu cuối cùng
+2. Bảng nào là bảng chính
+3. Bảng nào là bảng phụ
+4. Quan hệ giữa các bảng
+5. Những gì giữ nguyên
+6. Những gì phải sửa
+
+BƯỚC C - CHIA PHASE THỰC HIỆN
+Chia công việc thành các phase nhỏ.
+Mỗi phase phải có:
+- mục tiêu
+- file cần sửa
+- migration cần thêm hoặc chỉnh
+- model cần sửa
+- controller cần sửa
+- route cần sửa
+- view cần sửa
+- rủi ro có thể xảy ra
+- cách test sau khi làm xong
+
+==================================================
+PHẦN 2 - NHỮNG ĐIỂM NGHI NGỜ CẦN KIỂM TRA KỸ
+==================================================
+
+Bạn phải đặc biệt kiểm tra kỹ các điểm sau trong repo:
+
+1. USER / AUTH
+- Có đang tồn tại song song:
+  - users
+  - nguoi_dungs
+  - User model
+  - NguoiDung model
+- Kiểm tra xem hệ thống hiện tại đang auth theo bảng nào.
+- Kiểm tra cái nào là dư thừa.
+- Đề xuất hướng tốt nhất:
+  - giữ nguoi_dungs làm bảng auth chính
+  - hay chuyển về users
+- Nhưng phải ưu tiên phương án ít phá hệ thống nhất.
+
+2. NHÓM NGÀNH / MÔN HỌC
+- Kiểm tra quá trình đổi từ mon_hoc sang nhom_nganh.
+- Kiểm tra code còn chỗ nào gọi mon_hoc, mon_hoc_id hay không.
+- Nếu còn sót phải note rõ.
+
+3. KHÓA HỌC
+- Kiểm tra các migration của khoa_hoc có bị chồng chéo không.
+- Đặc biệt kiểm tra các migration kiểu:
+  - thêm cột rồi sau đó drop và tạo lại cột tương tự
+- Đề xuất cách làm cho schema sạch hơn.
+
+4. PHÂN CÔNG GIẢNG VIÊN
+- Kiểm tra bảng phan_cong_module_giang_vien
+- Kiểm tra các migration fix default trạng thái có trùng lặp không.
+- Đề xuất schema cuối cùng rõ ràng.
+
+5. HỌC VIÊN / GIẢNG VIÊN / NGƯỜI DÙNG
+- Kiểm tra khóa ngoại hiện đang dùng:
+  - nguoi_dung.ma_nguoi_dung
+  - giang_vien.id
+  - hoc_vien.id
+- Kiểm tra sự thiếu nhất quán giữa các bảng nghiệp vụ.
+- Đề xuất chuẩn FK thống nhất nhất có thể.
+
+6. TÀI NGUYÊN / THƯ VIỆN / BÀI GIẢNG
+- Kiểm tra:
+  - TaiNguyenBuoiHoc
+  - BaiGiang
+  - các controller giảng viên
+  - các views bài giảng / tài liệu
+- Xác định rõ:
+  - hiện hệ thống đang gắn tài nguyên trực tiếp vào buổi học
+  - hay đã có bài giảng độc lập
+- Kiểm tra có model BaiGiang nhưng migration có đủ chưa.
+- Kiểm tra pivot hoặc bảng liên kết bài giảng - tài nguyên có chưa.
+- Nếu thiếu migration nhưng model đã có thì phải note rõ.
+- Đề xuất chuẩn hóa theo flow mục tiêu:
+  - Thư viện tài nguyên là kho dùng chung
+  - Bài giảng là nội dung nằm trong khóa học/module/buổi học
+  - Một bài giảng có 1 tài nguyên chính + nhiều tài nguyên phụ
+  - Giảng viên tạo nhưng admin phải duyệt
+
+7. BÀI KIỂM TRA
+- Kiểm tra các migrations bài_kiem_tra, bai_lam_bai_kiem_tra
+- Xem có bị trùng hay chỉ là mở rộng hợp lý
+- Đánh giá mức ổn định
+
+8. YÊU CẦU HỌC VIÊN
+- Kiểm tra bảng yeu_cau_hoc_vien
+- Xem có đang gánh quá nhiều vai trò không
+- Đề xuất giữ nguyên hay tách nhỏ
+
+==================================================
+PHẦN 3 - KIẾN TRÚC MỤC TIÊU MONG MUỐN
+==================================================
+
+Flow nghiệp vụ mục tiêu của tôi như sau:
+
+A. Cấu trúc đào tạo
+- Nhóm ngành
+- Khóa học
+- Module học
+- Buổi học / lịch học
+
+B. Thư viện tài nguyên
+- dùng cho admin và giảng viên
+- lưu:
+  - video
+  - pdf
+  - word
+  - powerpoint
+  - image
+  - audio
+  - link ngoài
+- video phải có trạng thái xử lý
+- tài nguyên do giảng viên tạo phải qua admin duyệt
+
+C. Bài giảng
+- nằm trong khóa học / module / buổi học
+- có:
+  - tiêu đề
+  - mô tả
+  - loại bài giảng
+  - tài nguyên chính
+  - nhiều tài nguyên phụ
+  - trạng thái duyệt
+  - trạng thái công bố
+- bài giảng do giảng viên tạo phải qua admin duyệt
+
+D. Học viên
+- chỉ thấy bài giảng đã duyệt, đã công bố, đúng lịch mở
+
+E. Bài kiểm tra
+- gắn theo buổi học/module nếu cần
+
+Bạn phải refactor để hệ thống tiến gần flow này nhất, nhưng không làm hỏng code cũ đang có.
+
+==================================================
+PHẦN 4 - NGUYÊN TẮC REFACTOR BẮT BUỘC
+==================================================
+
+1. KHÔNG được tự ý xóa bảng quan trọng đang dùng thật nếu chưa có phương án migrate dữ liệu.
+2. KHÔNG được đổi tên lung tung gây vỡ code hàng loạt nếu có cách trung gian an toàn hơn.
+3. Nếu cần, hãy:
+   - thêm migration mới để chuẩn hóa dần
+   - sửa model để tương thích ngược
+   - giữ API cũ hoạt động tạm thời
+4. Ưu tiên:
+   - thêm migration chuẩn hóa
+   - gộp logic ở model/controller
+   - bỏ dần phần cũ
+5. Mỗi phase phải code xong là chạy được.
+6. Mỗi phase phải có hướng dẫn test.
+7. Chỉ sau khi phân tích xong mới được code.
+
+==================================================
+PHẦN 5 - CHIA PHASE CỤ THỂ PHẢI LÀM
+==================================================
+
+PHASE 0 - AUDIT & CHỐT HƯỚNG
 Mục tiêu:
-- Rà soát toàn bộ module ngân hàng câu hỏi
-- Dọn code
-- Hoàn thiện giao diện
-- Seed dữ liệu mẫu
-- Viết hướng dẫn kỹ thuật ngắn
+- đọc toàn bộ repo
+- chỉ ra các phần trùng/chồng chéo
+- đưa ra kiến trúc chốt cuối cùng
+Output bắt buộc:
+- báo cáo audit
+- bảng các bảng trùng/chức năng tương tự
+- sơ đồ quan hệ đề xuất
+- danh sách file cần sửa theo phase
 
-Yêu cầu thực hiện:
+PHASE 1 - CHUẨN HÓA AUTH VÀ ĐỊNH DANH
+Mục tiêu:
+- xác định bảng auth chính
+- thống nhất hướng dùng User hay NguoiDung
+- thống nhất quan hệ FK cơ bản
+Cần làm:
+- kiểm tra toàn bộ auth/middleware/model
+- note rõ bảng nào để lại, bảng nào bỏ vai trò
+- nếu chưa thể bỏ thì phải ghi rõ “deprecated”
+Output:
+- đề xuất chuẩn auth
+- code chỉnh nhẹ để hệ thống ổn định hơn
 
-1. Rà soát toàn bộ:
-- migration
-- model
-- controller
-- service
-- request validation
-- blade view
-- route
+PHASE 2 - CHUẨN HÓA CẤU TRÚC CSDL NGHIỆP VỤ CHÍNH
+Mục tiêu:
+- làm sạch các bảng:
+  - nhom_nganh
+  - khoa_hoc
+  - module_hoc
+  - lich_hoc
+  - phan_cong_module_giang_vien
+  - hoc_vien_khoa_hoc
+Cần làm:
+- rà migration chồng chéo
+- đề xuất migration chuẩn hóa mới nếu cần
+- giữ tương thích dữ liệu cũ
 
-2. Chuẩn hóa:
-- message thông báo
-- tên biến
-- validate
-- phân quyền
-- format giao diện
+PHASE 3 - CHUẨN HÓA THƯ VIỆN TÀI NGUYÊN
+Mục tiêu:
+- biến TaiNguyenBuoiHoc thành thư viện tài nguyên dùng tốt hơn hoặc refactor tên/logic nếu cần
+- tách rõ:
+  - tài nguyên thư viện
+  - tài nguyên gắn cho bài giảng
+Cần làm:
+- kiểm tra model hiện tại
+- kiểm tra migration hiện tại
+- bổ sung field còn thiếu:
+  - trang_thai_duyet
+  - trang_thai_xu_ly_video
+  - loai_tai_nguyen chuẩn
+  - pham_vi_su_dung
+  - created_by
+  - approved_by
+- tận dụng tối đa bảng cũ nếu có thể
+Output:
+- migration mới
+- model chuẩn hóa
+- controller/service nếu cần
 
-3. Bổ sung seed dữ liệu mẫu:
-- một vài khóa học
-- một vài câu hỏi mẫu
-- dữ liệu để test import nếu cần
+PHASE 4 - CHUẨN HÓA BÀI GIẢNG
+Mục tiêu:
+- xác định BaiGiang là thực thể chính
+- nếu model đã có mà migration chưa có thì phải tạo migration đầy đủ
+- hỗ trợ:
+  - tài nguyên chính
+  - nhiều tài nguyên phụ
+  - duyệt admin
+  - công bố bài giảng
+Cần làm:
+- tạo bảng bai_giang nếu thiếu
+- tạo bảng pivot nếu thiếu
+- sửa model/quan hệ
+- sửa controller
+- sửa route
+- sửa view
+Output:
+- bài giảng chạy độc lập, gắn đúng khóa học/module/buổi học
 
-4. Kiểm tra các flow:
-- thêm thủ công
-- sửa
-- xóa
-- tải file mẫu
-- upload file
-- preview
-- phát hiện trùng lặp
-- xác nhận import
+PHASE 5 - DUYỆT ADMIN CHO TÀI NGUYÊN VÀ BÀI GIẢNG
+Mục tiêu:
+- giảng viên tạo nội dung nhưng admin phải duyệt
+Cần làm:
+- trạng thái:
+  - nhap
+  - cho_duyet
+  - can_chinh_sua
+  - tu_choi
+  - da_duyet
+  - da_cong_bo
+- giao diện admin duyệt
+- ghi chú lý do duyệt/từ chối
+Output:
+- flow duyệt hoàn chỉnh
 
-5. Viết file tài liệu kỹ thuật ngắn trong repo:
-- mô tả module ngân hàng câu hỏi
-- cấu trúc bảng
-- cách migrate
-- cách seed
-- cách test import Excel
+PHASE 6 - CHUẨN HÓA PHÍA HỌC VIÊN
+Mục tiêu:
+- học viên chỉ thấy nội dung hợp lệ
+Cần làm:
+- filter bài giảng đã duyệt, đã công bố
+- kiểm tra lịch mở
+- kiểm tra video đã sẵn sàng
+Output:
+- trang học viên hiển thị đúng nghiệp vụ
 
-6. Không làm thêm tính năng mới ngoài phạm vi ngân hàng câu hỏi
+PHASE 7 - DỌN DẸP & TỐI ƯU
+Mục tiêu:
+- bỏ dần logic cũ dư thừa
+- note các phần deprecated
+- cập nhật README kỹ thuật
+- tạo checklist test
+Output:
+- code sạch hơn
+- migration rõ hơn
+- tài liệu kỹ thuật rõ hơn
 
-Đầu ra bắt buộc:
-1. Checklist các việc đã hoàn thành
-2. Danh sách file tạo/sửa cuối cùng
-3. Hướng dẫn chạy module từ đầu
-4. Gợi ý các phần tiếp theo có thể làm sau ngân hàng câu hỏi
-```
+==================================================
+PHẦN 6 - CÁCH OUTPUT MONG MUỐN
+==================================================
 
----
+Mỗi phase, bạn phải trả lời theo format:
 
-# THỨ TỰ NÊN LÀM
+1. Tóm tắt phát hiện
+2. Vấn đề đang có
+3. Giải pháp chọn
+4. Vì sao chọn cách này
+5. File sẽ sửa
+6. Migration sẽ thêm/sửa
+7. Code đầy đủ
+8. Cách chạy migrate
+9. Cách test
+10. Rủi ro còn lại
 
-1. **Phase 1**: CRUD thủ công + dữ liệu nền  
-2. **Phase 2**: export file Excel mẫu  
-3. **Phase 3**: upload và preview  
-4. **Phase 4**: kiểm tra trùng lặp  
-5. **Phase 5**: xác nhận import và lưu  
-6. **Phase 6**: dọn code và hoàn thiện  
+==================================================
+PHẦN 7 - QUY TẮC CODE
+==================================================
 
----
+- Laravel style rõ ràng
+- không hardcode bừa
+- dùng relationship Eloquent chuẩn
+- migration phải có up/down rõ
+- không viết code phá dữ liệu cũ nếu chưa cần
+- tận dụng code hiện có trước
+- nếu controller cũ dùng được thì refactor, không viết lại toàn bộ vô lý
+- nếu view cũ tận dụng được thì sửa trên nền cũ
+- nếu cần tạo service/helper thì giải thích rõ lý do
+- nếu có tên bảng/cột tiếng Việt đang dùng rồi thì cố gắng thống nhất theo cái đang có, tránh đổi quá mạnh
+- mọi đề xuất phải bám vào repo thật, không được trả lời chung chung
 
-# KẾT QUẢ CUỐI CÙNG MONG MUỐN
+==================================================
+PHẦN 8 - VIỆC CẦN LÀM NGAY
+==================================================
 
-Sau khi hoàn thành đủ 6 phase, module ngân hàng câu hỏi phải làm được:
+Bây giờ hãy bắt đầu với PHASE 0:
+- đọc repo
+- audit toàn bộ
+- liệt kê tất cả phần trùng/chồng chéo/chức năng tương tự
+- đề xuất schema mục tiêu
+- chia phase thật chi tiết cho repo này
 
-- Admin thêm thủ công câu hỏi trắc nghiệm theo khóa học
-- Giảng viên thêm hoặc import câu hỏi cho khóa học mình phụ trách
-- Admin/giảng viên tải file Excel mẫu
-- Nhập nhiều câu hỏi bằng file Excel
-- Hệ thống đọc file và hiển thị preview
-- Hệ thống kiểm tra lỗi dữ liệu
-- Hệ thống kiểm tra câu hỏi trùng trong file
-- Hệ thống kiểm tra câu hỏi trùng với database
-- Chỉ lưu các câu hợp lệ
-- Có thông báo kết quả import rõ ràng
-- Có seed/test/tài liệu kỹ thuật cơ bản
+CHƯA CODE NGAY nếu chưa xong PHASE 0.
+Sau khi xong PHASE 0, mới bắt đầu PHASE 1.

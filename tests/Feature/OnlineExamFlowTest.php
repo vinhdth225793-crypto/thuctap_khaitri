@@ -418,7 +418,7 @@ class OnlineExamFlowTest extends TestCase
         PhanCongModuleGiangVien::create([
             'khoa_hoc_id' => $course->id,
             'module_hoc_id' => $module->id,
-            'giao_vien_id' => $teacher->id,
+            'giang_vien_id' => $teacher->id,
             'ngay_phan_cong' => now(),
             'trang_thai' => 'da_nhan',
             'created_by' => $admin->ma_nguoi_dung,
@@ -436,3 +436,4 @@ class OnlineExamFlowTest extends TestCase
         ]);
     }
 }
+

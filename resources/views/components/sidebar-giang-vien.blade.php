@@ -2,24 +2,24 @@
     <div class="sidebar-header bg-primary text-white">
         <div class="sidebar-logo">
             <i class="fas fa-chalkboard-teacher me-2"></i>
-            <span>GIANG VIEN</span>
+            <span>GIẢNG VIÊN</span>
         </div>
     </div>
 
     <nav class="sidebar-nav py-3">
-        <div class="nav-label px-4 smaller text-muted text-uppercase fw-bold mb-2">Trung tam dieu hanh</div>
+        <div class="nav-label px-4 smaller text-muted text-uppercase fw-bold mb-2">Trung tâm điều hành</div>
 
         <div class="nav-item mb-1">
             <a href="{{ route('giang-vien.dashboard') }}" class="nav-link {{ request()->routeIs('giang-vien.dashboard') ? 'active' : '' }}">
                 <i class="fas fa-tachometer-alt"></i>
-                <span>Bang dieu khien</span>
+                <span>Bảng điều khiển</span>
             </a>
         </div>
 
         <div class="nav-item mb-1">
             <a href="{{ route('giang-vien.khoa-hoc') }}" class="nav-link {{ request()->routeIs('giang-vien.khoa-hoc*') ? 'active' : '' }}">
                 <i class="fas fa-book-reader"></i>
-                <span>Lo trinh giang day</span>
+                <span>Lộ trình giảng dạy</span>
             </a>
         </div>
 
@@ -40,30 +40,30 @@
         <div class="nav-item mb-1">
             <a href="{{ route('giang-vien.khoa-hoc') }}" class="nav-link {{ request()->routeIs('giang-vien.bai-kiem-tra*', 'giang-vien.tao-bai-kiem-tra') ? 'active' : '' }}">
                 <i class="fas fa-file-signature"></i>
-                <span>Tao va cau hinh de</span>
+                <span>Tạo và cấu hình đề</span>
             </a>
         </div>
 
         <div class="nav-item mb-1">
             <a href="{{ route('giang-vien.cham-diem.index') }}" class="nav-link {{ request()->routeIs('giang-vien.cham-diem*') ? 'active' : '' }}">
                 <i class="fas fa-marker"></i>
-                <span>Cham diem tu luan</span>
+                <span>Chấm điểm tự luận</span>
             </a>
         </div>
 
-        <div class="nav-label px-4 smaller text-muted text-uppercase fw-bold mb-2 mt-4">Tien ich va he thong</div>
+        <div class="nav-label px-4 smaller text-muted text-uppercase fw-bold mb-2 mt-4">Tiện ích và hệ thống</div>
 
         <div class="nav-item mb-1">
             <a href="{{ route('giang-vien.profile') }}" class="nav-link {{ request()->routeIs('giang-vien.profile') ? 'active' : '' }}">
                 <i class="fas fa-user-circle"></i>
-                <span>Ho so giang vien</span>
+                <span>Hồ sơ giảng viên</span>
             </a>
         </div>
 
         <div class="nav-item mb-1">
             <a href="{{ route('home') }}" class="nav-link">
                 <i class="fas fa-home"></i>
-                <span>Ve trang chu</span>
+                <span>Về trang chủ</span>
             </a>
         </div>
 
@@ -71,7 +71,7 @@
             <form action="{{ route('dang-xuat') }}" method="POST" class="px-3">
                 @csrf
                 <button type="submit" class="btn btn-outline-danger w-100 btn-sm fw-bold">
-                    <i class="fas fa-sign-out-alt me-1"></i> Dang xuat
+                    <i class="fas fa-sign-out-alt me-1"></i> Đăng xuất
                 </button>
             </form>
         </div>

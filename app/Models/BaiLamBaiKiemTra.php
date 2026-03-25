@@ -67,11 +67,11 @@ class BaiLamBaiKiemTra extends Model
     public function getTrangThaiLabelAttribute(): string
     {
         return match ($this->trang_thai) {
-            'dang_lam' => 'Dang lam',
-            'da_nop' => 'Da nop',
-            'cho_cham' => 'Cho cham',
-            'da_cham' => 'Da cham',
-            default => 'Chua xac dinh',
+            'dang_lam' => 'Đang làm',
+            'da_nop' => 'Đã nộp',
+            'cho_cham' => 'Chờ chấm',
+            'da_cham' => 'Đã chấm',
+            default => 'Chưa xác định',
         };
     }
 

@@ -52,7 +52,7 @@ class ModuleHoc extends Model
      */
     public function giangViens()
     {
-        return $this->belongsToMany(GiangVien::class, 'phan_cong_module_giang_vien', 'module_hoc_id', 'giao_vien_id')
+        return $this->belongsToMany(GiangVien::class, 'phan_cong_module_giang_vien', 'module_hoc_id', 'giang_vien_id')
                     ->withPivot('khoa_hoc_id', 'trang_thai', 'ghi_chu')
                     ->withTimestamps();
     }
@@ -108,3 +108,4 @@ class ModuleHoc extends Model
                      ->orWhere('ma_module', 'LIKE', "%{$search}%");
     }
 }
+

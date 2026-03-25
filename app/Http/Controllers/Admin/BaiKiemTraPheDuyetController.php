@@ -72,7 +72,7 @@ class BaiKiemTraPheDuyetController extends Controller
             'ghi_chu_duyet' => $request->input('ghi_chu_duyet'),
         ]);
 
-        return back()->with('success', 'Da duyet bai kiem tra.');
+        return back()->with('success', 'Đã duyệt bài kiểm tra.');
     }
 
     public function reject(Request $request, int $id)
@@ -90,7 +90,7 @@ class BaiKiemTraPheDuyetController extends Controller
             'trang_thai_phat_hanh' => 'nhap',
         ]);
 
-        return back()->with('success', 'Da tu choi bai kiem tra.');
+        return back()->with('success', 'Đã từ chối bài kiểm tra.');
     }
 
     public function publish(int $id)
@@ -98,7 +98,7 @@ class BaiKiemTraPheDuyetController extends Controller
         $baiKiemTra = BaiKiemTra::findOrFail($id);
 
         if ($baiKiemTra->trang_thai_duyet !== 'da_duyet') {
-            return back()->with('error', 'Chi bai da duyet moi duoc phat hanh.');
+            return back()->with('error', 'Chỉ bài đã duyệt mới được phát hành.');
         }
 
         $baiKiemTra->update([
@@ -107,7 +107,7 @@ class BaiKiemTraPheDuyetController extends Controller
             'trang_thai' => true,
         ]);
 
-        return back()->with('success', 'Da phat hanh bai kiem tra cho hoc vien.');
+        return back()->with('success', 'Đã phát hành bài kiểm tra cho học viên.');
     }
 
     public function close(int $id)
@@ -117,6 +117,6 @@ class BaiKiemTraPheDuyetController extends Controller
             'trang_thai_phat_hanh' => 'dong',
         ]);
 
-        return back()->with('success', 'Da dong bai kiem tra.');
+        return back()->with('success', 'Đã đóng bài kiểm tra.');
     }
 }

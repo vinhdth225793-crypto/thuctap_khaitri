@@ -39,7 +39,7 @@ class LichHoc extends Model
     ];
 
     /**
-     * Relationship: Má»™t buá»•i há»c cÃ³ nhiá»u tÃ i nguyÃªn
+     * Relationship: Một buổi học có nhiều tài nguyên
      */
     public function taiNguyen(): HasMany
     {
@@ -47,7 +47,7 @@ class LichHoc extends Model
     }
 
     /**
-     * Relationship: Một buổi học có nhiều bài giảng
+     * Relationship: M?t bu?i h?c c� nhi?u b�i gi?ng
      */
     public function baiGiangs(): HasMany
     {
@@ -55,7 +55,7 @@ class LichHoc extends Model
     }
 
     /**
-     * Relationship: Má»™t buá»•i há»c cÃ³ nhiá»u bÃ i kiá»ƒm tra
+     * Relationship: Một buổi học có nhiều bài kiểm tra
      */
     public function baiKiemTras(): HasMany
     {
@@ -63,7 +63,7 @@ class LichHoc extends Model
     }
 
     /**
-     * Relationship: Má»™t buá»•i há»c cÃ³ nhiá»u báº£n ghi Ä‘iá»ƒm danh
+     * Relationship: Một buổi học có nhiều bản ghi điểm danh
      */
     public function diemDanhs(): HasMany
     {
@@ -78,7 +78,7 @@ class LichHoc extends Model
     ];
 
     /**
-     * Relationship: Thuá»™c vá» má»™t khÃ³a há»c
+     * Relationship: Thuộc về một khóa học
      */
     public function khoaHoc(): BelongsTo
     {
@@ -86,7 +86,7 @@ class LichHoc extends Model
     }
 
     /**
-     * Relationship: Thuá»™c vá» má»™t module há»c
+     * Relationship: Thuộc về một module học
      */
     public function moduleHoc(): BelongsTo
     {
@@ -94,7 +94,7 @@ class LichHoc extends Model
     }
 
     /**
-     * Relationship: Giáº£ng viÃªn phá»¥ trÃ¡ch buá»•i nÃ y
+     * Relationship: Giảng viên phụ trách buổi này
      */
     public function giangVien(): BelongsTo
     {
@@ -102,24 +102,24 @@ class LichHoc extends Model
     }
 
     /**
-     * NhÃ£n cho cÃ¡c thá»© trong tuáº§n
+     * Nhãn cho các thứ trong tuần
      */
     public static $thuLabels = [
-        2 => 'Thá»© 2',
-        3 => 'Thá»© 3',
-        4 => 'Thá»© 4',
-        5 => 'Thá»© 5',
-        6 => 'Thá»© 6',
-        7 => 'Thá»© 7',
-        8 => 'Chá»§ nháº­t',
+        2 => 'Thứ 2',
+        3 => 'Thứ 3',
+        4 => 'Thứ 4',
+        5 => 'Thứ 5',
+        6 => 'Thứ 6',
+        7 => 'Thứ 7',
+        8 => 'Chủ nhật',
     ];
 
     /**
-     * Accessor: NhÃ£n thá»© trong tuáº§n
+     * Accessor: Nhãn thứ trong tuần
      */
     public function getThuLabelAttribute(): string
     {
-        return self::$thuLabels[$this->thu_trong_tuan] ?? 'â”€';
+        return self::$thuLabels[$this->thu_trong_tuan] ?? '─';
     }
 
     public function getStartsAtAttribute(): ?Carbon
@@ -186,21 +186,21 @@ class LichHoc extends Model
     }
 
     /**
-     * Accessor: NhÃ£n tráº¡ng thÃ¡i buá»•i há»c
+     * Accessor: Nhãn trạng thái buổi học
      */
     public function getTrangThaiLabelAttribute(): string
     {
         return match ($this->timeline_trang_thai) {
-            'cho' => 'Chá»',
-            'dang_hoc' => 'Äang há»c',
-            'hoan_thanh' => 'HoÃ n thÃ nh',
-            'huy' => 'ÄÃ£ há»§y',
-            default => 'â”€',
+            'cho' => 'Chờ',
+            'dang_hoc' => 'Đang học',
+            'hoan_thanh' => 'Hoàn thành',
+            'huy' => 'Đã hủy',
+            default => '─',
         };
     }
 
     /**
-     * Accessor: MÃ u sáº¯c tráº¡ng thÃ¡i buá»•i há»c
+     * Accessor: Màu sắc trạng thái buổi học
      */
     public function getTrangThaiColorAttribute(): string
     {
@@ -214,19 +214,19 @@ class LichHoc extends Model
     }
 
     /**
-     * Accessor: NhÃ£n hÃ¬nh thá»©c há»c
+     * Accessor: Nhãn hình thức học
      */
     public function getHinhThucLabelAttribute(): string
     {
         return match ($this->hinh_thuc) {
             'online' => 'Online',
-            'truc_tiep' => 'Trá»±c tiáº¿p',
-            default => 'ChÆ°a cáº­p nháº­t',
+            'truc_tiep' => 'Trực tiếp',
+            default => 'Chưa cập nhật',
         };
     }
 
     /**
-     * Accessor: MÃ u hiá»ƒn thá»‹ cho hÃ¬nh thá»©c há»c
+     * Accessor: Màu hiển thị cho hình thức học
      */
     public function getHinhThucColorAttribute(): string
     {
@@ -238,15 +238,15 @@ class LichHoc extends Model
     }
 
     /**
-     * Accessor: TÃªn ná»n táº£ng há»c online
+     * Accessor: Tên nền tảng học online
      */
     public function getNenTangLabelAttribute(): string
     {
-        return filled($this->nen_tang) ? $this->nen_tang : 'ChÆ°a cáº­p nháº­t';
+        return filled($this->nen_tang) ? $this->nen_tang : 'Chưa cập nhật';
     }
 
     /**
-     * Accessor: Kiá»ƒm tra há»c viÃªn cÃ³ thá»ƒ vÃ o lá»›p online hay khÃ´ng
+     * Accessor: Kiểm tra học viên có thể vào lớp online hay không
      */
     public function getCanJoinOnlineAttribute(): bool
     {
@@ -269,33 +269,33 @@ class LichHoc extends Model
     }
 
     /**
-     * Accessor: NhÃ£n tráº¡ng thÃ¡i truy cáº­p lá»›p online
+     * Accessor: Nhãn trạng thái truy cập lớp online
      */
     public function getOnlineJoinStateLabelAttribute(): string
     {
         if ($this->hinh_thuc !== 'online') {
-            return 'KhÃ´ng Ã¡p dá»¥ng';
+            return 'Không áp dụng';
         }
 
         if (blank($this->link_online)) {
-            return 'ChÆ°a cÃ³ link';
+            return 'Chưa có link';
         }
 
         if ($this->can_join_online) {
-            return 'CÃ³ thá»ƒ vÃ o lá»›p';
+            return 'Có thể vào lớp';
         }
 
         return match ($this->timeline_trang_thai) {
-            'dang_hoc' => 'CÃ³ thá»ƒ vÃ o lá»›p',
-            'cho' => 'ChÆ°a tá»›i giá»',
-            'hoan_thanh' => 'ÄÃ£ káº¿t thÃºc',
-            'huy' => 'ÄÃ£ há»§y',
-            default => 'ChÆ°a thá»ƒ vÃ o lá»›p',
+            'dang_hoc' => 'Có thể vào lớp',
+            'cho' => 'Chưa tới giờ',
+            'hoan_thanh' => 'Đã kết thúc',
+            'huy' => 'Đã hủy',
+            default => 'Chưa thể vào lớp',
         };
     }
 
     /**
-     * Accessor: MÃ u tráº¡ng thÃ¡i truy cáº­p lá»›p online
+     * Accessor: Màu trạng thái truy cập lớp online
      */
     public function getOnlineJoinStateColorAttribute(): string
     {
@@ -321,32 +321,32 @@ class LichHoc extends Model
     }
 
     /**
-     * Accessor: ThÃ´ng Ä‘iá»‡p hÆ°á»›ng dáº«n cho há»c viÃªn khi vÃ o lá»›p online
+     * Accessor: Thông điệp hướng dẫn cho học viên khi vào lớp online
      */
     public function getOnlineJoinMessageAttribute(): string
     {
         if ($this->hinh_thuc !== 'online') {
-            return 'Buá»•i há»c nÃ y diá»…n ra trá»±c tiáº¿p táº¡i lá»›p.';
+            return 'Buổi học này diễn ra trực tiếp tại lớp.';
         }
 
         if (blank($this->link_online)) {
-            return 'Giáº£ng viÃªn chÆ°a cáº­p nháº­t link phÃ²ng há»c online cho buá»•i nÃ y.';
+            return 'Giảng viên chưa cập nhật link phòng học online cho buổi này.';
         }
 
         if ($this->can_join_online) {
             if ($this->starts_at && now()->lt($this->starts_at)) {
-                return 'PhÃ²ng há»c online Ä‘Ã£ má»Ÿ sá»›m Ä‘á»ƒ báº¡n chuáº©n bá»‹ trÆ°á»›c buá»•i há»c.';
+                return 'Phòng học online đã mở sớm để bạn chuẩn bị trước buổi học.';
             }
 
-            return 'Buá»•i há»c online Ä‘ang diá»…n ra. Báº¡n cÃ³ thá»ƒ vÃ o phÃ²ng há»c ngay bÃ¢y giá».';
+            return 'Buổi học online đang diễn ra. Bạn có thể vào phòng học ngay bây giờ.';
         }
 
         return match ($this->timeline_trang_thai) {
-            'dang_hoc' => 'Buá»•i há»c online Ä‘ang diá»…n ra nhÆ°ng báº¡n chÆ°a thá»ƒ vÃ o phÃ²ng há»c lÃºc nÃ y.',
-            'cho' => 'PhÃ²ng há»c sáº½ má»Ÿ trÆ°á»›c giá» báº¯t Ä‘áº§u khoáº£ng ' . self::ONLINE_JOIN_EARLY_MINUTES . ' phÃºt.',
-            'hoan_thanh' => 'Buá»•i há»c online nÃ y Ä‘Ã£ hoÃ n thÃ nh, phÃ²ng há»c khÃ´ng cÃ²n má»Ÿ cho há»c viÃªn.',
-            'huy' => 'Buá»•i há»c online nÃ y Ä‘Ã£ bá»‹ há»§y. Vui lÃ²ng theo dÃµi thÃ´ng bÃ¡o má»›i tá»« giáº£ng viÃªn hoáº·c trung tÃ¢m.',
-            default => 'Hiá»‡n chÆ°a Ä‘á»§ Ä‘iá»u kiá»‡n Ä‘á»ƒ vÃ o phÃ²ng há»c online.',
+            'dang_hoc' => 'Buổi học online đang diễn ra nhưng bạn chưa thể vào phòng học lúc này.',
+            'cho' => 'Phòng học sẽ mở trước giờ bắt đầu khoảng ' . self::ONLINE_JOIN_EARLY_MINUTES . ' phút.',
+            'hoan_thanh' => 'Buổi học online này đã hoàn thành, phòng học không còn mở cho học viên.',
+            'huy' => 'Buổi học online này đã bị hủy. Vui lòng theo dõi thông báo mới từ giảng viên hoặc trung tâm.',
+            default => 'Hiện chưa đủ điều kiện để vào phòng học online.',
         };
     }
 }

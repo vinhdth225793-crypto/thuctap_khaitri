@@ -1,15 +1,15 @@
-@extends('layouts.app', ['title' => 'Bai kiem tra cua hoc vien'])
+@extends('layouts.app', ['title' => 'Bài kiểm tra của học viên'])
 
 @section('content')
 <div class="container-fluid">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
-            <h2 class="fw-bold mb-1">Bai kiem tra cua toi</h2>
-            <p class="text-muted mb-0">Danh sach bai kiem tra thuoc cac khoa hoc ban dang tham gia.</p>
+            <h2 class="fw-bold mb-1">Bài kiểm tra của tôi</h2>
+            <p class="text-muted mb-0">Danh sách bài kiểm tra thuộc các khóa học bạn đang tham gia.</p>
         </div>
 
         <a href="{{ route('hoc-vien.dashboard') }}" class="btn btn-outline-primary">
-            <i class="fas fa-arrow-left me-2"></i>Ve dashboard
+            <i class="fas fa-arrow-left me-2"></i>Về dashboard
         </a>
     </div>
 
@@ -17,7 +17,7 @@
         <div class="col-xl-3 col-md-6">
             <div class="card vip-card h-100 stat-card-lite">
                 <div class="card-body">
-                    <div class="stat-label">Tong bai kiem tra</div>
+                    <div class="stat-label">Tổng bài kiểm tra</div>
                     <div class="stat-value">{{ $stats['tong'] }}</div>
                 </div>
             </div>
@@ -25,7 +25,7 @@
         <div class="col-xl-3 col-md-6">
             <div class="card vip-card h-100 stat-card-lite">
                 <div class="card-body">
-                    <div class="stat-label">Dang mo</div>
+                    <div class="stat-label">Đang mở</div>
                     <div class="stat-value text-success">{{ $stats['dang_mo'] }}</div>
                 </div>
             </div>
@@ -33,7 +33,7 @@
         <div class="col-xl-3 col-md-6">
             <div class="card vip-card h-100 stat-card-lite">
                 <div class="card-body">
-                    <div class="stat-label">Sap mo</div>
+                    <div class="stat-label">Sắp mở</div>
                     <div class="stat-value text-warning">{{ $stats['sap_mo'] }}</div>
                 </div>
             </div>
@@ -41,7 +41,7 @@
         <div class="col-xl-3 col-md-6">
             <div class="card vip-card h-100 stat-card-lite">
                 <div class="card-body">
-                    <div class="stat-label">Da nop</div>
+                    <div class="stat-label">Đã nộp</div>
                     <div class="stat-value text-primary">{{ $stats['da_nop'] }}</div>
                 </div>
             </div>
@@ -60,7 +60,7 @@
                             <div>
                                 <h5 class="fw-semibold mb-1">{{ $baiKiemTra->tieu_de }}</h5>
                                 <div class="small text-muted">
-                                    {{ $baiKiemTra->khoaHoc->ten_khoa_hoc ?? 'Chua xac dinh khoa hoc' }}
+                                    {{ $baiKiemTra->khoaHoc->ten_khoa_hoc ?? 'Chưa xác định khóa học' }}
                                 </div>
                             </div>
                             <span class="badge bg-{{ $baiKiemTra->access_status_color }}">{{ $baiKiemTra->access_status_label }}</span>
@@ -68,7 +68,7 @@
 
                         <div class="d-flex flex-wrap gap-2 mb-3">
                             <span class="badge bg-light text-dark border">{{ $baiKiemTra->pham_vi_label }}</span>
-                            <span class="badge bg-light text-dark border">{{ $baiKiemTra->thoi_gian_lam_bai }} phut</span>
+                            <span class="badge bg-light text-dark border">{{ $baiKiemTra->thoi_gian_lam_bai }} phút</span>
                             @if($baiLam)
                                 <span class="badge bg-{{ $baiLam->trang_thai_color }}">{{ $baiLam->trang_thai_label }}</span>
                             @endif
@@ -76,44 +76,44 @@
 
                         <div class="small text-muted mb-2">
                             <i class="fas fa-layer-group me-1"></i>
-                            {{ $baiKiemTra->moduleHoc->ten_module ?? 'Chua gan module' }}
+                            {{ $baiKiemTra->moduleHoc->ten_module ?? 'Chưa gán module' }}
                         </div>
 
                         @if($baiKiemTra->lichHoc)
                             <div class="small text-muted mb-2">
                                 <i class="fas fa-calendar-day me-1"></i>
-                                Buoi {{ $baiKiemTra->lichHoc->buoi_so ?: '#' }} -
-                                {{ optional($baiKiemTra->lichHoc->ngay_hoc)->format('d/m/Y') ?: 'Chua co ngay hoc' }}
+                                Buổi {{ $baiKiemTra->lichHoc->buoi_so ?: '#' }} -
+                                {{ optional($baiKiemTra->lichHoc->ngay_hoc)->format('d/m/Y') ?: 'Chưa có ngày học' }}
                             </div>
                         @endif
 
                         <div class="small text-muted mb-2">
                             <i class="far fa-clock me-1"></i>
-                            Mo:
-                            {{ $baiKiemTra->ngay_mo ? $baiKiemTra->ngay_mo->format('d/m/Y H:i') : 'Mo ngay' }}
+                            Mở:
+                            {{ $baiKiemTra->ngay_mo ? $baiKiemTra->ngay_mo->format('d/m/Y H:i') : 'Mở ngay' }}
                         </div>
                         <div class="small text-muted mb-3">
                             <i class="fas fa-hourglass-end me-1"></i>
-                            Dong:
-                            {{ $baiKiemTra->ngay_dong ? $baiKiemTra->ngay_dong->format('d/m/Y H:i') : 'Chua dat lich dong' }}
+                            Đóng:
+                            {{ $baiKiemTra->ngay_dong ? $baiKiemTra->ngay_dong->format('d/m/Y H:i') : 'Chưa đặt lịch đóng' }}
                         </div>
 
                         <p class="text-muted small mb-4">
-                            {{ \Illuminate\Support\Str::limit($baiKiemTra->mo_ta ?: 'Chua co mo ta cho bai kiem tra nay.', 130) }}
+                            {{ \Illuminate\Support\Str::limit($baiKiemTra->mo_ta ?: 'Chưa có mô tả cho bài kiểm tra này.', 130) }}
                         </p>
 
                         <div class="mt-auto d-flex flex-wrap gap-2">
                             <a href="{{ route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id) }}" class="btn btn-outline-primary">
-                                Xem chi tiet
+                                Xem chi tiết
                             </a>
 
                             @if($baiLam && $baiLam->is_submitted)
-                                <span class="btn btn-success disabled">Da nop bai</span>
+                                <span class="btn btn-success disabled">Đã nộp bài</span>
                             @elseif($baiKiemTra->can_student_start)
                                 <form action="{{ route('hoc-vien.bai-kiem-tra.bat-dau', $baiKiemTra->id) }}" method="POST">
                                     @csrf
                                     <button type="submit" class="btn btn-primary">
-                                        {{ $baiLam ? 'Tiep tuc lam bai' : 'Bat dau lam bai' }}
+                                        {{ $baiLam ? 'Tiếp tục làm bài' : 'Bắt đầu làm bài' }}
                                     </button>
                                 </form>
                             @else
@@ -130,8 +130,8 @@
                         <div class="empty-icon mb-3">
                             <i class="fas fa-file-circle-question"></i>
                         </div>
-                        <h5 class="fw-semibold">Chua co bai kiem tra nao</h5>
-                        <p class="text-muted mb-0">Khi giang vien tao bai kiem tra cho khoa hoc ban tham gia, danh sach se xuat hien tai day.</p>
+                        <h5 class="fw-semibold">Chưa có bài kiểm tra nào</h5>
+                        <p class="text-muted mb-0">Khi giảng viên tạo bài kiểm tra cho khóa học bạn tham gia, danh sách sẽ xuất hiện tại đây.</p>
                     </div>
                 </div>
             </div>

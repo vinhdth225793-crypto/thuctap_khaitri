@@ -35,6 +35,11 @@ class AuthController extends Controller
         // Kiểm tra user tồn tại và mật khẩu đúng
         try {
             if ($user && Hash::check($credentials['mat_khau'], $user->mat_khau)) {
+                if (! $user->trang_thai) {
+                    return back()->withErrors([
+                        'email' => 'Tài khoản của bạn hiện đang bị vô hiệu hóa.',
+                    ])->onlyInput('email');
+                }
                 // Đăng nhập thủ công
                 Auth::login($user, $request->has('ghi_nho'));
                 $request->session()->regenerate();

@@ -32,7 +32,7 @@ class GiangVien extends Model
      */
     public function phanCongModules()
     {
-        return $this->hasMany(PhanCongModuleGiangVien::class, 'giao_vien_id');
+        return $this->hasMany(PhanCongModuleGiangVien::class, 'giang_vien_id');
     }
 
     /**
@@ -40,7 +40,7 @@ class GiangVien extends Model
      */
     public function modulesDuocPhanCong()
     {
-        return $this->belongsToMany(ModuleHoc::class, 'phan_cong_module_giang_vien', 'giao_vien_id', 'module_hoc_id')
+        return $this->belongsToMany(ModuleHoc::class, 'phan_cong_module_giang_vien', 'giang_vien_id', 'module_hoc_id')
                     ->withPivot('khoa_hoc_id', 'trang_thai', 'ghi_chu')
                     ->withTimestamps();
     }
@@ -50,7 +50,7 @@ class GiangVien extends Model
      */
     public function khoaHocDuocPhanCong()
     {
-        return $this->belongsToMany(KhoaHoc::class, 'phan_cong_module_giang_vien', 'giao_vien_id', 'khoa_hoc_id')
+        return $this->belongsToMany(KhoaHoc::class, 'phan_cong_module_giang_vien', 'giang_vien_id', 'khoa_hoc_id')
                     ->withPivot('module_hoc_id', 'trang_thai', 'ghi_chu')
                     ->withTimestamps();
     }
@@ -66,3 +66,4 @@ class GiangVien extends Model
                     });
     }
 }
+

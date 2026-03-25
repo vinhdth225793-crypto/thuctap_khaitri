@@ -1,11 +1,11 @@
-@extends('layouts.app', ['title' => 'Hoat dong va tien do hoc tap'])
+@extends('layouts.app', ['title' => 'Hoạt động và tiến độ học tập'])
 
 @section('content')
 <div class="container-fluid">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
-            <h2 class="fw-bold mb-1">Hoat dong &amp; tien do hoc tap</h2>
-            <p class="text-muted mb-0">Theo doi buoi hoc sap toi, tai lieu moi, chuyen can va tien do theo tung khoa hoc.</p>
+            <h2 class="fw-bold mb-1">Hoạt động &amp; tiến độ học tập</h2>
+            <p class="text-muted mb-0">Theo dõi buổi học sắp tới, tài liệu mới, chuyên cần và tiến độ theo từng khóa học.</p>
         </div>
 
         <div class="d-flex flex-wrap gap-2">
@@ -13,7 +13,7 @@
                 <i class="fas fa-arrow-left me-2"></i>Dashboard
             </a>
             <a href="{{ route('hoc-vien.khoa-hoc-cua-toi') }}" class="btn vip-btn vip-btn-primary">
-                <i class="fas fa-book-open me-2"></i>Khoa hoc cua toi
+                <i class="fas fa-book-open me-2"></i>Khóa học của tôi
             </a>
         </div>
     </div>
@@ -23,9 +23,9 @@
             <div class="card vip-card h-100 summary-card">
                 <div class="card-body">
                     <div class="summary-icon text-primary"><i class="fas fa-calendar-day"></i></div>
-                    <div class="summary-label">Buoi hoc sap toi</div>
+                    <div class="summary-label">Buổi học sắp tới</div>
                     <div class="summary-value">{{ $dashboardStats['buoi_hoc_sap_toi'] }}</div>
-                    <div class="summary-note">{{ $dashboardStats['buoi_hoc_hom_nay'] }} buoi dien ra hom nay</div>
+                    <div class="summary-note">{{ $dashboardStats['buoi_hoc_hom_nay'] }} buổi diễn ra hôm nay</div>
                 </div>
             </div>
         </div>
@@ -34,9 +34,9 @@
             <div class="card vip-card h-100 summary-card">
                 <div class="card-body">
                     <div class="summary-icon text-success"><i class="fas fa-folder-open"></i></div>
-                    <div class="summary-label">Tai lieu moi</div>
+                    <div class="summary-label">Tài liệu mới</div>
                     <div class="summary-value">{{ $dashboardStats['tai_lieu_moi_7_ngay'] }}</div>
-                    <div class="summary-note">{{ $dashboardStats['tai_lieu_cong_khai'] }} tai lieu cong khai</div>
+                    <div class="summary-note">{{ $dashboardStats['tai_lieu_cong_khai'] }} tài liệu công khai</div>
                 </div>
             </div>
         </div>
@@ -45,9 +45,9 @@
             <div class="card vip-card h-100 summary-card">
                 <div class="card-body">
                     <div class="summary-icon text-warning"><i class="fas fa-user-check"></i></div>
-                    <div class="summary-label">Ty le chuyen can</div>
+                    <div class="summary-label">Tỷ lệ chuyên cần</div>
                     <div class="summary-value">{{ $chuyenCanTongQuan['ty_le_tham_du'] }}%</div>
-                    <div class="summary-note">{{ $chuyenCanTongQuan['tong'] }} lan diem danh da ghi nhan</div>
+                    <div class="summary-note">{{ $chuyenCanTongQuan['tong'] }} lần điểm danh đã ghi nhận</div>
                 </div>
             </div>
         </div>
@@ -56,9 +56,9 @@
             <div class="card vip-card h-100 summary-card">
                 <div class="card-body">
                     <div class="summary-icon text-info"><i class="fas fa-chart-line"></i></div>
-                    <div class="summary-label">Tien do tong quan</div>
+                    <div class="summary-label">Tiến độ tổng quan</div>
                     <div class="summary-value">{{ $dashboardStats['tien_do_tong_quan'] }}%</div>
-                    <div class="summary-note">{{ $dashboardStats['tong_buoi_hoan_thanh'] }}/{{ $dashboardStats['tong_buoi_hoc'] }} buoi da hoan thanh</div>
+                    <div class="summary-note">{{ $dashboardStats['tong_buoi_hoan_thanh'] }}/{{ $dashboardStats['tong_buoi_hoc'] }} buổi đã hoàn thành</div>
                 </div>
             </div>
         </div>
@@ -68,8 +68,8 @@
         <div class="col-xl-7">
             <div class="card vip-card h-100">
                 <div class="card-header border-0">
-                    <h5 class="mb-1 fw-semibold">Hoat dong gan day</h5>
-                    <p class="text-muted small mb-0">Tong hop tu diem danh, tai lieu moi va cac buoi hoc da hoan thanh.</p>
+                    <h5 class="mb-1 fw-semibold">Hoạt động gần đây</h5>
+                    <p class="text-muted small mb-0">Tổng hợp từ điểm danh, tài liệu mới và các buổi học đã hoàn thành.</p>
                 </div>
                 <div class="card-body">
                     @forelse($hoatDongGanDay as $hoatDong)
@@ -79,9 +79,9 @@
                             </div>
                             <div class="flex-grow-1">
                                 <div class="fw-semibold text-dark">{{ $hoatDong['title'] }}</div>
-                                <div class="text-muted small">{{ $hoatDong['description'] ?: 'Khong co mo ta bo sung' }}</div>
+                                <div class="text-muted small">{{ $hoatDong['description'] ?: 'Không có mô tả bổ sung' }}</div>
                                 <div class="small text-muted mt-1">
-                                    {{ $hoatDong['meta'] ?: 'Chua cap nhat' }}
+                                    {{ $hoatDong['meta'] ?: 'Chưa cập nhật' }}
                                     @if(!empty($hoatDong['sort_at']))
                                         • {{ $hoatDong['sort_at']->diffForHumans() }}
                                     @endif
@@ -91,8 +91,8 @@
                     @empty
                         <div class="text-center py-5">
                             <div class="empty-icon mb-3"><i class="fas fa-stream"></i></div>
-                            <h6 class="fw-semibold">Chua co hoat dong nao de hien thi</h6>
-                            <p class="text-muted mb-0">Hoat dong se xuat hien sau khi hoc vien bat dau hoc, diem danh hoac giang vien cong khai tai lieu.</p>
+                            <h6 class="fw-semibold">Chưa có hoạt động nào để hiển thị</h6>
+                            <p class="text-muted mb-0">Hoạt động sẽ xuất hiện sau khi học viên bắt đầu học, điểm danh hoặc giảng viên công khai tài liệu.</p>
                         </div>
                     @endforelse
                 </div>
@@ -102,13 +102,13 @@
         <div class="col-xl-5">
             <div class="card vip-card h-100">
                 <div class="card-header border-0">
-                    <h5 class="mb-1 fw-semibold">Chuyen can tong quan</h5>
-                    <p class="text-muted small mb-0">Su dung du lieu diem danh da duoc giang vien ghi nhan.</p>
+                    <h5 class="mb-1 fw-semibold">Chuyên cần tổng quan</h5>
+                    <p class="text-muted small mb-0">Sử dụng dữ liệu điểm danh đã được giảng viên ghi nhận.</p>
                 </div>
                 <div class="card-body">
                     <div class="attendance-progress mb-4">
                         <div class="d-flex justify-content-between small mb-2">
-                            <span>Ty le tham du</span>
+                            <span>Tỷ lệ tham dự</span>
                             <strong>{{ $chuyenCanTongQuan['ty_le_tham_du'] }}%</strong>
                         </div>
                         <div class="progress progress-thin">
@@ -125,31 +125,31 @@
                         <div class="col-4">
                             <div class="attendance-box attendance-success">
                                 <div class="attendance-value">{{ $chuyenCanTongQuan['co_mat'] }}</div>
-                                <div class="attendance-label">Co mat</div>
+                                <div class="attendance-label">Có mặt</div>
                             </div>
                         </div>
                         <div class="col-4">
                             <div class="attendance-box attendance-warning">
                                 <div class="attendance-value">{{ $chuyenCanTongQuan['vao_tre'] }}</div>
-                                <div class="attendance-label">Vao tre</div>
+                                <div class="attendance-label">Vào trễ</div>
                             </div>
                         </div>
                         <div class="col-4">
                             <div class="attendance-box attendance-danger">
                                 <div class="attendance-value">{{ $chuyenCanTongQuan['vang_mat'] }}</div>
-                                <div class="attendance-label">Vang mat</div>
+                                <div class="attendance-label">Vắng mặt</div>
                             </div>
                         </div>
                     </div>
 
-                    <h6 class="fw-semibold mb-3">Diem danh gan day</h6>
+                    <h6 class="fw-semibold mb-3">Điểm danh gần đây</h6>
                     @forelse($diemDanhGanDay as $diemDanh)
                         @php
                             $trangThaiLabel = match ($diemDanh->trang_thai) {
-                                'co_mat' => 'Co mat',
-                                'vao_tre' => 'Vao tre',
-                                'vang_mat' => 'Vang mat',
-                                default => 'Chua ro',
+                                'co_mat' => 'Có mặt',
+                                'vao_tre' => 'Vào trễ',
+                                'vang_mat' => 'Vắng mặt',
+                                default => 'Chưa rõ',
                             };
 
                             $trangThaiColor = match ($diemDanh->trang_thai) {
@@ -162,15 +162,15 @@
                         <div class="attendance-log">
                             <div class="d-flex justify-content-between gap-2">
                                 <div class="fw-semibold text-dark">
-                                    {{ optional(optional($diemDanh->lichHoc)->khoaHoc)->ten_khoa_hoc ?: 'Chua xac dinh khoa hoc' }}
+                                    {{ optional(optional($diemDanh->lichHoc)->khoaHoc)->ten_khoa_hoc ?: 'Chưa xác định khóa học' }}
                                 </div>
                                 <span class="badge bg-{{ $trangThaiColor }}">{{ $trangThaiLabel }}</span>
                             </div>
                             <div class="small text-muted">
-                                {{ optional(optional($diemDanh->lichHoc)->moduleHoc)->ten_module ?: 'Chua gan module' }}
+                                {{ optional(optional($diemDanh->lichHoc)->moduleHoc)->ten_module ?: 'Chưa gán module' }}
                             </div>
                             <div class="small text-muted">
-                                {{ optional(optional($diemDanh->lichHoc)->ngay_hoc)->format('d/m/Y') ?: 'Chua co ngay hoc' }}
+                                {{ optional(optional($diemDanh->lichHoc)->ngay_hoc)->format('d/m/Y') ?: 'Chưa có ngày học' }}
                                 @if(optional($diemDanh->updated_at))
                                     • {{ $diemDanh->updated_at->diffForHumans() }}
                                 @endif
@@ -179,7 +179,7 @@
                     @empty
                         <div class="text-center py-4">
                             <div class="empty-icon mb-3"><i class="fas fa-user-check"></i></div>
-                            <p class="text-muted mb-0">Chua co du lieu diem danh de thong ke.</p>
+                            <p class="text-muted mb-0">Chưa có dữ liệu điểm danh để thống kê.</p>
                         </div>
                     @endforelse
                 </div>
@@ -192,8 +192,8 @@
             <div class="card vip-card h-100">
                 <div class="card-header border-0 d-flex justify-content-between align-items-center">
                     <div>
-                        <h5 class="mb-1 fw-semibold">Buoi hoc sap toi</h5>
-                        <p class="text-muted small mb-0">Cac buoi hoc thuoc khoa hoc dang hoc.</p>
+                        <h5 class="mb-1 fw-semibold">Buổi học sắp tới</h5>
+                        <p class="text-muted small mb-0">Các buổi học thuộc khóa học đang học.</p>
                     </div>
                     <span class="badge bg-light text-primary">{{ $dashboardStats['buoi_hoc_sap_toi'] }}</span>
                 </div>
@@ -204,7 +204,7 @@
                                 <div class="fw-semibold text-dark">{{ $lichHoc->khoaHoc->ten_khoa_hoc }}</div>
                                 <span class="badge bg-{{ $lichHoc->hinh_thuc_color }}">{{ $lichHoc->hinh_thuc_label }}</span>
                             </div>
-                            <div class="small text-muted">{{ $lichHoc->moduleHoc->ten_module ?? 'Chua gan module' }}</div>
+                            <div class="small text-muted">{{ $lichHoc->moduleHoc->ten_module ?? 'Chưa gán module' }}</div>
                             <div class="small text-muted">
                                 {{ $lichHoc->ngay_hoc->format('d/m/Y') }}
                                 • {{ $lichHoc->gio_bat_dau ?: '--:--' }}
@@ -214,11 +214,11 @@
                             </div>
                             <div class="d-flex flex-wrap gap-2 mt-3">
                                 <a href="{{ route('hoc-vien.chi-tiet-khoa-hoc', $lichHoc->khoa_hoc_id) }}" class="btn btn-sm btn-outline-primary">
-                                    Xem khoa hoc
+                                    Xem khóa học
                                 </a>
                                 @if($lichHoc->can_join_online)
                                     <a href="{{ $lichHoc->link_online }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary">
-                                        Vao phong hoc
+                                        Vào phòng học
                                     </a>
                                 @endif
                             </div>
@@ -226,7 +226,7 @@
                     @empty
                         <div class="text-center py-4">
                             <div class="empty-icon mb-3"><i class="fas fa-calendar-check"></i></div>
-                            <p class="text-muted mb-0">Chua co buoi hoc sap toi.</p>
+                            <p class="text-muted mb-0">Chưa có buổi học sắp tới.</p>
                         </div>
                     @endforelse
                 </div>
@@ -237,10 +237,10 @@
             <div class="card vip-card h-100">
                 <div class="card-header border-0 d-flex justify-content-between align-items-center">
                     <div>
-                        <h5 class="mb-1 fw-semibold">Tai lieu moi duoc cong khai</h5>
-                        <p class="text-muted small mb-0">Chi hien thi tai lieu giang vien da mo cho hoc vien.</p>
+                        <h5 class="mb-1 fw-semibold">Tài liệu mới được công khai</h5>
+                        <p class="text-muted small mb-0">Chỉ hiển thị tài liệu giảng viên đã mở cho học viên.</p>
                     </div>
-                    <span class="badge bg-light text-success">{{ $dashboardStats['tai_lieu_moi_7_ngay'] }} moi</span>
+                    <span class="badge bg-light text-success">{{ $dashboardStats['tai_lieu_moi_7_ngay'] }} mới</span>
                 </div>
                 <div class="card-body">
                     @forelse($taiLieuMoi as $taiLieu)
@@ -250,10 +250,10 @@
                                 <span class="badge bg-{{ $taiLieu->loai_color }}">{{ $taiLieu->loai_label }}</span>
                             </div>
                             <div class="small text-muted">
-                                {{ optional(optional($taiLieu->lichHoc)->khoaHoc)->ten_khoa_hoc ?: 'Chua xac dinh khoa hoc' }}
+                                {{ optional(optional($taiLieu->lichHoc)->khoaHoc)->ten_khoa_hoc ?: 'Chưa xác định khóa học' }}
                             </div>
                             <div class="small text-muted">
-                                {{ optional(optional($taiLieu->lichHoc)->moduleHoc)->ten_module ?: 'Chua gan module' }}
+                                {{ optional(optional($taiLieu->lichHoc)->moduleHoc)->ten_module ?: 'Chưa gán module' }}
                                 • {{ optional($taiLieu->created_at)->diffForHumans() }}
                             </div>
                             <p class="small text-muted mb-0 mt-2">
@@ -261,11 +261,11 @@
                             </p>
                             <div class="d-flex flex-wrap gap-2 mt-3">
                                 <a href="{{ route('hoc-vien.chi-tiet-khoa-hoc', optional($taiLieu->lichHoc)->khoa_hoc_id) }}" class="btn btn-sm btn-outline-primary">
-                                    Xem trong khoa hoc
+                                    Xem trong khóa học
                                 </a>
                                 @if($taiLieu->is_external)
                                     <a href="{{ $taiLieu->file_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary">
-                                        Mo lien ket
+                                        Mở liên kết
                                     </a>
                                 @elseif($taiLieu->is_downloadable)
                                     <a href="{{ $taiLieu->file_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary">
@@ -277,7 +277,7 @@
                     @empty
                         <div class="text-center py-4">
                             <div class="empty-icon mb-3"><i class="fas fa-folder-open"></i></div>
-                            <p class="text-muted mb-0">Chua co tai lieu moi duoc cong khai.</p>
+                            <p class="text-muted mb-0">Chưa có tài liệu mới được công khai.</p>
                         </div>
                     @endforelse
                 </div>
@@ -287,8 +287,8 @@
 
     <div class="card vip-card">
         <div class="card-header border-0">
-            <h5 class="mb-1 fw-semibold">Tien do theo khoa hoc</h5>
-            <p class="text-muted small mb-0">Tien do toi thieu duoc tinh theo so buoi da hoan thanh tren tong so buoi da len lich.</p>
+            <h5 class="mb-1 fw-semibold">Tiến độ theo khóa học</h5>
+            <p class="text-muted small mb-0">Tiến độ tối thiểu được tính theo số buổi đã hoàn thành trên tổng số buổi đã lên lịch.</p>
         </div>
         <div class="card-body">
             @if($tienDoKhoaHoc->isNotEmpty())
@@ -303,9 +303,9 @@
                                 <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
                                     <div>
                                         <h5 class="fw-semibold mb-1">{{ $khoaHoc->ten_khoa_hoc }}</h5>
-                                        <div class="small text-muted">{{ $khoaHoc->ma_khoa_hoc ?: 'Chua co ma khoa hoc' }}</div>
+                                        <div class="small text-muted">{{ $khoaHoc->ma_khoa_hoc ?: 'Chưa có mã khóa học' }}</div>
                                         <div class="small text-muted">
-                                            {{ optional($khoaHoc->nhomNganh)->ten_nhom_nganh ?: 'Chua cap nhat nhom nganh' }}
+                                            {{ optional($khoaHoc->nhomNganh)->ten_nhom_nganh ?: 'Chưa cập nhật nhóm ngành' }}
                                         </div>
                                     </div>
                                     <span class="badge {{ $ghiDanh->trang_thai_badge }}">{{ $ghiDanh->trang_thai_label }}</span>
@@ -313,7 +313,7 @@
 
                                 <div class="mb-3">
                                     <div class="d-flex justify-content-between small mb-2">
-                                        <span>{{ $dong['buoi_hoan_thanh'] }}/{{ $dong['tong_buoi'] }} buoi da hoc</span>
+                                        <span>{{ $dong['buoi_hoan_thanh'] }}/{{ $dong['tong_buoi'] }} buổi đã học</span>
                                         <strong>{{ $dong['tien_do'] }}%</strong>
                                     </div>
                                     <div class="progress progress-thin">
@@ -329,51 +329,51 @@
                                 <div class="row g-3 small">
                                     <div class="col-sm-6">
                                         <div class="info-chip">
-                                            <span class="label">Buoi online</span>
+                                            <span class="label">Buổi online</span>
                                             <strong>{{ $dong['buoi_online'] }}</strong>
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
                                         <div class="info-chip">
-                                            <span class="label">Ty le tham du</span>
-                                            <strong>{{ $dong['ty_le_tham_du'] !== null ? $dong['ty_le_tham_du'] . '%' : 'Chua co' }}</strong>
+                                            <span class="label">Tỷ lệ tham dự</span>
+                                            <strong>{{ $dong['ty_le_tham_du'] !== null ? $dong['ty_le_tham_du'] . '%' : 'Chưa có' }}</strong>
                                         </div>
                                     </div>
                                     <div class="col-sm-4">
                                         <div class="info-chip success-chip">
-                                            <span class="label">Co mat</span>
+                                            <span class="label">Có mặt</span>
                                             <strong>{{ $dong['co_mat'] }}</strong>
                                         </div>
                                     </div>
                                     <div class="col-sm-4">
                                         <div class="info-chip warning-chip">
-                                            <span class="label">Vao tre</span>
+                                            <span class="label">Vào trễ</span>
                                             <strong>{{ $dong['vao_tre'] }}</strong>
                                         </div>
                                     </div>
                                     <div class="col-sm-4">
                                         <div class="info-chip danger-chip">
-                                            <span class="label">Vang mat</span>
+                                            <span class="label">Vắng mặt</span>
                                             <strong>{{ $dong['vang_mat'] }}</strong>
                                         </div>
                                     </div>
                                     @if($dong['ket_qua_hoc_tap'])
                                         <div class="col-sm-4">
                                             <div class="info-chip">
-                                                <span class="label">Diem chuyen can</span>
-                                                <strong>{{ $dong['ket_qua_hoc_tap']->diem_diem_danh !== null ? number_format((float) $dong['ket_qua_hoc_tap']->diem_diem_danh, 2) : 'Chua co' }}</strong>
+                                                <span class="label">Điểm chuyên cần</span>
+                                                <strong>{{ $dong['ket_qua_hoc_tap']->diem_diem_danh !== null ? number_format((float) $dong['ket_qua_hoc_tap']->diem_diem_danh, 2) : 'Chưa có' }}</strong>
                                             </div>
                                         </div>
                                         <div class="col-sm-4">
                                             <div class="info-chip">
-                                                <span class="label">Diem kiem tra</span>
-                                                <strong>{{ $dong['ket_qua_hoc_tap']->diem_kiem_tra !== null ? number_format((float) $dong['ket_qua_hoc_tap']->diem_kiem_tra, 2) : 'Chua co' }}</strong>
+                                                <span class="label">Điểm kiểm tra</span>
+                                                <strong>{{ $dong['ket_qua_hoc_tap']->diem_kiem_tra !== null ? number_format((float) $dong['ket_qua_hoc_tap']->diem_kiem_tra, 2) : 'Chưa có' }}</strong>
                                             </div>
                                         </div>
                                         <div class="col-sm-4">
                                             <div class="info-chip success-chip">
-                                                <span class="label">Tong ket</span>
-                                                <strong>{{ $dong['ket_qua_hoc_tap']->diem_tong_ket !== null ? number_format((float) $dong['ket_qua_hoc_tap']->diem_tong_ket, 2) : 'Dang tinh' }}</strong>
+                                                <span class="label">Tổng kết</span>
+                                                <strong>{{ $dong['ket_qua_hoc_tap']->diem_tong_ket !== null ? number_format((float) $dong['ket_qua_hoc_tap']->diem_tong_ket, 2) : 'Đang tính' }}</strong>
                                             </div>
                                         </div>
                                     @endif
@@ -381,7 +381,7 @@
 
                                 @if($dong['buoi_sap_toi'])
                                     <div class="next-session mt-3">
-                                        <div class="small text-muted">Buoi hoc ke tiep</div>
+                                        <div class="small text-muted">Buổi học kế tiếp</div>
                                         <div class="fw-semibold text-dark">
                                             {{ $dong['buoi_sap_toi']->ngay_hoc->format('d/m/Y') }}
                                             • {{ $dong['buoi_sap_toi']->gio_bat_dau ?: '--:--' }}
@@ -392,7 +392,7 @@
 
                                 <div class="mt-3">
                                     <a href="{{ route('hoc-vien.chi-tiet-khoa-hoc', $khoaHoc->id) }}" class="btn btn-sm btn-outline-primary">
-                                        Xem chi tiet khoa hoc
+                                        Xem chi tiết khóa học
                                     </a>
                                 </div>
                             </div>
@@ -402,8 +402,8 @@
             @else
                 <div class="text-center py-5">
                     <div class="empty-icon mb-3"><i class="fas fa-book-reader"></i></div>
-                    <h6 class="fw-semibold">Chua co du lieu tien do</h6>
-                    <p class="text-muted mb-0">Khi hoc vien duoc ghi danh va khoa hoc co lich hoc, tien do se xuat hien tai day.</p>
+                    <h6 class="fw-semibold">Chưa có dữ liệu tiến độ</h6>
+                    <p class="text-muted mb-0">Khi học viên được ghi danh và khóa học có lịch học, tiến độ sẽ xuất hiện tại đây.</p>
                 </div>
             @endif
         </div>

@@ -36,7 +36,7 @@ class BaiKiemTraController extends Controller
         ]);
 
         $giangVien = auth()->user()?->giangVien;
-        abort_if(!$giangVien, 403, 'Tai khoan chua duoc lien ket voi giang vien.');
+        abort_if(!$giangVien, 403, 'Tài khoản chưa được liên kết với giảng viên.');
 
         [$moduleId, $lichHoc] = $this->resolveScope($validated);
         $loaiBaiKiemTra = $this->resolveExamType($validated['pham_vi']);
@@ -63,7 +63,7 @@ class BaiKiemTraController extends Controller
 
         return redirect()
             ->route('giang-vien.bai-kiem-tra.edit', $baiKiemTra->id)
-            ->with('success', 'Da tao khung bai kiem tra. Hay cau hinh cau hoi va gui duyet.');
+            ->with('success', 'Đã tạo khung bài kiểm tra. Hãy cấu hình câu hỏi và gửi duyệt.');
     }
 
     public function edit(int $id)
@@ -134,7 +134,7 @@ class BaiKiemTraController extends Controller
             }
         });
 
-        return back()->with('success', 'Da cap nhat bai kiem tra.');
+        return back()->with('success', 'Đã cập nhật bài kiểm tra.');
     }
 
     public function submitForApproval(int $id)
@@ -143,7 +143,7 @@ class BaiKiemTraController extends Controller
         $this->authorizeTeacherForExam(auth()->user()?->giangVien, $baiKiemTra);
 
         if ($baiKiemTra->chi_tiet_cau_hois_count === 0 && blank($baiKiemTra->mo_ta)) {
-            return back()->with('error', 'Hay them cau hoi hoac mo ta de bai truoc khi gui duyet.');
+            return back()->with('error', 'Hãy thêm câu hỏi hoặc mô tả đề bài trước khi gửi duyệt.');
         }
 
         $baiKiemTra->update([
@@ -152,7 +152,7 @@ class BaiKiemTraController extends Controller
             'de_xuat_duyet_luc' => now(),
         ]);
 
-        return back()->with('success', 'Da gui bai kiem tra cho admin duyet.');
+        return back()->with('success', 'Đã gửi bài kiểm tra cho admin duyệt.');
     }
 
     public function destroy(int $id)
@@ -161,18 +161,18 @@ class BaiKiemTraController extends Controller
         $this->authorizeTeacherForExam(auth()->user()?->giangVien, $baiKiemTra);
 
         if ($baiKiemTra->bai_lams_count > 0) {
-            return back()->with('error', 'Khong the xoa bai kiem tra da co hoc vien lam bai.');
+            return back()->with('error', 'Không thể xóa bài kiểm tra đã có học viên làm bài.');
         }
 
         $baiKiemTra->delete();
 
-        return back()->with('success', 'Da xoa bai kiem tra.');
+        return back()->with('success', 'Đã xóa bài kiểm tra.');
     }
 
     public function chamDiemIndex()
     {
         $giangVien = auth()->user()?->giangVien;
-        abort_if(!$giangVien, 403, 'Tai khoan chua duoc lien ket voi giang vien.');
+        abort_if(!$giangVien, 403, 'Tài khoản chưa được liên kết với giảng viên.');
 
         $moduleIds = $this->getAcceptedModuleIds($giangVien);
         $courseIds = $this->getAcceptedCourseIds($giangVien);
@@ -240,13 +240,13 @@ class BaiKiemTraController extends Controller
 
             if ($diemTuLuan === null || $diemTuLuan === '') {
                 throw ValidationException::withMessages([
-                    'grades.' . $chiTietTraLoi->id . '.diem_tu_luan' => 'Vui long nhap diem cho moi cau tu luan.',
+                    'grades.' . $chiTietTraLoi->id . '.diem_tu_luan' => 'Vui lòng nhập điểm cho mỗi câu tự luận.',
                 ]);
             }
 
             if (!is_numeric($diemTuLuan) || (float) $diemTuLuan < 0 || (float) $diemTuLuan > $diemToiDa) {
                 throw ValidationException::withMessages([
-                    'grades.' . $chiTietTraLoi->id . '.diem_tu_luan' => 'Diem phai nam trong khoang 0 - ' . $diemToiDa . '.',
+                    'grades.' . $chiTietTraLoi->id . '.diem_tu_luan' => 'Điểm phải nằm trong khoảng 0 - ' . $diemToiDa . '.',
                 ]);
             }
 
@@ -263,7 +263,7 @@ class BaiKiemTraController extends Controller
 
         return redirect()
             ->route('giang-vien.cham-diem.show', $baiLam->id)
-            ->with('success', 'Da cham bai va cap nhat ket qua hoc tap.');
+            ->with('success', 'Đã chấm bài và cập nhật kết quả học tập.');
     }
 
     /**
@@ -284,7 +284,7 @@ class BaiKiemTraController extends Controller
 
         if ($validated['pham_vi'] === 'module' && !$moduleId) {
             throw ValidationException::withMessages([
-                'module_hoc_id' => 'Vui long chon module cho bai kiem tra nay.',
+                'module_hoc_id' => 'Vui lòng chọn module cho bài kiểm tra này.',
             ]);
         }
 
@@ -303,7 +303,7 @@ class BaiKiemTraController extends Controller
     private function authorizeTeacherForScope(GiangVien $giangVien, int $khoaHocId, ?int $moduleId, string $loaiBaiKiemTra): void
     {
         $query = PhanCongModuleGiangVien::query()
-            ->where('giao_vien_id', $giangVien->id)
+            ->where('giang_vien_id', $giangVien->id)
             ->where('khoa_hoc_id', $khoaHocId)
             ->where('trang_thai', 'da_nhan');
 
@@ -311,12 +311,12 @@ class BaiKiemTraController extends Controller
             $query->where('module_hoc_id', $moduleId);
         }
 
-        abort_unless($query->exists(), 403, 'Ban khong duoc phan cong cho bai kiem tra nay.');
+        abort_unless($query->exists(), 403, 'Bạn không được phân công cho bài kiểm tra này.');
     }
 
     private function authorizeTeacherForExam(?GiangVien $giangVien, BaiKiemTra $baiKiemTra): void
     {
-        abort_if(!$giangVien, 403, 'Tai khoan chua duoc lien ket voi giang vien.');
+        abort_if(!$giangVien, 403, 'Tài khoản chưa được liên kết với giảng viên.');
 
         $this->authorizeTeacherForScope(
             $giangVien,
@@ -348,7 +348,7 @@ class BaiKiemTraController extends Controller
 
         if ($availableQuestions->count() !== count(array_unique($questionIds))) {
             throw ValidationException::withMessages([
-                'question_ids' => 'Danh sach cau hoi co muc khong hop le hoac ngoai pham vi de.',
+                'question_ids' => 'Danh sách câu hỏi có mục không hợp lệ hoặc ngoài phạm vi đề.',
             ]);
         }
 
@@ -386,7 +386,7 @@ class BaiKiemTraController extends Controller
     private function getAcceptedModuleIds(GiangVien $giangVien): array
     {
         return PhanCongModuleGiangVien::query()
-            ->where('giao_vien_id', $giangVien->id)
+            ->where('giang_vien_id', $giangVien->id)
             ->where('trang_thai', 'da_nhan')
             ->pluck('module_hoc_id')
             ->filter()
@@ -402,7 +402,7 @@ class BaiKiemTraController extends Controller
     private function getAcceptedCourseIds(GiangVien $giangVien): array
     {
         return PhanCongModuleGiangVien::query()
-            ->where('giao_vien_id', $giangVien->id)
+            ->where('giang_vien_id', $giangVien->id)
             ->where('trang_thai', 'da_nhan')
             ->pluck('khoa_hoc_id')
             ->filter()
@@ -412,3 +412,4 @@ class BaiKiemTraController extends Controller
             ->all();
     }
 }
+

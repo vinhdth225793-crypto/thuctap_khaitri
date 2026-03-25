@@ -151,7 +151,7 @@ class KhoaHoc extends Model
      */
     public function giangViens()
     {
-        return $this->belongsToMany(GiangVien::class, 'phan_cong_module_giang_vien', 'khoa_hoc_id', 'giao_vien_id')
+        return $this->belongsToMany(GiangVien::class, 'phan_cong_module_giang_vien', 'khoa_hoc_id', 'giang_vien_id')
                     ->withPivot('module_hoc_id', 'trang_thai', 'ghi_chu')
                     ->withTimestamps();
     }
@@ -266,8 +266,8 @@ class KhoaHoc extends Model
     public function getPhuongThucDanhGiaLabelAttribute(): string
     {
         return match ($this->phuong_thuc_danh_gia) {
-            'theo_module' => 'Kiem tra theo module',
-            default => 'Kiem tra cuoi khoa',
+            'theo_module' => 'Kiểm tra theo module',
+            default => 'Kiểm tra cuối khóa',
         };
     }
 
@@ -292,3 +292,4 @@ class KhoaHoc extends Model
         }
     }
 }
+

@@ -5,7 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class NganHangCauHoi extends Model
 {
@@ -15,11 +17,6 @@ class NganHangCauHoi extends Model
 
     protected $fillable = [
         'khoa_hoc_id',
-        'noi_dung_cau_hoi',
-        'dap_an_sai_1',
-        'dap_an_sai_2',
-        'dap_an_sai_3',
-        'dap_an_dung',
         'nguoi_tao_id',
         'module_hoc_id',
         'ma_cau_hoi',
@@ -33,9 +30,30 @@ class NganHangCauHoi extends Model
         'co_the_tai_su_dung',
     ];
 
+    protected $casts = [
+        'diem_mac_dinh' => 'decimal:2',
+        'co_the_tai_su_dung' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $cauHoi) {
+            if (blank($cauHoi->ma_cau_hoi)) {
+                $cauHoi->ma_cau_hoi = self::generateQuestionCode();
+            }
+        });
+    }
+
     public function khoaHoc(): BelongsTo
     {
         return $this->belongsTo(KhoaHoc::class, 'khoa_hoc_id');
+    }
+
+    public function moduleHoc(): BelongsTo
+    {
+        return $this->belongsTo(ModuleHoc::class, 'module_hoc_id');
     }
 
     public function nguoiTao(): BelongsTo
@@ -43,47 +61,94 @@ class NganHangCauHoi extends Model
         return $this->belongsTo(NguoiDung::class, 'nguoi_tao_id', 'ma_nguoi_dung');
     }
 
-    /**
-     * Relationship: Một câu hỏi có nhiều đáp án (Cấu trúc cũ, dùng cho backward compatibility)
-     */
-    public function dapAns()
+    public function dapAns(): HasMany
     {
-        return $this->hasMany(DapAnCauHoi::class, 'ngan_hang_cau_hoi_id', 'id');
+        return $this->hasMany(DapAnCauHoi::class, 'ngan_hang_cau_hoi_id', 'id')->orderBy('thu_tu');
     }
 
-    /**
-     * Chuẩn hóa nội dung trước khi so sánh
-     */
     public static function normalizeString($str): string
     {
-        if (is_null($str)) return '';
-        // trim khoảng trắng đầu cuối
+        if (is_null($str)) {
+            return '';
+        }
+
         $str = trim((string) $str);
-        // gộp nhiều khoảng trắng thành 1
         $str = preg_replace('/\s+/', ' ', $str);
-        // lowercase
+
         return mb_strtolower((string) $str, 'UTF-8');
     }
 
-    /**
-     * Kiểm tra trùng lặp câu hỏi trong cùng khóa học
-     */
     public static function isDuplicate($khoaHocId, $noiDung, $excludeId = null): bool
     {
         $normalizedInput = self::normalizeString($noiDung);
-        
-        $query = self::where('khoa_hoc_id', $khoaHocId);
-        
+
+        $query = self::query()->where('khoa_hoc_id', $khoaHocId);
+
         if ($excludeId) {
             $query->where('id', '!=', $excludeId);
         }
 
-        // Do nội dung câu hỏi có thể dài, ta sẽ lấy danh sách các câu hỏi trong khóa học đó về rồi so sánh
-        // Tuy nhiên để tối ưu hơn, ta có thể dùng raw SQL nếu DB hỗ trợ tốt việc chuẩn hóa chuỗi
-        // Ở đây ta dùng cách đơn giản là lấy các câu hỏi có nội dung gần giống hoặc query trực tiếp
-        
-        return $query->get()->contains(function ($item) use ($normalizedInput) {
-            return self::normalizeString($item->noi_dung_cau_hoi) === $normalizedInput;
+        return $query->get()->contains(function (self $item) use ($normalizedInput) {
+            return self::normalizeString($item->noi_dung) === $normalizedInput;
         });
+    }
+
+    public function getNoiDungCauHoiAttribute(): ?string
+    {
+        return $this->noi_dung;
+    }
+
+    public function getDapAnDungAttribute(): ?string
+    {
+        return optional($this->resolvedAnswers()->firstWhere('is_dap_an_dung', true))->noi_dung;
+    }
+
+    public function getDapAnSai1Attribute(): ?string
+    {
+        return optional($this->wrongAnswers()->get(0))->noi_dung;
+    }
+
+    public function getDapAnSai2Attribute(): ?string
+    {
+        return optional($this->wrongAnswers()->get(1))->noi_dung;
+    }
+
+    public function getDapAnSai3Attribute(): ?string
+    {
+        return optional($this->wrongAnswers()->get(2))->noi_dung;
+    }
+
+    public function getLoaiCauHoiLabelAttribute(): string
+    {
+        return match ($this->loai_cau_hoi) {
+            'trac_nghiem' => 'Trắc nghiệm',
+            'tu_luan' => 'Tự luận',
+            default => 'Không xác định',
+        };
+    }
+
+    public function getMucDoLabelAttribute(): string
+    {
+        return match ($this->muc_do) {
+            'de' => 'Dễ',
+            'trung_binh' => 'Trung bình',
+            'kho' => 'Khó',
+            default => 'Chưa phân loại',
+        };
+    }
+
+    public static function generateQuestionCode(): string
+    {
+        return 'CH-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(6));
+    }
+
+    private function resolvedAnswers()
+    {
+        return $this->relationLoaded('dapAns') ? $this->dapAns : $this->dapAns()->get();
+    }
+
+    private function wrongAnswers()
+    {
+        return $this->resolvedAnswers()->where('is_dap_an_dung', false)->values();
     }
 }

@@ -32,17 +32,17 @@ class GiangVienController extends Controller
         $giangVienId = $giangVien->id;
 
         $stats = [
-            'dang_day' => PhanCongModuleGiangVien::where('giao_vien_id', $giangVienId)
+            'dang_day' => PhanCongModuleGiangVien::where('giang_vien_id', $giangVienId)
                 ->where('trang_thai', 'da_nhan')
                 ->count(),
-            'cho_xac_nhan' => PhanCongModuleGiangVien::where('giao_vien_id', $giangVienId)
+            'cho_xac_nhan' => PhanCongModuleGiangVien::where('giang_vien_id', $giangVienId)
                 ->where('trang_thai', 'cho_xac_nhan')
                 ->count(),
             'tong_hoc_vien' => DB::table('hoc_vien_khoa_hoc')
                 ->whereIn('khoa_hoc_id', function($query) use ($giangVienId) {
                     $query->select('khoa_hoc_id')
                         ->from('phan_cong_module_giang_vien')
-                        ->where('giao_vien_id', $giangVienId);
+                        ->where('giang_vien_id', $giangVienId);
                 })
                 ->count(),
             'so_gio_day' => $giangVien->so_gio_day ?? 0,
@@ -50,7 +50,7 @@ class GiangVienController extends Controller
 
         // Lấy danh sách phân công mới nhất cần xác nhận
         $phanCongMoi = PhanCongModuleGiangVien::with(['moduleHoc.khoaHoc.nhomNganh'])
-            ->where('giao_vien_id', $giangVienId)
+            ->where('giang_vien_id', $giangVienId)
             ->where('trang_thai', 'cho_xac_nhan')
             ->latest()
             ->take(5)
@@ -58,7 +58,7 @@ class GiangVienController extends Controller
 
         // Lấy danh sách lớp đang dạy (từ các module đã nhận)
         $lopDangDay = PhanCongModuleGiangVien::with(['moduleHoc.khoaHoc.nhomNganh'])
-            ->where('giao_vien_id', $giangVienId)
+            ->where('giang_vien_id', $giangVienId)
             ->where('trang_thai', 'da_nhan')
             ->latest()
             ->take(5)
@@ -142,19 +142,19 @@ class GiangVienController extends Controller
         $khoaHocs = KhoaHoc::with(['nhomNganh', 'moduleHocs' => function($q) use ($giangVien) {
                 // Chỉ lấy những module mà GV này được phân công
                 $q->whereHas('phanCongGiangViens', function($q2) use ($giangVien) {
-                    $q2->where('giao_vien_id', $giangVien->id);
+                    $q2->where('giang_vien_id', $giangVien->id);
                 })->with(['phanCongGiangViens' => function($q2) use ($giangVien) {
-                    $q2->where('giao_vien_id', $giangVien->id);
+                    $q2->where('giang_vien_id', $giangVien->id);
                 }]);
             }])
             ->whereHas('moduleHocs.phanCongGiangViens', function($q) use ($giangVien) {
-                $q->where('giao_vien_id', $giangVien->id);
+                $q->where('giang_vien_id', $giangVien->id);
             })
             ->orderBy('id', 'desc')
             ->get();
 
         // Giữ lại logic các biến cũ nếu view vẫn dùng (nhưng ta sẽ cập nhật view mới)
-        $phanCongChoXacNhan = PhanCongModuleGiangVien::where('giao_vien_id', $giangVien->id)
+        $phanCongChoXacNhan = PhanCongModuleGiangVien::where('giang_vien_id', $giangVien->id)
             ->where('trang_thai', 'cho_xac_nhan')->count();
 
         return view('pages.giang-vien.phan-cong', compact('khoaHocs', 'phanCongChoXacNhan'));
@@ -168,7 +168,7 @@ class GiangVienController extends Controller
         $giangVien = auth()->user()->giangVien;
         
         $phanCong = PhanCongModuleGiangVien::where('id', $id)
-            ->where('giao_vien_id', $giangVien->id)
+            ->where('giang_vien_id', $giangVien->id)
             ->where('trang_thai', 'cho_xac_nhan')
             ->firstOrFail();
 
@@ -185,7 +185,7 @@ class GiangVienController extends Controller
         $giangVien = auth()->user()->giangVien;
 
         $phanCong = PhanCongModuleGiangVien::where('id', $id)
-            ->where('giao_vien_id', $giangVien->id)
+            ->where('giang_vien_id', $giangVien->id)
             ->where('trang_thai', 'cho_xac_nhan')
             ->firstOrFail();
 
@@ -194,3 +194,4 @@ class GiangVienController extends Controller
         return redirect()->back()->with('success', 'Đã từ chối phân công module: ' . $phanCong->moduleHoc->ten_module);
     }
 }
+

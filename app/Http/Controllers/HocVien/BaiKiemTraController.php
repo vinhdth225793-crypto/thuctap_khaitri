@@ -83,7 +83,7 @@ class BaiKiemTraController extends Controller
         if (!$baiKiemTra->can_student_start) {
             return redirect()
                 ->route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id)
-                ->with('error', 'Bai kiem tra nay chua mo hoac da dong.');
+                ->with('error', 'Bài kiểm tra này chưa mở hoặc đã đóng.');
         }
 
         $baiLam = $baiKiemTra->baiLams->firstWhere('trang_thai', 'dang_lam');
@@ -91,13 +91,13 @@ class BaiKiemTraController extends Controller
         if ($baiLam) {
             return redirect()
                 ->route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id)
-                ->with('info', 'Ban dang co mot lan lam bai chua nop. Hay tiep tuc bai lam hien tai.');
+                ->with('info', 'Bạn đang có một lần làm bài chưa nộp. Hãy tiếp tục bài làm hiện tại.');
         }
 
         if ($baiKiemTra->baiLams->count() >= $baiKiemTra->so_lan_duoc_lam) {
             return redirect()
                 ->route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id)
-                ->with('error', 'Ban da dung het so lan lam bai duoc phep.');
+                ->with('error', 'Bạn đã dùng hết số lần làm bài được phép.');
         }
 
         DB::transaction(function () use ($baiKiemTra, $user, &$baiLam) {
@@ -120,7 +120,7 @@ class BaiKiemTraController extends Controller
 
         return redirect()
             ->route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id)
-            ->with('success', 'Da bat dau lam bai. Hay hoan thanh va nop bai truoc khi het han.');
+            ->with('success', 'Đã bắt đầu làm bài. Hãy hoàn thành và nộp bài trước khi hết hạn.');
     }
 
     public function nopBai(Request $request, int $id)
@@ -132,13 +132,13 @@ class BaiKiemTraController extends Controller
         if (!$baiLam) {
             return redirect()
                 ->route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id)
-                ->with('error', 'Ban can bat dau bai kiem tra truoc khi nop bai.');
+                ->with('error', 'Bạn cần bắt đầu bài kiểm tra trước khi nộp bài.');
         }
 
         if (!$baiKiemTra->can_student_start) {
             return redirect()
                 ->route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id)
-                ->with('error', 'Khong the nop bai vi bai kiem tra nay da dong hoac chua den gio mo.');
+                ->with('error', 'Không thể nộp bài vì bài kiểm tra này đã đóng hoặc chưa đến giờ mở.');
         }
 
         if ($baiKiemTra->chiTietCauHois->isEmpty()) {
@@ -159,7 +159,7 @@ class BaiKiemTraController extends Controller
 
             return redirect()
                 ->route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id)
-                ->with('success', 'Da nop bai kiem tra thanh cong.');
+                ->with('success', 'Đã nộp bài kiểm tra thành công.');
         }
 
         $answerPayloads = $request->input('answers', []);
@@ -174,7 +174,7 @@ class BaiKiemTraController extends Controller
 
                 if ($chiTietBaiKiemTra->bat_buoc && !$dapAnId) {
                     throw ValidationException::withMessages([
-                        'answers.' . $chiTietBaiKiemTra->id . '.dap_an_cau_hoi_id' => 'Vui long chon dap an cho cau hoi trac nghiem.',
+                        'answers.' . $chiTietBaiKiemTra->id . '.dap_an_cau_hoi_id' => 'Vui lòng chọn đáp án cho câu hỏi trắc nghiệm.',
                     ]);
                 }
             } else {
@@ -182,7 +182,7 @@ class BaiKiemTraController extends Controller
 
                 if ($chiTietBaiKiemTra->bat_buoc && $cauTraLoi === '') {
                     throw ValidationException::withMessages([
-                        'answers.' . $chiTietBaiKiemTra->id . '.cau_tra_loi_text' => 'Vui long nhap cau tra loi cho cau hoi tu luan.',
+                        'answers.' . $chiTietBaiKiemTra->id . '.cau_tra_loi_text' => 'Vui lòng nhập câu trả lời cho câu hỏi tự luận.',
                     ]);
                 }
 
@@ -225,7 +225,7 @@ class BaiKiemTraController extends Controller
 
         return redirect()
             ->route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id)
-            ->with('success', 'Da nop bai kiem tra thanh cong.');
+            ->with('success', 'Đã nộp bài kiểm tra thành công.');
     }
 
     private function queryBaiKiemTraHocVien(int $hocVienId)

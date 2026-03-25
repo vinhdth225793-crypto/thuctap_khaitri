@@ -20,7 +20,7 @@ class DiemDanhController extends Controller
     }
 
     /**
-     * Láº¥y danh sÃ¡ch há»c viÃªn Ä‘á»ƒ hiá»ƒn thá»‹ trong Modal Ä‘iá»ƒm danh (Flow 4 - Phase 1)
+     * Lấy danh sách học viên để hiển thị trong Modal điểm danh (Flow 4 - Phase 1)
      */
     public function show(Request $request, $lichHocId)
     {
@@ -45,7 +45,7 @@ class DiemDanhController extends Controller
 
             return [
                 'ma_nguoi_dung' => $item->hoc_vien_id,
-                'ho_ten' => $item->hocVien ? $item->hocVien->ho_ten : 'N/A (Há»c viÃªn khÃ´ng tá»“n táº¡i)',
+                'ho_ten' => $item->hocVien ? $item->hocVien->ho_ten : 'N/A (Học viên không tồn tại)',
                 'trang_thai' => $existing ? $existing->trang_thai : null,
                 'ghi_chu' => $existing ? $existing->ghi_chu : '',
             ];
@@ -61,7 +61,7 @@ class DiemDanhController extends Controller
     }
 
     /**
-     * LÆ°u hoáº·c cáº­p nháº­t dá»¯ liá»‡u Ä‘iá»ƒm danh (Flow 4 - Phase 2)
+     * Lưu hoặc cập nhật dữ liệu điểm danh (Flow 4 - Phase 2)
      */
     public function store(Request $request, $lichHocId)
     {
@@ -76,11 +76,11 @@ class DiemDanhController extends Controller
             ->all();
 
         if ($hocVienIds === []) {
-            return back()->with('info', 'KhÃ³a há»c nÃ y hiá»‡n khÃ´ng cÃ³ há»c viÃªn Ä‘ang há»c Ä‘á»ƒ Ä‘iá»ƒm danh.');
+            return back()->with('info', 'Khóa học này hiện không có học viên đang học để điểm danh.');
         }
 
         if (!$request->has('attendance') || empty($request->attendance)) {
-            return back()->with('info', 'KhÃ´ng cÃ³ dá»¯ liá»‡u Ä‘iá»ƒm danh Ä‘á»ƒ lÆ°u.');
+            return back()->with('info', 'Không có dữ liệu điểm danh để lưu.');
         }
 
         $request->validate([
@@ -115,16 +115,16 @@ class DiemDanhController extends Controller
                 $this->ketQuaHocTapService->refreshForCourseStudent((int) $lichHoc->khoa_hoc_id, $hocVienId);
             }
 
-            return back()->with('success', 'ÄÃ£ lÆ°u dá»¯ liá»‡u Ä‘iá»ƒm danh thÃ nh cÃ´ng.');
+            return back()->with('success', 'Đã lưu dữ liệu điểm danh thành công.');
         } catch (\Exception $e) {
             DB::rollBack();
 
-            return back()->with('error', 'Lá»—i khi lÆ°u Ä‘iá»ƒm danh: ' . $e->getMessage());
+            return back()->with('error', 'Lỗi khi lưu điểm danh: ' . $e->getMessage());
         }
     }
 
     /**
-     * Gá»­i bÃ¡o cÃ¡o Ä‘iá»ƒm danh cho Admin
+     * Gửi báo cáo điểm danh cho Admin
      */
     public function report(Request $request, $lichHocId)
     {
@@ -142,9 +142,9 @@ class DiemDanhController extends Controller
                 'trang_thai_bao_cao' => 'da_bao_cao',
             ]);
 
-            return back()->with('success', 'ÄÃ£ gá»­i bÃ¡o cÃ¡o Ä‘iá»ƒm danh cho Admin thÃ nh cÃ´ng.');
+            return back()->with('success', 'Đã gửi báo cáo điểm danh cho Admin thành công.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Lá»—i khi gá»­i bÃ¡o cÃ¡o: ' . $e->getMessage());
+            return back()->with('error', 'Lỗi khi gửi báo cáo: ' . $e->getMessage());
         }
     }
 
@@ -154,7 +154,7 @@ class DiemDanhController extends Controller
 
         $isAssigned = $giangVien && PhanCongModuleGiangVien::query()
             ->where('module_hoc_id', $lichHoc->module_hoc_id)
-            ->where('giao_vien_id', $giangVien->id)
+            ->where('giang_vien_id', $giangVien->id)
             ->where('trang_thai', 'da_nhan')
             ->exists();
 
@@ -165,10 +165,11 @@ class DiemDanhController extends Controller
         if ($jsonResponse) {
             return response()->json([
                 'success' => false,
-                'message' => 'Báº¡n khÃ´ng Ä‘Æ°á»£c phÃ¢n cÃ´ng dáº¡y buá»•i há»c nÃ y.',
+                'message' => 'Bạn không được phân công dạy buổi học này.',
             ], 403);
         }
 
-        abort(403, 'Báº¡n khÃ´ng Ä‘Æ°á»£c phÃ¢n cÃ´ng dáº¡y buá»•i há»c nÃ y.');
+        abort(403, 'Bạn không được phân công dạy buổi học này.');
     }
 }
+

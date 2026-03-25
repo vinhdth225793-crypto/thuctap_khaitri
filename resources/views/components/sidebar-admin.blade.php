@@ -2,7 +2,7 @@
     <div class="sidebar-header">
         <div class="sidebar-logo">
             <i class="fas fa-graduation-cap"></i>
-            <span>He thong QL</span>
+            <span>Hệ thống QL</span>
         </div>
     </div>
 
@@ -17,7 +17,7 @@
         <div class="nav-item">
             <a class="nav-link collapsed" data-bs-toggle="collapse" href="#collapseAccount" role="button" aria-expanded="{{ request()->routeIs('admin.quan-ly-hoc-vien', 'admin.quan-ly-giang-vien', 'admin.phe-duyet-tai-khoan.*') ? 'true' : 'false' }}" aria-controls="collapseAccount">
                 <i class="fas fa-users"></i>
-                <span>Quan ly tai khoan</span>
+                <span>Quản lý tài khoản</span>
                 <span style="display: flex; gap: 8px; align-items: center; margin-left: auto;">
                     @if($pendingAccountsCount > 0)
                         <i class="fas fa-exclamation-circle text-danger" style="font-size: 1rem;"></i>
@@ -29,15 +29,15 @@
                 <div class="nav-submenu">
                     <a href="{{ route('admin.hoc-vien.index') }}" class="nav-link {{ request()->routeIs('admin.hoc-vien.*', 'admin.quan-ly-hoc-vien') ? 'active' : '' }}">
                         <i class="fas fa-user-graduate"></i>
-                        <span>Hoc vien</span>
+                        <span>Học viên</span>
                     </a>
                     <a href="{{ route('admin.giang-vien.index') }}" class="nav-link {{ request()->routeIs('admin.giang-vien.*', 'admin.quan-ly-giang-vien') ? 'active' : '' }}">
                         <i class="fas fa-chalkboard-user"></i>
-                        <span>Giang vien</span>
+                        <span>Giảng viên</span>
                     </a>
                     <a href="{{ route('admin.phe-duyet-tai-khoan.index') }}" class="nav-link {{ request()->routeIs('admin.phe-duyet-tai-khoan.*') ? 'active' : '' }}">
                         <i class="fas fa-user-check"></i>
-                        <span>Phe duyet tai khoan</span>
+                        <span>Phê duyệt tài khoản</span>
                         @if($pendingAccountsCount > 0)
                             <span class="badge bg-danger rounded-pill ms-auto">{{ $pendingAccountsCount }}</span>
                         @endif
@@ -49,18 +49,18 @@
         <div class="nav-item">
             <a class="nav-link collapsed" data-bs-toggle="collapse" href="#collapseCourse" role="button" aria-expanded="{{ request()->routeIs('admin.mon-hoc.*', 'admin.khoa-hoc.*', 'admin.module-hoc.*', 'admin.quan-ly-khoa-hoc') ? 'true' : 'false' }}" aria-controls="collapseCourse">
                 <i class="fas fa-book"></i>
-                <span>Quan ly khoa hoc</span>
+                <span>Quản lý khóa học</span>
                 <i class="fas fa-chevron-down" style="margin-left: auto;"></i>
             </a>
             <div class="collapse {{ request()->routeIs('admin.mon-hoc.*', 'admin.khoa-hoc.*', 'admin.module-hoc.*', 'admin.quan-ly-khoa-hoc') ? 'show' : '' }}" id="collapseCourse">
                 <div class="nav-submenu">
                     <a href="{{ route('admin.mon-hoc.index') }}" class="nav-link {{ request()->routeIs('admin.mon-hoc.*') ? 'active' : '' }}">
                         <i class="fas fa-layer-group"></i>
-                        <span>Nhom nganh</span>
+                        <span>Nhóm ngành</span>
                     </a>
                     <a href="{{ route('admin.khoa-hoc.index') }}" class="nav-link {{ request()->routeIs('admin.khoa-hoc.*') ? 'active' : '' }}">
                         <i class="fas fa-layer-group"></i>
-                        <span>Khoa hoc</span>
+                        <span>Khóa học</span>
                     </a>
                     <a href="{{ route('admin.module-hoc.index') }}" class="nav-link {{ request()->routeIs('admin.module-hoc.*') ? 'active' : '' }}">
                         <i class="fas fa-cube"></i>
@@ -94,18 +94,18 @@
             <a class="nav-link collapsed" data-bs-toggle="collapse" href="#collapseExamOnline" role="button"
  aria-expanded="{{ request()->routeIs('admin.kiem-tra-online.*') ? 'true' : 'false' }}" aria-controls="collapseExamOnline">
                 <i class="fas fa-file-circle-check"></i>
-                <span>Kiem tra online</span>
+                <span>Kiểm tra online</span>
                 <i class="fas fa-chevron-down" style="margin-left: auto;"></i>
             </a>
             <div class="collapse {{ request()->routeIs('admin.kiem-tra-online.*') ? 'show' : '' }}" id="collapseExamOnline">
                 <div class="nav-submenu">
                     <a href="{{ route('admin.kiem-tra-online.cau-hoi.index') }}" class="nav-link {{ request()->routeIs('admin.kiem-tra-online.cau-hoi.*') ? 'active' : '' }}">
                         <i class="fas fa-list-check"></i>
-                        <span>Ngan hang cau hoi</span>
+                        <span>Ngân hàng câu hỏi</span>
                     </a>
                     <a href="{{ route('admin.kiem-tra-online.phe-duyet.index') }}" class="nav-link {{ request()->routeIs('admin.kiem-tra-online.phe-duyet.*') ? 'active' : '' }}">
                         <i class="fas fa-stamp"></i>
-                        <span>Phe duyet de thi</span>
+                        <span>Phê duyệt đề thi</span>
                     </a>
                 </div>
             </div>
@@ -114,33 +114,33 @@
         <div class="nav-item">
             <a href="{{ route('admin.yeu-cau-hoc-vien.index') }}" class="nav-link {{ request()->routeIs('admin.yeu-cau-hoc-vien.*') ? 'active' : '' }}">
                 <i class="fas fa-user-edit"></i>
-                <span>Yeu cau hoc vien</span>
+                <span>Yêu cầu học viên</span>
             </a>
         </div>
 
         <div class="nav-item">
             <a class="nav-link collapsed" data-bs-toggle="collapse" href="#settingsMenu" role="button" aria-expanded="{{ request()->routeIs('admin.settings*') ? 'true' : 'false' }}" aria-controls="settingsMenu">
                 <i class="fas fa-cog"></i>
-                <span>Cai dat he thong</span>
+                <span>Cài đặt hệ thống</span>
                 <i class="fas fa-chevron-down" style="margin-left: auto;"></i>
             </a>
             <div class="collapse {{ request()->routeIs('admin.settings*') ? 'show' : '' }}" id="settingsMenu">
                 <div class="nav-submenu">
                     <a href="{{ route('admin.settings') }}" class="nav-link {{ request()->routeIs('admin.settings') ? 'active' : '' }}">
                         <i class="fas fa-tachometer-alt"></i>
-                        <span>Tong quan</span>
+                        <span>Tổng quan</span>
                     </a>
                     <a href="{{ route('admin.settings.contact') }}" class="nav-link {{ request()->routeIs('admin.settings.contact') ? 'active' : '' }}">
                         <i class="fas fa-phone"></i>
-                        <span>Thong tin lien he</span>
+                        <span>Thông tin liên hệ</span>
                     </a>
                     <a href="{{ route('admin.settings.social') }}" class="nav-link {{ request()->routeIs('admin.settings.social') ? 'active' : '' }}">
                         <i class="fas fa-share-alt"></i>
-                        <span>Mang xa hoi</span>
+                        <span>Mạng xã hội</span>
                     </a>
                     <a href="{{ route('admin.settings.instructors') }}" class="nav-link {{ request()->routeIs('admin.settings.instructors') ? 'active' : '' }}">
                         <i class="fas fa-chalkboard-teacher"></i>
-                        <span>Giang vien</span>
+                        <span>Giảng viên</span>
                     </a>
                     <a href="{{ route('admin.settings.banners.index') }}" class="nav-link {{ request()->routeIs('admin.settings.banners.*') ? 'active' : '' }}">
                         <i class="fas fa-images"></i>
@@ -153,13 +153,13 @@
         <div class="nav-item mt-4">
             <a href="{{ route('profile') }}" class="nav-link">
                 <i class="fas fa-user"></i>
-                <span>Ho so ca nhan</span>
+                <span>Hồ sơ cá nhân</span>
             </a>
         </div>
         <div class="nav-item">
             <a href="{{ route('home') }}" class="nav-link">
                 <i class="fas fa-home"></i>
-                <span>Trang chu</span>
+                <span>Trang chủ</span>
             </a>
         </div>
     </nav>
