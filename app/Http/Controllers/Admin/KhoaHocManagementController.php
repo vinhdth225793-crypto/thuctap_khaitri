@@ -26,10 +26,13 @@ class KhoaHocManagementController extends Controller
         $activeTab = $request->get('tab', 'dang_day');
         $search = trim($request->get('search', ''));
 
-        $applySearch = fn($q) => $q->when($search,
-            fn($q) => $q->where('ten_khoa_hoc','like',"%{$search}%")
-                        ->orWhere('ma_khoa_hoc','like',"%{$search}%")
-        );
+        $applySearch = fn ($q) => $q->when($search, function ($query) use ($search) {
+            $query->where(function ($searchQuery) use ($search) {
+                $searchQuery
+                    ->where('ten_khoa_hoc', 'like', "%{$search}%")
+                    ->orWhere('ma_khoa_hoc', 'like', "%{$search}%");
+            });
+        });
 
         // 1. Khóa học mẫu
         $khoaHocMau = KhoaHoc::mau()

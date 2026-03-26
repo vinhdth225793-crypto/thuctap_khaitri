@@ -113,7 +113,7 @@
                                 <div class="card-body p-3">
                                     <div class="d-flex justify-content-between">
                                         <div>
-                                            <p class="text-muted mb-1 small fw-bold text-uppercase">Trống Giảng viên</p>
+                                            <p class="text-muted mb-1 small fw-bold text-uppercase">Trống giảng viên</p>
                                             <h3 class="mb-0 fw-bold text-warning">{{ $stats['module_chua_co_gv'] }}</h3>
                                             <small class="text-muted fw-bold">Module cần phân công</small>
                                         </div>
@@ -202,7 +202,7 @@
                                 <div class="vip-card-header bg-white py-3">
                                     <h6 class="vip-card-title mb-0 fw-bold">
                                         <i class="fas fa-exclamation-triangle text-danger me-2"></i>
-                                        Module trống Giảng viên ({{ $stats['module_chua_co_gv'] }})
+                                        Module trống giảng viên ({{ $stats['module_chua_co_gv'] }})
                                     </h6>
                                 </div>
                                 <div class="vip-card-body p-0">

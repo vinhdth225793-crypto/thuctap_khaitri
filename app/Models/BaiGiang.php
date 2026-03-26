@@ -10,6 +10,8 @@ class BaiGiang extends Model
 {
     use HasFactory, SoftDeletes;
 
+    public const TYPE_LIVE = 'live';
+
     protected $table = 'bai_giangs';
 
     protected $fillable = [
@@ -90,6 +92,11 @@ class BaiGiang extends Model
             ->withTimestamps();
     }
 
+    public function phongHocLive()
+    {
+        return $this->hasOne(PhongHocLive::class, 'bai_giang_id');
+    }
+
     /**
      * Scopes
      */
@@ -131,5 +138,10 @@ class BaiGiang extends Model
         return $this->isDaDuyet() && 
                $this->isDaCongBo() && 
                ($this->thoi_diem_mo === null || $this->thoi_diem_mo->isPast());
+    }
+
+    public function isLive(): bool
+    {
+        return $this->loai_bai_giang === self::TYPE_LIVE;
     }
 }

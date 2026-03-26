@@ -80,4 +80,34 @@ class NguoiDung extends Authenticatable
     {
         return $this->hasOne(HocVien::class, 'nguoi_dung_id', 'ma_nguoi_dung');
     }
+
+    public function diemDanhs()
+    {
+        return $this->hasMany(DiemDanh::class, 'hoc_vien_id', 'ma_nguoi_dung');
+    }
+
+    public function moderatedPhongHocLives()
+    {
+        return $this->hasMany(PhongHocLive::class, 'moderator_id', 'ma_nguoi_dung');
+    }
+
+    public function assistedPhongHocLives()
+    {
+        return $this->hasMany(PhongHocLive::class, 'tro_giang_id', 'ma_nguoi_dung');
+    }
+
+    public function createdPhongHocLives()
+    {
+        return $this->hasMany(PhongHocLive::class, 'created_by', 'ma_nguoi_dung');
+    }
+
+    public function approvedPhongHocLives()
+    {
+        return $this->hasMany(PhongHocLive::class, 'approved_by', 'ma_nguoi_dung');
+    }
+
+    public function phongHocLiveThamGia()
+    {
+        return $this->hasMany(PhongHocLiveNguoiThamGia::class, 'nguoi_dung_id', 'ma_nguoi_dung');
+    }
 }

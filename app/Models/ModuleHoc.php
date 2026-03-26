@@ -78,6 +78,18 @@ class ModuleHoc extends Model
         return $this->hasMany(BaiKiemTra::class, 'module_hoc_id')->orderByDesc('created_at');
     }
 
+    public function phongHocLives()
+    {
+        return $this->hasManyThrough(
+            PhongHocLive::class,
+            BaiGiang::class,
+            'module_hoc_id',
+            'bai_giang_id',
+            'id',
+            'id'
+        );
+    }
+
     public function nganHangCauHois()
     {
         return $this->hasMany(NganHangCauHoi::class, 'module_hoc_id')->orderByDesc('created_at');

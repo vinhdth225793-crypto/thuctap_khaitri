@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Mạng Xã Hội - Cài Đặt Hệ Thống')
+@section('title', 'Mạng xã hội - Cài đặt hệ thống')
 
 @section('content')
 <div class="container">
@@ -28,7 +28,7 @@
             <div class="card shadow-sm">
                 <div class="card-header bg-success text-white">
                     <h4 class="mb-0">
-                        <i class="fas fa-share-alt me-2"></i> Mạng Xã Hội
+                        <i class="fas fa-share-alt me-2"></i> Mạng xã hội
                     </h4>
                 </div>
                 <div class="card-body">
@@ -63,7 +63,7 @@
                                 <i class="fas fa-arrow-left me-2"></i> Quay lại
                             </a>
                             <button type="submit" class="btn btn-success">
-                                <i class="fas fa-save me-2"></i> Lưu Thay Đổi
+                                <i class="fas fa-save me-2"></i> Lưu thay đổi
                             </button>
                         </div>
                     </form>

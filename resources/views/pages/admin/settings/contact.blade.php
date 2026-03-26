@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Thông Tin Liên Hệ - Cài Đặt Hệ Thống')
+@section('title', 'Thông tin liên hệ - Cài đặt hệ thống')
 
 @push('styles')
 <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
@@ -47,7 +47,7 @@
             <div class="card shadow-sm">
                 <div class="card-header bg-primary text-white">
                     <h4 class="mb-0">
-                        <i class="fas fa-phone me-2"></i> Thông Tin Liên Hệ
+                        <i class="fas fa-phone me-2"></i> Thông tin liên hệ
                     </h4>
                 </div>
                 <div class="card-body">

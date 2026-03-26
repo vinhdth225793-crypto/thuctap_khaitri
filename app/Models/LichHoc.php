@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Carbon;
 
 class LichHoc extends Model
@@ -38,38 +39,6 @@ class LichHoc extends Model
         'trang_thai_bao_cao',
     ];
 
-    /**
-     * Relationship: Một buổi học có nhiều tài nguyên
-     */
-    public function taiNguyen(): HasMany
-    {
-        return $this->hasMany(TaiNguyenBuoiHoc::class, 'lich_hoc_id');
-    }
-
-    /**
-     * Relationship: M?t bu?i h?c c� nhi?u b�i gi?ng
-     */
-    public function baiGiangs(): HasMany
-    {
-        return $this->hasMany(BaiGiang::class, 'lich_hoc_id');
-    }
-
-    /**
-     * Relationship: Một buổi học có nhiều bài kiểm tra
-     */
-    public function baiKiemTras(): HasMany
-    {
-        return $this->hasMany(BaiKiemTra::class, 'lich_hoc_id');
-    }
-
-    /**
-     * Relationship: Một buổi học có nhiều bản ghi điểm danh
-     */
-    public function diemDanhs(): HasMany
-    {
-        return $this->hasMany(DiemDanh::class, 'lich_hoc_id');
-    }
-
     protected $casts = [
         'ngay_hoc' => 'date',
         'thoi_gian_bao_cao' => 'datetime',
@@ -77,49 +46,66 @@ class LichHoc extends Model
         'updated_at' => 'datetime',
     ];
 
-    /**
-     * Relationship: Thuộc về một khóa học
-     */
+    public static $thuLabels = [
+        2 => 'Thu 2',
+        3 => 'Thu 3',
+        4 => 'Thu 4',
+        5 => 'Thu 5',
+        6 => 'Thu 6',
+        7 => 'Thu 7',
+        8 => 'Chu nhat',
+    ];
+
+    public function taiNguyen(): HasMany
+    {
+        return $this->hasMany(TaiNguyenBuoiHoc::class, 'lich_hoc_id');
+    }
+
+    public function baiGiangs(): HasMany
+    {
+        return $this->hasMany(BaiGiang::class, 'lich_hoc_id');
+    }
+
+    public function baiKiemTras(): HasMany
+    {
+        return $this->hasMany(BaiKiemTra::class, 'lich_hoc_id');
+    }
+
+    public function diemDanhs(): HasMany
+    {
+        return $this->hasMany(DiemDanh::class, 'lich_hoc_id');
+    }
+
+    public function phongHocLives(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            PhongHocLive::class,
+            BaiGiang::class,
+            'lich_hoc_id',
+            'bai_giang_id',
+            'id',
+            'id'
+        );
+    }
+
     public function khoaHoc(): BelongsTo
     {
         return $this->belongsTo(KhoaHoc::class, 'khoa_hoc_id');
     }
 
-    /**
-     * Relationship: Thuộc về một module học
-     */
     public function moduleHoc(): BelongsTo
     {
         return $this->belongsTo(ModuleHoc::class, 'module_hoc_id');
     }
 
-    /**
-     * Relationship: Giảng viên phụ trách buổi này
-     */
     public function giangVien(): BelongsTo
     {
         return $this->belongsTo(GiangVien::class, 'giang_vien_id');
     }
 
-    /**
-     * Nhãn cho các thứ trong tuần
-     */
-    public static $thuLabels = [
-        2 => 'Thứ 2',
-        3 => 'Thứ 3',
-        4 => 'Thứ 4',
-        5 => 'Thứ 5',
-        6 => 'Thứ 6',
-        7 => 'Thứ 7',
-        8 => 'Chủ nhật',
-    ];
-
-    /**
-     * Accessor: Nhãn thứ trong tuần
-     */
     public function getThuLabelAttribute(): string
     {
-        return self::$thuLabels[$this->thu_trong_tuan] ?? '─';
+        return self::$thuLabels[$this->thu_trong_tuan] ?? '-';
     }
 
     public function getStartsAtAttribute(): ?Carbon
@@ -185,23 +171,17 @@ class LichHoc extends Model
         return $this->timeline_trang_thai === 'hoan_thanh';
     }
 
-    /**
-     * Accessor: Nhãn trạng thái buổi học
-     */
     public function getTrangThaiLabelAttribute(): string
     {
         return match ($this->timeline_trang_thai) {
-            'cho' => 'Chờ',
-            'dang_hoc' => 'Đang học',
-            'hoan_thanh' => 'Hoàn thành',
-            'huy' => 'Đã hủy',
-            default => '─',
+            'cho' => 'Cho',
+            'dang_hoc' => 'Dang hoc',
+            'hoan_thanh' => 'Hoan thanh',
+            'huy' => 'Da huy',
+            default => '-',
         };
     }
 
-    /**
-     * Accessor: Màu sắc trạng thái buổi học
-     */
     public function getTrangThaiColorAttribute(): string
     {
         return match ($this->timeline_trang_thai) {
@@ -213,21 +193,15 @@ class LichHoc extends Model
         };
     }
 
-    /**
-     * Accessor: Nhãn hình thức học
-     */
     public function getHinhThucLabelAttribute(): string
     {
         return match ($this->hinh_thuc) {
             'online' => 'Online',
-            'truc_tiep' => 'Trực tiếp',
-            default => 'Chưa cập nhật',
+            'truc_tiep' => 'Truc tiep',
+            default => 'Chua cap nhat',
         };
     }
 
-    /**
-     * Accessor: Màu hiển thị cho hình thức học
-     */
     public function getHinhThucColorAttribute(): string
     {
         return match ($this->hinh_thuc) {
@@ -237,20 +211,26 @@ class LichHoc extends Model
         };
     }
 
-    /**
-     * Accessor: Tên nền tảng học online
-     */
     public function getNenTangLabelAttribute(): string
     {
-        return filled($this->nen_tang) ? $this->nen_tang : 'Chưa cập nhật';
+        if ($phongHocLive = $this->studentLiveRoom) {
+            return $phongHocLive->platform_label;
+        }
+
+        $nenTang = $this->getLegacyNenTang();
+
+        return filled($nenTang) ? $nenTang : 'Chua cap nhat';
     }
 
-    /**
-     * Accessor: Kiểm tra học viên có thể vào lớp online hay không
-     */
     public function getCanJoinOnlineAttribute(): bool
     {
-        if ($this->hinh_thuc !== 'online' || blank($this->link_online) || $this->trang_thai === 'huy') {
+        if ($phongHocLive = $this->studentLiveRoom) {
+            return $phongHocLive->can_student_join;
+        }
+
+        $linkOnline = $this->getLegacyOnlineLink();
+
+        if ($this->hinh_thuc !== 'online' || blank($linkOnline) || $this->trang_thai === 'huy') {
             return false;
         }
 
@@ -268,42 +248,72 @@ class LichHoc extends Model
             && $now->lessThanOrEqualTo($endsAt);
     }
 
-    /**
-     * Accessor: Nhãn trạng thái truy cập lớp online
-     */
-    public function getOnlineJoinStateLabelAttribute(): string
+    public function getCanOpenOnlineRoomAttribute(): bool
     {
-        if ($this->hinh_thuc !== 'online') {
-            return 'Không áp dụng';
+        return $this->studentLiveRoom !== null || $this->can_join_online;
+    }
+
+    public function getOnlineEntryUrlAttribute(): ?string
+    {
+        if ($baiGiangLive = $this->studentLiveLecture) {
+            return route('hoc-vien.live-room.show', $baiGiangLive->id);
         }
 
-        if (blank($this->link_online)) {
-            return 'Chưa có link';
+        return $this->getLegacyOnlineLink();
+    }
+
+    public function getOnlineEntryTargetBlankAttribute(): bool
+    {
+        return $this->studentLiveRoom === null && filled($this->getLegacyOnlineLink());
+    }
+
+    public function getOnlineEntryLabelAttribute(): string
+    {
+        if ($phongHocLive = $this->studentLiveRoom) {
+            return $phongHocLive->can_student_join ? 'Vao phong live' : 'Xem phong live';
+        }
+
+        return 'Vao phong hoc';
+    }
+
+    public function getOnlineJoinStateLabelAttribute(): string
+    {
+        if ($phongHocLive = $this->studentLiveRoom) {
+            return $phongHocLive->timeline_trang_thai_label;
+        }
+
+        if ($this->hinh_thuc !== 'online') {
+            return 'Khong ap dung';
+        }
+
+        if (blank($this->getLegacyOnlineLink())) {
+            return 'Chua co link';
         }
 
         if ($this->can_join_online) {
-            return 'Có thể vào lớp';
+            return 'Co the vao lop';
         }
 
         return match ($this->timeline_trang_thai) {
-            'dang_hoc' => 'Có thể vào lớp',
-            'cho' => 'Chưa tới giờ',
-            'hoan_thanh' => 'Đã kết thúc',
-            'huy' => 'Đã hủy',
-            default => 'Chưa thể vào lớp',
+            'dang_hoc' => 'Co the vao lop',
+            'cho' => 'Chua toi gio',
+            'hoan_thanh' => 'Da ket thuc',
+            'huy' => 'Da huy',
+            default => 'Chua the vao lop',
         };
     }
 
-    /**
-     * Accessor: Màu trạng thái truy cập lớp online
-     */
     public function getOnlineJoinStateColorAttribute(): string
     {
+        if ($phongHocLive = $this->studentLiveRoom) {
+            return $phongHocLive->timeline_trang_thai_color;
+        }
+
         if ($this->hinh_thuc !== 'online') {
             return 'secondary';
         }
 
-        if (blank($this->link_online)) {
+        if (blank($this->getLegacyOnlineLink())) {
             return 'warning';
         }
 
@@ -320,33 +330,101 @@ class LichHoc extends Model
         };
     }
 
-    /**
-     * Accessor: Thông điệp hướng dẫn cho học viên khi vào lớp online
-     */
     public function getOnlineJoinMessageAttribute(): string
     {
-        if ($this->hinh_thuc !== 'online') {
-            return 'Buổi học này diễn ra trực tiếp tại lớp.';
+        if ($phongHocLive = $this->studentLiveRoom) {
+            return $phongHocLive->status_hint;
         }
 
-        if (blank($this->link_online)) {
-            return 'Giảng viên chưa cập nhật link phòng học online cho buổi này.';
+        if ($this->hinh_thuc !== 'online') {
+            return 'Buoi hoc nay dien ra truc tiep tai lop.';
+        }
+
+        if (blank($this->getLegacyOnlineLink())) {
+            return 'Giang vien chua cap nhat link phong hoc online cho buoi nay.';
         }
 
         if ($this->can_join_online) {
             if ($this->starts_at && now()->lt($this->starts_at)) {
-                return 'Phòng học online đã mở sớm để bạn chuẩn bị trước buổi học.';
+                return 'Phong hoc online da mo som de ban chuan bi truoc buoi hoc.';
             }
 
-            return 'Buổi học online đang diễn ra. Bạn có thể vào phòng học ngay bây giờ.';
+            return 'Buoi hoc online dang dien ra. Ban co the vao phong hoc ngay bay gio.';
         }
 
         return match ($this->timeline_trang_thai) {
-            'dang_hoc' => 'Buổi học online đang diễn ra nhưng bạn chưa thể vào phòng học lúc này.',
-            'cho' => 'Phòng học sẽ mở trước giờ bắt đầu khoảng ' . self::ONLINE_JOIN_EARLY_MINUTES . ' phút.',
-            'hoan_thanh' => 'Buổi học online này đã hoàn thành, phòng học không còn mở cho học viên.',
-            'huy' => 'Buổi học online này đã bị hủy. Vui lòng theo dõi thông báo mới từ giảng viên hoặc trung tâm.',
-            default => 'Hiện chưa đủ điều kiện để vào phòng học online.',
+            'dang_hoc' => 'Buoi hoc online dang dien ra nhung ban chua the vao phong hoc luc nay.',
+            'cho' => 'Phong hoc se mo truoc gio bat dau khoang ' . self::ONLINE_JOIN_EARLY_MINUTES . ' phut.',
+            'hoan_thanh' => 'Buoi hoc online nay da hoan thanh, phong hoc khong con mo cho hoc vien.',
+            'huy' => 'Buoi hoc online nay da bi huy. Vui long theo doi thong bao moi tu giang vien hoac trung tam.',
+            default => 'Hien chua du dieu kien de vao phong hoc online.',
         };
+    }
+
+    public function getMeetingIdAttribute($value): ?string
+    {
+        if ($phongHocLive = $this->studentLiveRoom) {
+            return $phongHocLive->du_lieu_nen_tang_json['meeting_id']
+                ?? $phongHocLive->du_lieu_nen_tang_json['meeting_code']
+                ?? $value;
+        }
+
+        return $value;
+    }
+
+    public function getMatKhauCuocHopAttribute($value): ?string
+    {
+        if ($phongHocLive = $this->studentLiveRoom) {
+            return $phongHocLive->du_lieu_nen_tang_json['passcode'] ?? $value;
+        }
+
+        return $value;
+    }
+
+    public function getStudentLiveLectureAttribute(): ?BaiGiang
+    {
+        if ($this->relationLoaded('baiGiangs')) {
+            return $this->baiGiangs
+                ->first(fn (BaiGiang $baiGiang) => $this->isStudentVisibleLiveLecture($baiGiang));
+        }
+
+        return $this->baiGiangs()
+            ->with('phongHocLive')
+            ->where('loai_bai_giang', BaiGiang::TYPE_LIVE)
+            ->where('trang_thai_duyet', BaiGiang::STATUS_DUYET_DA_DUYET)
+            ->where('trang_thai_cong_bo', BaiGiang::CONG_BO_DA_CONG_BO)
+            ->whereHas('phongHocLive', function ($query) {
+                $query->where('trang_thai_duyet', PhongHocLive::APPROVAL_DA_DUYET)
+                    ->where('trang_thai_cong_bo', PhongHocLive::PUBLISH_DA_CONG_BO);
+            })
+            ->orderBy('thu_tu_hien_thi')
+            ->first();
+    }
+
+    public function getStudentLiveRoomAttribute(): ?PhongHocLive
+    {
+        return $this->studentLiveLecture?->phongHocLive;
+    }
+
+    private function isStudentVisibleLiveLecture(BaiGiang $baiGiang): bool
+    {
+        return $baiGiang->isLive()
+            && $baiGiang->trang_thai_duyet === BaiGiang::STATUS_DUYET_DA_DUYET
+            && $baiGiang->trang_thai_cong_bo === BaiGiang::CONG_BO_DA_CONG_BO
+            && $baiGiang->phongHocLive
+            && $baiGiang->phongHocLive->trang_thai_duyet === PhongHocLive::APPROVAL_DA_DUYET
+            && $baiGiang->phongHocLive->trang_thai_cong_bo === PhongHocLive::PUBLISH_DA_CONG_BO;
+    }
+
+    private function getLegacyOnlineLink(): ?string
+    {
+        return $this->getRawOriginal('link_online')
+            ?: ($this->attributes['link_online'] ?? null);
+    }
+
+    private function getLegacyNenTang(): ?string
+    {
+        return $this->getRawOriginal('nen_tang')
+            ?: ($this->attributes['nen_tang'] ?? null);
     }
 }

@@ -2,7 +2,7 @@
     <div class="sidebar-header">
         <div class="sidebar-logo">
             <i class="fas fa-graduation-cap"></i>
-            <span>Hệ thống QL</span>
+            <span>Hệ thống quản lý</span>
         </div>
     </div>
 

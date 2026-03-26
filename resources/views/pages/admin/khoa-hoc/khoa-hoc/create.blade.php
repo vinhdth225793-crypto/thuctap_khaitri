@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Tạo Khóa học mẫu')
+@section('title', 'Tạo khóa học mẫu')
 
 @section('content')
 <div class="container-fluid">
@@ -20,7 +20,7 @@
     <!-- Header -->
     <div class="row mb-4">
         <div class="col-12">
-            <h4 class="fw-bold"><i class="fas fa-copy me-2 text-info"></i> Tạo Khóa học mẫu <span class="badge bg-info ms-2 fs-6 shadow-sm">Template</span></h4>
+            <h4 class="fw-bold"><i class="fas fa-copy me-2 text-info"></i> Tạo khóa học mẫu <span class="badge bg-info ms-2 fs-6 shadow-sm">Template</span></h4>
             <p class="text-muted small">Chuẩn bị nội dung chương trình học. Giảng viên và lịch dạy sẽ được thiết lập sau khi mở lớp thực tế.</p>
         </div>
     </div>

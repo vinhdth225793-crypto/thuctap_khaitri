@@ -168,8 +168,10 @@
                                                                 </div>
                                                             </div>
 
-                                                            @if($lich->can_join_online)
-                                                                <a href="{{ $lich->link_online }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-info text-white fw-bold px-3">
+                                                            @if($lich->can_open_online_room)
+                                                                <a href="{{ $lich->online_entry_url }}"
+                                                                   @if($lich->online_entry_target_blank) target="_blank" rel="noopener noreferrer" @endif
+                                                                   class="btn btn-sm btn-info text-white fw-bold px-3">
                                                                     VÀO PHÒNG HỌC
                                                                 </a>
                                                             @endif
@@ -194,14 +196,17 @@
                                                                             <i class="fas fa-book-reader"></i>
                                                                         </div>
                                                                         <div class="min-w-0 flex-grow-1">
-                                                                            <div class="mb-1">
+                                                                            <div class="mb-1 d-flex flex-wrap gap-2">
                                                                                 <span class="badge bg-light text-dark border smaller py-1 px-2">{{ $bg->loai_bai_giang }}</span>
+                                                                                @if($bg->isLive() && $bg->phongHocLive)
+                                                                                    <span class="badge bg-info-soft text-info border-0 smaller py-1 px-2">{{ $bg->phongHocLive->platform_label }}</span>
+                                                                                @endif
                                                                             </div>
                                                                             <h6 class="small fw-bold text-dark mb-2">{{ $bg->tieu_de }}</h6>
                                                                             <p class="smaller text-muted mb-3 line-clamp-2">
                                                                                 {{ $bg->mo_ta ?: 'Click để xem chi tiết bài giảng này.' }}
                                                                             </p>
-                                                                            <a href="{{ route('hoc-vien.bai-giang.show', $bg->id) }}" class="btn btn-sm btn-primary fw-bold px-3 stretched-link">
+                                                                            <a href="{{ $bg->isLive() && $bg->phongHocLive ? route('hoc-vien.live-room.show', $bg->id) : route('hoc-vien.bai-giang.show', $bg->id) }}" class="btn btn-sm btn-primary fw-bold px-3 stretched-link">
                                                                                 <i class="fas fa-arrow-right me-1"></i> Vào học
                                                                             </a>
                                                                         </div>

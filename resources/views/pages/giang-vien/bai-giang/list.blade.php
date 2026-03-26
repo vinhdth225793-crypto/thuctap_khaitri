@@ -55,6 +55,9 @@
                                 </td>
                                 <td class="text-center">
                                     <span class="badge bg-light text-dark border">{{ $bg->loai_bai_giang }}</span>
+                                    @if($bg->isLive() && $bg->phongHocLive)
+                                        <div class="small text-muted mt-1">{{ $bg->phongHocLive->platform_label }}</div>
+                                    @endif
                                 </td>
                                 <td class="text-center">
                                     @php
@@ -87,6 +90,11 @@
                                         <a href="{{ route('giang-vien.bai-giang.edit', $bg->id) }}" class="btn btn-sm btn-outline-primary" title="Chỉnh sửa">
                                             <i class="fas fa-edit"></i>
                                         </a>
+                                        @if($bg->isLive() && $bg->phongHocLive)
+                                            <a href="{{ route('giang-vien.live-room.show', $bg->id) }}" class="btn btn-sm btn-outline-dark" title="Phong hoc live">
+                                                <i class="fas fa-video"></i>
+                                            </a>
+                                        @endif
                                         @if($bg->trang_thai_duyet === 'nhap' || $bg->trang_thai_duyet === 'can_chinh_sua')
                                             <form action="{{ route('giang-vien.bai-giang.gui-duyet', $bg->id) }}" method="POST" class="d-inline">
                                                 @csrf

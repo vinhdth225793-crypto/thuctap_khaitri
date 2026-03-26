@@ -205,6 +205,7 @@ class HocVienController extends Controller
                                 ->with([
                                     'baiGiangs' => function ($bgQuery) {
                                         $bgQuery->hienThiChoHocVien()
+                                            ->with('phongHocLive')
                                             ->orderBy('thu_tu_hien_thi');
                                     },
                                 ])
@@ -227,17 +228,22 @@ class HocVienController extends Controller
 
     public function chiTietBaiGiang($id)
     {
-        $baiGiang = BaiGiang::with(['taiNguyenChinh', 'taiNguyenPhu', 'khoaHoc', 'moduleHoc'])
+        $baiGiang = BaiGiang::with(['taiNguyenChinh', 'taiNguyenPhu', 'khoaHoc', 'moduleHoc', 'phongHocLive'])
             ->hienThiChoHocVien()
             ->findOrFail($id);
 
-        // Ki?m tra h?c vi�n c� dang k� kh�a h?c n�y kh�ng
+        // Kiểm tra học viên có đăng ký khóa học này không
         $daGhiDanh = HocVienKhoaHoc::where('khoa_hoc_id', $baiGiang->khoa_hoc_id)
             ->where('hoc_vien_id', auth()->user()->ma_nguoi_dung)
+            ->whereIn('trang_thai', ['dang_hoc', 'hoan_thanh'])
             ->exists();
 
         if (!$daGhiDanh) {
-            return redirect()->route('hoc-vien.khoa-hoc-cua-toi')->with('error', 'B?n chua dang k� kh�a h?c n�y.');
+            return redirect()->route('hoc-vien.khoa-hoc-cua-toi')->with('error', 'Bạn chưa đăng ký khóa học này.');
+        }
+
+        if ($baiGiang->isLive() && $baiGiang->phongHocLive) {
+            return redirect()->route('hoc-vien.live-room.show', $baiGiang->id);
         }
 
         return view('pages.hoc-vien.bai-giang.show', compact('baiGiang'));
@@ -281,6 +287,12 @@ class HocVienController extends Controller
                 ->with([
                     'khoaHoc:id,ten_khoa_hoc,ma_khoa_hoc',
                     'moduleHoc:id,ten_module,ma_module',
+                    'baiGiangs' => function ($query) {
+                        $query->where('loai_bai_giang', BaiGiang::TYPE_LIVE)
+                            ->where('trang_thai_duyet', BaiGiang::STATUS_DUYET_DA_DUYET)
+                            ->where('trang_thai_cong_bo', BaiGiang::CONG_BO_DA_CONG_BO)
+                            ->with('phongHocLive');
+                    },
                 ])
                 ->whereIn('khoa_hoc_id', $tatCaKhoaHocIds->all())
                 ->where('trang_thai', '!=', 'huy')
@@ -515,7 +527,7 @@ class HocVienController extends Controller
                 'sort_at' => $taiLieu->created_at,
                 'icon' => 'fa-folder-open',
                 'color' => 'info',
-                'title' => 'Tai lieu moi duoc cong khai',
+                'title' => 'Tài liệu mới được công khai',
                 'description' => $taiLieu->tieu_de,
                 'meta' => optional(optional($taiLieu->lichHoc)->khoaHoc)->ten_khoa_hoc,
             ];
@@ -531,7 +543,7 @@ class HocVienController extends Controller
                 'sort_at' => $sortAt,
                 'icon' => 'fa-calendar-check',
                 'color' => 'primary',
-                'title' => 'Hoan thanh buoi hoc',
+                'title' => 'Hoàn thành buổi học',
                 'description' => trim(collect([
                     optional($lichHoc->khoaHoc)->ten_khoa_hoc,
                     optional($lichHoc->moduleHoc)->ten_module,

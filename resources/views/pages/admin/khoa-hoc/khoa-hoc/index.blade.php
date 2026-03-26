@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Quản lý Khóa học')
+@section('title', 'Quản lý khóa học')
 
 @section('content')
 <div class="container-fluid">
@@ -9,7 +9,7 @@
         <div class="col-md-6">
             <h4 class="fw-bold mb-0">
                 <i class="fas fa-layer-group me-2 text-primary"></i>
-                Quản lý Khóa học & Lớp học
+                Quản lý khóa học & lớp học
             </h4>
         </div>
         <div class="col-md-6 text-md-end mt-3 mt-md-0">

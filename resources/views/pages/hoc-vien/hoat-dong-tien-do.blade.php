@@ -216,8 +216,10 @@
                                 <a href="{{ route('hoc-vien.chi-tiet-khoa-hoc', $lichHoc->khoa_hoc_id) }}" class="btn btn-sm btn-outline-primary">
                                     Xem khóa học
                                 </a>
-                                @if($lichHoc->can_join_online)
-                                    <a href="{{ $lichHoc->link_online }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary">
+                                @if($lichHoc->can_open_online_room)
+                                    <a href="{{ $lichHoc->online_entry_url }}"
+                                       @if($lichHoc->online_entry_target_blank) target="_blank" rel="noopener noreferrer" @endif
+                                       class="btn btn-sm btn-primary">
                                         Vào phòng học
                                     </a>
                                 @endif

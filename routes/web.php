@@ -18,7 +18,9 @@ use App\Http\Controllers\GiangVien\TaiNguyenController;
 use App\Http\Controllers\GiangVien\DiemDanhController;
 use App\Http\Controllers\GiangVien\BaiKiemTraController;
 use App\Http\Controllers\GiangVien\BaiGiangController;
+use App\Http\Controllers\GiangVien\LiveRoomController as GiangVienLiveRoomController;
 use App\Http\Controllers\HocVien\BaiKiemTraController as HocVienBaiKiemTraController;
+use App\Http\Controllers\HocVien\LiveRoomController as HocVienLiveRoomController;
 use App\Http\Controllers\GiangVienController;
 use App\Http\Controllers\HocVienController;
 use App\Http\Controllers\ThongBaoController;
@@ -182,6 +184,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
 
     Route::prefix('bai-giang-phe-duyet')->name('bai-giang.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\BaiGiangController::class, 'index'])->name('index');
+        Route::get('/create', [App\Http\Controllers\Admin\BaiGiangController::class, 'create'])->name('create');
+        Route::post('/', [App\Http\Controllers\Admin\BaiGiangController::class, 'store'])->name('store');
+        Route::get('/ajax/get-lich-hoc', [App\Http\Controllers\Admin\BaiGiangController::class, 'getLichHoc'])->name('get-lich-hoc');
+        Route::get('/{id}/edit', [App\Http\Controllers\Admin\BaiGiangController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [App\Http\Controllers\Admin\BaiGiangController::class, 'update'])->name('update');
         Route::get('/{id}', [App\Http\Controllers\Admin\BaiGiangController::class, 'show'])->name('show');
         Route::post('/{id}/duyet', [App\Http\Controllers\Admin\BaiGiangController::class, 'duyet'])->name('duyet');
         Route::post('/{id}/cong-bo', [App\Http\Controllers\Admin\BaiGiangController::class, 'congBo'])->name('cong-bo');
@@ -281,6 +288,16 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
         Route::get('/ajax/get-lich-hoc', [BaiGiangController::class, 'getLichHoc'])->name('get-lich-hoc');
     });
 
+    Route::prefix('live-room')->name('live-room.')->group(function () {
+        Route::get('/{id}', [GiangVienLiveRoomController::class, 'show'])->name('show');
+        Route::post('/{id}/start', [GiangVienLiveRoomController::class, 'start'])->name('start');
+        Route::post('/{id}/join', [GiangVienLiveRoomController::class, 'join'])->name('join');
+        Route::post('/{id}/leave', [GiangVienLiveRoomController::class, 'leave'])->name('leave');
+        Route::post('/{id}/end', [GiangVienLiveRoomController::class, 'end'])->name('end');
+        Route::post('/{id}/recordings', [GiangVienLiveRoomController::class, 'storeRecording'])->name('recordings.store');
+        Route::delete('/{id}/recordings/{recordingId}', [GiangVienLiveRoomController::class, 'destroyRecording'])->name('recordings.destroy');
+    });
+
     // Điểm danh (Flow 4 - Phase 1)
     Route::get('/buoi-hoc/{lichHocId}/diem-danh', [App\Http\Controllers\GiangVien\DiemDanhController::class, 'show'])->name('buoi-hoc.diem-danh.show');
     Route::post('/buoi-hoc/{lichHocId}/diem-danh', [App\Http\Controllers\GiangVien\DiemDanhController::class, 'store'])->name('buoi-hoc.diem-danh.store');
@@ -320,6 +337,9 @@ Route::prefix('hoc-vien')->name('hoc-vien.')->middleware(['auth', \App\Http\Midd
     Route::post('/khoa-hoc/{khoaHocId}/xin-tham-gia', [HocVienController::class, 'guiYeuCauThamGia'])->name('khoa-hoc.gui-yeu-cau-tham-gia');
     Route::get('/khoa-hoc/{id}', [HocVienController::class, 'chiTietKhoaHoc'])->name('chi-tiet-khoa-hoc');
     Route::get('/bai-giang/{id}', [HocVienController::class, 'chiTietBaiGiang'])->name('bai-giang.show');
+    Route::get('/live-room/{id}', [HocVienLiveRoomController::class, 'show'])->name('live-room.show');
+    Route::post('/live-room/{id}/join', [HocVienLiveRoomController::class, 'join'])->name('live-room.join');
+    Route::post('/live-room/{id}/leave', [HocVienLiveRoomController::class, 'leave'])->name('live-room.leave');
     
     Route::get('/profile', [HocVienController::class, 'profile'])->name('profile');
     Route::post('/profile', [HocVienController::class, 'updateProfile'])->name('profile.update');

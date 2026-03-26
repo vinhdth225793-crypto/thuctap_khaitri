@@ -136,6 +136,18 @@ class KhoaHoc extends Model
         return $this->hasMany(BaiKiemTra::class, 'khoa_hoc_id')->orderByDesc('created_at');
     }
 
+    public function phongHocLives()
+    {
+        return $this->hasManyThrough(
+            PhongHocLive::class,
+            BaiGiang::class,
+            'khoa_hoc_id',
+            'bai_giang_id',
+            'id',
+            'id'
+        );
+    }
+
     public function nganHangCauHois(): HasMany
     {
         return $this->hasMany(NganHangCauHoi::class, 'khoa_hoc_id')->orderByDesc('created_at');
