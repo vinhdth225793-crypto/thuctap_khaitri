@@ -331,7 +331,8 @@ class BaiKiemTraController extends Controller
         return NganHangCauHoi::query()
             ->where('khoa_hoc_id', $baiKiemTra->khoa_hoc_id)
             ->when($baiKiemTra->loai_bai_kiem_tra !== 'cuoi_khoa' && $baiKiemTra->module_hoc_id, fn ($query) => $query->where('module_hoc_id', $baiKiemTra->module_hoc_id))
-            ->where('trang_thai', 'san_sang');
+            ->where('trang_thai', 'san_sang')
+            ->dungChoFlowRaDeHienTai();
     }
 
     /**

@@ -8,7 +8,16 @@
 
     <p><strong>Họ tên:</strong> {{ $nguoiDung->ho_ten }}</p>
     <p><strong>Email:</strong> {{ $nguoiDung->email }}</p>
-    <p><strong>Vai trò:</strong> {{ ucfirst(str_replace('_',' ',$nguoiDung->vai_tro)) }}</p>
+    <p><strong>Vai trò:</strong> 
+        @php
+            $vaiTroMap = [
+                'admin' => 'Quản trị viên',
+                'giang_vien' => 'Giảng viên',
+                'hoc_vien' => 'Học viên'
+            ];
+        @endphp
+        <span class="badge bg-light text-dark border">{{ $vaiTroMap[$nguoiDung->vai_tro] ?? $nguoiDung->vai_tro }}</span>
+    </p>
     <p><strong>Số điện thoại:</strong> {{ $nguoiDung->so_dien_thoai }}</p>
     <p><strong>Ngày sinh:</strong> {{ optional($nguoiDung->ngay_sinh)->format('d/m/Y') }}</p>
     <p><strong>Địa chỉ:</strong> {{ $nguoiDung->dia_chi }}</p>

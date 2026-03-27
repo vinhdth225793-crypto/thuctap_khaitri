@@ -3,17 +3,18 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\UpsertNganHangCauHoiRequest;
 use App\Models\KhoaHoc;
 use App\Models\ModuleHoc;
 use App\Models\NganHangCauHoi;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class NganHangCauHoiController extends Controller
 {
-    private function getAccessibleKhoaHocs()
+    private function getAccessibleKhoaHocs(): Collection
     {
         $user = auth()->user();
         $query = KhoaHoc::query();
@@ -30,10 +31,49 @@ class NganHangCauHoiController extends Controller
         return $query->orderBy('ten_khoa_hoc')->get(['id', 'ten_khoa_hoc', 'ma_khoa_hoc']);
     }
 
+    private function getAccessibleModules(Collection $khoaHocs): Collection
+    {
+        if ($khoaHocs->isEmpty()) {
+            return collect();
+        }
+
+        return ModuleHoc::query()
+            ->whereIn('khoa_hoc_id', $khoaHocs->pluck('id'))
+            ->orderBy('khoa_hoc_id')
+            ->orderBy('thu_tu_module')
+            ->get(['id', 'khoa_hoc_id', 'ten_module', 'ma_module']);
+    }
+
+    private function getViewOptions(): array
+    {
+        return [
+            'difficultyOptions' => [
+                'de' => 'Dễ',
+                'trung_binh' => 'Trung bình',
+                'kho' => 'Khó',
+            ],
+            'statusOptions' => [
+                NganHangCauHoi::TRANG_THAI_NHAP => 'Nháp',
+                NganHangCauHoi::TRANG_THAI_SAN_SANG => 'Sẵn sàng',
+                NganHangCauHoi::TRANG_THAI_TAM_AN => 'Tạm ẩn',
+            ],
+            'questionTypeOptions' => [
+                NganHangCauHoi::LOAI_TRAC_NGHIEM => 'Trắc nghiệm',
+                NganHangCauHoi::LOAI_TU_LUAN => 'Tự luận',
+            ],
+            'answerModeOptions' => [
+                NganHangCauHoi::KIEU_MOT_DAP_AN => 'Một đáp án đúng',
+                NganHangCauHoi::KIEU_NHIEU_DAP_AN => 'Nhiều đáp án đúng',
+                NganHangCauHoi::KIEU_DUNG_SAI => 'Đúng / Sai',
+            ],
+        ];
+    }
+
     public function index(Request $request)
     {
         $user = auth()->user();
         $khoaHocs = $this->getAccessibleKhoaHocs();
+        $modules = $this->getAccessibleModules($khoaHocs);
         $khoaHocIds = $khoaHocs->pluck('id')->all();
 
         $query = NganHangCauHoi::with(['khoaHoc', 'moduleHoc', 'nguoiTao', 'dapAns']);
@@ -46,37 +86,78 @@ class NganHangCauHoiController extends Controller
             $query->where('khoa_hoc_id', $request->integer('khoa_hoc_id'));
         }
 
+        if ($request->filled('module_hoc_id')) {
+            $query->where('module_hoc_id', $request->integer('module_hoc_id'));
+        }
+
+        if ($request->filled('loai_cau_hoi')) {
+            $query->where('loai_cau_hoi', (string) $request->string('loai_cau_hoi'));
+        }
+
+        if ($request->filled('kieu_dap_an')) {
+            $query->where('kieu_dap_an', (string) $request->string('kieu_dap_an'));
+        }
+
+        if ($request->filled('muc_do')) {
+            $query->where('muc_do', (string) $request->string('muc_do'));
+        }
+
+        if ($request->filled('trang_thai')) {
+            $query->where('trang_thai', (string) $request->string('trang_thai'));
+        }
+
+        if ($request->filled('co_the_tai_su_dung')) {
+            $query->where('co_the_tai_su_dung', $request->string('co_the_tai_su_dung') === '1');
+        }
+
         if ($request->filled('search')) {
             $search = trim((string) $request->string('search'));
-            $query->where('noi_dung', 'like', "%{$search}%");
+            $query->where(function ($nestedQuery) use ($search) {
+                $nestedQuery->where('noi_dung', 'like', "%{$search}%")
+                    ->orWhere('ma_cau_hoi', 'like', "%{$search}%");
+            });
         }
 
         $cauHois = $query->orderByDesc('created_at')->paginate(15)->withQueryString();
 
-        return view('pages.admin.kiem-tra-online.cau-hoi.index', compact('cauHois', 'khoaHocs'));
+        return view('pages.admin.question-bank.index', array_merge(
+            compact('cauHois', 'khoaHocs', 'modules'),
+            $this->getViewOptions()
+        ));
     }
 
     public function create()
     {
-        return view('pages.admin.kiem-tra-online.cau-hoi.form', [
-            'cauHoi' => new NganHangCauHoi(),
-            'khoaHocs' => $this->getAccessibleKhoaHocs(),
+        $khoaHocs = $this->getAccessibleKhoaHocs();
+        $modules = $this->getAccessibleModules($khoaHocs);
+
+        return view('pages.admin.question-bank.form', array_merge([
+            'cauHoi' => new NganHangCauHoi([
+                'loai_cau_hoi' => NganHangCauHoi::LOAI_TRAC_NGHIEM,
+                'kieu_dap_an' => NganHangCauHoi::KIEU_MOT_DAP_AN,
+                'muc_do' => 'trung_binh',
+                'diem_mac_dinh' => 1,
+                'trang_thai' => NganHangCauHoi::TRANG_THAI_NHAP,
+                'co_the_tai_su_dung' => true,
+            ]),
+            'khoaHocs' => $khoaHocs,
+            'modules' => $modules,
             'action' => route('admin.kiem-tra-online.cau-hoi.store'),
             'method' => 'POST',
-            'title' => 'Thêm mới câu hỏi thủ công',
-        ]);
+            'title' => 'Thêm mới câu hỏi',
+        ], $this->getViewOptions()));
     }
 
-    public function store(Request $request)
+    public function store(UpsertNganHangCauHoiRequest $request)
     {
         $user = auth()->user();
-        $payload = $this->buildQuestionPayload($request);
+        $payload = $this->buildQuestionPayload($request->validated());
 
         $this->authorizeCourseAccess($user, $payload['khoa_hoc_id']);
 
         if (NganHangCauHoi::isDuplicate($payload['khoa_hoc_id'], $payload['noi_dung'])) {
             throw ValidationException::withMessages([
-                'noi_dung_cau_hoi' => 'Nội dung câu hỏi này đã tồn tại trong khóa học này.',
+                'noi_dung_cau_hoi' => 'Nội dung câu hỏi này đã tồn tại trong khóa học đã chọn.',
             ]);
         }
 
@@ -88,8 +169,11 @@ class NganHangCauHoiController extends Controller
                 'ma_cau_hoi' => $payload['ma_cau_hoi'],
                 'noi_dung' => $payload['noi_dung'],
                 'loai_cau_hoi' => $payload['loai_cau_hoi'],
+                'kieu_dap_an' => $payload['kieu_dap_an'],
                 'muc_do' => $payload['muc_do'],
                 'diem_mac_dinh' => $payload['diem_mac_dinh'],
+                'goi_y_tra_loi' => $payload['goi_y_tra_loi'],
+                'giai_thich_dap_an' => $payload['giai_thich_dap_an'],
                 'trang_thai' => $payload['trang_thai'],
                 'co_the_tai_su_dung' => $payload['co_the_tai_su_dung'],
             ]);
@@ -106,29 +190,32 @@ class NganHangCauHoiController extends Controller
     {
         $user = auth()->user();
         $cauHoi = NganHangCauHoi::with('dapAns')->findOrFail($id);
+        $khoaHocs = $this->getAccessibleKhoaHocs();
+        $modules = $this->getAccessibleModules($khoaHocs);
 
         $this->authorizeCourseAccess($user, (int) $cauHoi->khoa_hoc_id);
 
-        return view('pages.admin.kiem-tra-online.cau-hoi.form', [
+        return view('pages.admin.question-bank.form', array_merge([
             'cauHoi' => $cauHoi,
-            'khoaHocs' => $this->getAccessibleKhoaHocs(),
+            'khoaHocs' => $khoaHocs,
+            'modules' => $modules,
             'action' => route('admin.kiem-tra-online.cau-hoi.update', $cauHoi->id),
             'method' => 'PUT',
             'title' => 'Chỉnh sửa câu hỏi',
-        ]);
+        ], $this->getViewOptions()));
     }
 
-    public function update(Request $request, $id)
+    public function update(UpsertNganHangCauHoiRequest $request, $id)
     {
         $user = auth()->user();
         $cauHoi = NganHangCauHoi::with('dapAns')->findOrFail($id);
-        $payload = $this->buildQuestionPayload($request, $cauHoi);
+        $payload = $this->buildQuestionPayload($request->validated(), $cauHoi);
 
         $this->authorizeCourseAccess($user, $payload['khoa_hoc_id'], (int) $cauHoi->khoa_hoc_id);
 
         if (NganHangCauHoi::isDuplicate($payload['khoa_hoc_id'], $payload['noi_dung'], $cauHoi->id)) {
             throw ValidationException::withMessages([
-                'noi_dung_cau_hoi' => 'Nội dung câu hỏi này đã tồn tại trong khóa học này.',
+                'noi_dung_cau_hoi' => 'Nội dung câu hỏi này đã tồn tại trong khóa học đã chọn.',
             ]);
         }
 
@@ -139,8 +226,11 @@ class NganHangCauHoiController extends Controller
                 'ma_cau_hoi' => $payload['ma_cau_hoi'] ?: $cauHoi->ma_cau_hoi ?: NganHangCauHoi::generateQuestionCode(),
                 'noi_dung' => $payload['noi_dung'],
                 'loai_cau_hoi' => $payload['loai_cau_hoi'],
+                'kieu_dap_an' => $payload['kieu_dap_an'],
                 'muc_do' => $payload['muc_do'],
                 'diem_mac_dinh' => $payload['diem_mac_dinh'],
+                'goi_y_tra_loi' => $payload['goi_y_tra_loi'],
+                'giai_thich_dap_an' => $payload['giai_thich_dap_an'],
                 'trang_thai' => $payload['trang_thai'],
                 'co_the_tai_su_dung' => $payload['co_the_tai_su_dung'],
             ]);
@@ -163,6 +253,34 @@ class NganHangCauHoiController extends Controller
         $cauHoi->delete();
 
         return back()->with('success', 'Đã xóa câu hỏi.');
+    }
+
+    public function toggleStatus($id)
+    {
+        $cauHoi = NganHangCauHoi::findOrFail($id);
+        $this->authorizeCourseAccess(auth()->user(), (int) $cauHoi->khoa_hoc_id);
+
+        $nextStatus = match ($cauHoi->trang_thai) {
+            NganHangCauHoi::TRANG_THAI_SAN_SANG => NganHangCauHoi::TRANG_THAI_TAM_AN,
+            NganHangCauHoi::TRANG_THAI_TAM_AN => NganHangCauHoi::TRANG_THAI_SAN_SANG,
+            default => NganHangCauHoi::TRANG_THAI_SAN_SANG,
+        };
+
+        $cauHoi->update(['trang_thai' => $nextStatus]);
+
+        return back()->with('success', 'Đã cập nhật trạng thái hiển thị của câu hỏi.');
+    }
+
+    public function toggleReusable($id)
+    {
+        $cauHoi = NganHangCauHoi::findOrFail($id);
+        $this->authorizeCourseAccess(auth()->user(), (int) $cauHoi->khoa_hoc_id);
+
+        $cauHoi->update([
+            'co_the_tai_su_dung' => !$cauHoi->co_the_tai_su_dung,
+        ]);
+
+        return back()->with('success', 'Đã cập nhật cờ tái sử dụng của câu hỏi.');
     }
 
     public function downloadTemplate()
@@ -267,7 +385,7 @@ class NganHangCauHoiController extends Controller
                 ];
 
                 try {
-                    $this->validateAnswers($answers);
+                    $this->validateAnswers($answers, NganHangCauHoi::KIEU_MOT_DAP_AN);
                 } catch (ValidationException $exception) {
                     $status = 'loi_du_lieu';
                     $note = collect($exception->errors())->flatten()->first() ?? 'Dữ liệu đáp án không hợp lệ.';
@@ -325,10 +443,12 @@ class NganHangCauHoiController extends Controller
     {
         $preview = session('import_preview');
         if (!$preview) {
-            return redirect()->route('admin.kiem-tra-online.cau-hoi.index')->with('error', 'Không tìm thấy dữ liệu xem trước.');
+            return redirect()
+                ->route('admin.kiem-tra-online.cau-hoi.index')
+                ->with('error', 'Không tìm thấy dữ liệu xem trước.');
         }
 
-        return view('pages.admin.kiem-tra-online.cau-hoi.preview', compact('preview'));
+        return view('pages.admin.question-bank.preview', compact('preview'));
     }
 
     public function confirmImport(Request $request)
@@ -336,7 +456,10 @@ class NganHangCauHoiController extends Controller
         $preview = session('import_preview');
         if (!$preview || $preview['user_id'] != auth()->id()) {
             session()->forget('import_preview');
-            return redirect()->route('admin.kiem-tra-online.cau-hoi.index')->with('error', 'Hết hạn phiên làm việc hoặc phiên không hợp lệ. Hãy thử import lại.');
+
+            return redirect()
+                ->route('admin.kiem-tra-online.cau-hoi.index')
+                ->with('error', 'Phiên import không còn hợp lệ. Vui lòng thực hiện lại.');
         }
 
         $khoaHocId = (int) $preview['khoa_hoc_id'];
@@ -355,10 +478,11 @@ class NganHangCauHoiController extends Controller
                     'nguoi_tao_id' => $userId,
                     'ma_cau_hoi' => NganHangCauHoi::generateQuestionCode(),
                     'noi_dung' => $item['noi_dung_cau_hoi'],
-                    'loai_cau_hoi' => 'trac_nghiem',
+                    'loai_cau_hoi' => NganHangCauHoi::LOAI_TRAC_NGHIEM,
+                    'kieu_dap_an' => NganHangCauHoi::KIEU_MOT_DAP_AN,
                     'muc_do' => 'trung_binh',
                     'diem_mac_dinh' => 1,
-                    'trang_thai' => 'san_sang',
+                    'trang_thai' => NganHangCauHoi::TRANG_THAI_SAN_SANG,
                     'co_the_tai_su_dung' => true,
                 ]);
 
@@ -396,33 +520,8 @@ class NganHangCauHoiController extends Controller
         }
     }
 
-    private function buildQuestionPayload(Request $request, ?NganHangCauHoi $existing = null): array
+    private function buildQuestionPayload(array $validated, ?NganHangCauHoi $existing = null): array
     {
-        $validated = $request->validate([
-            'khoa_hoc_id' => 'required|exists:khoa_hoc,id',
-            'module_hoc_id' => 'nullable|exists:module_hoc,id',
-            'ma_cau_hoi' => [
-                'nullable',
-                'string',
-                'max:60',
-                Rule::unique('ngan_hang_cau_hoi', 'ma_cau_hoi')->ignore($existing?->id),
-            ],
-            'noi_dung' => 'nullable|string',
-            'noi_dung_cau_hoi' => 'nullable|string',
-            'loai_cau_hoi' => 'nullable|in:trac_nghiem,tu_luan',
-            'muc_do' => 'nullable|in:de,trung_binh,kho',
-            'diem_mac_dinh' => 'nullable|numeric|min:0.25|max:100',
-            'trang_thai' => 'nullable|string|max:50',
-            'co_the_tai_su_dung' => 'nullable|boolean',
-            'dap_an_dung' => 'nullable|string',
-            'dap_an_sai_1' => 'nullable|string',
-            'dap_an_sai_2' => 'nullable|string',
-            'dap_an_sai_3' => 'nullable|string',
-            'dap_ans' => 'nullable|array|min:2',
-            'dap_ans.*.ky_hieu' => 'nullable|string|max:20',
-            'dap_ans.*.noi_dung' => 'nullable|string',
-        ]);
-
         $noiDung = trim((string) ($validated['noi_dung'] ?? $validated['noi_dung_cau_hoi'] ?? ''));
         if ($noiDung === '') {
             throw ValidationException::withMessages([
@@ -447,26 +546,25 @@ class NganHangCauHoiController extends Controller
             }
         }
 
-        $loaiCauHoi = $validated['loai_cau_hoi'] ?? 'trac_nghiem';
-        $answers = [];
+        $loaiCauHoi = (string) $validated['loai_cau_hoi'];
+        $kieuDapAn = $loaiCauHoi === NganHangCauHoi::LOAI_TU_LUAN
+            ? null
+            : (string) ($validated['kieu_dap_an'] ?? NganHangCauHoi::KIEU_MOT_DAP_AN);
 
-        if ($loaiCauHoi === 'trac_nghiem') {
-            $answers = !empty($validated['dap_ans'])
-                ? $this->normalizeStructuredAnswers($validated)
-                : $this->normalizeLegacyAnswers($validated);
-
-            $this->validateAnswers($answers);
-        }
+        $answers = $this->buildAnswers($validated, $loaiCauHoi, $kieuDapAn);
 
         return [
             'khoa_hoc_id' => (int) $validated['khoa_hoc_id'],
             'module_hoc_id' => $moduleHocId,
-            'ma_cau_hoi' => trim((string) ($validated['ma_cau_hoi'] ?? '')) ?: null,
+            'ma_cau_hoi' => trim((string) ($validated['ma_cau_hoi'] ?? '')) ?: ($existing?->ma_cau_hoi ?: NganHangCauHoi::generateQuestionCode()),
             'noi_dung' => $noiDung,
             'loai_cau_hoi' => $loaiCauHoi,
-            'muc_do' => $validated['muc_do'] ?? 'trung_binh',
+            'kieu_dap_an' => $kieuDapAn,
+            'muc_do' => (string) ($validated['muc_do'] ?? 'trung_binh'),
             'diem_mac_dinh' => (float) ($validated['diem_mac_dinh'] ?? 1),
-            'trang_thai' => $validated['trang_thai'] ?? 'san_sang',
+            'goi_y_tra_loi' => trim((string) ($validated['goi_y_tra_loi'] ?? '')) ?: null,
+            'giai_thich_dap_an' => trim((string) ($validated['giai_thich_dap_an'] ?? '')) ?: null,
+            'trang_thai' => (string) ($validated['trang_thai'] ?? NganHangCauHoi::TRANG_THAI_NHAP),
             'co_the_tai_su_dung' => array_key_exists('co_the_tai_su_dung', $validated)
                 ? (bool) $validated['co_the_tai_su_dung']
                 : true,
@@ -474,12 +572,65 @@ class NganHangCauHoiController extends Controller
         ];
     }
 
-    private function normalizeStructuredAnswers(array $validated): array
+    private function buildAnswers(array $validated, string $loaiCauHoi, ?string $kieuDapAn): array
     {
-        $correctToken = NganHangCauHoi::normalizeString($validated['dap_an_dung'] ?? '');
-        $answers = [];
+        if ($loaiCauHoi === NganHangCauHoi::LOAI_TU_LUAN) {
+            return [];
+        }
 
-        foreach (array_values($validated['dap_ans'] ?? []) as $index => $answer) {
+        if ($kieuDapAn === NganHangCauHoi::KIEU_DUNG_SAI) {
+            $answers = $this->buildTrueFalseAnswers($validated);
+            $this->validateAnswers($answers, NganHangCauHoi::KIEU_DUNG_SAI);
+
+            return $answers;
+        }
+
+        $answers = !empty($validated['dap_ans'])
+            ? $this->normalizeStructuredAnswers($validated, $kieuDapAn ?? NganHangCauHoi::KIEU_MOT_DAP_AN)
+            : $this->normalizeLegacyAnswers($validated);
+
+        $this->validateAnswers($answers, $kieuDapAn ?? NganHangCauHoi::KIEU_MOT_DAP_AN);
+
+        return $answers;
+    }
+
+    private function buildTrueFalseAnswers(array $validated): array
+    {
+        $dapAnDungSai = (string) ($validated['dap_an_dung_sai'] ?? '');
+
+        if (!in_array($dapAnDungSai, ['dung', 'sai'], true)) {
+            throw ValidationException::withMessages([
+                'dap_an_dung_sai' => 'Vui lòng chọn đáp án đúng cho câu hỏi Đúng / Sai.',
+            ]);
+        }
+
+        return [
+            [
+                'ky_hieu' => 'A',
+                'noi_dung' => 'Đúng',
+                'is_dap_an_dung' => $dapAnDungSai === 'dung',
+            ],
+            [
+                'ky_hieu' => 'B',
+                'noi_dung' => 'Sai',
+                'is_dap_an_dung' => $dapAnDungSai === 'sai',
+            ],
+        ];
+    }
+
+    private function normalizeStructuredAnswers(array $validated, string $kieuDapAn): array
+    {
+        $correctAnswerKey = (string) ($validated['correct_answer_key'] ?? '');
+        $correctAnswerKeys = collect($validated['correct_answer_keys'] ?? [])
+            ->map(fn ($key) => (string) $key)
+            ->values()
+            ->all();
+        $legacyCorrectToken = NganHangCauHoi::normalizeString($validated['dap_an_dung'] ?? '');
+
+        $answers = [];
+        $answerOrder = 0;
+
+        foreach (($validated['dap_ans'] ?? []) as $rawKey => $answer) {
             $noiDung = trim((string) ($answer['noi_dung'] ?? ''));
             if ($noiDung === '') {
                 continue;
@@ -487,17 +638,27 @@ class NganHangCauHoiController extends Controller
 
             $kyHieu = trim((string) ($answer['ky_hieu'] ?? ''));
             if ($kyHieu === '') {
-                $kyHieu = chr(65 + $index);
+                $kyHieu = $this->resolveAnswerKey($answerOrder);
             }
+
+            $normalizedRawKey = (string) $rawKey;
+            $normalizedKyHieu = NganHangCauHoi::normalizeString($kyHieu);
+            $normalizedNoiDung = NganHangCauHoi::normalizeString($noiDung);
+
+            $isCorrect = match ($kieuDapAn) {
+                NganHangCauHoi::KIEU_MOT_DAP_AN => ($correctAnswerKey !== '' && $normalizedRawKey === $correctAnswerKey)
+                    || ($legacyCorrectToken !== '' && ($normalizedKyHieu === $legacyCorrectToken || $normalizedNoiDung === $legacyCorrectToken)),
+                NganHangCauHoi::KIEU_NHIEU_DAP_AN => in_array($normalizedRawKey, $correctAnswerKeys, true),
+                default => false,
+            };
 
             $answers[] = [
                 'ky_hieu' => $kyHieu,
                 'noi_dung' => $noiDung,
-                'is_dap_an_dung' => $correctToken !== '' && (
-                    NganHangCauHoi::normalizeString($kyHieu) === $correctToken
-                    || NganHangCauHoi::normalizeString($noiDung) === $correctToken
-                ),
+                'is_dap_an_dung' => $isCorrect,
             ];
+
+            $answerOrder++;
         }
 
         return $answers;
@@ -522,7 +683,7 @@ class NganHangCauHoiController extends Controller
         ];
     }
 
-    private function validateAnswers(array $answers): void
+    private function validateAnswers(array $answers, string $kieuDapAn): void
     {
         if (count($answers) < 2) {
             throw ValidationException::withMessages([
@@ -546,11 +707,29 @@ class NganHangCauHoiController extends Controller
         }
 
         $correctCount = collect($answers)->where('is_dap_an_dung', true)->count();
-        if ($correctCount !== 1) {
+
+        if ($kieuDapAn === NganHangCauHoi::KIEU_MOT_DAP_AN && $correctCount !== 1) {
             throw ValidationException::withMessages([
-                'dap_an_dung' => 'Phải xác định chính xác 1 đáp án đúng.',
+                'correct_answer_key' => 'Câu hỏi một đáp án đúng phải có chính xác 1 đáp án đúng.',
             ]);
         }
+
+        if ($kieuDapAn === NganHangCauHoi::KIEU_NHIEU_DAP_AN && $correctCount < 2) {
+            throw ValidationException::withMessages([
+                'correct_answer_keys' => 'Câu hỏi nhiều đáp án đúng phải có ít nhất 2 đáp án đúng.',
+            ]);
+        }
+
+        if ($kieuDapAn === NganHangCauHoi::KIEU_DUNG_SAI && (count($answers) !== 2 || $correctCount !== 1)) {
+            throw ValidationException::withMessages([
+                'dap_an_dung_sai' => 'Câu hỏi Đúng / Sai phải có đúng 2 đáp án và 1 đáp án đúng.',
+            ]);
+        }
+    }
+
+    private function resolveAnswerKey(int $index): string
+    {
+        return chr(65 + $index);
     }
 
     private function syncAnswers(NganHangCauHoi $cauHoi, array $answers): void
@@ -564,7 +743,7 @@ class NganHangCauHoiController extends Controller
         $cauHoi->dapAns()->createMany(
             collect($answers)->values()->map(function (array $answer, int $index) {
                 return [
-                    'ky_hieu' => $answer['ky_hieu'] ?? chr(65 + $index),
+                    'ky_hieu' => $answer['ky_hieu'] ?? $this->resolveAnswerKey($index),
                     'noi_dung' => $answer['noi_dung'],
                     'is_dap_an_dung' => (bool) ($answer['is_dap_an_dung'] ?? false),
                     'thu_tu' => $index + 1,

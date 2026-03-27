@@ -52,8 +52,25 @@
                 </td>
                 <td>{{ $user->ho_ten }}</td>
                 <td>{{ $user->email }}</td>
-                <td>{{ ucfirst(str_replace('_',' ',$user->vai_tro)) }}</td>
-                <td>{{ $user->trang_thai ? 'Hoạt động' : 'Khóa' }} {{ $user->trashed() ? '(đã xóa)' : '' }}</td>
+                <td>
+                    @php
+                        $vaiTroMap = [
+                            'admin' => 'Quản trị viên',
+                            'giang_vien' => 'Giảng viên',
+                            'hoc_vien' => 'Học viên'
+                        ];
+                    @endphp
+                    <span class="badge bg-light text-dark border">{{ $vaiTroMap[$user->vai_tro] ?? $user->vai_tro }}</span>
+                </td>
+                <td>
+                    @if($user->trashed())
+                        <span class="badge bg-dark">Đã xóa</span>
+                    @elseif($user->trang_thai)
+                        <span class="badge bg-success">Hoạt động</span>
+                    @else
+                        <span class="badge bg-danger">Khóa</span>
+                    @endif
+                </td>
                 <td>
                     <a href="{{ route('admin.tai-khoan.show',$user->ma_nguoi_dung) }}" class="btn btn-sm btn-info">Xem</a>
                     <a href="{{ route('admin.tai-khoan.edit',$user->ma_nguoi_dung) }}" class="btn btn-sm btn-warning">Sửa</a>

@@ -205,6 +205,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
             Route::post('/confirm-import', [NganHangCauHoiController::class, 'confirmImport'])->name('confirm-import');
             Route::get('/{id}/edit', [NganHangCauHoiController::class, 'edit'])->name('edit');
             Route::put('/{id}', [NganHangCauHoiController::class, 'update'])->name('update');
+            Route::post('/{id}/toggle-status', [NganHangCauHoiController::class, 'toggleStatus'])->name('toggle-status');
+            Route::post('/{id}/toggle-reusable', [NganHangCauHoiController::class, 'toggleReusable'])->name('toggle-reusable');
             Route::delete('/{id}', [NganHangCauHoiController::class, 'destroy'])->name('destroy');
         });
 

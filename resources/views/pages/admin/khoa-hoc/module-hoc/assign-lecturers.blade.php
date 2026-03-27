@@ -8,8 +8,8 @@
         <div class="col-12">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('admin.module-hoc.index') }}">Quản lý module</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('admin.module-hoc.index') }}">Quản lý học phần</a></li>
                     <li class="breadcrumb-item"><a href="{{ route('admin.module-hoc.show', $module->id) }}">{{ $module->ma_module }}</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Phân công giảng viên</li>
                 </ol>

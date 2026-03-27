@@ -144,7 +144,13 @@
                                         <td class="text-center small">{{ $pc->giangVien->hoc_vi ?: '—' }}</td>
                                         <td class="text-center text-muted small">{{ $pc->ngay_phan_cong?->format('d/m/Y') }}</td>
                                         <td class="text-center">
-                                            @php $status = $pc->trang_thai_label; @endphp
+                                            @php
+                                                $status = $pc->trang_thai_label ?? [
+                                                    'label' => 'Khong xac dinh',
+                                                    'color' => 'secondary',
+                                                    'icon' => 'fa-question-circle',
+                                                ];
+                                            @endphp
                                             <span class="badge bg-{{ $status['color'] }} shadow-xs smaller">
                                                 <i class="fas {{ $status['icon'] }} me-1"></i> {{ $status['label'] }}
                                             </span>

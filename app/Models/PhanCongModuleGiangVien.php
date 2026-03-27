@@ -66,5 +66,31 @@ class PhanCongModuleGiangVien extends Model
     {
         return $query->where('trang_thai', 'cho_xac_nhan');
     }
+
+    public function getTrangThaiLabelAttribute(): array
+    {
+        return match ($this->trang_thai) {
+            'cho_xac_nhan' => [
+                'label' => 'Cho xac nhan',
+                'color' => 'warning',
+                'icon' => 'fa-hourglass-half',
+            ],
+            'da_nhan' => [
+                'label' => 'Da nhan',
+                'color' => 'success',
+                'icon' => 'fa-check-circle',
+            ],
+            'tu_choi' => [
+                'label' => 'Tu choi',
+                'color' => 'danger',
+                'icon' => 'fa-times-circle',
+            ],
+            default => [
+                'label' => 'Khong xac dinh',
+                'color' => 'secondary',
+                'icon' => 'fa-question-circle',
+            ],
+        };
+    }
 }
 

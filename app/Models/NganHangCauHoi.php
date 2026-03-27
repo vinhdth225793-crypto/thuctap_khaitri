@@ -13,6 +13,17 @@ class NganHangCauHoi extends Model
 {
     use HasFactory, SoftDeletes;
 
+    public const LOAI_TRAC_NGHIEM = 'trac_nghiem';
+    public const LOAI_TU_LUAN = 'tu_luan';
+
+    public const KIEU_MOT_DAP_AN = 'mot_dap_an';
+    public const KIEU_NHIEU_DAP_AN = 'nhieu_dap_an';
+    public const KIEU_DUNG_SAI = 'dung_sai';
+
+    public const TRANG_THAI_NHAP = 'nhap';
+    public const TRANG_THAI_SAN_SANG = 'san_sang';
+    public const TRANG_THAI_TAM_AN = 'tam_an';
+
     protected $table = 'ngan_hang_cau_hoi';
 
     protected $fillable = [
@@ -22,6 +33,7 @@ class NganHangCauHoi extends Model
         'ma_cau_hoi',
         'noi_dung',
         'loai_cau_hoi',
+        'kieu_dap_an',
         'muc_do',
         'diem_mac_dinh',
         'goi_y_tra_loi',
@@ -43,6 +55,26 @@ class NganHangCauHoi extends Model
             if (blank($cauHoi->ma_cau_hoi)) {
                 $cauHoi->ma_cau_hoi = self::generateQuestionCode();
             }
+
+            if ($cauHoi->loai_cau_hoi === self::LOAI_TRAC_NGHIEM && blank($cauHoi->kieu_dap_an)) {
+                $cauHoi->kieu_dap_an = self::KIEU_MOT_DAP_AN;
+            }
+        });
+    }
+
+    public function scopeSanSang($query)
+    {
+        return $query->where('trang_thai', self::TRANG_THAI_SAN_SANG);
+    }
+
+    public function scopeDungChoFlowRaDeHienTai($query)
+    {
+        return $query->where(function ($nestedQuery) {
+            $nestedQuery->where('loai_cau_hoi', self::LOAI_TU_LUAN)
+                ->orWhere(function ($objectiveQuery) {
+                    $objectiveQuery->where('loai_cau_hoi', self::LOAI_TRAC_NGHIEM)
+                        ->whereIn('kieu_dap_an', [self::KIEU_MOT_DAP_AN, self::KIEU_DUNG_SAI]);
+                });
         });
     }
 
@@ -120,10 +152,22 @@ class NganHangCauHoi extends Model
 
     public function getLoaiCauHoiLabelAttribute(): string
     {
-        return match ($this->loai_cau_hoi) {
-            'trac_nghiem' => 'Trắc nghiệm',
-            'tu_luan' => 'Tự luận',
+        return match (true) {
+            $this->is_true_false => 'Đúng/Sai',
+            $this->is_multiple_correct => 'Trắc nghiệm nhiều đáp án',
+            $this->is_single_correct => 'Trắc nghiệm một đáp án',
+            $this->is_essay => 'Tự luận',
             default => 'Không xác định',
+        };
+    }
+
+    public function getKieuDapAnLabelAttribute(): string
+    {
+        return match ($this->kieu_dap_an) {
+            self::KIEU_MOT_DAP_AN => 'Một đáp án đúng',
+            self::KIEU_NHIEU_DAP_AN => 'Nhiều đáp án đúng',
+            self::KIEU_DUNG_SAI => 'Đúng/Sai',
+            default => $this->is_essay ? 'Tự luận' : 'Chưa cấu hình',
         };
     }
 
@@ -135,6 +179,84 @@ class NganHangCauHoi extends Model
             'kho' => 'Khó',
             default => 'Chưa phân loại',
         };
+    }
+
+    public function getTrangThaiLabelAttribute(): string
+    {
+        return match ($this->trang_thai) {
+            self::TRANG_THAI_NHAP => 'Nháp',
+            self::TRANG_THAI_SAN_SANG => 'Sẵn sàng',
+            self::TRANG_THAI_TAM_AN => 'Tạm ẩn',
+            default => 'Không xác định',
+        };
+    }
+
+    public function getTrangThaiColorAttribute(): string
+    {
+        return match ($this->trang_thai) {
+            self::TRANG_THAI_NHAP => 'secondary',
+            self::TRANG_THAI_SAN_SANG => 'success',
+            self::TRANG_THAI_TAM_AN => 'warning',
+            default => 'secondary',
+        };
+    }
+
+    public function getLoaiHienThiLabelAttribute(): string
+    {
+        return $this->moduleHoc?->ten_module
+            ? ($this->khoaHoc?->ten_khoa_hoc . ' / ' . $this->moduleHoc->ten_module)
+            : ($this->khoaHoc?->ten_khoa_hoc ?? 'Chưa gắn khóa học');
+    }
+
+    public function getIsEssayAttribute(): bool
+    {
+        return $this->loai_cau_hoi === self::LOAI_TU_LUAN;
+    }
+
+    public function getIsObjectiveAttribute(): bool
+    {
+        return $this->loai_cau_hoi === self::LOAI_TRAC_NGHIEM;
+    }
+
+    public function getIsSingleCorrectAttribute(): bool
+    {
+        return $this->is_objective && $this->kieu_dap_an === self::KIEU_MOT_DAP_AN;
+    }
+
+    public function getIsMultipleCorrectAttribute(): bool
+    {
+        return $this->is_objective && $this->kieu_dap_an === self::KIEU_NHIEU_DAP_AN;
+    }
+
+    public function getIsTrueFalseAttribute(): bool
+    {
+        return $this->is_objective && $this->kieu_dap_an === self::KIEU_DUNG_SAI;
+    }
+
+    public function getSupportsCurrentExamBuilderAttribute(): bool
+    {
+        return $this->is_essay || $this->is_single_correct || $this->is_true_false;
+    }
+
+    public function getCorrectAnswerTextsAttribute()
+    {
+        return $this->resolvedAnswers()
+            ->where('is_dap_an_dung', true)
+            ->pluck('noi_dung')
+            ->values();
+    }
+
+    public function getCorrectAnswerSummaryAttribute(): string
+    {
+        if ($this->is_essay) {
+            return 'Giảng viên chấm tự luận';
+        }
+
+        $answers = $this->correct_answer_texts;
+
+        return $answers->isNotEmpty()
+            ? $answers->implode(' | ')
+            : 'Chưa có đáp án đúng';
     }
 
     public static function generateQuestionCode(): string
