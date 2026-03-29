@@ -105,11 +105,37 @@ class QuestionBankPhaseOneTest extends TestCase
             'module_hoc_id' => $module->id,
             'kieu_dap_an' => NganHangCauHoi::KIEU_MOT_DAP_AN,
             'search' => 'Visible single answer',
+            'view_mode' => 'detail',
         ]));
 
         $response->assertOk();
         $response->assertSeeText('Visible single answer question');
         $response->assertDontSeeText('Hidden multiple answer question');
+    }
+
+    public function test_question_bank_index_supports_compact_grouped_view(): void
+    {
+        $admin = $this->createUser('admin');
+        $course = $this->createCourse($admin);
+        $moduleOne = $this->createModule($course, 1);
+        $moduleTwo = $this->createModule($course, 2);
+
+        $this->createSingleCorrectQuestion($admin, $course, $moduleOne, 'CH-COMPACT-001', 'Question in module one');
+        $this->createMultipleCorrectQuestion($admin, $course, $moduleOne, 'CH-COMPACT-002', 'Another question in module one');
+        $this->createTrueFalseQuestion($admin, $course, $moduleTwo, 'CH-COMPACT-003', 'Question in module two');
+
+        $response = $this->actingAs($admin)->get(route('admin.kiem-tra-online.cau-hoi.index', [
+            'view_mode' => 'compact',
+        ]));
+
+        $response->assertOk();
+        $response->assertSeeText('Module 1');
+        $response->assertSeeText('Module 2');
+        $response->assertSee('2 c&#226;u', false);
+        $response->assertSee('1 c&#226;u', false);
+        $response->assertSee('Xem chi ti&#7871;t b&#7897; n&#224;y', false);
+        $response->assertSeeText('Question in module one');
+        $response->assertSeeText('Another question in module one');
     }
 
     public function test_toggle_status_and_reusable_flags_work(): void

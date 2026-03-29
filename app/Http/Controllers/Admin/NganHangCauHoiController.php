@@ -3,17 +3,29 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ImportQuestionDocumentRequest;
 use App\Http\Requests\UpsertNganHangCauHoiRequest;
 use App\Models\KhoaHoc;
 use App\Models\ModuleHoc;
 use App\Models\NganHangCauHoi;
+use App\Services\QuestionBankImportService;
+use App\Support\Imports\ImportTemplateRegistry;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class NganHangCauHoiController extends Controller
 {
+    public function __construct(
+        private readonly ImportTemplateRegistry $templateRegistry,
+        private readonly QuestionBankImportService $questionBankImportService,
+    ) {
+    }
+
     private function getAccessibleKhoaHocs(): Collection
     {
         $user = auth()->user();
@@ -76,12 +88,37 @@ class NganHangCauHoiController extends Controller
         $modules = $this->getAccessibleModules($khoaHocs);
         $khoaHocIds = $khoaHocs->pluck('id')->all();
 
-        $query = NganHangCauHoi::with(['khoaHoc', 'moduleHoc', 'nguoiTao', 'dapAns']);
+        $baseQuery = NganHangCauHoi::query();
 
         if ($user->isGiangVien()) {
-            $query->whereIn('khoa_hoc_id', $khoaHocIds);
+            $baseQuery->whereIn('khoa_hoc_id', $khoaHocIds);
         }
 
+        $this->applyIndexFilters($baseQuery, $request);
+
+        $viewMode = in_array((string) $request->string('view_mode'), ['compact', 'detail'], true)
+            ? (string) $request->string('view_mode')
+            : 'compact';
+
+        $questionBankSummaries = $this->buildQuestionBankSummaries(clone $baseQuery);
+        $cauHois = null;
+
+        if ($viewMode !== 'compact') {
+            $cauHois = (clone $baseQuery)
+                ->with(['khoaHoc', 'moduleHoc', 'nguoiTao', 'dapAns'])
+                ->orderByDesc('created_at')
+                ->paginate(15)
+                ->withQueryString();
+        }
+
+        return view('pages.admin.question-bank.index', array_merge(
+            compact('cauHois', 'khoaHocs', 'modules', 'viewMode', 'questionBankSummaries'),
+            $this->getViewOptions()
+        ));
+    }
+
+    private function applyIndexFilters(Builder $query, Request $request): void
+    {
         if ($request->filled('khoa_hoc_id')) {
             $query->where('khoa_hoc_id', $request->integer('khoa_hoc_id'));
         }
@@ -117,13 +154,66 @@ class NganHangCauHoiController extends Controller
                     ->orWhere('ma_cau_hoi', 'like', "%{$search}%");
             });
         }
+    }
 
-        $cauHois = $query->orderByDesc('created_at')->paginate(15)->withQueryString();
+    private function buildQuestionBankSummaries(Builder $query): Collection
+    {
+        return $query
+            ->with([
+                'khoaHoc:id,ten_khoa_hoc,ma_khoa_hoc',
+                'moduleHoc:id,khoa_hoc_id,ten_module,ma_module',
+            ])
+            ->orderBy('khoa_hoc_id')
+            ->orderBy('module_hoc_id')
+            ->get()
+            ->groupBy(function (NganHangCauHoi $item) {
+                return $item->khoa_hoc_id . '::' . ($item->module_hoc_id ?? 'course');
+            })
+            ->map(function (Collection $items) {
+                /** @var NganHangCauHoi $first */
+                $first = $items->first();
+                $previewQuestions = $items
+                    ->sortByDesc('created_at')
+                    ->take(4)
+                    ->map(function (NganHangCauHoi $question) {
+                        return [
+                            'id' => $question->id,
+                            'code' => $question->ma_cau_hoi,
+                            'content' => $question->noi_dung,
+                            'status_label' => $question->trang_thai_label,
+                            'status_color' => $question->trang_thai_color,
+                            'type_label' => $question->loai_cau_hoi_label,
+                        ];
+                    })
+                    ->values();
 
-        return view('pages.admin.question-bank.index', array_merge(
-            compact('cauHois', 'khoaHocs', 'modules'),
-            $this->getViewOptions()
-        ));
+                return [
+                    'khoa_hoc_id' => $first->khoa_hoc_id,
+                    'module_hoc_id' => $first->module_hoc_id,
+                    'khoa_hoc_ten' => $first->khoaHoc?->ten_khoa_hoc ?? 'Khong ro khoa hoc',
+                    'khoa_hoc_ma' => $first->khoaHoc?->ma_khoa_hoc,
+                    'module_hoc_ten' => $first->moduleHoc?->ten_module,
+                    'module_hoc_ma' => $first->moduleHoc?->ma_module,
+                    'group_label' => $first->moduleHoc?->ten_module
+                        ? ($first->khoaHoc?->ten_khoa_hoc . ' / ' . $first->moduleHoc->ten_module)
+                        : ($first->khoaHoc?->ten_khoa_hoc ?? 'Khong ro khoa hoc'),
+                    'total_questions' => $items->count(),
+                    'objective_questions' => $items->where('loai_cau_hoi', NganHangCauHoi::LOAI_TRAC_NGHIEM)->count(),
+                    'essay_questions' => $items->where('loai_cau_hoi', NganHangCauHoi::LOAI_TU_LUAN)->count(),
+                    'single_correct_questions' => $items->where('kieu_dap_an', NganHangCauHoi::KIEU_MOT_DAP_AN)->count(),
+                    'multiple_correct_questions' => $items->where('kieu_dap_an', NganHangCauHoi::KIEU_NHIEU_DAP_AN)->count(),
+                    'true_false_questions' => $items->where('kieu_dap_an', NganHangCauHoi::KIEU_DUNG_SAI)->count(),
+                    'ready_questions' => $items->where('trang_thai', NganHangCauHoi::TRANG_THAI_SAN_SANG)->count(),
+                    'draft_questions' => $items->where('trang_thai', NganHangCauHoi::TRANG_THAI_NHAP)->count(),
+                    'hidden_questions' => $items->where('trang_thai', NganHangCauHoi::TRANG_THAI_TAM_AN)->count(),
+                    'reusable_questions' => $items->where('co_the_tai_su_dung', true)->count(),
+                    'latest_created_at' => $items->max('created_at'),
+                    'preview_questions' => $previewQuestions,
+                    'remaining_preview_count' => max(0, $items->count() - $previewQuestions->count()),
+                ];
+            })
+            ->sortBy(fn (array $summary) => mb_strtolower((string) $summary['group_label'], 'UTF-8'))
+            ->values();
     }
 
     public function create()
@@ -285,156 +375,63 @@ class NganHangCauHoiController extends Controller
 
     public function downloadTemplate()
     {
-        $headers = [
-            'cau_hoi',
-            'dap_an_sai_1',
-            'dap_an_sai_2',
-            'dap_an_sai_3',
-            'dap_an_dung',
-        ];
+        $template = $this->templateRegistry->questionBankMcq();
 
-        $sampleRows = [
-            [
-                'Laravel là gì?',
-                'Một loại ngôn ngữ lập trình',
-                'Một hệ điều hành',
-                'Một phần mềm chỉnh sửa ảnh',
-                'Một PHP Framework',
-            ],
-            [
-                'PHP là ngôn ngữ kịch bản chạy ở đâu?',
-                'Client-side',
-                'Browser',
-                'Mobile-side',
-                'Server-side',
-            ],
-        ];
+        if (!$this->templateRegistry->exists(ImportTemplateRegistry::QUESTION_BANK_MCQ)) {
+            return redirect()
+                ->route('admin.kiem-tra-online.cau-hoi.index')
+                ->with('error', 'Không tìm thấy file mẫu import câu hỏi trong storage.');
+        }
 
-        return response()->streamDownload(function () use ($headers, $sampleRows) {
-            $handle = fopen('php://output', 'wb');
-            fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
-            fputcsv($handle, $headers);
+        clearstatcache(true, $template['absolute_path']);
 
-            foreach ($sampleRows as $row) {
-                fputcsv($handle, $row);
-            }
-
-            fclose($handle);
-        }, 'mau-nhap-cau-hoi.csv', [
-            'Content-Type' => 'text/csv; charset=utf-8',
+        return response()->download($template['absolute_path'], (string) $template['download_name'], [
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
         ]);
     }
 
-    public function import(Request $request)
+    public function import(ImportQuestionDocumentRequest $request)
     {
         $user = auth()->user();
-        $request->validate([
-            'khoa_hoc_id' => 'required|exists:khoa_hoc,id',
-            'file_import' => 'required|file|mimes:csv,txt|max:2048',
-        ]);
-
         $khoaHocId = $request->integer('khoa_hoc_id');
         $this->authorizeCourseAccess($user, $khoaHocId);
+        $moduleHocId = $this->resolveImportModuleId($request, $khoaHocId);
 
         $khoaHoc = KhoaHoc::findOrFail($khoaHocId);
-        $path = $request->file('file_import')->getRealPath();
-        $file = fopen($path, 'r');
+        $moduleHoc = $moduleHocId ? ModuleHoc::find($moduleHocId) : null;
 
-        $bom = fread($file, 3);
-        if ($bom !== "\xEF\xBB\xBF") {
-            rewind($file);
+        try {
+            $preview = $this->questionBankImportService->buildPreview($request->file('file_import'), $khoaHocId);
+
+            session(['import_preview' => [
+                'khoa_hoc_id' => $khoaHocId,
+                'khoa_hoc_ten' => $khoaHoc->ten_khoa_hoc,
+                'module_hoc_id' => $moduleHocId,
+                'module_hoc_ten' => $moduleHoc?->ten_module,
+                'source_format' => $preview['source_format'],
+                'profile' => $preview['profile'],
+                'original_name' => $preview['original_name'],
+                'data' => $preview['data'],
+                'summary' => $preview['summary'],
+                'user_id' => auth()->id(),
+            ]]);
+        } catch (ValidationException $exception) {
+            throw $exception;
+        } catch (Throwable $exception) {
+            Log::error('question_document_import.preview_failed', [
+                'user_id' => auth()->id(),
+                'khoa_hoc_id' => $khoaHocId,
+                'module_hoc_id' => $moduleHocId,
+                'file_name' => $request->file('file_import')?->getClientOriginalName(),
+                'message' => $exception->getMessage(),
+            ]);
+
+            return back()->withErrors([
+                'file_import' => 'Khong the phan tich file da tai len. Vui long kiem tra dinh dang file va thu lai.',
+            ]);
         }
-
-        fgetcsv($file);
-
-        $previewData = [];
-        $summary = [
-            'total' => 0,
-            'valid' => 0,
-            'duplicate_file' => 0,
-            'duplicate_db' => 0,
-            'error' => 0,
-        ];
-        $contentSetInFile = [];
-
-        while (($row = fgetcsv($file)) !== false) {
-            if (empty(array_filter($row, fn ($value) => $value !== null && trim((string) $value) !== ''))) {
-                continue;
-            }
-
-            $summary['total']++;
-
-            $rawCauHoi = trim((string) ($row[0] ?? ''));
-            $rawSai1 = trim((string) ($row[1] ?? ''));
-            $rawSai2 = trim((string) ($row[2] ?? ''));
-            $rawSai3 = trim((string) ($row[3] ?? ''));
-            $rawDung = trim((string) ($row[4] ?? ''));
-
-            $status = 'hop_le';
-            $note = '';
-
-            if ($rawCauHoi === '' || $rawSai1 === '' || $rawSai2 === '' || $rawSai3 === '' || $rawDung === '') {
-                $status = 'loi_du_lieu';
-                $note = 'Thiếu thông tin bắt buộc.';
-            } else {
-                $answers = [
-                    ['ky_hieu' => 'A', 'noi_dung' => $rawDung, 'is_dap_an_dung' => true],
-                    ['ky_hieu' => 'B', 'noi_dung' => $rawSai1, 'is_dap_an_dung' => false],
-                    ['ky_hieu' => 'C', 'noi_dung' => $rawSai2, 'is_dap_an_dung' => false],
-                    ['ky_hieu' => 'D', 'noi_dung' => $rawSai3, 'is_dap_an_dung' => false],
-                ];
-
-                try {
-                    $this->validateAnswers($answers, NganHangCauHoi::KIEU_MOT_DAP_AN);
-                } catch (ValidationException $exception) {
-                    $status = 'loi_du_lieu';
-                    $note = collect($exception->errors())->flatten()->first() ?? 'Dữ liệu đáp án không hợp lệ.';
-                }
-            }
-
-            if ($status === 'hop_le') {
-                $normalizedContent = NganHangCauHoi::normalizeString($rawCauHoi);
-
-                if (isset($contentSetInFile[$normalizedContent])) {
-                    $status = 'trung_lap_trong_file';
-                    $note = 'Trùng với câu hỏi tại dòng ' . ($contentSetInFile[$normalizedContent] + 1) . ' trong file.';
-                } else {
-                    $contentSetInFile[$normalizedContent] = $summary['total'];
-
-                    if (NganHangCauHoi::isDuplicate($khoaHocId, $rawCauHoi)) {
-                        $status = 'trung_lap_trong_he_thong';
-                        $note = 'Câu hỏi đã tồn tại trong ngân hàng của khóa học này.';
-                    }
-                }
-            }
-
-            match ($status) {
-                'hop_le' => $summary['valid']++,
-                'trung_lap_trong_file' => $summary['duplicate_file']++,
-                'trung_lap_trong_he_thong' => $summary['duplicate_db']++,
-                default => $summary['error']++,
-            };
-
-            $previewData[] = [
-                'noi_dung_cau_hoi' => $rawCauHoi,
-                'dap_an_sai_1' => $rawSai1,
-                'dap_an_sai_2' => $rawSai2,
-                'dap_an_sai_3' => $rawSai3,
-                'dap_an_dung' => $rawDung,
-                'status' => $status,
-                'note' => $note,
-            ];
-        }
-
-        fclose($file);
-
-        session(['import_preview' => [
-            'khoa_hoc_id' => $khoaHocId,
-            'khoa_hoc_ten' => $khoaHoc->ten_khoa_hoc,
-            'data' => $previewData,
-            'summary' => $summary,
-            'user_id' => auth()->id(),
-        ]]);
 
         return redirect()->route('admin.kiem-tra-online.cau-hoi.preview');
     }
@@ -446,6 +443,14 @@ class NganHangCauHoiController extends Controller
             return redirect()
                 ->route('admin.kiem-tra-online.cau-hoi.index')
                 ->with('error', 'Không tìm thấy dữ liệu xem trước.');
+        }
+
+        if (($preview['user_id'] ?? null) != auth()->id()) {
+            session()->forget('import_preview');
+
+            return redirect()
+                ->route('admin.kiem-tra-online.cau-hoi.index')
+                ->with('error', 'Phiên import không còn hợp lệ. Vui lòng thực hiện lại.');
         }
 
         return view('pages.admin.question-bank.preview', compact('preview'));
@@ -463,45 +468,35 @@ class NganHangCauHoiController extends Controller
         }
 
         $khoaHocId = (int) $preview['khoa_hoc_id'];
-        $data = $preview['data'];
-        $createdCount = 0;
         $userId = auth()->user()->ma_nguoi_dung;
+        $moduleHocId = isset($preview['module_hoc_id']) ? (int) $preview['module_hoc_id'] : null;
 
-        DB::transaction(function () use ($khoaHocId, $data, &$createdCount, $userId) {
-            foreach ($data as $item) {
-                if ($item['status'] !== 'hop_le') {
-                    continue;
-                }
+        try {
+            $importResult = $this->questionBankImportService->confirmImport($preview, $khoaHocId, $userId, $moduleHocId);
+        } catch (Throwable $exception) {
+            Log::error('question_document_import.confirm_failed', [
+                'user_id' => auth()->id(),
+                'khoa_hoc_id' => $khoaHocId,
+                'module_hoc_id' => $moduleHocId,
+                'message' => $exception->getMessage(),
+            ]);
 
-                $cauHoi = NganHangCauHoi::create([
-                    'khoa_hoc_id' => $khoaHocId,
-                    'nguoi_tao_id' => $userId,
-                    'ma_cau_hoi' => NganHangCauHoi::generateQuestionCode(),
-                    'noi_dung' => $item['noi_dung_cau_hoi'],
-                    'loai_cau_hoi' => NganHangCauHoi::LOAI_TRAC_NGHIEM,
-                    'kieu_dap_an' => NganHangCauHoi::KIEU_MOT_DAP_AN,
-                    'muc_do' => 'trung_binh',
-                    'diem_mac_dinh' => 1,
-                    'trang_thai' => NganHangCauHoi::TRANG_THAI_SAN_SANG,
-                    'co_the_tai_su_dung' => true,
-                ]);
-
-                $this->syncAnswers($cauHoi, [
-                    ['ky_hieu' => 'A', 'noi_dung' => $item['dap_an_dung'], 'is_dap_an_dung' => true],
-                    ['ky_hieu' => 'B', 'noi_dung' => $item['dap_an_sai_1'], 'is_dap_an_dung' => false],
-                    ['ky_hieu' => 'C', 'noi_dung' => $item['dap_an_sai_2'], 'is_dap_an_dung' => false],
-                    ['ky_hieu' => 'D', 'noi_dung' => $item['dap_an_sai_3'], 'is_dap_an_dung' => false],
-                ]);
-
-                $createdCount++;
-            }
-        });
+            return redirect()
+                ->route('admin.kiem-tra-online.cau-hoi.index')
+                ->with('error', 'Khong the luu du lieu import vao he thong. Vui long thu lai.');
+        }
 
         session()->forget('import_preview');
 
+        $message = "Đã import thành công {$importResult['created']} câu hỏi.";
+
+        if (($importResult['skipped_duplicate_db'] ?? 0) > 0) {
+            $message .= " {$importResult['skipped_duplicate_db']} câu bị bỏ qua vì đã trùng trong hệ thống ở thời điểm xác nhận.";
+        }
+
         return redirect()
             ->route('admin.kiem-tra-online.cau-hoi.index')
-            ->with('success', "Đã import thành công {$createdCount} câu hỏi.");
+            ->with('success', $message);
     }
 
     private function authorizeCourseAccess($user, int $khoaHocId, ?int $secondKhoaHocId = null): void
@@ -518,6 +513,30 @@ class NganHangCauHoiController extends Controller
         foreach (array_filter([$khoaHocId, $secondKhoaHocId]) as $courseId) {
             abort_unless(in_array((int) $courseId, $courseIds, true), 403, 'Bạn không được phân công cho khóa học này.');
         }
+    }
+
+    private function resolveImportModuleId(ImportQuestionDocumentRequest $request, int $khoaHocId): ?int
+    {
+        $moduleHocId = $request->filled('module_hoc_id')
+            ? $request->integer('module_hoc_id')
+            : null;
+
+        if ($moduleHocId === null) {
+            return null;
+        }
+
+        $moduleBelongsToCourse = ModuleHoc::query()
+            ->where('id', $moduleHocId)
+            ->where('khoa_hoc_id', $khoaHocId)
+            ->exists();
+
+        if (!$moduleBelongsToCourse) {
+            throw ValidationException::withMessages([
+                'module_hoc_id' => 'Module khong thuoc khoa hoc da chon.',
+            ]);
+        }
+
+        return $moduleHocId;
     }
 
     private function buildQuestionPayload(array $validated, ?NganHangCauHoi $existing = null): array

@@ -1,6 +1,5 @@
 <?php
 
-// app/Models/NguoiDung.php
 namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -35,21 +34,14 @@ class NguoiDung extends Authenticatable
     protected $casts = [
         'ngay_sinh' => 'date',
         'trang_thai' => 'boolean',
-        'email_verified_at' => 'datetime',
+        'email_xac_thuc' => 'datetime',
     ];
 
-    /**
-     * Ghi đè phương thức lấy mật khẩu của Authenticatable 
-     * vì project dùng cột 'mat_khau' thay vì 'password'
-     */
     public function getAuthPassword()
     {
         return $this->mat_khau;
     }
 
-    /**
-     * Các phương thức kiểm tra vai trò
-     */
     public function isAdmin()
     {
         return $this->vai_tro === 'admin';
@@ -65,20 +57,26 @@ class NguoiDung extends Authenticatable
         return $this->vai_tro === 'hoc_vien';
     }
 
-    /**
-     * Mối quan hệ một-một tới bảng giảng viên (nếu vai trò là giảng viên)
-     */
     public function giangVien()
     {
         return $this->hasOne(GiangVien::class, 'nguoi_dung_id', 'ma_nguoi_dung');
     }
 
-    /**
-     * Mối quan hệ một-một tới bảng học viên (nếu vai trò là học viên)
-     */
     public function hocVien()
     {
         return $this->hasOne(HocVien::class, 'nguoi_dung_id', 'ma_nguoi_dung');
+    }
+
+    public function khoaHocs()
+    {
+        return $this->belongsToMany(
+            KhoaHoc::class,
+            'hoc_vien_khoa_hoc',
+            'hoc_vien_id',
+            'khoa_hoc_id',
+            'ma_nguoi_dung',
+            'id'
+        )->withPivot('ngay_tham_gia', 'trang_thai', 'ghi_chu', 'created_by')->withTimestamps();
     }
 
     public function diemDanhs()

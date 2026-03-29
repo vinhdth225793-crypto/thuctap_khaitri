@@ -25,6 +25,6 @@ class DiemDanh extends Model
 
     public function hocVien()
     {
-        return $this->belongsTo(HocVien::class, 'hoc_vien_id', 'ma_nguoi_dung');
+        return $this->belongsTo(NguoiDung::class, 'hoc_vien_id', 'ma_nguoi_dung');
     }
 }

@@ -93,17 +93,17 @@
         </div>
     @endif
 
-    <div class="card shadow-sm border-0">
-        <div class="card-body">
+    <div class="card vip-card border-0">
+        <div class="card-body p-4">
             <form action="{{ $action }}" method="POST" id="question-form">
                 @csrf
                 @if($method === 'PUT')
                     @method('PUT')
                 @endif
 
-                <div class="row g-3">
+                <div class="row g-4">
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold">Khóa học <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">Khóa học <span class="text-danger">*</span></label>
                         <select name="khoa_hoc_id" id="khoa_hoc_id" class="form-select @error('khoa_hoc_id') is-invalid @enderror" required>
                             <option value="">Chọn khóa học</option>
                             @foreach($khoaHocs as $khoaHoc)
@@ -118,7 +118,7 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold">Module</label>
+                        <label class="form-label fw-bold">Module</label>
                         <select name="module_hoc_id" id="module_hoc_id" class="form-select @error('module_hoc_id') is-invalid @enderror">
                             <option value="">Dùng chung toàn khóa</option>
                             @foreach($modules as $module)
@@ -133,7 +133,7 @@
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold">Mã câu hỏi</label>
+                        <label class="form-label fw-bold">Mã câu hỏi</label>
                         <input type="text" name="ma_cau_hoi" class="form-control @error('ma_cau_hoi') is-invalid @enderror" value="{{ old('ma_cau_hoi', $cauHoi->ma_cau_hoi) }}" placeholder="Để trống để hệ thống tự sinh">
                         @error('ma_cau_hoi')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -141,7 +141,7 @@
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold">Loại câu hỏi <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">Loại câu hỏi <span class="text-danger">*</span></label>
                         <select name="loai_cau_hoi" id="loai_cau_hoi" class="form-select @error('loai_cau_hoi') is-invalid @enderror" required>
                             @foreach($questionTypeOptions as $value => $label)
                                 <option value="{{ $value }}" @selected($selectedQuestionType === $value)>{{ $label }}</option>
@@ -153,7 +153,7 @@
                     </div>
 
                     <div class="col-md-4" id="answer-mode-wrapper">
-                        <label class="form-label fw-semibold">Kiểu đáp án <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">Kiểu đáp án <span class="text-danger">*</span></label>
                         <select name="kieu_dap_an" id="kieu_dap_an" class="form-select @error('kieu_dap_an') is-invalid @enderror">
                             @foreach($answerModeOptions as $value => $label)
                                 <option value="{{ $value }}" @selected($selectedAnswerMode === $value)>{{ $label }}</option>
@@ -165,7 +165,7 @@
                     </div>
 
                     <div class="col-12">
-                        <label class="form-label fw-semibold">Nội dung câu hỏi <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">Nội dung câu hỏi <span class="text-danger">*</span></label>
                         <textarea name="noi_dung_cau_hoi" rows="4" class="form-control @error('noi_dung_cau_hoi') is-invalid @enderror" placeholder="Nhập nội dung câu hỏi..." required>{{ old('noi_dung_cau_hoi', $cauHoi->noi_dung_cau_hoi) }}</textarea>
                         @error('noi_dung_cau_hoi')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -173,7 +173,7 @@
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold">Mức độ <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">Mức độ <span class="text-danger">*</span></label>
                         <select name="muc_do" class="form-select @error('muc_do') is-invalid @enderror" required>
                             @foreach($difficultyOptions as $value => $label)
                                 <option value="{{ $value }}" @selected(old('muc_do', $cauHoi->muc_do ?: 'trung_binh') === $value)>{{ $label }}</option>
@@ -185,7 +185,7 @@
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold">Điểm mặc định <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">Điểm mặc định <span class="text-danger">*</span></label>
                         <input type="number" name="diem_mac_dinh" min="0.25" step="0.25" class="form-control @error('diem_mac_dinh') is-invalid @enderror" value="{{ old('diem_mac_dinh', $cauHoi->diem_mac_dinh ?: 1) }}" required>
                         @error('diem_mac_dinh')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -193,7 +193,7 @@
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold">Trạng thái <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold">Trạng thái <span class="text-danger">*</span></label>
                         <select name="trang_thai" class="form-select @error('trang_thai') is-invalid @enderror" required>
                             @foreach($statusOptions as $value => $label)
                                 <option value="{{ $value }}" @selected(old('trang_thai', $cauHoi->trang_thai ?: \App\Models\NganHangCauHoi::TRANG_THAI_NHAP) === $value)>{{ $label }}</option>
@@ -205,45 +205,45 @@
                     </div>
 
                     <div class="col-12">
-                        <div class="form-check">
+                        <div class="form-check form-switch">
                             <input type="hidden" name="co_the_tai_su_dung" value="0">
                             <input type="checkbox" name="co_the_tai_su_dung" value="1" class="form-check-input" id="co_the_tai_su_dung" @checked((bool) old('co_the_tai_su_dung', $cauHoi->co_the_tai_su_dung ?? true))>
-                            <label class="form-check-label fw-semibold" for="co_the_tai_su_dung">
+                            <label class="form-check-label fw-bold" for="co_the_tai_su_dung">
                                 Cho phép tái sử dụng câu hỏi này trong các đề khác
                             </label>
                         </div>
                     </div>
                 </div>
 
-                <hr class="my-4">
+                <hr class="my-5 opacity-10">
 
-                <div id="objective-panel" class="mb-4">
-                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+                <div id="objective-panel" class="mb-5">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
                         <div>
-                            <h5 class="mb-1">Quản lý đáp án</h5>
+                            <h5 class="fw-bold mb-1 text-primary">Quản lý đáp án</h5>
                             <div class="text-muted small">Chọn đúng đáp án theo kiểu câu hỏi đang cấu hình.</div>
                         </div>
-                        <button type="button" class="btn btn-outline-primary btn-sm" id="add-answer-btn">
+                        <button type="button" class="btn vip-btn btn-outline-primary btn-sm" id="add-answer-btn">
                             <i class="fas fa-plus me-1"></i> Thêm đáp án
                         </button>
                     </div>
 
                     <div id="structured-answer-panel">
-                        <div class="table-responsive">
-                            <table class="table table-bordered align-middle mb-0">
+                        <div class="table-responsive rounded-3 overflow-hidden border">
+                            <table class="table table-hover align-middle mb-0">
                                 <thead class="table-light">
                                     <tr>
-                                        <th width="80" class="text-center">Ký hiệu</th>
+                                        <th width="100" class="text-center">Ký hiệu</th>
                                         <th width="140" class="text-center">Đáp án đúng</th>
                                         <th>Nội dung đáp án</th>
-                                        <th width="70" class="text-center">Xóa</th>
+                                        <th width="80" class="text-center">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody id="answer-list" data-next-index="{{ $nextAnswerIndex }}">
                                     @foreach($answerRows as $row)
                                         <tr class="answer-row" data-row-key="{{ $row['key'] }}">
-                                            <td>
-                                                <input type="text" name="dap_ans[{{ $row['key'] }}][ky_hieu]" class="form-control answer-key" value="{{ $row['ky_hieu'] }}" readonly>
+                                            <td class="text-center">
+                                                <input type="text" name="dap_ans[{{ $row['key'] }}][ky_hieu]" class="form-control text-center fw-bold bg-light" value="{{ $row['ky_hieu'] }}" readonly>
                                             </td>
                                             <td class="text-center">
                                                 <div class="single-correct-control">
@@ -257,8 +257,8 @@
                                                 <input type="text" name="dap_ans[{{ $row['key'] }}][noi_dung]" class="form-control" value="{{ $row['noi_dung'] }}" placeholder="Nhập nội dung đáp án">
                                             </td>
                                             <td class="text-center">
-                                                <button type="button" class="btn btn-sm btn-outline-danger remove-answer-btn">
-                                                    <i class="fas fa-times"></i>
+                                                <button type="button" class="btn btn-sm btn-light text-danger remove-answer-btn">
+                                                    <i class="fas fa-trash"></i>
                                                 </button>
                                             </td>
                                         </tr>
@@ -278,17 +278,17 @@
                     </div>
 
                     <div id="true-false-panel" class="d-none">
-                        <div class="alert alert-light border mb-0">
-                            <div class="fw-semibold mb-2">Đáp án cố định</div>
-                            <div class="text-muted small mb-3">Loại câu hỏi này luôn có 2 đáp án là “Đúng” và “Sai”.</div>
-                            <div class="d-flex flex-wrap gap-3">
+                        <div class="alert alert-light border-0 bg-light p-4 rounded-4 mb-0">
+                            <div class="fw-bold text-primary mb-2">Đáp án cố định</div>
+                            <div class="text-muted small mb-4">Loại câu hỏi này luôn có 2 đáp án là “Đúng” và “Sai”.</div>
+                            <div class="d-flex flex-wrap gap-4">
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="dap_an_dung_sai" id="dap-an-dung" value="dung" @checked($selectedTrueFalse === 'dung')>
-                                    <label class="form-check-label" for="dap-an-dung">Đúng là đáp án chính xác</label>
+                                    <label class="form-check-label fw-semibold" for="dap-an-dung text-success">Đúng là đáp án chính xác</label>
                                 </div>
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="dap_an_dung_sai" id="dap-an-sai" value="sai" @checked($selectedTrueFalse === 'sai')>
-                                    <label class="form-check-label" for="dap-an-sai">Sai là đáp án chính xác</label>
+                                    <label class="form-check-label fw-semibold" for="dap-an-sai text-danger">Sai là đáp án chính xác</label>
                                 </div>
                             </div>
                             @error('dap_an_dung_sai')
@@ -298,9 +298,9 @@
                     </div>
                 </div>
 
-                <div class="row g-3">
+                <div class="row g-4">
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold">Gợi ý trả lời</label>
+                        <label class="form-label fw-bold">Gợi ý trả lời</label>
                         <textarea name="goi_y_tra_loi" rows="4" class="form-control @error('goi_y_tra_loi') is-invalid @enderror" placeholder="Gợi ý ngắn cho người ra đề hoặc học viên (nếu cần)">{{ old('goi_y_tra_loi', $cauHoi->goi_y_tra_loi) }}</textarea>
                         @error('goi_y_tra_loi')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -308,7 +308,7 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold">Giải thích đáp án</label>
+                        <label class="form-label fw-bold">Giải thích đáp án</label>
                         <textarea name="giai_thich_dap_an" rows="4" class="form-control @error('giai_thich_dap_an') is-invalid @enderror" placeholder="Giải thích vì sao đáp án đúng">{{ old('giai_thich_dap_an', $cauHoi->giai_thich_dap_an) }}</textarea>
                         @error('giai_thich_dap_an')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -316,12 +316,12 @@
                     </div>
                 </div>
 
-                <div class="d-flex flex-wrap justify-content-between gap-2 mt-4">
-                    <a href="{{ route('admin.kiem-tra-online.cau-hoi.index') }}" class="btn btn-light border">
-                        <i class="fas fa-arrow-left me-1"></i> Quay lại
+                <div class="d-flex flex-wrap justify-content-between gap-2 mt-5">
+                    <a href="{{ route('admin.kiem-tra-online.cau-hoi.index') }}" class="btn vip-btn btn-light px-4 border">
+                        <i class="fas fa-arrow-left me-2"></i> Quay lại
                     </a>
-                    <button type="submit" class="btn btn-primary px-4">
-                        <i class="fas fa-save me-1"></i> Lưu câu hỏi
+                    <button type="submit" class="btn vip-btn vip-btn-primary px-5 shadow-sm">
+                        <i class="fas fa-save me-2"></i> Lưu câu hỏi
                     </button>
                 </div>
             </form>

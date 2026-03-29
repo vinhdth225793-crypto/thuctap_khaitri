@@ -5,6 +5,15 @@
 @php
     $summary = $preview['summary'];
     $duplicateCount = $summary['duplicate_file'] + $summary['duplicate_db'];
+    $manualReviewCount = $summary['needs_review'] ?? 0;
+    $otherErrorCount = max(0, $summary['error'] - $manualReviewCount);
+    $profileLabel = match ($preview['profile'] ?? null) {
+        'question_bank_mcq' => 'Mẫu Excel mới',
+        'question_bank_mcq_csv' => 'CSV legacy tương thích',
+        'question_document_docx' => 'Tài liệu Word .docx',
+        'question_document_pdf_text' => 'PDF text-based',
+        default => 'Không xác định',
+    };
 @endphp
 
 @section('content')
@@ -16,128 +25,162 @@
                     <div class="text-muted small mb-1">
                         <i class="fas fa-home me-1"></i> Admin > Kiểm tra Online > Ngân hàng câu hỏi > Preview import
                     </div>
-                    <h3 class="fw-bold mb-0">Xem trước dữ liệu import</h3>
+                    <h3 class="fw-bold mb-0 text-primary">Xem trước dữ liệu import</h3>
                 </div>
-                <a href="{{ route('admin.kiem-tra-online.cau-hoi.index') }}" class="btn btn-light border">
-                    <i class="fas fa-times me-1"></i> Hủy
+                <a href="{{ route('admin.kiem-tra-online.cau-hoi.index') }}" class="btn vip-btn btn-light border px-4">
+                    <i class="fas fa-times me-2"></i> Hủy bỏ
                 </a>
             </div>
         </div>
     </div>
 
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4" role="alert">
+            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
         </div>
     @endif
 
     @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i> {{ session('error') }}
         </div>
     @endif
 
-    <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body">
-            <div class="row g-3 text-center">
-                <div class="col-md-3">
-                    <div class="border rounded-3 p-3 h-100">
-                        <div class="text-muted text-uppercase small fw-semibold mb-1">Khóa học</div>
-                        <div class="fw-bold">{{ $preview['khoa_hoc_ten'] }}</div>
+    <div class="card vip-card border-0 mb-4">
+        <div class="card-body p-4">
+            <div class="row g-4 text-center">
+                <div class="col-lg-3 col-md-6">
+                    <div class="bg-light rounded-4 p-3 h-100 border">
+                        <div class="text-muted text-uppercase small fw-bold mb-2">Khóa học</div>
+                        <div class="fw-bold text-primary">{{ $preview['khoa_hoc_ten'] }}</div>
+                        @if(!empty($preview['module_hoc_ten']))
+                            <div class="small text-muted mt-1 opacity-75">Module: {{ $preview['module_hoc_ten'] }}</div>
+                        @endif
                     </div>
                 </div>
-                <div class="col-md-2">
-                    <div class="border rounded-3 p-3 h-100">
-                        <div class="text-muted text-uppercase small fw-semibold mb-1">Tổng dòng</div>
-                        <div class="display-6 fw-bold mb-0">{{ $summary['total'] }}</div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="bg-light rounded-4 p-3 h-100 border">
+                        <div class="text-muted text-uppercase small fw-bold mb-2">File nguồn</div>
+                        <div class="fw-bold text-break text-primary">{{ $preview['original_name'] ?? 'Không rõ tên file' }}</div>
+                        <div class="small text-muted mt-1 opacity-75">{{ strtoupper($preview['source_format'] ?? 'n/a') }} - {{ $profileLabel }}</div>
                     </div>
                 </div>
-                <div class="col-md-2">
-                    <div class="border rounded-3 p-3 h-100 bg-success-subtle border-success-subtle">
-                        <div class="text-success text-uppercase small fw-semibold mb-1">Hợp lệ</div>
-                        <div class="display-6 fw-bold mb-0 text-success">{{ $summary['valid'] }}</div>
+                
+                <div class="col-lg col-md-4">
+                    <div class="bg-white rounded-4 p-3 h-100 border shadow-sm">
+                        <div class="text-muted text-uppercase small fw-bold mb-1">Tổng cộng</div>
+                        <div class="h2 fw-bold mb-0 text-dark">{{ $summary['total'] }}</div>
                     </div>
                 </div>
-                <div class="col-md-2">
-                    <div class="border rounded-3 p-3 h-100 bg-warning-subtle border-warning-subtle">
-                        <div class="text-warning-emphasis text-uppercase small fw-semibold mb-1">Trùng lặp</div>
-                        <div class="display-6 fw-bold mb-0 text-warning-emphasis">{{ $duplicateCount }}</div>
+                <div class="col-lg col-md-4">
+                    <div class="bg-success-subtle rounded-4 p-3 h-100 border border-success-subtle shadow-sm">
+                        <div class="text-success text-uppercase small fw-bold mb-1">Hợp lệ</div>
+                        <div class="h2 fw-bold mb-0 text-success">{{ $summary['valid'] }}</div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="border rounded-3 p-3 h-100 bg-danger-subtle border-danger-subtle">
-                        <div class="text-danger text-uppercase small fw-semibold mb-1">Lỗi dữ liệu</div>
-                        <div class="display-6 fw-bold mb-0 text-danger">{{ $summary['error'] }}</div>
+                <div class="col-lg col-md-4">
+                    <div class="bg-warning-subtle rounded-4 p-3 h-100 border border-warning-subtle shadow-sm">
+                        <div class="text-warning-emphasis text-uppercase small fw-bold mb-1">Trùng / Lỗi</div>
+                        <div class="h2 fw-bold mb-0 text-warning-emphasis">{{ $duplicateCount }}</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="card shadow-sm border-0">
-        <div class="card-body">
-            <div class="table-responsive" style="max-height: 560px; overflow-y: auto;">
-                <table class="table align-middle table-bordered mb-0">
+    <div class="card vip-card border-0">
+        <div class="card-body p-4">
+            <div class="table-responsive rounded-4 border overflow-hidden" style="max-height: 620px; overflow-y: auto;">
+                <table class="table align-middle table-hover mb-0">
                     <thead class="table-light sticky-top">
                         <tr>
-                            <th width="70" class="text-center">STT</th>
-                            <th width="150">Trạng thái</th>
-                            <th>Nội dung câu hỏi</th>
-                            <th width="320">Đáp án</th>
-                            <th width="260">Ghi chú</th>
+                            <th width="70" class="text-center border-0">STT</th>
+                            <th width="90" class="text-center border-0">Dòng</th>
+                            <th width="160" class="border-0">Trạng thái</th>
+                            <th class="border-0">Nội dung câu hỏi</th>
+                            <th width="320" class="border-0">Đáp án</th>
+                            <th width="220" class="border-0">Đúng</th>
+                            <th width="250" class="border-0">Ghi chú</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="border-top-0">
                         @forelse($preview['data'] as $index => $row)
                             @php
                                 $rowStatus = $row['status'];
+                                $validationStatus = $row['validation_status'] ?? $rowStatus;
                                 $badgeClass = match ($rowStatus) {
                                     'hop_le' => 'bg-success',
                                     'trung_lap_trong_file', 'trung_lap_trong_he_thong' => 'bg-warning text-dark',
                                     default => 'bg-danger',
                                 };
-                                $statusLabel = match ($rowStatus) {
+                                $statusLabel = match ($validationStatus) {
                                     'hop_le' => 'Hợp lệ',
-                                    'trung_lap_trong_file' => 'Trùng trong file',
-                                    'trung_lap_trong_he_thong' => 'Trùng trong hệ thống',
+                                    'trung_trong_file' => 'Trùng trong file',
+                                    'trung_trong_he_thong' => 'Trùng hệ thống',
+                                    'thieu_noi_dung' => 'Thiếu nội dung',
+                                    'thieu_dap_an' => 'Thiếu đáp án',
+                                    'it_hon_so_dap_an_toi_thieu' => 'Thiếu SL đáp án',
+                                    'khong_xac_dinh_dap_an_dung' => 'Chưa có ĐA đúng',
+                                    'nhieu_hon_mot_dap_an_dung' => 'Nhiều ĐA đúng',
+                                    'khong_ho_tro_loai_cau_hoi' => 'Chưa hỗ trợ loại',
+                                    'sai_dinh_dang' => 'Sai định dạng',
                                     default => 'Lỗi dữ liệu',
                                 };
                             @endphp
-                            <tr class="{{ $rowStatus === 'hop_le' ? '' : 'table-light' }}">
+                            <tr class="{{ $rowStatus === 'hop_le' ? '' : 'bg-light bg-opacity-50' }}">
                                 <td class="text-center">{{ $index + 1 }}</td>
-                                <td><span class="badge {{ $badgeClass }} w-100 py-2">{{ $statusLabel }}</span></td>
+                                <td class="text-center fw-bold text-muted">{{ $row['line'] ?? '-' }}</td>
+                                <td><span class="badge {{ $badgeClass }} rounded-pill px-3 py-2 w-100">{{ $statusLabel }}</span></td>
                                 <td>
-                                    <div class="fw-semibold">{{ $row['noi_dung_cau_hoi'] ?: 'Dòng trống' }}</div>
+                                    <div class="fw-bold text-dark">{{ $row['noi_dung_cau_hoi'] ?: 'Dòng trống' }}</div>
                                 </td>
                                 <td class="small">
-                                    <div><span class="fw-semibold text-success">Đúng:</span> {{ $row['dap_an_dung'] ?: '---' }}</div>
-                                    <div><span class="text-muted">Sai 1:</span> {{ $row['dap_an_sai_1'] ?: '---' }}</div>
-                                    <div><span class="text-muted">Sai 2:</span> {{ $row['dap_an_sai_2'] ?: '---' }}</div>
-                                    <div><span class="text-muted">Sai 3:</span> {{ $row['dap_an_sai_3'] ?: '---' }}</div>
+                                    @foreach(($row['answers'] ?? []) as $answerIndex => $answer)
+                                        <div class="mb-1 d-flex gap-2">
+                                            <span class="fw-bold text-primary">{{ $answer['ky_hieu'] ?? ('Đáp án ' . ($answerIndex + 1)) }}.</span>
+                                            <span class="{{ !empty($answer['is_dap_an_dung']) ? 'fw-bold text-success' : '' }}">
+                                                {{ $answer['noi_dung'] ?: '---' }}
+                                            </span>
+                                            @if(!empty($answer['is_dap_an_dung']))
+                                                <i class="fas fa-check text-success small align-self-center"></i>
+                                            @endif
+                                        </div>
+                                    @endforeach
+
+                                    @if(empty($row['answers'] ?? []))
+                                        <span class="text-muted italic">---</span>
+                                    @endif
                                 </td>
-                                <td class="small {{ $row['note'] ? 'text-danger' : 'text-muted' }}">
+                                <td class="small">
+                                    <span class="badge bg-{{ !empty($row['dap_an_dung']) ? 'success' : 'warning text-dark' }} rounded-pill px-3 py-2">
+                                        {{ $row['dap_an_dung'] ?: 'Chưa xác định' }}
+                                    </span>
+                                </td>
+                                <td class="small {{ $row['note'] ? 'text-danger fw-semibold' : 'text-muted' }}">
                                     {{ $row['note'] ?: 'Sẵn sàng để import.' }}
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center py-5 text-muted">Không có dữ liệu preview.</td>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <i class="fas fa-inbox fa-3x mb-3 opacity-20"></i>
+                                    <p>Không có dữ liệu xem trước.</p>
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
 
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-4 p-3 bg-light rounded-3">
-                <div class="text-muted">
-                    Chỉ các dòng có trạng thái <span class="badge bg-success">Hợp lệ</span> mới được lưu vào hệ thống.
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-4 mt-5 p-4 bg-light rounded-4 border-0">
+                <div class="text-muted small flex-grow-1" style="max-width: 800px;">
+                    <i class="fas fa-info-circle me-1 text-primary"></i> 
+                    Chỉ các dòng có trạng thái <span class="badge bg-success rounded-pill px-2">Hợp lệ</span> mới được lưu vào hệ thống. Các dòng chưa xác định được đáp án đúng hoặc sai định dạng sẽ được giữ lại ở preview để admin kiểm tra.
                 </div>
-                <form action="{{ route('admin.kiem-tra-online.cau-hoi.confirm-import') }}" method="POST">
+                <form action="{{ route('admin.confirm-import') }}" method="POST">
                     @csrf
-                    <button type="submit" class="btn btn-success px-4" @disabled($summary['valid'] === 0)>
-                        <i class="fas fa-check-circle me-1"></i> Xác nhận import {{ $summary['valid'] }} câu hợp lệ
+                    <button type="submit" class="btn vip-btn vip-btn-primary px-5 shadow-sm" @disabled($summary['valid'] === 0)>
+                        <i class="fas fa-check-circle me-2"></i> Xác nhận import {{ $summary['valid'] }} câu hợp lệ
                     </button>
                 </form>
             </div>
