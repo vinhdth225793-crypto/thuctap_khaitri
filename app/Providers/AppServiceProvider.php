@@ -8,6 +8,8 @@ use App\Models\TaiKhoanChoPheDuyet;
 use App\Models\ModuleHoc;
 use App\Observers\ModuleHocObserver;
 
+use Illuminate\Pagination\Paginator;
+
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -23,6 +25,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Paginator::useBootstrapFive();
+
         // Phase 1 - Register ModuleHocObserver
         ModuleHoc::observe(ModuleHocObserver::class);
 

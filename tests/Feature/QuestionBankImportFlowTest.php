@@ -231,13 +231,210 @@ class QuestionBankImportFlowTest extends TestCase
                         'duplicate_db' => 0,
                         'error' => 0,
                     ],
-                    'user_id' => $owner->id,
+                    'user_id' => $owner->getKey(),
                 ],
             ])
             ->get(route('admin.kiem-tra-online.cau-hoi.preview'))
             ->assertRedirect(route('admin.kiem-tra-online.cau-hoi.index'))
-            ->assertSessionHas('error', fn (string $message) => str_contains($message, 'Phiên import không còn hợp lệ'))
+            ->assertSessionHas('error', fn (string $message) => str_contains($message, 'Khong tim thay du lieu xem truoc hoac phien import khong con hop le.'))
             ->assertSessionMissing('import_preview');
+    }
+
+    public function test_preview_page_renders_successfully_for_owned_session(): void
+    {
+        $admin = $this->createUser('admin');
+
+        $this->actingAs($admin)
+            ->withSession([
+                'import_preview' => $this->makePreviewSessionPayload($admin->getKey()),
+            ])
+            ->get(route('admin.kiem-tra-online.cau-hoi.preview'))
+            ->assertOk()
+            ->assertSeeText('Xuat toan bo')
+            ->assertSeeText('Xac nhan import 1 cau hop le');
+    }
+
+    public function test_can_export_valid_preview_rows_to_standard_xlsx_template(): void
+    {
+        $admin = $this->createUser('admin');
+
+        $response = $this->actingAs($admin)
+            ->withSession([
+                'import_preview' => $this->makePreviewSessionPayload($admin->getKey()),
+            ])
+            ->get(route('admin.kiem-tra-online.cau-hoi.export-preview', ['scope' => 'valid']));
+
+        $response->assertOk();
+        $response->assertDownload();
+
+        ob_start();
+        $response->baseResponse->sendContent();
+        $content = ob_get_clean();
+
+        $tempPath = tempnam(sys_get_temp_dir(), 'preview-export-valid-');
+        $this->assertNotFalse($tempPath);
+
+        $xlsxPath = $tempPath . '.xlsx';
+        @rename($tempPath, $xlsxPath);
+        file_put_contents($xlsxPath, $content);
+
+        $rows = app(SimpleXlsxReader::class)->readSheetRows($xlsxPath, 'Mau_Import');
+        $rowTwo = collect($rows)->firstWhere('row', 2);
+        $rowSeven = collect($rows)->firstWhere('row', 7);
+
+        $this->assertSame([
+            'cau_hoi',
+            'dap_an_1',
+            'dap_an_2',
+            'dap_an_3',
+            'dap_an_4',
+            'dap_an_dung',
+        ], $rowTwo['values']);
+        $this->assertSame([
+            'Thu do Viet Nam la gi?',
+            'Ha Noi',
+            'Hue',
+            'Da Nang',
+            'Can Tho',
+            'Ha Noi',
+        ], $rowSeven['values']);
+    }
+
+    public function test_export_preview_keeps_registered_template_layout_rows(): void
+    {
+        $admin = $this->createUser('admin');
+
+        $response = $this->actingAs($admin)
+            ->withSession([
+                'import_preview' => $this->makePreviewSessionPayload($admin->getKey()),
+            ])
+            ->get(route('admin.kiem-tra-online.cau-hoi.export-preview', ['scope' => 'valid']));
+
+        $response->assertOk();
+        $response->assertDownload();
+
+        ob_start();
+        $response->baseResponse->sendContent();
+        $content = ob_get_clean();
+
+        $tempPath = tempnam(sys_get_temp_dir(), 'preview-export-layout-');
+        $this->assertNotFalse($tempPath);
+
+        $xlsxPath = $tempPath . '.xlsx';
+        @rename($tempPath, $xlsxPath);
+        file_put_contents($xlsxPath, $content);
+
+        $templatePath = storage_path('app/' . config('import_templates.templates.question_bank_mcq.path'));
+        $templateRows = app(SimpleXlsxReader::class)->readSheetRows($templatePath, 'Mau_Import');
+        $exportRows = app(SimpleXlsxReader::class)->readSheetRows($xlsxPath, 'Mau_Import');
+
+        foreach ([1, 2, 3, 4, 5, 6] as $rowNumber) {
+            $templateRow = collect($templateRows)->firstWhere('row', $rowNumber);
+            $exportRow = collect($exportRows)->firstWhere('row', $rowNumber);
+
+            $this->assertNotNull($templateRow);
+            $this->assertNotNull($exportRow);
+            $this->assertSame($templateRow['values'], $exportRow['values']);
+        }
+    }
+
+    public function test_can_export_error_preview_rows_to_standard_xlsx_template(): void
+    {
+        $admin = $this->createUser('admin');
+
+        $response = $this->actingAs($admin)
+            ->withSession([
+                'import_preview' => $this->makePreviewSessionPayload($admin->getKey()),
+            ])
+            ->get(route('admin.kiem-tra-online.cau-hoi.export-preview', ['scope' => 'error']));
+
+        $response->assertOk();
+        $response->assertDownload();
+
+        ob_start();
+        $response->baseResponse->sendContent();
+        $content = ob_get_clean();
+
+        $tempPath = tempnam(sys_get_temp_dir(), 'preview-export-error-');
+        $this->assertNotFalse($tempPath);
+
+        $xlsxPath = $tempPath . '.xlsx';
+        @rename($tempPath, $xlsxPath);
+        file_put_contents($xlsxPath, $content);
+
+        $rows = app(SimpleXlsxReader::class)->readSheetRows($xlsxPath, 'Mau_Import');
+        $rowSeven = collect($rows)->firstWhere('row', 7);
+
+        $this->assertSame([
+            'Cau hoi thieu dap an',
+            'Lua chon A',
+            'Lua chon B',
+            '',
+            '',
+            '',
+        ], $rowSeven['values']);
+    }
+
+    public function test_export_marks_invalid_rows_with_red_fill_in_xlsx(): void
+    {
+        $admin = $this->createUser('admin');
+
+        $response = $this->actingAs($admin)
+            ->withSession([
+                'import_preview' => $this->makePreviewSessionPayload($admin->getKey()),
+            ])
+            ->get(route('admin.kiem-tra-online.cau-hoi.export-preview', ['scope' => 'all']));
+
+        $response->assertOk();
+        $response->assertDownload();
+
+        ob_start();
+        $response->baseResponse->sendContent();
+        $content = ob_get_clean();
+
+        $tempPath = tempnam(sys_get_temp_dir(), 'preview-export-styles-');
+        $this->assertNotFalse($tempPath);
+
+        $xlsxPath = $tempPath . '.xlsx';
+        @rename($tempPath, $xlsxPath);
+        file_put_contents($xlsxPath, $content);
+
+        $validStyleIndex = $this->readWorksheetCellStyleIndex($xlsxPath, 'A7');
+        $invalidStyleIndex = $this->readWorksheetCellStyleIndex($xlsxPath, 'A8');
+
+        $this->assertNotSame($validStyleIndex, $invalidStyleIndex);
+        $this->assertSame('FDE2E1', $this->readFillColorForStyleIndex($xlsxPath, $invalidStyleIndex));
+    }
+
+    public function test_export_marks_correct_answer_cell_with_green_fill_in_xlsx(): void
+    {
+        $admin = $this->createUser('admin');
+
+        $response = $this->actingAs($admin)
+            ->withSession([
+                'import_preview' => $this->makePreviewSessionPayload($admin->getKey()),
+            ])
+            ->get(route('admin.kiem-tra-online.cau-hoi.export-preview', ['scope' => 'all']));
+
+        $response->assertOk();
+        $response->assertDownload();
+
+        ob_start();
+        $response->baseResponse->sendContent();
+        $content = ob_get_clean();
+
+        $tempPath = tempnam(sys_get_temp_dir(), 'preview-export-correct-');
+        $this->assertNotFalse($tempPath);
+
+        $xlsxPath = $tempPath . '.xlsx';
+        @rename($tempPath, $xlsxPath);
+        file_put_contents($xlsxPath, $content);
+
+        $correctStyleIndex = $this->readWorksheetCellStyleIndex($xlsxPath, 'B7');
+        $wrongStyleIndex = $this->readWorksheetCellStyleIndex($xlsxPath, 'C7');
+
+        $this->assertSame('ECFDF3', $this->readFillColorForStyleIndex($xlsxPath, $correctStyleIndex));
+        $this->assertNotSame('ECFDF3', $this->readFillColorForStyleIndex($xlsxPath, $wrongStyleIndex));
     }
 
     public function test_confirm_import_skips_questions_that_become_duplicates_after_preview(): void
@@ -567,5 +764,129 @@ class QuestionBankImportFlowTest extends TestCase
         fclose($handle);
 
         return $csvPath;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function makePreviewSessionPayload(int $userId): array
+    {
+        return [
+            'khoa_hoc_id' => 1,
+            'khoa_hoc_ten' => 'Demo course',
+            'module_hoc_id' => 2,
+            'module_hoc_ten' => 'Demo module',
+            'source_format' => 'docx',
+            'profile' => 'question_document_docx',
+            'original_name' => 'preview-source.docx',
+            'data' => [
+                [
+                    'line' => 10,
+                    'noi_dung_cau_hoi' => 'Thu do Viet Nam la gi?',
+                    'answers' => [
+                        ['ky_hieu' => 'A', 'noi_dung' => 'Ha Noi', 'is_dap_an_dung' => true],
+                        ['ky_hieu' => 'B', 'noi_dung' => 'Hue', 'is_dap_an_dung' => false],
+                        ['ky_hieu' => 'C', 'noi_dung' => 'Da Nang', 'is_dap_an_dung' => false],
+                        ['ky_hieu' => 'D', 'noi_dung' => 'Can Tho', 'is_dap_an_dung' => false],
+                    ],
+                    'dap_an_dung' => 'Ha Noi',
+                    'status' => 'hop_le',
+                    'validation_status' => 'hop_le',
+                    'note' => null,
+                ],
+                [
+                    'line' => 11,
+                    'noi_dung_cau_hoi' => 'Cau hoi thieu dap an',
+                    'answers' => [
+                        ['ky_hieu' => 'A', 'noi_dung' => 'Lua chon A', 'is_dap_an_dung' => false],
+                        ['ky_hieu' => 'B', 'noi_dung' => 'Lua chon B', 'is_dap_an_dung' => false],
+                    ],
+                    'dap_an_dung' => null,
+                    'status' => 'loi_du_lieu',
+                    'validation_status' => 'khong_du_4_dap_an',
+                    'note' => 'Flow import hien tai chi ho tro dung 4 dap an.',
+                ],
+            ],
+            'summary' => [
+                'total' => 2,
+                'valid' => 1,
+                'duplicate_file' => 0,
+                'duplicate_db' => 0,
+                'error' => 1,
+                'needs_review' => 1,
+            ],
+            'user_id' => $userId,
+        ];
+    }
+
+    private function readWorksheetCellStyleIndex(string $xlsxPath, string $cellReference): int
+    {
+        $zip = new ZipArchive();
+        if ($zip->open($xlsxPath) !== true) {
+            throw new \RuntimeException('Unable to open xlsx export fixture.');
+        }
+
+        try {
+            $worksheetContent = $zip->getFromName('xl/worksheets/sheet1.xml');
+            if ($worksheetContent === false) {
+                throw new \RuntimeException('Unable to read Mau_Import worksheet.');
+            }
+
+            $document = new \DOMDocument();
+            $document->loadXML($worksheetContent);
+
+            $xpath = new \DOMXPath($document);
+            $xpath->registerNamespace('main', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main');
+
+            $cellNode = $xpath->query('//main:c[@r="' . $cellReference . '"]')->item(0);
+            if (!$cellNode instanceof \DOMElement) {
+                throw new \RuntimeException("Unable to locate cell {$cellReference} in worksheet.");
+            }
+
+            return (int) $cellNode->getAttribute('s');
+        } finally {
+            $zip->close();
+        }
+    }
+
+    private function readFillColorForStyleIndex(string $xlsxPath, int $styleIndex): ?string
+    {
+        $zip = new ZipArchive();
+        if ($zip->open($xlsxPath) !== true) {
+            throw new \RuntimeException('Unable to open xlsx export fixture.');
+        }
+
+        try {
+            $stylesContent = $zip->getFromName('xl/styles.xml');
+            if ($stylesContent === false) {
+                throw new \RuntimeException('Unable to read styles.xml from export.');
+            }
+
+            $document = new \DOMDocument();
+            $document->loadXML($stylesContent);
+
+            $xpath = new \DOMXPath($document);
+            $xpath->registerNamespace('main', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main');
+
+            $xfNode = $xpath->query('//main:cellXfs/main:xf')->item($styleIndex);
+            if (!$xfNode instanceof \DOMElement) {
+                throw new \RuntimeException("Unable to locate style index {$styleIndex}.");
+            }
+
+            $fillId = (int) $xfNode->getAttribute('fillId');
+            $fillNode = $xpath->query('//main:fills/main:fill')->item($fillId);
+            if (!$fillNode instanceof \DOMElement) {
+                throw new \RuntimeException("Unable to locate fill id {$fillId}.");
+            }
+
+            $foregroundNode = $xpath->query('./main:patternFill/main:fgColor', $fillNode)->item(0);
+            if (!$foregroundNode instanceof \DOMElement) {
+                return null;
+            }
+
+            return strtoupper((string) $foregroundNode->getAttribute('rgb'));
+        } finally {
+            $zip->close();
+        }
     }
 }

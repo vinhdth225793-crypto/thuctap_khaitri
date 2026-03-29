@@ -62,7 +62,7 @@ class BaiKiemTraPheDuyetController extends Controller
         $baiKiemTra = BaiKiemTra::findOrFail($id);
 
         if ($baiKiemTra->chiTietCauHois()->count() === 0 && blank($baiKiemTra->mo_ta)) {
-            return back()->with('error', 'De chua co cau hoi hoac noi dung de duyet.');
+            return back()->with('error', 'Đề chưa có câu hỏi hoặc nội dung để duyệt.');
         }
 
         $baiKiemTra->update([

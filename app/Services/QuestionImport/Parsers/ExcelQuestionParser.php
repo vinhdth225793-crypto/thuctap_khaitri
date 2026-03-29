@@ -220,7 +220,7 @@ class ExcelQuestionParser implements QuestionFileParser
             }
 
             if (collect($answers)->where('is_correct', true)->count() !== 1) {
-                $status = 'khong_xac_dinh_dap_an_dung';
+                $status = 'dap_an_dung_khong_khop';
                 $note = 'dap_an_dung khong khop voi bat ky dap an nao.';
             }
         }

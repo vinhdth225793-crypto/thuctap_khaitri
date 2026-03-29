@@ -49,7 +49,11 @@ class ParsedQuestionValidator
                 }
             }
 
-            if (($previewRow['validation_status'] ?? null) === 'khong_xac_dinh_dap_an_dung') {
+            if (in_array((string) ($previewRow['validation_status'] ?? ''), [
+                'khong_xac_dinh_dap_an_dung',
+                'dap_an_dung_khong_khop',
+                'nhieu_hon_mot_dap_an_dung',
+            ], true)) {
                 $summary['needs_review']++;
             }
 
@@ -87,31 +91,195 @@ class ParsedQuestionValidator
             ->values()
             ->all();
 
-        $validationStatus = (string) ($parsedQuestion['trang_thai_parse'] ?? 'hop_le');
+        $validationStatus = (string) ($parsedQuestion['trang_thai_parse'] ?? self::STATUS_VALID);
         $note = $parsedQuestion['ghi_chu_loi'] ?? null;
+        $fallbackCorrectDisplay = $this->resolveFallbackCorrectDisplay($parsedQuestion);
 
-        if ($validationStatus === 'hop_le') {
-            [$validationStatus, $note] = $this->validateStructuredQuestion(
-                $question,
-                $answers,
-                (string) ($parsedQuestion['loai'] ?? NganHangCauHoi::LOAI_TRAC_NGHIEM)
-            );
+        if ($validationStatus === self::STATUS_VALID) {
+            [$answers, $validationStatus, $note] = $this->resolveCorrectAnswerSignals($answers, $parsedQuestion);
+
+            if ($validationStatus === self::STATUS_VALID) {
+                [$validationStatus, $note] = $this->validateStructuredQuestion(
+                    $question,
+                    $answers,
+                    (string) ($parsedQuestion['loai'] ?? NganHangCauHoi::LOAI_TRAC_NGHIEM)
+                );
+            }
         }
 
-        $correctAnswers = collect($answers)->where('is_dap_an_dung', true)->pluck('noi_dung')->values();
+        $correctAnswers = collect($answers)
+            ->where('is_dap_an_dung', true)
+            ->pluck('noi_dung')
+            ->values();
 
         return [
             'line' => (int) ($parsedQuestion['line'] ?? $parsedQuestion['so_thu_tu'] ?? 0),
             'noi_dung_cau_hoi' => $question,
             'answers' => $answers,
             'answers_display' => array_map(fn (array $answer) => $answer['noi_dung'], $answers),
-            'dap_an_dung' => $correctAnswers->count() === 1 ? $correctAnswers->first() : ($parsedQuestion['dap_an_dung_text'] ?? null),
-            'status' => $validationStatus === 'hop_le' ? self::STATUS_VALID : self::STATUS_INVALID,
+            'dap_an_dung' => $correctAnswers->count() === 1 ? $correctAnswers->first() : $fallbackCorrectDisplay,
+            'status' => $validationStatus === self::STATUS_VALID ? self::STATUS_VALID : self::STATUS_INVALID,
             'validation_status' => $validationStatus,
             'note' => $note,
-            'import_answers' => $validationStatus === 'hop_le' ? $answers : [],
+            'import_answers' => $validationStatus === self::STATUS_VALID ? $answers : [],
             'nguon_file' => $parsedQuestion['nguon_file'] ?? null,
         ];
+    }
+
+    /**
+     * @param  array<int, array{ky_hieu:string, noi_dung:string, is_dap_an_dung:bool}>  $answers
+     * @param  array<string, mixed>  $parsedQuestion
+     * @return array{array<int, array{ky_hieu:string, noi_dung:string, is_dap_an_dung:bool}>, string, string|null}
+     */
+    private function resolveCorrectAnswerSignals(array $answers, array $parsedQuestion): array
+    {
+        $styleIndexes = collect($answers)
+            ->filter(fn (array $answer) => (bool) ($answer['is_dap_an_dung'] ?? false))
+            ->keys()
+            ->map(fn ($index) => (int) $index)
+            ->values()
+            ->all();
+
+        $explicitReferences = collect($parsedQuestion['dap_an_dung_refs'] ?? [])
+            ->map(fn ($reference) => trim((string) $reference))
+            ->filter(fn (string $reference) => $reference !== '')
+            ->values()
+            ->all();
+
+        if ($explicitReferences === [] && filled($parsedQuestion['dap_an_dung_text'] ?? null)) {
+            $explicitReferences = [trim((string) $parsedQuestion['dap_an_dung_text'])];
+        }
+
+        $explicitIndexes = [];
+        $unmatchedReferences = [];
+
+        foreach ($explicitReferences as $reference) {
+            $matchedIndex = $this->matchCorrectAnswerReference($answers, $reference);
+
+            if ($matchedIndex === null) {
+                $unmatchedReferences[] = $reference;
+                continue;
+            }
+
+            $explicitIndexes[] = $matchedIndex;
+        }
+
+        $explicitIndexes = array_values(array_unique($explicitIndexes));
+
+        if ($unmatchedReferences !== []) {
+            return [
+                $answers,
+                'dap_an_dung_khong_khop',
+                'Dong dap an dung khong khop voi bat ky dap an nao: ' . implode(' | ', $unmatchedReferences) . '.',
+            ];
+        }
+
+        $resolvedIndexes = array_values(array_unique(array_merge($styleIndexes, $explicitIndexes)));
+
+        if ($resolvedIndexes === []) {
+            return [
+                $answers,
+                'khong_xac_dinh_dap_an_dung',
+                'Chua xac dinh duoc dap an dung. Can kiem tra thu cong truoc khi import.',
+            ];
+        }
+
+        if (count($resolvedIndexes) > 1) {
+            return [
+                $answers,
+                'nhieu_hon_mot_dap_an_dung',
+                $this->buildConflictingCorrectAnswerNote($answers, $resolvedIndexes, $styleIndexes, $explicitIndexes),
+            ];
+        }
+
+        $resolvedIndex = $resolvedIndexes[0];
+        foreach ($answers as $index => $answer) {
+            $answers[$index]['is_dap_an_dung'] = $index === $resolvedIndex;
+        }
+
+        return [$answers, self::STATUS_VALID, null];
+    }
+
+    /**
+     * @param  array<int, array{ky_hieu:string, noi_dung:string, is_dap_an_dung:bool}>  $answers
+     */
+    private function matchCorrectAnswerReference(array $answers, string $reference): ?int
+    {
+        $normalizedReference = $this->normalizeReferenceToken($reference);
+        if ($normalizedReference === '') {
+            return null;
+        }
+
+        $normalizedTextReference = NganHangCauHoi::normalizeString($reference);
+
+        foreach ($answers as $index => $answer) {
+            $normalizedKey = $this->normalizeReferenceToken((string) ($answer['ky_hieu'] ?? ''));
+            $normalizedAnswerText = NganHangCauHoi::normalizeString((string) ($answer['noi_dung'] ?? ''));
+
+            if ($normalizedKey !== '' && $normalizedKey === $normalizedReference) {
+                return $index;
+            }
+
+            if ($normalizedAnswerText !== '' && $normalizedAnswerText === $normalizedTextReference) {
+                return $index;
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizeReferenceToken(string $reference): string
+    {
+        $reference = trim($reference);
+        $reference = preg_replace('/^[\*\-\s]+|[\*\-\s]+$/u', '', $reference) ?? $reference;
+
+        if (preg_match('/^([A-Za-z])[\.\)]?$/u', $reference, $matches) === 1) {
+            return mb_strtolower($matches[1], 'UTF-8');
+        }
+
+        return NganHangCauHoi::normalizeString($reference);
+    }
+
+    /**
+     * @param  array<int, array{ky_hieu:string, noi_dung:string, is_dap_an_dung:bool}>  $answers
+     * @param  array<int, int>  $resolvedIndexes
+     * @param  array<int, int>  $styleIndexes
+     * @param  array<int, int>  $explicitIndexes
+     */
+    private function buildConflictingCorrectAnswerNote(array $answers, array $resolvedIndexes, array $styleIndexes, array $explicitIndexes): string
+    {
+        $labels = collect($resolvedIndexes)
+            ->map(function (int $index) use ($answers) {
+                $answer = $answers[$index] ?? [];
+                $label = (string) ($answer['ky_hieu'] ?? chr(65 + $index));
+                $content = trim((string) ($answer['noi_dung'] ?? ''));
+
+                return $label . ($content !== '' ? ' - ' . $content : '');
+            })
+            ->implode(' | ');
+
+        if ($styleIndexes !== [] && $explicitIndexes !== []) {
+            return 'Phat hien mau thuan giua style danh dau va dong dap an dung: ' . $labels . '.';
+        }
+
+        return 'Phat hien nhieu hon mot dap an dung trong cung mot cau hoi: ' . $labels . '.';
+    }
+
+    /**
+     * @param  array<string, mixed>  $parsedQuestion
+     */
+    private function resolveFallbackCorrectDisplay(array $parsedQuestion): ?string
+    {
+        if (filled($parsedQuestion['dap_an_dung_text'] ?? null)) {
+            return trim((string) $parsedQuestion['dap_an_dung_text']);
+        }
+
+        $references = collect($parsedQuestion['dap_an_dung_refs'] ?? [])
+            ->map(fn ($reference) => trim((string) $reference))
+            ->filter(fn (string $reference) => $reference !== '')
+            ->values();
+
+        return $references->count() === 1 ? $references->first() : null;
     }
 
     /**
@@ -125,15 +293,15 @@ class ParsedQuestionValidator
         }
 
         if ($question === '') {
-            return ['thieu_noi_dung', 'Thieu noi dung cau hoi.'];
+            return ['thieu_cau_hoi', 'Thieu noi dung cau hoi.'];
         }
 
         if ($answers === []) {
             return ['thieu_dap_an', 'Khong tim thay dap an cho cau hoi nay.'];
         }
 
-        if (count($answers) < 2) {
-            return ['it_hon_so_dap_an_toi_thieu', 'Cau hoi trac nghiem can it nhat 2 dap an.'];
+        if (count($answers) !== 4) {
+            return ['khong_du_4_dap_an', 'Flow import hien tai chi ho tro cau hoi co dung 4 dap an. Phat hien ' . count($answers) . ' dap an.'];
         }
 
         $normalizedContents = collect($answers)
@@ -145,7 +313,7 @@ class ParsedQuestionValidator
         }
 
         if ($normalizedContents->unique()->count() !== $normalizedContents->count()) {
-            return ['sai_dinh_dang', 'Cac dap an trong cung mot cau khong duoc trung nhau.'];
+            return ['trung_dap_an', 'Cac dap an trong cung mot cau khong duoc trung nhau.'];
         }
 
         $correctCount = collect($answers)->where('is_dap_an_dung', true)->count();
@@ -157,6 +325,6 @@ class ParsedQuestionValidator
             return ['nhieu_hon_mot_dap_an_dung', 'Phat hien nhieu hon mot dap an dung trong cung mot cau hoi.'];
         }
 
-        return ['hop_le', null];
+        return [self::STATUS_VALID, null];
     }
 }

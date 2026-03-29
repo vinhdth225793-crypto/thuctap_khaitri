@@ -195,6 +195,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     });
 
     Route::prefix('kiem-tra-online')->name('kiem-tra-online.')->group(function () {
+        Route::get('/', function () {
+            return redirect()->route('admin.kiem-tra-online.cau-hoi.index');
+        });
+        
         Route::prefix('cau-hoi')->name('cau-hoi.')->group(function () {
             Route::get('/', [NganHangCauHoiController::class, 'index'])->name('index');
             Route::get('/create', [NganHangCauHoiController::class, 'create'])->name('create');
@@ -202,6 +206,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
             Route::get('/template', [NganHangCauHoiController::class, 'downloadTemplate'])->name('template');
             Route::post('/import', [NganHangCauHoiController::class, 'import'])->name('import');
             Route::get('/preview', [NganHangCauHoiController::class, 'preview'])->name('preview');
+            Route::get('/export-preview', [NganHangCauHoiController::class, 'exportPreview'])->name('export-preview');
             Route::post('/confirm-import', [NganHangCauHoiController::class, 'confirmImport'])->name('confirm-import');
             Route::get('/{id}/edit', [NganHangCauHoiController::class, 'edit'])->name('edit');
             Route::put('/{id}', [NganHangCauHoiController::class, 'update'])->name('update');

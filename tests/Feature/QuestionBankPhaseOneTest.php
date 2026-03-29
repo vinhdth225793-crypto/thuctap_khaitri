@@ -131,9 +131,9 @@ class QuestionBankPhaseOneTest extends TestCase
         $response->assertOk();
         $response->assertSeeText('Module 1');
         $response->assertSeeText('Module 2');
-        $response->assertSee('2 c&#226;u', false);
-        $response->assertSee('1 c&#226;u', false);
-        $response->assertSee('Xem chi ti&#7871;t b&#7897; n&#224;y', false);
+        $response->assertSee('2 câu', false);
+        $response->assertSee('1 câu', false);
+        $response->assertSee('Xem chi tiết bộ này', false);
         $response->assertSeeText('Question in module one');
         $response->assertSeeText('Another question in module one');
     }

@@ -118,6 +118,42 @@ class QuestionDocumentImportFlowTest extends TestCase
         $this->assertSame('Phuong an dung', $preview['data'][0]['dap_an_dung']);
     }
 
+    public function test_can_preview_docx_question_using_standalone_correct_answer_line(): void
+    {
+        $admin = $this->createUser('admin');
+        $course = $this->createCourse($admin);
+
+        $docxPath = $this->createDocxQuestionFile([
+            ['text' => '1. Laravel duoc viet bang ngon ngu nao?'],
+            ['text' => 'A. Ruby'],
+            ['text' => 'B. PHP'],
+            ['text' => 'C. Python'],
+            ['text' => 'D. Java'],
+            ['text' => 'Dap an dung: B'],
+        ]);
+
+        $upload = new UploadedFile(
+            $docxPath,
+            'docx-with-answer-line.docx',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            null,
+            true,
+        );
+
+        $this->actingAs($admin)
+            ->post(route('admin.kiem-tra-online.cau-hoi.import'), [
+                'khoa_hoc_id' => $course->id,
+                'file_import' => $upload,
+            ])
+            ->assertRedirect(route('admin.kiem-tra-online.cau-hoi.preview'));
+
+        $preview = session('import_preview');
+
+        $this->assertSame(1, $preview['summary']['valid']);
+        $this->assertSame('hop_le', $preview['data'][0]['validation_status']);
+        $this->assertSame('PHP', $preview['data'][0]['dap_an_dung']);
+    }
+
     public function test_pdf_text_preview_marks_question_for_manual_review_when_correct_answer_is_unknown(): void
     {
         $admin = $this->createUser('admin');
@@ -189,6 +225,71 @@ class QuestionDocumentImportFlowTest extends TestCase
             ->firstOrFail();
 
         $this->assertSame('Laravel', $question->dapAns->firstWhere('is_dap_an_dung', true)?->noi_dung);
+    }
+
+    public function test_can_preview_pdf_text_import_when_standalone_answer_reference_is_present(): void
+    {
+        $admin = $this->createUser('admin');
+        $course = $this->createCourse($admin);
+
+        $pdfPath = $this->createPdfTextQuestionFile([
+            '1. Laravel su dung he quan tri CSDL nao pho bien?',
+            'A. Photoshop',
+            'B. MySQL',
+            'C. Figma',
+            'D. Word',
+            'Dap an: B',
+        ]);
+
+        $upload = new UploadedFile($pdfPath, 'pdf-answer-line.pdf', 'application/pdf', null, true);
+
+        $this->actingAs($admin)
+            ->post(route('admin.kiem-tra-online.cau-hoi.import'), [
+                'khoa_hoc_id' => $course->id,
+                'file_import' => $upload,
+            ])
+            ->assertRedirect(route('admin.kiem-tra-online.cau-hoi.preview'));
+
+        $preview = session('import_preview');
+
+        $this->assertSame(1, $preview['summary']['valid']);
+        $this->assertSame('hop_le', $preview['data'][0]['validation_status']);
+        $this->assertSame('MySQL', $preview['data'][0]['dap_an_dung']);
+    }
+
+    public function test_docx_preview_marks_question_invalid_when_answer_count_is_not_four(): void
+    {
+        $admin = $this->createUser('admin');
+        $course = $this->createCourse($admin);
+
+        $docxPath = $this->createDocxQuestionFile([
+            ['text' => '1. Cau hoi chi co ba dap an?'],
+            ['text' => 'A. Lua chon 1'],
+            ['text' => 'B. Lua chon 2'],
+            ['text' => 'C. Lua chon 3'],
+            ['text' => 'Dap an: B'],
+        ]);
+
+        $upload = new UploadedFile(
+            $docxPath,
+            'docx-three-answers.docx',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            null,
+            true,
+        );
+
+        $this->actingAs($admin)
+            ->post(route('admin.kiem-tra-online.cau-hoi.import'), [
+                'khoa_hoc_id' => $course->id,
+                'file_import' => $upload,
+            ])
+            ->assertRedirect(route('admin.kiem-tra-online.cau-hoi.preview'));
+
+        $preview = session('import_preview');
+
+        $this->assertSame(0, $preview['summary']['valid']);
+        $this->assertSame('loi_du_lieu', $preview['data'][0]['status']);
+        $this->assertSame('khong_du_4_dap_an', $preview['data'][0]['validation_status']);
     }
 
     private function createUser(string $role, array $overrides = []): NguoiDung

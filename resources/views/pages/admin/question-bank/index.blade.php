@@ -544,13 +544,13 @@
                             <div class="row g-2 mb-4">
                                 <div class="col-6">
                                     <div class="bg-light rounded-3 p-2 text-center border">
-                                        <div class="text-muted small fw-600 uppercase" style="font-size: 0.65rem;">Trắc nghiệm</div>
+                                        <div class="text-muted small fw-semibold text-uppercase" style="font-size: 0.65rem;">Trắc nghiệm</div>
                                         <div class="fw-bold text-primary">{{ $summary['objective_questions'] }}</div>
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <div class="bg-light rounded-3 p-2 text-center border">
-                                        <div class="text-muted small fw-600 uppercase" style="font-size: 0.65rem;">Tự luận</div>
+                                        <div class="text-muted small fw-semibold text-uppercase" style="font-size: 0.65rem;">Tự luận</div>
                                         <div class="fw-bold text-primary">{{ $summary['essay_questions'] }}</div>
                                     </div>
                                 </div>
@@ -720,7 +720,7 @@
                     <div class="mb-0">
                         <label class="form-label fw-bold">Chọn tệp tin</label>
                         <input type="file" name="file_import" class="form-control" accept=".docx,.pdf,.xlsx,.csv,.txt" required>
-                        <div class="form-text mt-2 text-muted">Dung lượng tối đa 10MB. Hệ thống sẽ cho phép xem trước trước khi lưu chính thức.</div>
+                        <div class="form-text mt-2 text-muted">Dung lượng tối đa 10MB. Hệ thống sẽ cho phép xem trước nội dung trước khi lưu chính thức.</div>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">

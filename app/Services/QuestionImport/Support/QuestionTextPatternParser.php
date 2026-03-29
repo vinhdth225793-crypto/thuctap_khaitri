@@ -33,6 +33,7 @@ class QuestionTextPatternParser
                     'noi_dung' => trim($matches[2]),
                     'loai' => 'trac_nghiem',
                     'dap_an' => [],
+                    'dap_an_dung_refs' => [],
                     'trang_thai_parse' => 'hop_le',
                     'ghi_chu_loi' => null,
                     'nguon_file' => $sourceFormat,
@@ -42,7 +43,16 @@ class QuestionTextPatternParser
                 continue;
             }
 
-            if (preg_match('/^\s*([A-Da-d])[\.\)]\s*(.+)$/u', $text, $matches) === 1) {
+            $reference = null;
+            if ($currentQuestion !== null && $this->matchExplicitCorrectAnswerReference($text, $reference)) {
+                $currentQuestion['dap_an_dung_refs'][] = $reference;
+                $currentQuestion['dap_an_dung_text'] = $reference;
+                $currentAnswerIndex = null;
+
+                continue;
+            }
+
+            if (preg_match('/^\s*([A-Za-z])[\.\)]\s*(.+)$/u', $text, $matches) === 1) {
                 if ($currentQuestion === null) {
                     continue;
                 }
@@ -106,7 +116,32 @@ class QuestionTextPatternParser
             return [trim($matches[1]), true];
         }
 
+        if (preg_match('/^(.+?)\s*\*$/u', $text, $matches) === 1) {
+            return [trim($matches[1]), true];
+        }
+
         return [$text, false];
+    }
+
+    private function matchExplicitCorrectAnswerReference(string $text, ?string &$reference): bool
+    {
+        $reference = null;
+
+        if (preg_match('/^\s*(?:dap\s*an(?:\s*dung)?|answer(?:\s*key)?|correct\s*answer|đáp\s*án(?:\s*đúng)?)\s*[:\-]\s*(.+)$/iu', $text, $matches) !== 1) {
+            return false;
+        }
+
+        $reference = $this->normalizeExplicitCorrectReference((string) $matches[1]);
+
+        return $reference !== '';
+    }
+
+    private function normalizeExplicitCorrectReference(string $reference): string
+    {
+        $reference = trim($reference);
+        $reference = preg_replace('/^[\*\-\s]+|[\*\-\s]+$/u', '', $reference) ?? $reference;
+
+        return trim($reference);
     }
 
     /**

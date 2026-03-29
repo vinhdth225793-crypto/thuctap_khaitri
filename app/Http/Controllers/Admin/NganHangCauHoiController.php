@@ -9,6 +9,7 @@ use App\Models\KhoaHoc;
 use App\Models\ModuleHoc;
 use App\Models\NganHangCauHoi;
 use App\Services\QuestionBankImportService;
+use App\Services\QuestionImport\ParsedQuestionExportService;
 use App\Support\Imports\ImportTemplateRegistry;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -23,6 +24,7 @@ class NganHangCauHoiController extends Controller
     public function __construct(
         private readonly ImportTemplateRegistry $templateRegistry,
         private readonly QuestionBankImportService $questionBankImportService,
+        private readonly ParsedQuestionExportService $parsedQuestionExportService,
     ) {
     }
 
@@ -190,13 +192,13 @@ class NganHangCauHoiController extends Controller
                 return [
                     'khoa_hoc_id' => $first->khoa_hoc_id,
                     'module_hoc_id' => $first->module_hoc_id,
-                    'khoa_hoc_ten' => $first->khoaHoc?->ten_khoa_hoc ?? 'Khong ro khoa hoc',
+                    'khoa_hoc_ten' => $first->khoaHoc?->ten_khoa_hoc ?? 'Không rõ khóa học',
                     'khoa_hoc_ma' => $first->khoaHoc?->ma_khoa_hoc,
                     'module_hoc_ten' => $first->moduleHoc?->ten_module,
                     'module_hoc_ma' => $first->moduleHoc?->ma_module,
                     'group_label' => $first->moduleHoc?->ten_module
                         ? ($first->khoaHoc?->ten_khoa_hoc . ' / ' . $first->moduleHoc->ten_module)
-                        : ($first->khoaHoc?->ten_khoa_hoc ?? 'Khong ro khoa hoc'),
+                        : ($first->khoaHoc?->ten_khoa_hoc ?? 'Không rõ khóa học'),
                     'total_questions' => $items->count(),
                     'objective_questions' => $items->where('loai_cau_hoi', NganHangCauHoi::LOAI_TRAC_NGHIEM)->count(),
                     'essay_questions' => $items->where('loai_cau_hoi', NganHangCauHoi::LOAI_TU_LUAN)->count(),
@@ -438,33 +440,51 @@ class NganHangCauHoiController extends Controller
 
     public function preview()
     {
-        $preview = session('import_preview');
-        if (!$preview) {
+        $preview = $this->getOwnedImportPreview();
+        if ($preview === null) {
             return redirect()
                 ->route('admin.kiem-tra-online.cau-hoi.index')
-                ->with('error', 'Không tìm thấy dữ liệu xem trước.');
-        }
-
-        if (($preview['user_id'] ?? null) != auth()->id()) {
-            session()->forget('import_preview');
-
-            return redirect()
-                ->route('admin.kiem-tra-online.cau-hoi.index')
-                ->with('error', 'Phiên import không còn hợp lệ. Vui lòng thực hiện lại.');
+                ->with('error', 'Khong tim thay du lieu xem truoc hoac phien import khong con hop le.');
         }
 
         return view('pages.admin.question-bank.preview', compact('preview'));
     }
 
-    public function confirmImport(Request $request)
+    public function exportPreview(Request $request)
     {
-        $preview = session('import_preview');
-        if (!$preview || $preview['user_id'] != auth()->id()) {
-            session()->forget('import_preview');
-
+        $preview = $this->getOwnedImportPreview();
+        if ($preview === null) {
             return redirect()
                 ->route('admin.kiem-tra-online.cau-hoi.index')
-                ->with('error', 'Phiên import không còn hợp lệ. Vui lòng thực hiện lại.');
+                ->with('error', 'Khong tim thay du lieu xem truoc hoac phien import khong con hop le.');
+        }
+
+        $scope = strtolower(trim((string) $request->string('scope', 'all')));
+
+        try {
+            $export = $this->parsedQuestionExportService->export($preview, $scope);
+        } catch (Throwable $exception) {
+            Log::error('question_document_import.export_failed', [
+                'user_id' => auth()->id(),
+                'scope' => $scope,
+                'message' => $exception->getMessage(),
+            ]);
+
+            return redirect()
+                ->route('admin.kiem-tra-online.cau-hoi.preview')
+                ->with('error', 'Khong the xuat file Excel tu du lieu preview. Vui long thu lai.');
+        }
+
+        return response()->download($export['path'], $export['download_name'])->deleteFileAfterSend(true);
+    }
+
+    public function confirmImport(Request $request)
+    {
+        $preview = $this->getOwnedImportPreview();
+        if ($preview === null) {
+            return redirect()
+                ->route('admin.kiem-tra-online.cau-hoi.index')
+                ->with('error', 'Phien import khong con hop le. Vui long thuc hien lai.');
         }
 
         $khoaHocId = (int) $preview['khoa_hoc_id'];
@@ -497,6 +517,25 @@ class NganHangCauHoiController extends Controller
         return redirect()
             ->route('admin.kiem-tra-online.cau-hoi.index')
             ->with('success', $message);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function getOwnedImportPreview(): ?array
+    {
+        $preview = session('import_preview');
+        if (!is_array($preview)) {
+            return null;
+        }
+
+        if (($preview['user_id'] ?? null) != auth()->id()) {
+            session()->forget('import_preview');
+
+            return null;
+        }
+
+        return $preview;
     }
 
     private function authorizeCourseAccess($user, int $khoaHocId, ?int $secondKhoaHocId = null): void
