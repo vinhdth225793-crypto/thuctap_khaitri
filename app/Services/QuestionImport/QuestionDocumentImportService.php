@@ -55,7 +55,7 @@ class QuestionDocumentImportService
         }
 
         throw ValidationException::withMessages([
-            'file_import' => 'Dinh dang file khong duoc ho tro. Vui long dung file .docx, .pdf, .xlsx, .csv hoac .txt.',
+            'file_import' => 'Định dạng file không được hỗ trợ. Vui lòng dùng file .docx, .pdf, .xlsx, .csv hoặc .txt.',
         ]);
     }
 }

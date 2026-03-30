@@ -104,6 +104,34 @@
                             </div>
                         @endif
                     </div>
+                    @php
+                        $assignedTeacherPayload = $module->assignedTeachers
+                            ->unique('giang_vien_id')
+                            ->map(function ($assignment) {
+                                $teacher = $assignment->giangVien;
+
+                                return [
+                                    'id' => $assignment->giang_vien_id,
+                                    'name' => $teacher?->nguoiDung?->ho_ten ?? 'N/A',
+                                    'specialty' => $teacher?->chuyen_nganh,
+                                    'availability_count' => $teacher?->donXinNghis?->where('trang_thai', 'cho_duyet')->count() ?? 0,
+                                ];
+                            })
+                            ->values();
+                    @endphp
+                    <div class="d-flex flex-wrap gap-2 mt-3">
+                        @forelse($assignedTeacherPayload as $teacherInfo)
+                            <span class="badge rounded-pill bg-light text-dark border">
+                                <i class="fas fa-user-check text-success me-1"></i>
+                                {{ $teacherInfo['name'] }}
+                                <span class="text-muted ms-1">({{ $teacherInfo['availability_count'] }} don cho duyet)</span>
+                            </span>
+                        @empty
+                            <span class="badge rounded-pill bg-warning text-dark">
+                                <i class="fas fa-exclamation-triangle me-1"></i>Chua co giang vien da nhan module nay
+                            </span>
+                        @endforelse
+                    </div>
                 </div>
                 <div class="d-flex flex-wrap gap-2 align-items-center">
                     <!-- Form lưu số buổi -->
@@ -134,14 +162,16 @@
                             data-module-id="{{ $module->id }}" 
                             data-module-name="{{ $module->ten_module }}"
                             data-so-buoi="{{ $module->so_buoi }}"
-                            data-khoa-hoc-end="{{ $khoaHoc->ngay_ket_thuc->format('Y-m-d') }}"
-                            data-min-date="{{ $minDate }}">
+                            data-khoa-hoc-end="{{ optional($khoaHoc->ngay_ket_thuc)->format('Y-m-d') ?: now()->addMonths(6)->format('Y-m-d') }}"
+                            data-min-date="{{ $minDate }}"
+                            data-assigned-teachers="{{ e(json_encode($assignedTeacherPayload)) }}">
                         <i class="fas fa-magic me-1"></i> Sinh lịch tự động
                     </button>
                     <button type="button" class="btn btn-sm btn-primary fw-bold px-3 btn-add-single" 
                             data-module-id="{{ $module->id }}" 
                             data-module-name="{{ $module->ten_module }}"
-                            data-min-date="{{ $minDate }}">
+                            data-min-date="{{ $minDate }}"
+                            data-assigned-teachers="{{ e(json_encode($assignedTeacherPayload)) }}">
                         <i class="fas fa-plus me-1"></i> Thêm buổi lẻ
                     </button>
                 </div>
@@ -180,7 +210,8 @@
                                     <td class="fw-bold">{{ $lich->ngay_hoc->format('d/m/Y') }}</td>
                                     <td><span class="badge bg-light text-dark border">{{ $lich->thu_label }}</span></td>
                                     <td class="text-center">
-                                        <code class="text-dark">{{ \Carbon\Carbon::parse($lich->gio_bat_dau)->format('H:i') }} - {{ \Carbon\Carbon::parse($lich->gio_ket_thuc)->format('H:i') }}</code>
+                                        <div class="fw-bold text-dark">{{ $lich->schedule_range_label }}</div>
+                                        <code class="text-muted">{{ \Carbon\Carbon::parse($lich->gio_bat_dau)->format('H:i') }} - {{ \Carbon\Carbon::parse($lich->gio_ket_thuc)->format('H:i') }}</code>
                                     </td>
                                     <td>
                                         @if($lich->hinh_thuc === 'online')
@@ -306,6 +337,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Khởi tạo Bootstrap Modals
     const modalSingle = new bootstrap.Modal(document.getElementById('modalThemBuoi'));
     const modalAuto   = new bootstrap.Modal(document.getElementById('modalSinhTuDong'));
+    const PERIODS = @json(\App\Support\Scheduling\TeachingPeriodCatalog::periods());
+    const SESSIONS = @json(\App\Support\Scheduling\TeachingPeriodCatalog::sessions());
 
     // Hàm hỗ trợ cộng 1 ngày
     function getNextDay(dateString) {
@@ -315,11 +348,470 @@ document.addEventListener('DOMContentLoaded', function() {
         return date.toISOString().split('T')[0];
     }
 
+    function dbDayFromDate(dateString) {
+        if (!dateString) return null;
+        const date = new Date(dateString);
+        const day = date.getDay();
+        return day === 0 ? 8 : day + 1;
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function normalizeTime(value) {
+        return String(value || '').slice(0, 5);
+    }
+
+    function getPickerCheckboxes(prefix) {
+        return Array.from(document.querySelectorAll(`#${prefix}-period-grid input[type="checkbox"]`));
+    }
+
+    function getSelectedPeriods(prefix) {
+        return getPickerCheckboxes(prefix)
+            .filter((checkbox) => checkbox.checked)
+            .map((checkbox) => Number(checkbox.value))
+            .sort((left, right) => left - right);
+    }
+
+    function buildPeriodLabel(startPeriod, endPeriod) {
+        if (!startPeriod || !endPeriod) {
+            return '';
+        }
+
+        return startPeriod === endPeriod
+            ? `Tiet ${startPeriod}`
+            : `Tiet ${startPeriod} - ${endPeriod}`;
+    }
+
+    function resolveSessionFromRange(startPeriod, endPeriod) {
+        const match = Object.entries(SESSIONS).find(([, session]) => Number(session.start) <= startPeriod && Number(session.end) >= endPeriod);
+        return match ? match[0] : '';
+    }
+
+    function buildTimeRange(startPeriod, endPeriod) {
+        if (!startPeriod || !endPeriod || !PERIODS[startPeriod] || !PERIODS[endPeriod]) {
+            return '';
+        }
+
+        return `${PERIODS[startPeriod].start} - ${PERIODS[endPeriod].end}`;
+    }
+
+    function buildPreviewLabel(startPeriod, endPeriod) {
+        if (!startPeriod || !endPeriod) {
+            return '';
+        }
+
+        const sessionKey = resolveSessionFromRange(startPeriod, endPeriod);
+        const sessionLabel = sessionKey ? SESSIONS[sessionKey]?.label || '' : '';
+        const periodLabel = buildPeriodLabel(startPeriod, endPeriod);
+        const timeLabel = buildTimeRange(startPeriod, endPeriod);
+
+        return [sessionLabel, periodLabel, timeLabel].filter(Boolean).join(' | ');
+    }
+
+    function findPeriodRangeByTime(startTime, endTime) {
+        const normalizedStart = normalizeTime(startTime);
+        const normalizedEnd = normalizeTime(endTime);
+        const matches = Object.entries(PERIODS)
+            .filter(([, period]) => period.start < normalizedEnd && period.end > normalizedStart)
+            .map(([period]) => Number(period))
+            .sort((left, right) => left - right);
+
+        if (matches.length === 0) {
+            return null;
+        }
+
+        return {
+            start: matches[0],
+            end: matches[matches.length - 1],
+        };
+    }
+
+    function updateSessionButtons(prefix, sessionKey) {
+        document.querySelectorAll(`.schedule-session-btn[data-prefix="${prefix}"]`).forEach((button) => {
+            const isActive = button.dataset.session === sessionKey && sessionKey !== '';
+            button.classList.toggle('active', isActive);
+            button.classList.toggle('shadow-sm', isActive);
+        });
+    }
+
+    function setHiddenScheduleFields(prefix, startPeriod, endPeriod, sessionKey, startTime, endTime, preview) {
+        const startPeriodInput = document.getElementById(`${prefix}-tiet-bat-dau`);
+        const endPeriodInput = document.getElementById(`${prefix}-tiet-ket-thuc`);
+        const sessionInput = document.getElementById(`${prefix}-buoi-hoc`);
+        const startTimeInput = document.getElementById(`${prefix}-start-time`);
+        const endTimeInput = document.getElementById(`${prefix}-end-time`);
+        const previewInput = document.getElementById(`${prefix}-time-preview`);
+
+        if (startPeriodInput) startPeriodInput.value = startPeriod || '';
+        if (endPeriodInput) endPeriodInput.value = endPeriod || '';
+        if (sessionInput) sessionInput.value = sessionKey || '';
+        if (startTimeInput) startTimeInput.value = startTime || '';
+        if (endTimeInput) endTimeInput.value = endTime || '';
+        if (previewInput) previewInput.value = preview || '';
+    }
+
+    function parseAssignedTeachers(raw) {
+        try {
+            return JSON.parse(raw || '[]');
+        } catch (error) {
+            return [];
+        }
+    }
+
+    function syncSchedulePicker(prefix, options = {}) {
+        const { triggerPlanning = true } = options;
+        const checkboxes = getPickerCheckboxes(prefix);
+        const selected = getSelectedPeriods(prefix);
+
+        if (selected.length > 1) {
+            const rangeStart = selected[0];
+            const rangeEnd = selected[selected.length - 1];
+            checkboxes.forEach((checkbox) => {
+                const value = Number(checkbox.value);
+                checkbox.checked = value >= rangeStart && value <= rangeEnd;
+            });
+        }
+
+        const normalized = getSelectedPeriods(prefix);
+        if (normalized.length === 0) {
+            setHiddenScheduleFields(prefix, '', '', '', '', '', '');
+            updateSessionButtons(prefix, '');
+        } else {
+            const startPeriod = normalized[0];
+            const endPeriod = normalized[normalized.length - 1];
+            const sessionKey = resolveSessionFromRange(startPeriod, endPeriod);
+            const startTime = PERIODS[startPeriod]?.start || '';
+            const endTime = PERIODS[endPeriod]?.end || '';
+
+            setHiddenScheduleFields(
+                prefix,
+                startPeriod,
+                endPeriod,
+                sessionKey,
+                startTime,
+                endTime,
+                buildPreviewLabel(startPeriod, endPeriod),
+            );
+            updateSessionButtons(prefix, sessionKey);
+        }
+
+        if (!triggerPlanning) {
+            return;
+        }
+
+        if (prefix === 'single') {
+            refreshSinglePlanning();
+            return;
+        }
+
+        calculateExpectedEndDate();
+        updateThuColors();
+        refreshAutoPlanning();
+    }
+
+    function clearSchedulePicker(prefix, options = {}) {
+        getPickerCheckboxes(prefix).forEach((checkbox) => {
+            checkbox.checked = false;
+        });
+
+        syncSchedulePicker(prefix, options);
+    }
+
+    function setPeriodRange(prefix, startPeriod, endPeriod, options = {}) {
+        const rangeStart = Number(startPeriod || 0);
+        const rangeEnd = Number(endPeriod || 0);
+
+        if (!rangeStart || !rangeEnd) {
+            clearSchedulePicker(prefix, options);
+            return;
+        }
+
+        getPickerCheckboxes(prefix).forEach((checkbox) => {
+            const value = Number(checkbox.value);
+            checkbox.checked = value >= rangeStart && value <= rangeEnd;
+        });
+
+        syncSchedulePicker(prefix, options);
+    }
+
+    function setPickerFromTimes(prefix, startTime, endTime, options = {}) {
+        const periodRange = findPeriodRangeByTime(startTime, endTime);
+        if (periodRange) {
+            setPeriodRange(prefix, periodRange.start, periodRange.end, options);
+            return;
+        }
+
+        clearSchedulePicker(prefix, { triggerPlanning: false });
+        setHiddenScheduleFields(prefix, '', '', '', normalizeTime(startTime), normalizeTime(endTime), `${normalizeTime(startTime)} - ${normalizeTime(endTime)}`);
+        updateSessionButtons(prefix, '');
+
+        if (options.triggerPlanning === false) {
+            return;
+        }
+
+        if (prefix === 'single') {
+            refreshSinglePlanning();
+        } else {
+            calculateExpectedEndDate();
+            updateThuColors();
+            refreshAutoPlanning();
+        }
+    }
+
+    function applySuggestionToPicker(prefix, button) {
+        const startPeriod = Number(button.dataset.periodStart || 0);
+        const endPeriod = Number(button.dataset.periodEnd || 0);
+
+        if (prefix === 'single') {
+            const singleDate = document.getElementById('single-date');
+            if (singleDate && button.dataset.date) {
+                singleDate.value = button.dataset.date;
+            }
+        } else {
+            const autoDate = document.getElementById('auto-start-date');
+            if (autoDate && button.dataset.date) {
+                autoDate.value = button.dataset.date;
+            }
+
+            const suggestedDay = dbDayFromDate(button.dataset.date);
+            const targetCheckbox = document.querySelector(`#container-thu-auto input[value="${suggestedDay}"]`);
+            if (targetCheckbox) {
+                targetCheckbox.checked = true;
+            }
+        }
+
+        if (startPeriod && endPeriod) {
+            setPeriodRange(prefix, startPeriod, endPeriod);
+            return;
+        }
+
+        setPickerFromTimes(prefix, button.dataset.start, button.dataset.end);
+    }
+
+    function populateTeacherSelect(selectId, teachers) {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+
+        const currentValue = select.value;
+        const options = ['<option value="">-- Chon giang vien da nhan module --</option>'];
+        teachers.forEach(teacher => {
+            const label = `${teacher.name}${teacher.specialty ? ' - ' + teacher.specialty : ''} (${teacher.availability_count} don cho duyet)`;
+            const selected = String(currentValue) === String(teacher.id) ? 'selected' : '';
+            options.push(`<option value="${teacher.id}" ${selected}>${escapeHtml(label)}</option>`);
+        });
+
+        select.innerHTML = options.join('');
+        if (!currentValue && teachers.length > 0) {
+            select.value = teachers[0].id;
+        }
+    }
+
+    function renderPlanningPlaceholder(panelId, message) {
+        const panel = document.getElementById(panelId);
+        if (!panel) return;
+        panel.innerHTML = `<div class="small text-muted mb-0">${escapeHtml(message)}</div>`;
+    }
+
+    function renderPlanningPanel(panelId, context, previewLabel = '') {
+        const panel = document.getElementById(panelId);
+        if (!panel) return;
+
+        const assignment = context.assignment || {};
+        const availability = context.availability || {};
+        const conflicts = context.conflicts || {};
+        const summary = availability.summary || { weekly: [], specific: [], active_count: 0 };
+        const suggestions = context.suggestions || [];
+        const matched = availability.matched_slots || [];
+
+        const assignmentColor = assignment.ok === true ? 'success' : (assignment.ok === false ? 'danger' : 'secondary');
+        const availabilityColor = availability.ok === true ? 'success' : (availability.ok === false ? 'danger' : 'secondary');
+        const conflictColor = conflicts.ok === true ? 'success' : (conflicts.ok === false ? 'danger' : 'secondary');
+
+        const matchedHtml = matched.length
+            ? `<div class="mt-2">${matched.map(item => `<span class="badge bg-success-subtle text-success border border-success-subtle me-1 mb-1">${escapeHtml(item.label)} - ${escapeHtml(item.schedule || item.time || '-')}</span>`).join('')}</div>`
+            : '';
+
+        const summaryWeekly = summary.weekly && summary.weekly.length
+            ? summary.weekly.map(item => `<li>${escapeHtml(item.label)} - ${escapeHtml(item.schedule || item.time || '-')}</li>`).join('')
+            : '<li>Khong co don xin nghi nao canh bao trong tuan.</li>';
+
+        const summarySpecific = summary.specific && summary.specific.length
+            ? summary.specific.map(item => `<li>${escapeHtml(item.label)} - ${escapeHtml(item.schedule || item.time || '-')}</li>`).join('')
+            : '<li>Khong co don xin nghi nao canh bao theo ngay.</li>';
+
+        const conflictItems = conflicts.items && conflicts.items.length
+            ? `<ul class="small ps-3 mt-2 mb-0">${conflicts.items.map(item => `<li>${escapeHtml(item.course_code)} / ${escapeHtml(item.module_name)} - ${escapeHtml(item.date)} - ${escapeHtml(item.schedule || item.time || '-')}</li>`).join('')}</ul>`
+            : '';
+
+        const suggestionsHtml = suggestions.length
+            ? `<div class="d-flex flex-wrap gap-2 mt-2">${suggestions.map(item => {
+                const suggestionLabel = item.session_label
+                    ? `${item.date_label} - ${item.session_label} (${item.period_label})`
+                    : `${item.date_label} - ${item.period_label || `${item.start_time} - ${item.end_time}`}`;
+
+                return `<button type="button" class="btn btn-sm btn-outline-primary suggestion-btn" data-date="${item.date}" data-start="${item.start_time}" data-end="${item.end_time}" data-period-start="${item.period_start || ''}" data-period-end="${item.period_end || ''}" data-panel="${panelId}" title="${escapeHtml(item.source || '')}">${escapeHtml(suggestionLabel)}</button>`;
+            }).join('')}</div>`
+            : '<div class="small text-muted mt-2">Chua tim thay slot goi y trong 30 ngay toi.</div>';
+
+        panel.innerHTML = `
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                <div>
+                    <div class="fw-bold text-dark">Planning context ${previewLabel ? `<span class="small text-muted">(${escapeHtml(previewLabel)})</span>` : ''}</div>
+                    <div class="small text-muted">Teacher: ${escapeHtml(context.teacher_name || 'Chua chon')}</div>
+                </div>
+                <span class="badge rounded-pill bg-${context.can_schedule ? 'success' : 'warning'}">${context.can_schedule ? 'Co the luu lich' : 'Can xu ly truoc khi luu'}</span>
+            </div>
+            <div class="row g-3 mt-1">
+                <div class="col-md-4">
+                    <div class="border rounded-3 p-3 h-100 bg-white">
+                        <div class="small text-uppercase fw-bold text-muted mb-2">Assignment</div>
+                        <span class="badge bg-${assignmentColor} mb-2">${assignment.ok === true ? 'Dat' : (assignment.ok === false ? 'Chua dat' : 'Cho chon')}</span>
+                        <div class="small text-muted">${escapeHtml(assignment.message || 'Chua co du lieu')}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="border rounded-3 p-3 h-100 bg-white">
+                        <div class="small text-uppercase fw-bold text-muted mb-2">Khung day chuan va don nghi</div>
+                        <span class="badge bg-${availabilityColor} mb-2">${availability.ok === true ? 'Phu hop' : (availability.ok === false ? 'Khong phu hop' : 'Cho chon')}</span>
+                        <div class="small text-muted">${escapeHtml(availability.message || 'Chua co du lieu')}</div>
+                        ${matchedHtml}
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="border rounded-3 p-3 h-100 bg-white">
+                        <div class="small text-uppercase fw-bold text-muted mb-2">Xung dot</div>
+                        <span class="badge bg-${conflictColor} mb-2">${conflicts.ok === true ? 'Khong trung lich' : (conflicts.ok === false ? 'Dang trung lich' : 'Cho kiem tra')}</span>
+                        <div class="small text-muted">${escapeHtml(conflicts.message || 'Chua co du lieu')}</div>
+                        ${conflictItems}
+                    </div>
+                </div>
+            </div>
+            <div class="row g-3 mt-1">
+                <div class="col-lg-6">
+                    <div class="border rounded-3 p-3 h-100 bg-white">
+                        <div class="small text-uppercase fw-bold text-muted mb-2">Canh bao don nghi (${summary.active_count || 0})</div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="fw-bold small mb-1">Theo tuan</div>
+                                <ul class="small ps-3 mb-0">${summaryWeekly}</ul>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="fw-bold small mb-1">Theo ngay</div>
+                                <ul class="small ps-3 mb-0">${summarySpecific}</ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="border rounded-3 p-3 h-100 bg-white">
+                        <div class="small text-uppercase fw-bold text-muted mb-2">Goi y slot</div>
+                        <div class="small text-muted">Nhan vao 1 slot de dien nhanh ngay va khung tiet.</div>
+                        ${suggestionsHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    async function fetchPlanningContext(panelId, payload, previewLabel = '') {
+        const panel = document.getElementById(panelId);
+        if (!panel) return;
+
+        if (!payload.module_hoc_id || !payload.ngay_hoc || !payload.gio_bat_dau || !payload.gio_ket_thuc) {
+            renderPlanningPlaceholder(panelId, 'Chon day du ngay hoc va khung tiet de he thong phan tich.');
+            return;
+        }
+
+        if (!payload.giang_vien_id) {
+            renderPlanningPlaceholder(panelId, 'Chon giang vien de kiem tra assignment, khung day chuan, don nghi va xung dot.');
+            return;
+        }
+
+        panel.innerHTML = '<div class="small text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Dang kiem tra planning context...</div>';
+
+        try {
+            const response = await fetch(`${panel.dataset.endpoint}?${new URLSearchParams(payload).toString()}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Planning context failed');
+            }
+
+            const context = await response.json();
+            renderPlanningPanel(panelId, context, previewLabel);
+        } catch (error) {
+            renderPlanningPlaceholder(panelId, 'Khong the tai planning context luc nay. Vui long thu lai.');
+        }
+    }
+
+    function refreshSinglePlanning() {
+        fetchPlanningContext('single-planning-panel', {
+            module_hoc_id: document.getElementById('single-module-id')?.value || '',
+            ngay_hoc: document.getElementById('single-date')?.value || '',
+            gio_bat_dau: document.getElementById('single-start-time')?.value || '',
+            gio_ket_thuc: document.getElementById('single-end-time')?.value || '',
+            tiet_bat_dau: document.getElementById('single-tiet-bat-dau')?.value || '',
+            tiet_ket_thuc: document.getElementById('single-tiet-ket-thuc')?.value || '',
+            buoi_hoc: document.getElementById('single-buoi-hoc')?.value || '',
+            giang_vien_id: document.getElementById('single-teacher-id')?.value || '',
+        });
+    }
+
+    function getFirstAutoPreviewDate() {
+        const startDate = document.getElementById('auto-start-date')?.value;
+        const selectedDays = Array.from(document.querySelectorAll('input[name="thu_trong_tuan[]"]:checked')).map(cb => Number(cb.value));
+
+        if (!startDate || selectedDays.length === 0) return null;
+
+        const probe = new Date(startDate);
+        for (let index = 0; index < 14; index++) {
+            const dbDay = probe.getDay() === 0 ? 8 : probe.getDay() + 1;
+            if (selectedDays.includes(dbDay)) {
+                return probe.toISOString().split('T')[0];
+            }
+            probe.setDate(probe.getDate() + 1);
+        }
+
+        return null;
+    }
+
+    function refreshAutoPlanning() {
+        const previewDate = getFirstAutoPreviewDate();
+        if (!previewDate) {
+            renderPlanningPlaceholder('auto-planning-panel', 'Chon ngay bat dau va it nhat 1 thu trong tuan de preview buoi dau tien.');
+            return;
+        }
+
+        fetchPlanningContext('auto-planning-panel', {
+            module_hoc_id: document.getElementById('auto-module-id')?.value || '',
+            ngay_hoc: previewDate,
+            gio_bat_dau: document.getElementById('auto-start-time')?.value || '',
+            gio_ket_thuc: document.getElementById('auto-end-time')?.value || '',
+            tiet_bat_dau: document.getElementById('auto-tiet-bat-dau')?.value || '',
+            tiet_ket_thuc: document.getElementById('auto-tiet-ket-thuc')?.value || '',
+            buoi_hoc: document.getElementById('auto-buoi-hoc')?.value || '',
+            giang_vien_id: document.getElementById('auto-teacher-id')?.value || '',
+        }, `Preview buoi dau tien: ${previewDate.split('-').reverse().join('/')}`);
+    }
+
     // Sự kiện mở Modal thêm buổi lẻ
     document.querySelectorAll('.btn-add-single').forEach(btn => {
         btn.addEventListener('click', function() {
+            clearSchedulePicker('single', { triggerPlanning: false });
             document.getElementById('single-module-id').value = this.dataset.moduleId;
             document.getElementById('single-module-name').textContent = this.dataset.moduleName;
+            populateTeacherSelect('single-teacher-id', parseAssignedTeachers(this.dataset.assignedTeachers));
             
             const minDate = this.dataset.minDate;
             const inputNgay = document.querySelector('#modalThemBuoi input[name="ngay_hoc"]');
@@ -327,7 +819,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 const nextDay = getNextDay(minDate);
                 inputNgay.min = nextDay;
                 inputNgay.value = nextDay;
-                inputNgay.dispatchEvent(new Event('change'));
+            }
+
+            if (document.getElementById('single-teacher-id').options.length <= 1) {
+                renderPlanningPlaceholder('single-planning-panel', 'Module nay chua co giang vien da nhan phan cong.');
+            } else {
+                refreshSinglePlanning();
             }
             
             modalSingle.show();
@@ -341,16 +838,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Sự kiện mở Modal sinh lịch tự động
     document.querySelectorAll('.btn-auto-schedule').forEach(btn => {
         btn.addEventListener('click', function() {
+            clearSchedulePicker('auto', { triggerPlanning: false });
             const moduleId = this.dataset.moduleId;
             document.getElementById('auto-module-id').value = moduleId;
             document.getElementById('auto-module-name').textContent = this.dataset.moduleName;
+            populateTeacherSelect('auto-teacher-id', parseAssignedTeachers(this.dataset.assignedTeachers));
             
             // Lưu thông tin phục vụ tính toán
-            currentModuleSoBuoi = parseInt(this.dataset.soBuoi) || 0;
+            currentModuleSoBuoi = parseInt(this.dataset.soBuoi, 10) || 0;
             currentCourseEndDate = this.dataset.khoaHocEnd;
             
-            document.getElementById('auto-so-buoi-text').textContent = currentModuleSoBuoi + " buổi";
-            document.getElementById('auto-course-end-date').textContent = new Date(currentCourseEndDate).toLocaleDateString('vi-VN');
+            document.getElementById('auto-so-buoi-text').textContent = `${currentModuleSoBuoi} buoi`;
+            document.getElementById('auto-course-end-date').textContent = currentCourseEndDate ? new Date(currentCourseEndDate).toLocaleDateString('vi-VN') : '--/--/----';
 
             const minDate = this.dataset.minDate;
             const inputNgayBatDau = document.querySelector('#modalSinhTuDong input[name="ngay_bat_dau"]');
@@ -361,6 +860,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             calculateExpectedEndDate();
+            updateThuColors();
+            if (document.getElementById('auto-teacher-id').options.length <= 1) {
+                renderPlanningPlaceholder('auto-planning-panel', 'Module nay chua co giang vien da nhan phan cong.');
+            } else {
+                refreshAutoPlanning();
+            }
             modalAuto.show();
         });
     });
@@ -411,9 +916,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Lắng nghe sự kiện thay đổi để tính toán lại
-    document.getElementById('auto-start-date').addEventListener('change', calculateExpectedEndDate);
     document.querySelectorAll('input[name="thu_trong_tuan[]"]').forEach(cb => {
-        cb.addEventListener('change', calculateExpectedEndDate);
+        cb.addEventListener('change', function() {
+            calculateExpectedEndDate();
+            updateThuColors();
+            refreshAutoPlanning();
+        });
     });
 
     // --- LOGIC TÔ MÀU THỨ (MODAL SINH TỰ ĐỘNG) ---
@@ -444,10 +952,83 @@ document.addEventListener('DOMContentLoaded', function() {
     if (ngayBatDauInput) {
         ngayBatDauInput.addEventListener('change', updateThuColors);
         // Cập nhật ngay khi mở modal (vì có giá trị mặc định)
-        document.querySelector('.btn-auto-schedule').addEventListener('click', () => {
-            setTimeout(updateThuColors, 200); 
-        });
     }
+
+    document.querySelectorAll('.schedule-session-btn').forEach((button) => {
+        button.addEventListener('click', function() {
+            const prefix = this.dataset.prefix;
+            const sessionKey = this.dataset.session;
+            const definition = SESSIONS[sessionKey];
+
+            if (!definition) {
+                return;
+            }
+
+            const startPeriod = Number(definition.start);
+            const endPeriod = Number(definition.end);
+            const currentStart = Number(document.getElementById(`${prefix}-tiet-bat-dau`)?.value || 0);
+            const currentEnd = Number(document.getElementById(`${prefix}-tiet-ket-thuc`)?.value || 0);
+
+            if (currentStart === startPeriod && currentEnd === endPeriod) {
+                clearSchedulePicker(prefix);
+                return;
+            }
+
+            setPeriodRange(prefix, startPeriod, endPeriod);
+        });
+    });
+
+    ['single', 'auto'].forEach((prefix) => {
+        getPickerCheckboxes(prefix).forEach((checkbox) => {
+            checkbox.addEventListener('change', () => syncSchedulePicker(prefix));
+        });
+    });
+
+    ['single-date', 'single-teacher-id'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('change', refreshSinglePlanning);
+        }
+    });
+
+    ['auto-start-date', 'auto-teacher-id'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('change', function() {
+                calculateExpectedEndDate();
+                updateThuColors();
+                refreshAutoPlanning();
+            });
+        }
+    });
+
+    document.getElementById('single-planning-panel')?.addEventListener('click', function(event) {
+        const button = event.target.closest('.suggestion-btn');
+        if (!button) return;
+
+        applySuggestionToPicker('single', button);
+    });
+
+    document.getElementById('auto-planning-panel')?.addEventListener('click', function(event) {
+        const button = event.target.closest('.suggestion-btn');
+        if (!button) return;
+
+        applySuggestionToPicker('auto', button);
+    });
+
+    document.querySelectorAll('.check-item, .check-all-module').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            if (this.classList.contains('check-all-module')) {
+                document.querySelectorAll(`.module-${this.dataset.module}`).forEach(item => {
+                    item.checked = this.checked;
+                });
+            }
+
+            const count = document.querySelectorAll('.check-item:checked').length;
+            document.getElementById('selectedCount').textContent = count;
+            document.getElementById('btnBulkDelete').classList.toggle('d-none', count === 0);
+        });
+    });
 });
 
 function confirmDeleteSingle(url) {
@@ -479,6 +1060,7 @@ function submitBulkDelete() {
     .smaller { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
     .row-selectable:hover { background-color: rgba(13, 110, 253, 0.02); }
     .italic { font-style: italic; }
+    .planning-panel { min-height: 140px; }
 
     /* Style cho ô chọn Thứ - VIP Upgrade */
     .thu-label-box {
@@ -551,3 +1133,6 @@ function submitBulkDelete() {
     }
 </style>
 @endsection
+
+
+

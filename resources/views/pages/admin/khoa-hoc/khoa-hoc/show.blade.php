@@ -144,6 +144,20 @@
                                 @php 
                                     $tongLich = $khoaHoc->lichHocs()->count(); 
                                     $tongBuoiReq = $khoaHoc->moduleHocs()->sum('so_buoi'); 
+                                    $assignedTeachersForPlanning = $khoaHoc->moduleHocs
+                                        ->flatMap(function ($module) {
+                                            return $module->phanCongGiangViens
+                                                ->where('trang_thai', 'da_nhan')
+                                                ->map(function ($assignment) {
+                                                    return $assignment->giangVien;
+                                                });
+                                        })
+                                        ->filter()
+                                        ->unique('id')
+                                        ->values();
+                                    $pendingLeaveRequests = $assignedTeachersForPlanning->sum(function ($teacher) {
+                                        return $teacher->donXinNghis->where('trang_thai', 'cho_duyet')->count();
+                                    });
                                 @endphp
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
@@ -160,6 +174,16 @@
                                 <div class="progress mt-2" style="height: 6px;">
                                     @php $prog = $tongBuoiReq > 0 ? min(100, ($tongLich / $tongBuoiReq) * 100) : 0; @endphp
                                     <div class="progress-bar bg-info" role="progressbar" style="width: {{ $prog }}%"></div>
+                                </div>
+                                <div class="small text-muted mt-3">
+                                    Da co <strong>{{ $assignedTeachersForPlanning->count() }}</strong> giang vien da nhan module
+                                    voi <strong>{{ $pendingLeaveRequests }}</strong> don xin nghi cho duyet lien quan den nhom giang vien nay.
+                                </div>
+                                <div class="d-flex flex-wrap gap-2 mt-2">
+                                    <span class="badge bg-light text-dark border">Planning check: assignment + khung day chuan + don nghi + xung dot</span>
+                                    <a href="{{ route('admin.khoa-hoc.lich-hoc.index', $khoaHoc->id) }}" class="btn btn-sm btn-outline-info fw-bold">
+                                        <i class="fas fa-calendar-check me-1"></i> Mo bo sap lich
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -289,17 +313,17 @@
                             <div class="timeline-item mb-4 pb-1 border-start ps-4 position-relative">
                                 <div class="timeline-point bg-info"></div>
                                 <span class="smaller text-muted text-uppercase fw-bold d-block">Ngày khai giảng</span>
-                                <span class="fw-bold fs-5">{{ $khoaHoc->ngay_khai_giang->format('d/m/Y') }}</span>
+                                <span class="fw-bold fs-5">{{ optional($khoaHoc->ngay_khai_giang)->format('d/m/Y') ?: '--/--/----' }}</span>
                             </div>
                             <div class="timeline-item mb-4 pb-1 border-start ps-4 position-relative">
                                 <div class="timeline-point bg-success"></div>
                                 <span class="smaller text-muted text-uppercase fw-bold d-block">Ngày chính thức mở lớp</span>
-                                <span class="fw-bold fs-5">{{ $khoaHoc->ngay_mo_lop->format('d/m/Y') }}</span>
+                                <span class="fw-bold fs-5">{{ optional($khoaHoc->ngay_mo_lop)->format('d/m/Y') ?: '--/--/----' }}</span>
                             </div>
                             <div class="timeline-item pb-1 border-start ps-4 position-relative">
                                 <div class="timeline-point bg-danger"></div>
                                 <span class="smaller text-muted text-uppercase fw-bold d-block">Dự kiến kết thúc</span>
-                                <span class="fw-bold fs-5">{{ $khoaHoc->ngay_ket_thuc->format('d/m/Y') }}</span>
+                                <span class="fw-bold fs-5">{{ optional($khoaHoc->ngay_ket_thuc)->format('d/m/Y') ?: '--/--/----' }}</span>
                             </div>
                         </div>
                         
@@ -516,3 +540,6 @@
     .italic { font-style: italic; }
 </style>
 @endsection
+
+
+

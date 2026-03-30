@@ -10,9 +10,13 @@ use App\Http\Controllers\Admin\KhoaHocManagementController;
 use App\Http\Controllers\Admin\HocVienKhoaHocController;
 use App\Http\Controllers\Admin\ModuleHocController;
 use App\Http\Controllers\Admin\LichHocController;
+use App\Http\Controllers\Admin\TeacherScheduleController as AdminTeacherScheduleController;
+use App\Http\Controllers\Admin\TeacherLeaveRequestController as AdminTeacherLeaveRequestController;
 use App\Http\Controllers\Admin\NganHangCauHoiController;
 use App\Http\Controllers\Admin\BaiKiemTraPheDuyetController;
 use App\Http\Controllers\Admin\PhanCongController as AdminPhanCongController;
+use App\Http\Controllers\GiangVien\TeacherScheduleController as GiangVienTeacherScheduleController;
+use App\Http\Controllers\GiangVien\TeacherLeaveRequestController as GiangVienTeacherLeaveRequestController;
 use App\Http\Controllers\GiangVien\PhanCongController;
 use App\Http\Controllers\GiangVien\TaiNguyenController;
 use App\Http\Controllers\GiangVien\DiemDanhController;
@@ -97,6 +101,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     });
 
     Route::get('/giang-vien', [AdminController::class, 'indexGiangVien'])->name('giang-vien.index');
+    Route::get('/giang-vien/{giangVienId}/lich-giang', [AdminTeacherScheduleController::class, 'show'])->name('giang-vien.lich-giang.show');
+    Route::redirect('/giang-vien/{giangVienId}/lich-ranh', '/admin/giang-vien/{giangVienId}/lich-giang')->name('giang-vien.lich-ranh.show');
     Route::get('/hoc-vien', [AdminController::class, 'indexHocVien'])->name('hoc-vien.index');
 
     // Quản lý Nhóm ngành (Thay thế Môn học)
@@ -139,6 +145,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
         // Lịch học của khóa học
         Route::prefix('{khoaHocId}/lich-hoc')->name('lich-hoc.')->group(function () {
             Route::get('/',                      [LichHocController::class, 'index'])->name('index');
+            Route::get('/teacher-context',       [LichHocController::class, 'teacherPlanningContext'])->name('teacher-context');
             Route::post('/',                     [LichHocController::class, 'store'])->name('store');
             Route::post('/tu-dong',              [LichHocController::class, 'storeAuto'])->name('store-auto');
             Route::delete('/bulk-delete',        [LichHocController::class, 'destroyBulk'])->name('destroy-bulk');
@@ -172,7 +179,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
 
     // Quản lý Yêu cầu từ Giảng viên (Phase 3)
     Route::get('/yeu-cau-hoc-vien', [App\Http\Controllers\Admin\YeuCauHocVienController::class, 'index'])->name('yeu-cau-hoc-vien.index');
-    Route::post('/yeu-cau-hoc-vien/{id}/xac-nhan', [App\Http\Controllers\Admin\YeuCauHocVienController::class, 'xacNhan'])->name('yeu-cau-hoc-vien.xac-nhan');
+    
+
+    Route::prefix('giang-vien-don-xin-nghi')->name('giang-vien-don-xin-nghi.')->group(function () {
+        Route::get('/', [AdminTeacherLeaveRequestController::class, 'index'])->name('index');
+        Route::get('/{id}', [AdminTeacherLeaveRequestController::class, 'show'])->name('show');
+        Route::post('/{id}/duyet', [AdminTeacherLeaveRequestController::class, 'approve'])->name('approve');
+        Route::post('/{id}/tu-choi', [AdminTeacherLeaveRequestController::class, 'reject'])->name('reject');
+    });
 
     // Quản lý Thư viện & Bài giảng (Phase 10 Upgrade)
     Route::prefix('thu-vien')->name('thu-vien.')->group(function () {
@@ -255,6 +269,17 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
     Route::post('/profile', [GiangVienController::class, 'updateProfile'])->name('profile.update');
 
     // Phân công dạy học (Nâng cấp Phase B)
+    Route::prefix('lich-giang')->name('lich-giang.')->group(function () {
+        Route::get('/', [GiangVienTeacherScheduleController::class, 'index'])->name('index');
+    });
+    Route::redirect('/lich-ranh', '/giang-vien/lich-giang')->name('lich-ranh.index');
+
+    Route::prefix('don-xin-nghi')->name('don-xin-nghi.')->group(function () {
+        Route::get('/', [GiangVienTeacherLeaveRequestController::class, 'index'])->name('index');
+        Route::get('/create', [GiangVienTeacherLeaveRequestController::class, 'create'])->name('create');
+        Route::post('/', [GiangVienTeacherLeaveRequestController::class, 'store'])->name('store');
+    });
+
     Route::get('/khoa-hoc', [PhanCongController::class, 'index'])->name('khoa-hoc');
     Route::get('/khoa-hoc/{id}', [PhanCongController::class, 'show'])->name('khoa-hoc.show');
     Route::post('/khoa-hoc/{id}/xac-nhan', [PhanCongController::class, 'xacNhan'])->name('khoa-hoc.xac-nhan');
@@ -366,3 +391,6 @@ Route::get('/home', function () {
         return redirect()->route('home');
     }
 });
+
+
+

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Scheduling\TeachingPeriodCatalog;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,6 +25,9 @@ class LichHoc extends Model
         'ngay_hoc',
         'gio_bat_dau',
         'gio_ket_thuc',
+        'tiet_bat_dau',
+        'tiet_ket_thuc',
+        'buoi_hoc',
         'thu_trong_tuan',
         'buoi_so',
         'phong_hoc',
@@ -41,20 +45,66 @@ class LichHoc extends Model
 
     protected $casts = [
         'ngay_hoc' => 'date',
+        'tiet_bat_dau' => 'integer',
+        'tiet_ket_thuc' => 'integer',
         'thoi_gian_bao_cao' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
 
     public static $thuLabels = [
-        2 => 'Thu 2',
-        3 => 'Thu 3',
-        4 => 'Thu 4',
-        5 => 'Thu 5',
-        6 => 'Thu 6',
-        7 => 'Thu 7',
-        8 => 'Chu nhat',
+        2 => 'Thứ 2',
+        3 => 'Thứ 3',
+        4 => 'Thứ 4',
+        5 => 'Thứ 5',
+        6 => 'Thứ 6',
+        7 => 'Thứ 7',
+        8 => 'Chủ nhật',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $schedule) {
+            $hasExplicitPeriods = $schedule->tiet_bat_dau !== null && $schedule->tiet_ket_thuc !== null;
+            $shouldCanonicalizeTimes = $hasExplicitPeriods || blank($schedule->gio_bat_dau) || blank($schedule->gio_ket_thuc);
+
+            $range = $hasExplicitPeriods
+                ? TeachingPeriodCatalog::normalizeRange((int) $schedule->tiet_bat_dau, (int) $schedule->tiet_ket_thuc)
+                : null;
+
+            if ($range === null && filled($schedule->buoi_hoc)) {
+                $range = TeachingPeriodCatalog::normalizeRange(null, null, $schedule->buoi_hoc);
+            }
+
+            if ($range === null) {
+                $range = TeachingPeriodCatalog::periodsFromTimes(
+                    substr((string) $schedule->gio_bat_dau, 0, 5) ?: null,
+                    substr((string) $schedule->gio_ket_thuc, 0, 5) ?: null,
+                );
+            }
+
+            if ($range !== null) {
+                $schedule->tiet_bat_dau = $range['start'];
+                $schedule->tiet_ket_thuc = $range['end'];
+                $schedule->buoi_hoc = $range['session'];
+
+                if ($shouldCanonicalizeTimes) {
+                    $times = TeachingPeriodCatalog::timeRangeFromPeriods($range['start'], $range['end']);
+                    $schedule->gio_bat_dau = $times['start_time'];
+                    $schedule->gio_ket_thuc = $times['end_time'];
+                }
+            }
+
+            if ($schedule->ngay_hoc instanceof Carbon) {
+                $schedule->thu_trong_tuan = $schedule->ngay_hoc->dayOfWeek === Carbon::SUNDAY
+                    ? 8
+                    : ($schedule->ngay_hoc->dayOfWeek + 1);
+            } elseif (filled($schedule->ngay_hoc)) {
+                $date = Carbon::parse((string) $schedule->ngay_hoc);
+                $schedule->thu_trong_tuan = $date->dayOfWeek === Carbon::SUNDAY ? 8 : ($date->dayOfWeek + 1);
+            }
+        });
+    }
 
     public function taiNguyen(): HasMany
     {
@@ -74,6 +124,12 @@ class LichHoc extends Model
     public function diemDanhs(): HasMany
     {
         return $this->hasMany(DiemDanh::class, 'lich_hoc_id');
+    }
+
+    public function teacherLeaveRequests(): HasMany
+    {
+        return $this->hasMany(GiangVienDonXinNghi::class, 'lich_hoc_id')
+            ->orderByDesc('created_at');
     }
 
     public function phongHocLives(): HasManyThrough
@@ -106,6 +162,25 @@ class LichHoc extends Model
     public function getThuLabelAttribute(): string
     {
         return self::$thuLabels[$this->thu_trong_tuan] ?? '-';
+    }
+
+    public function getTietRangeLabelAttribute(): string
+    {
+        return TeachingPeriodCatalog::rangeLabel($this->tiet_bat_dau, $this->tiet_ket_thuc);
+    }
+
+    public function getBuoiHocLabelAttribute(): ?string
+    {
+        return TeachingPeriodCatalog::sessionLabel($this->buoi_hoc);
+    }
+
+    public function getScheduleRangeLabelAttribute(): string
+    {
+        if ($this->buoi_hoc_label !== null) {
+            return $this->buoi_hoc_label . ' (' . $this->tiet_range_label . ')';
+        }
+
+        return $this->tiet_range_label;
     }
 
     public function getStartsAtAttribute(): ?Carbon
@@ -174,10 +249,10 @@ class LichHoc extends Model
     public function getTrangThaiLabelAttribute(): string
     {
         return match ($this->timeline_trang_thai) {
-            'cho' => 'Cho',
-            'dang_hoc' => 'Dang hoc',
-            'hoan_thanh' => 'Hoan thanh',
-            'huy' => 'Da huy',
+            'cho' => 'Chờ',
+            'dang_hoc' => 'Đang học',
+            'hoan_thanh' => 'Hoàn thành',
+            'huy' => 'Đã hủy',
             default => '-',
         };
     }
@@ -196,9 +271,9 @@ class LichHoc extends Model
     public function getHinhThucLabelAttribute(): string
     {
         return match ($this->hinh_thuc) {
-            'online' => 'Online',
-            'truc_tiep' => 'Truc tiep',
-            default => 'Chua cap nhat',
+            'online' => 'Trực tuyến (Online)',
+            'truc_tiep' => 'Trực tiếp tại lớp',
+            default => 'Chưa cập nhật',
         };
     }
 
@@ -219,7 +294,7 @@ class LichHoc extends Model
 
         $nenTang = $this->getLegacyNenTang();
 
-        return filled($nenTang) ? $nenTang : 'Chua cap nhat';
+        return filled($nenTang) ? $nenTang : 'Chưa cập nhật';
     }
 
     public function getCanJoinOnlineAttribute(): bool
@@ -428,3 +503,4 @@ class LichHoc extends Model
             ?: ($this->attributes['nen_tang'] ?? null);
     }
 }
+

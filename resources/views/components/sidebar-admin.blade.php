@@ -15,7 +15,7 @@
         </div>
 
         <div class="nav-item">
-            <a class="nav-link collapsed" data-bs-toggle="collapse" href="#collapseAccount" role="button" aria-expanded="{{ request()->routeIs('admin.quan-ly-hoc-vien', 'admin.quan-ly-giang-vien', 'admin.phe-duyet-tai-khoan.*') ? 'true' : 'false' }}" aria-controls="collapseAccount">
+            <a class="nav-link collapsed" data-bs-toggle="collapse" href="#collapseAccount" role="button" aria-expanded="{{ request()->routeIs('admin.quan-ly-hoc-vien', 'admin.quan-ly-giang-vien', 'admin.phe-duyet-tai-khoan.*', 'admin.giang-vien-don-xin-nghi.*') ? 'true' : 'false' }}" aria-controls="collapseAccount">
                 <i class="fas fa-users"></i>
                 <span>Quản lý tài khoản</span>
                 <span style="display: flex; gap: 8px; align-items: center; margin-left: auto;">
@@ -25,7 +25,7 @@
                     <i class="fas fa-chevron-down"></i>
                 </span>
             </a>
-            <div class="collapse {{ request()->routeIs('admin.quan-ly-hoc-vien', 'admin.quan-ly-giang-vien', 'admin.phe-duyet-tai-khoan.*') ? 'show' : '' }}" id="collapseAccount">
+            <div class="collapse {{ request()->routeIs('admin.quan-ly-hoc-vien', 'admin.quan-ly-giang-vien', 'admin.phe-duyet-tai-khoan.*', 'admin.giang-vien-don-xin-nghi.*') ? 'show' : '' }}" id="collapseAccount">
                 <div class="nav-submenu">
                     <a href="{{ route('admin.hoc-vien.index') }}" class="nav-link {{ request()->routeIs('admin.hoc-vien.*', 'admin.quan-ly-hoc-vien') ? 'active' : '' }}">
                         <i class="fas fa-user-graduate"></i>
@@ -41,6 +41,10 @@
                         @if($pendingAccountsCount > 0)
                             <span class="badge bg-danger rounded-pill ms-auto">{{ $pendingAccountsCount }}</span>
                         @endif
+                    </a>
+                    <a href="{{ route('admin.giang-vien-don-xin-nghi.index') }}" class="nav-link {{ request()->routeIs('admin.giang-vien-don-xin-nghi.*') ? 'active' : '' }}">
+                        <i class="fas fa-calendar-minus"></i>
+                        <span>Don xin nghi GV</span>
                     </a>
                 </div>
             </div>
@@ -164,3 +168,8 @@
         </div>
     </nav>
 </aside>
+
+
+
+
+

@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Model;
 
 class GiangVien extends Model
@@ -22,23 +25,23 @@ class GiangVien extends Model
         'hien_thi_trang_chu' => 'boolean',
     ];
 
-    public function nguoiDung()
+    public function nguoiDung(): BelongsTo
     {
         return $this->belongsTo(NguoiDung::class, 'nguoi_dung_id', 'ma_nguoi_dung');
     }
 
     /**
-     * Relationship: Một giảng viên có nhiều phân công dạy module
+     * Relationship: Mot giang vien co nhieu phan cong day module
      */
-    public function phanCongModules()
+    public function phanCongModules(): HasMany
     {
         return $this->hasMany(PhanCongModuleGiangVien::class, 'giang_vien_id');
     }
 
     /**
-     * Relationship: Lấy danh sách module mà giảng viên được phân công dạy
+     * Relationship: Lay danh sach module ma giang vien duoc phan cong day
      */
-    public function modulesDuocPhanCong()
+    public function modulesDuocPhanCong(): BelongsToMany
     {
         return $this->belongsToMany(ModuleHoc::class, 'phan_cong_module_giang_vien', 'giang_vien_id', 'module_hoc_id')
                     ->withPivot('khoa_hoc_id', 'trang_thai', 'ghi_chu')
@@ -46,17 +49,39 @@ class GiangVien extends Model
     }
 
     /**
-     * Relationship: Lấy danh sách khóa học mà giảng viên được phân công dạy
+     * Relationship: Lay danh sach khoa hoc ma giang vien duoc phan cong day
      */
-    public function khoaHocDuocPhanCong()
+    public function khoaHocDuocPhanCong(): BelongsToMany
     {
         return $this->belongsToMany(KhoaHoc::class, 'phan_cong_module_giang_vien', 'giang_vien_id', 'khoa_hoc_id')
                     ->withPivot('module_hoc_id', 'trang_thai', 'ghi_chu')
                     ->withTimestamps();
     }
 
+    public function lichRanh(): HasMany
+    {
+        return $this->hasMany(GiangVienLichRanh::class, 'giang_vien_id')
+            ->orderByRaw("CASE WHEN loai_lich_ranh = 'theo_tuan' THEN 0 ELSE 1 END")
+            ->orderBy('thu_trong_tuan')
+            ->orderBy('ngay_cu_the')
+            ->orderBy('gio_bat_dau');
+    }
+
+    public function lichHocs(): HasMany
+    {
+        return $this->hasMany(LichHoc::class, 'giang_vien_id')
+            ->orderBy('ngay_hoc')
+            ->orderBy('gio_bat_dau');
+    }
+
+    public function donXinNghis(): HasMany
+    {
+        return $this->hasMany(GiangVienDonXinNghi::class, 'giang_vien_id')
+            ->orderByDesc('created_at');
+    }
+
     /**
-     * Scope untuk lấy giảng viên hiển thị trên trang chủ
+     * Scope untuk lay giang vien hien thi tren trang chu
      */
     public function scopeHienThiTrangChu($query)
     {
@@ -66,4 +91,3 @@ class GiangVien extends Model
                     });
     }
 }
-

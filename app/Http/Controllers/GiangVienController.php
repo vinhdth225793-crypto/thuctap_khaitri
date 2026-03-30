@@ -2,31 +2,26 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PhanCongModuleGiangVien;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\DB;
-use App\Models\NguoiDung;
-use App\Models\PhanCongModuleGiangVien;
+use Illuminate\Support\Facades\Validator;
 
 class GiangVienController extends Controller
 {
     public function __construct()
     {
-        // chỉ giảng viên hoặc admin mới được vào
         $this->middleware(['auth', \App\Http\Middleware\CheckGiangVien::class]);
     }
 
-    /**
-     * Dashboard cho giảng viên
-     */
     public function dashboard()
     {
         $giangVien = auth()->user()->giangVien;
 
         if (!$giangVien) {
-            return redirect()->route('home')->with('error', 'Tài khoản của bạn chưa được thiết lập profile giảng viên.');
+            return redirect()->route('home')->with('error', 'Tai khoan cua ban chua duoc thiet lap profile giang vien.');
         }
 
         $giangVienId = $giangVien->id;
@@ -39,16 +34,20 @@ class GiangVienController extends Controller
                 ->where('trang_thai', 'cho_xac_nhan')
                 ->count(),
             'tong_hoc_vien' => DB::table('hoc_vien_khoa_hoc')
-                ->whereIn('khoa_hoc_id', function($query) use ($giangVienId) {
+                ->whereIn('khoa_hoc_id', function ($query) use ($giangVienId) {
                     $query->select('khoa_hoc_id')
                         ->from('phan_cong_module_giang_vien')
                         ->where('giang_vien_id', $giangVienId);
                 })
                 ->count(),
             'so_gio_day' => $giangVien->so_gio_day ?? 0,
+            'buoi_sap_toi' => $giangVien->lichHocs()
+                ->whereDate('ngay_hoc', '>=', now()->toDateString())
+                ->where('trang_thai', '!=', 'huy')
+                ->count(),
+            'don_xin_nghi_cho_duyet' => $giangVien->donXinNghis()->where('trang_thai', 'cho_duyet')->count(),
         ];
 
-        // Lấy danh sách phân công mới nhất cần xác nhận
         $phanCongMoi = PhanCongModuleGiangVien::with(['moduleHoc.khoaHoc.nhomNganh'])
             ->where('giang_vien_id', $giangVienId)
             ->where('trang_thai', 'cho_xac_nhan')
@@ -56,7 +55,6 @@ class GiangVienController extends Controller
             ->take(5)
             ->get();
 
-        // Lấy danh sách lớp đang dạy (từ các module đã nhận)
         $lopDangDay = PhanCongModuleGiangVien::with(['moduleHoc.khoaHoc.nhomNganh'])
             ->where('giang_vien_id', $giangVienId)
             ->where('trang_thai', 'da_nhan')
@@ -70,7 +68,6 @@ class GiangVienController extends Controller
     public function profile()
     {
         $user = auth()->user();
-        // load thông tin giảng viên nếu đã tồn tại
         $user->load('giangVien');
         return view('pages.giang-vien.profile', compact('user'));
     }
@@ -87,7 +84,6 @@ class GiangVienController extends Controller
             'dia_chi' => 'nullable|string|max:500',
             'anh_dai_dien' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'mat_khau' => 'nullable|min:8|confirmed',
-            // trường riêng giảng viên
             'chuyen_nganh' => 'nullable|string|max:255',
             'hoc_vi' => 'nullable|string|max:255',
             'so_gio_day' => 'nullable|string|max:50',
@@ -97,7 +93,7 @@ class GiangVienController extends Controller
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
-        $data = $request->only(['ho_ten','email','so_dien_thoai','ngay_sinh','dia_chi','trang_thai']);
+        $data = $request->only(['ho_ten', 'email', 'so_dien_thoai', 'ngay_sinh', 'dia_chi', 'trang_thai']);
 
         if ($request->filled('mat_khau')) {
             $data['mat_khau'] = Hash::make($request->mat_khau);
@@ -107,7 +103,7 @@ class GiangVienController extends Controller
             if ($user->anh_dai_dien && Storage::disk('public')->exists($user->anh_dai_dien)) {
                 Storage::disk('public')->delete($user->anh_dai_dien);
             }
-            $data['anh_dai_dien'] = $request->file('anh_dai_dien')->store('avatars','public');
+            $data['anh_dai_dien'] = $request->file('anh_dai_dien')->store('avatars', 'public');
         }
         if ($request->has('xoa_anh_dai_dien') && $user->anh_dai_dien) {
             Storage::disk('public')->delete($user->anh_dai_dien);
@@ -116,82 +112,12 @@ class GiangVienController extends Controller
 
         $user->update($data);
 
-        // cập nhật thông tin bổ sung
         $giang = $user->giangVien;
         if (!$giang) {
             $giang = $user->giangVien()->create([]);
         }
-        $giang->update($request->only(['chuyen_nganh','hoc_vi','so_gio_day']));
+        $giang->update($request->only(['chuyen_nganh', 'hoc_vi', 'so_gio_day']));
 
-        return redirect()->route('giang-vien.profile')->with('success', 'Cập nhật thông tin thành công');
-    }
-
-    /**
-     * phanCong()
-     * Load tất cả phân công của GV này, chia 3 nhóm
-     */
-    public function phanCong()
-    {
-        $giangVien = auth()->user()->giangVien;
-
-        if (!$giangVien) {
-            return redirect()->back()->with('error', 'Không tìm thấy thông tin giảng viên để truy xuất phân công.');
-        }
-
-        // Lấy danh sách khóa học mà GV có ít nhất 1 module được phân công
-        $khoaHocs = KhoaHoc::with(['nhomNganh', 'moduleHocs' => function($q) use ($giangVien) {
-                // Chỉ lấy những module mà GV này được phân công
-                $q->whereHas('phanCongGiangViens', function($q2) use ($giangVien) {
-                    $q2->where('giang_vien_id', $giangVien->id);
-                })->with(['phanCongGiangViens' => function($q2) use ($giangVien) {
-                    $q2->where('giang_vien_id', $giangVien->id);
-                }]);
-            }])
-            ->whereHas('moduleHocs.phanCongGiangViens', function($q) use ($giangVien) {
-                $q->where('giang_vien_id', $giangVien->id);
-            })
-            ->orderBy('id', 'desc')
-            ->get();
-
-        // Giữ lại logic các biến cũ nếu view vẫn dùng (nhưng ta sẽ cập nhật view mới)
-        $phanCongChoXacNhan = PhanCongModuleGiangVien::where('giang_vien_id', $giangVien->id)
-            ->where('trang_thai', 'cho_xac_nhan')->count();
-
-        return view('pages.giang-vien.phan-cong', compact('khoaHocs', 'phanCongChoXacNhan'));
-    }
-
-    /**
-     * xacNhanPhanCong($id)
-     */
-    public function xacNhanPhanCong($id)
-    {
-        $giangVien = auth()->user()->giangVien;
-        
-        $phanCong = PhanCongModuleGiangVien::where('id', $id)
-            ->where('giang_vien_id', $giangVien->id)
-            ->where('trang_thai', 'cho_xac_nhan')
-            ->firstOrFail();
-
-        $phanCong->update(['trang_thai' => 'da_nhan']);
-
-        return redirect()->back()->with('success', 'Đã xác nhận nhận dạy module: ' . $phanCong->moduleHoc->ten_module);
-    }
-
-    /**
-     * tuChoiPhanCong($id)
-     */
-    public function tuChoiPhanCong($id)
-    {
-        $giangVien = auth()->user()->giangVien;
-
-        $phanCong = PhanCongModuleGiangVien::where('id', $id)
-            ->where('giang_vien_id', $giangVien->id)
-            ->where('trang_thai', 'cho_xac_nhan')
-            ->firstOrFail();
-
-        $phanCong->update(['trang_thai' => 'tu_choi']);
-
-        return redirect()->back()->with('success', 'Đã từ chối phân công module: ' . $phanCong->moduleHoc->ten_module);
+        return redirect()->route('giang-vien.profile')->with('success', 'Cap nhat thong tin thanh cong');
     }
 }
-

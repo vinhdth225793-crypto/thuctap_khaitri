@@ -431,7 +431,7 @@ class NganHangCauHoiController extends Controller
             ]);
 
             return back()->withErrors([
-                'file_import' => 'Khong the phan tich file da tai len. Vui long kiem tra dinh dang file va thu lai.',
+                'file_import' => 'Không thể phân tích file đã tải lên. Vui lòng kiểm tra định dạng file và thử lại.',
             ]);
         }
 
@@ -444,7 +444,7 @@ class NganHangCauHoiController extends Controller
         if ($preview === null) {
             return redirect()
                 ->route('admin.kiem-tra-online.cau-hoi.index')
-                ->with('error', 'Khong tim thay du lieu xem truoc hoac phien import khong con hop le.');
+                ->with('error', 'Không tìm thấy dữ liệu xem trước hoặc phiên import không còn hợp lệ.');
         }
 
         return view('pages.admin.question-bank.preview', compact('preview'));
@@ -456,7 +456,7 @@ class NganHangCauHoiController extends Controller
         if ($preview === null) {
             return redirect()
                 ->route('admin.kiem-tra-online.cau-hoi.index')
-                ->with('error', 'Khong tim thay du lieu xem truoc hoac phien import khong con hop le.');
+                ->with('error', 'Không tìm thấy dữ liệu xem trước hoặc phiên import không còn hợp lệ.');
         }
 
         $scope = strtolower(trim((string) $request->string('scope', 'all')));
@@ -472,7 +472,7 @@ class NganHangCauHoiController extends Controller
 
             return redirect()
                 ->route('admin.kiem-tra-online.cau-hoi.preview')
-                ->with('error', 'Khong the xuat file Excel tu du lieu preview. Vui long thu lai.');
+                ->with('error', 'Không thể xuất file Excel từ dữ liệu preview. Vui lòng thử lại.');
         }
 
         return response()->download($export['path'], $export['download_name'])->deleteFileAfterSend(true);
@@ -484,7 +484,7 @@ class NganHangCauHoiController extends Controller
         if ($preview === null) {
             return redirect()
                 ->route('admin.kiem-tra-online.cau-hoi.index')
-                ->with('error', 'Phien import khong con hop le. Vui long thuc hien lai.');
+                ->with('error', 'Phiên import không còn hợp lệ. Vui lòng thực hiện lại.');
         }
 
         $khoaHocId = (int) $preview['khoa_hoc_id'];
@@ -503,7 +503,7 @@ class NganHangCauHoiController extends Controller
 
             return redirect()
                 ->route('admin.kiem-tra-online.cau-hoi.index')
-                ->with('error', 'Khong the luu du lieu import vao he thong. Vui long thu lai.');
+                ->with('error', 'Không thể lưu dữ liệu import vào hệ thống. Vui lòng thử lại.');
         }
 
         session()->forget('import_preview');
@@ -571,7 +571,7 @@ class NganHangCauHoiController extends Controller
 
         if (!$moduleBelongsToCourse) {
             throw ValidationException::withMessages([
-                'module_hoc_id' => 'Module khong thuoc khoa hoc da chon.',
+                'module_hoc_id' => 'Module không thuộc khóa học đã chọn.',
             ]);
         }
 

@@ -172,6 +172,7 @@ class KhoaHocManagementController extends Controller
         $khoaHoc = KhoaHoc::with([
             'nhomNganh',
             'moduleHocs.phanCongGiangViens.giangVien.nguoiDung',
+            'moduleHocs.phanCongGiangViens.giangVien.donXinNghis',
             'khoaHocMau',
             'lopDaMo.nhomNganh'
         ])->findOrFail($id);
@@ -181,7 +182,10 @@ class KhoaHocManagementController extends Controller
             fn($m) => $m->phanCongGiangViens->where('trang_thai','da_nhan')->count() > 0
         )->count();
 
-        $giangViens = GiangVien::with('nguoiDung')
+        $giangViens = GiangVien::with([
+                'nguoiDung',
+                'donXinNghis',
+            ])
             ->whereHas('nguoiDung', fn($q) => $q->where('trang_thai', 1))
             ->get();
 
@@ -390,4 +394,8 @@ class KhoaHocManagementController extends Controller
         return redirect()->route('admin.khoa-hoc.show', $id)->with('success', 'Đã mở lớp học chính thức!');
     }
 }
+
+
+
+
 

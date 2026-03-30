@@ -37,14 +37,14 @@ class ParsedQuestionValidator
                 if (isset($contentSetInFile[$normalizedContent])) {
                     $previewRow['status'] = self::STATUS_DUPLICATE_FILE;
                     $previewRow['validation_status'] = 'trung_trong_file';
-                    $previewRow['note'] = 'Trung voi cau hoi tai dong ' . $contentSetInFile[$normalizedContent] . ' trong file.';
+                    $previewRow['note'] = 'Trùng với câu hỏi tại dòng ' . $contentSetInFile[$normalizedContent] . ' trong file.';
                 } else {
                     $contentSetInFile[$normalizedContent] = $previewRow['line'];
 
                     if (NganHangCauHoi::isDuplicate($khoaHocId, $previewRow['noi_dung_cau_hoi'])) {
                         $previewRow['status'] = self::STATUS_DUPLICATE_DB;
                         $previewRow['validation_status'] = 'trung_trong_he_thong';
-                        $previewRow['note'] = 'Cau hoi da ton tai trong ngan hang cua khoa hoc nay.';
+                        $previewRow['note'] = 'Câu hỏi đã tồn tại trong ngân hàng của khóa học này.';
                     }
                 }
             }
@@ -170,7 +170,7 @@ class ParsedQuestionValidator
             return [
                 $answers,
                 'dap_an_dung_khong_khop',
-                'Dong dap an dung khong khop voi bat ky dap an nao: ' . implode(' | ', $unmatchedReferences) . '.',
+                'Dòng đáp án đúng không khớp với bất kỳ đáp án nào: ' . implode(' | ', $unmatchedReferences) . '.',
             ];
         }
 
@@ -180,7 +180,7 @@ class ParsedQuestionValidator
             return [
                 $answers,
                 'khong_xac_dinh_dap_an_dung',
-                'Chua xac dinh duoc dap an dung. Can kiem tra thu cong truoc khi import.',
+                'Chưa xác định được đáp án đúng. Cần kiểm tra thủ công trước khi import.',
             ];
         }
 
@@ -259,10 +259,10 @@ class ParsedQuestionValidator
             ->implode(' | ');
 
         if ($styleIndexes !== [] && $explicitIndexes !== []) {
-            return 'Phat hien mau thuan giua style danh dau va dong dap an dung: ' . $labels . '.';
+            return 'Phát hiện mâu thuẫn giữa style đánh dấu và dòng đáp án đúng: ' . $labels . '.';
         }
 
-        return 'Phat hien nhieu hon mot dap an dung trong cung mot cau hoi: ' . $labels . '.';
+        return 'Phát hiện nhiều hơn một đáp án đúng trong cùng một câu hỏi: ' . $labels . '.';
     }
 
     /**
@@ -289,19 +289,19 @@ class ParsedQuestionValidator
     private function validateStructuredQuestion(string $question, array $answers, string $questionType): array
     {
         if ($questionType !== NganHangCauHoi::LOAI_TRAC_NGHIEM) {
-            return ['khong_ho_tro_loai_cau_hoi', 'He thong hien tai chi ho tro import cau hoi trac nghiem tu tai lieu.'];
+            return ['khong_ho_tro_loai_cau_hoi', 'Hệ thống hiện tại chỉ hỗ trợ import câu hỏi trắc nghiệm từ tài liệu.'];
         }
 
         if ($question === '') {
-            return ['thieu_cau_hoi', 'Thieu noi dung cau hoi.'];
+            return ['thieu_cau_hoi', 'Thiếu nội dung câu hỏi.'];
         }
 
         if ($answers === []) {
-            return ['thieu_dap_an', 'Khong tim thay dap an cho cau hoi nay.'];
+            return ['thieu_dap_an', 'Không tìm thấy đáp án cho câu hỏi này.'];
         }
 
         if (count($answers) !== 4) {
-            return ['khong_du_4_dap_an', 'Flow import hien tai chi ho tro cau hoi co dung 4 dap an. Phat hien ' . count($answers) . ' dap an.'];
+            return ['khong_du_4_dap_an', 'Flow import hiện tại chỉ hỗ trợ câu hỏi có đúng 4 đáp án. Phát hiện ' . count($answers) . ' đáp án.'];
         }
 
         $normalizedContents = collect($answers)
@@ -309,20 +309,20 @@ class ParsedQuestionValidator
             ->values();
 
         if ($normalizedContents->contains('')) {
-            return ['thieu_dap_an', 'Mot hoac nhieu dap an dang de trong.'];
+            return ['thieu_dap_an', 'Một hoặc nhiều đáp án đang để trống.'];
         }
 
         if ($normalizedContents->unique()->count() !== $normalizedContents->count()) {
-            return ['trung_dap_an', 'Cac dap an trong cung mot cau khong duoc trung nhau.'];
+            return ['trung_dap_an', 'Các đáp án trong cùng một câu không được trùng nhau.'];
         }
 
         $correctCount = collect($answers)->where('is_dap_an_dung', true)->count();
         if ($correctCount === 0) {
-            return ['khong_xac_dinh_dap_an_dung', 'Chua xac dinh duoc dap an dung. Can kiem tra thu cong truoc khi import.'];
+            return ['khong_xac_dinh_dap_an_dung', 'Chưa xác định được đáp án đúng. Cần kiểm tra thủ công trước khi import.'];
         }
 
         if ($correctCount > 1) {
-            return ['nhieu_hon_mot_dap_an_dung', 'Phat hien nhieu hon mot dap an dung trong cung mot cau hoi.'];
+            return ['nhieu_hon_mot_dap_an_dung', 'Phát hiện nhiều hơn một đáp án đúng trong cùng một câu hỏi.'];
         }
 
         return [self::STATUS_VALID, null];

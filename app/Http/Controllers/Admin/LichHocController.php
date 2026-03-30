@@ -3,218 +3,312 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\KhoaHoc;
-use App\Models\ModuleHoc;
-use App\Models\LichHoc;
+use App\Http\Requests\StoreAdminScheduleRequest;
+use App\Http\Requests\StoreAutoAdminScheduleRequest;
+use App\Http\Requests\UpdateAdminScheduleRequest;
 use App\Models\GiangVien;
+use App\Models\KhoaHoc;
+use App\Models\LichHoc;
+use App\Models\ModuleHoc;
+use App\Services\Scheduling\AdminSchedulePlanningService;
+use App\Support\Scheduling\TeachingPeriodCatalog;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class LichHocController extends Controller
 {
-    /**
-     * Hiển thị toàn bộ lịch học của khóa học (nhóm theo module)
-     */
+    public function __construct(
+        private readonly AdminSchedulePlanningService $planningService,
+    ) {
+    }
+
     public function index(int $khoaHocId)
     {
         $khoaHoc = KhoaHoc::with([
             'nhomNganh',
+            'lichHocs',
             'moduleHocs.lichHocs.giangVien.nguoiDung',
-            'moduleHocs.phanCongGiangViens.giangVien.nguoiDung'
+            'moduleHocs.phanCongGiangViens.giangVien.nguoiDung',
+            'moduleHocs.phanCongGiangViens.giangVien.donXinNghis',
         ])->findOrFail($khoaHocId);
 
-        // Tính toán ngày cuối cùng của từng module để gửi sang View
         foreach ($khoaHoc->moduleHocs as $module) {
             $lastSession = $module->lichHocs->last();
             $module->ngay_ket_thuc_thuc_te = $lastSession ? $lastSession->ngay_hoc->format('Y-m-d') : null;
+            $module->assignedTeachers = $module->phanCongGiangViens
+                ->where('trang_thai', 'da_nhan')
+                ->values();
         }
 
-        $giangViens = GiangVien::with('nguoiDung')
-            ->whereHas('nguoiDung', fn($q) => $q->where('trang_thai', 1))
+        $giangViens = GiangVien::with(['nguoiDung'])
+            ->whereHas('nguoiDung', fn ($query) => $query->where('trang_thai', 1))
             ->get();
 
         return view('pages.admin.lich-hoc.index', compact('khoaHoc', 'giangViens'));
     }
 
-    /**
-     * Cập nhật số buổi của module
-     */
+    public function teacherPlanningContext(Request $request, int $khoaHocId)
+    {
+        $validated = $request->validate([
+            'module_hoc_id' => 'required|integer|exists:module_hoc,id',
+            'ngay_hoc' => 'required|date',
+            'selected_tiets' => 'nullable|array|min:1',
+            'selected_tiets.*' => 'integer|between:1,12',
+            'tiet_bat_dau' => 'nullable|integer|between:1,12',
+            'tiet_ket_thuc' => 'nullable|integer|between:1,12|gte:tiet_bat_dau',
+            'buoi_hoc' => 'nullable|in:sang,chieu,toi',
+            'gio_bat_dau' => 'nullable|date_format:H:i',
+            'gio_ket_thuc' => 'nullable|date_format:H:i|after:gio_bat_dau',
+            'giang_vien_id' => 'nullable|integer|exists:giang_vien,id',
+            'ignore_lich_hoc_id' => 'nullable|integer|exists:lich_hoc,id',
+        ]);
+
+        $range = TeachingPeriodCatalog::normalizeSelectedPeriods((array) $request->input('selected_tiets', []))
+            ?? TeachingPeriodCatalog::normalizeRange(
+                $request->filled('tiet_bat_dau') ? (int) $request->input('tiet_bat_dau') : null,
+                $request->filled('tiet_ket_thuc') ? (int) $request->input('tiet_ket_thuc') : null,
+                $request->input('buoi_hoc'),
+            );
+
+        if ($range !== null) {
+            $times = TeachingPeriodCatalog::timeRangeFromPeriods($range['start'], $range['end']);
+            $validated['tiet_bat_dau'] = $range['start'];
+            $validated['tiet_ket_thuc'] = $range['end'];
+            $validated['buoi_hoc'] = $range['session'];
+            $validated['gio_bat_dau'] = $validated['gio_bat_dau'] ?? $times['start_time'];
+            $validated['gio_ket_thuc'] = $validated['gio_ket_thuc'] ?? $times['end_time'];
+        }
+
+        if (blank($validated['gio_bat_dau'] ?? null) || blank($validated['gio_ket_thuc'] ?? null)) {
+            return response()->json([
+                'message' => 'Can chon tiet hoc hoac khung gio de he thong phan tich.',
+                'errors' => [
+                    'selected_tiets' => ['Can chon tiet hoc hoac khung gio de he thong phan tich.'],
+                ],
+            ], 422);
+        }
+
+        $ignoreScheduleId = $request->integer('ignore_lich_hoc_id') ?: null;
+        if ($ignoreScheduleId !== null) {
+            $this->findCourseSchedule($khoaHocId, $ignoreScheduleId);
+        }
+
+        $context = $this->planningService->inspect($khoaHocId, $validated, $ignoreScheduleId);
+
+        return response()->json([
+            'can_schedule' => $context['can_schedule'],
+            'teacher_name' => $context['teacher']?->nguoiDung?->ho_ten,
+            'assignment' => $context['assignment'],
+            'availability' => $context['availability'],
+            'standard_window' => $context['standard_window'],
+            'leave_requests' => $context['leave_requests'],
+            'conflicts' => $context['conflicts'],
+            'suggestions' => $context['suggestions'],
+            'errors' => $context['errors'],
+        ]);
+    }
+
     public function updateSoBuoiModule(Request $request, int $khoaHocId, int $moduleId)
     {
         $request->validate([
-            'so_buoi' => 'required|integer|min:1|max:100'
+            'so_buoi' => 'required|integer|min:1|max:100',
         ]);
 
         $module = ModuleHoc::where('khoa_hoc_id', $khoaHocId)->findOrFail($moduleId);
-        $module->update(['so_buoi' => $request->so_buoi]);
+        $module->update(['so_buoi' => $request->integer('so_buoi')]);
 
-        return back()->with('success', "Đã cập nhật số buổi cho module {$module->ten_module}.");
+        return back()->with('success', "Da cap nhat so buoi cho module {$module->ten_module}.");
     }
 
-    /**
-     * Tạo 1 buổi lẻ
-     */
-    public function store(Request $request, int $khoaHocId)
+    public function store(StoreAdminScheduleRequest $request, int $khoaHocId)
     {
-        $request->validate([
-            'module_hoc_id'  => 'required|exists:module_hoc,id',
-            'ngay_hoc'       => 'required|date|after_or_equal:today',
-            'gio_bat_dau'    => 'required|date_format:H:i',
-            'gio_ket_thuc'   => 'required|date_format:H:i|after:gio_bat_dau',
-            'phong_hoc'      => 'nullable|string|max:100',
-            'hinh_thuc'      => 'required|in:truc_tiep,online',
-            'link_online'    => 'required_if:hinh_thuc,online|nullable|url|max:500',
-            'giang_vien_id'  => 'nullable|exists:giang_vien,id',
-        ]);
+        $validated = $request->validated();
 
-        $module = ModuleHoc::findOrFail($request->module_hoc_id);
+        $planningContext = $this->planningService->inspect($khoaHocId, $validated);
+        if (!$planningContext['can_schedule']) {
+            return back()
+                ->withErrors($planningContext['errors'])
+                ->withInput()
+                ->with('error', $this->buildPlanningErrorMessage($planningContext));
+        }
+
+        $module = ModuleHoc::where('khoa_hoc_id', $khoaHocId)->findOrFail((int) $validated['module_hoc_id']);
         $buoiSo = $module->lichHocs()->count() + 1;
+        $date = Carbon::parse($validated['ngay_hoc']);
 
-        // Tự động tính toán thứ trong tuần dựa trên ngày học (International standard mapping to 2-8)
-        $date = Carbon::parse($request->ngay_hoc);
-        $carbonDay = $date->dayOfWeek; // 0 (Sun) to 6 (Sat)
-        $dbDay = ($carbonDay === 0) ? 8 : ($carbonDay + 1);
+        LichHoc::create($this->prepareSchedulePayload($validated, $khoaHocId, $date, $buoiSo));
 
-        LichHoc::create(array_merge($request->all(), [
-            'khoa_hoc_id'    => $khoaHocId,
-            'thu_trong_tuan' => $dbDay,
-            'buoi_so'        => $buoiSo,
-            'trang_thai'     => 'cho'
-        ]));
-
-        return back()->with('success', 'Đã thêm buổi học mới thành công.');
+        return back()->with('success', 'Da them buoi hoc moi thanh cong.');
     }
 
-    /**
-     * Sinh lịch tự động
-     */
-    public function storeAuto(Request $request, int $khoaHocId)
+    public function storeAuto(StoreAutoAdminScheduleRequest $request, int $khoaHocId)
     {
-        $request->validate([
-            'module_hoc_id'  => 'required|exists:module_hoc,id',
-            'ngay_bat_dau'   => 'required|date|after_or_equal:today',
-            'gio_bat_dau'    => 'required|date_format:H:i',
-            'gio_ket_thuc'   => 'required|date_format:H:i|after:gio_bat_dau',
-            'thu_trong_tuan' => 'required|array|min:1',
-            'thu_trong_tuan.*' => 'integer|between:2,8',
-            'phong_hoc'      => 'nullable|string|max:100',
-            'hinh_thuc'      => 'required|in:truc_tiep,online',
-        ]);
+        $validated = $request->validated();
+        $module = ModuleHoc::where('khoa_hoc_id', $khoaHocId)->findOrFail((int) $validated['module_hoc_id']);
+        $soBuoiQuyDinh = (int) $module->so_buoi;
 
-        $module = ModuleHoc::findOrFail($request->module_hoc_id);
-        $soBuoiQuyDinh = $module->so_buoi;
-        
         DB::beginTransaction();
+
         try {
-            // Chỉ xóa các buổi học có trạng thái 'cho' (chưa bắt đầu)
             $module->lichHocs()->where('trang_thai', 'cho')->delete();
 
-            // Tính số buổi đã hoàn thành hoặc đang học để bắt đầu đếm tiếp buoi_so
             $soBuoiDaCo = $module->lichHocs()->count();
             $soBuoiCanTao = max(0, $soBuoiQuyDinh - $soBuoiDaCo);
 
             if ($soBuoiCanTao <= 0) {
-                return back()->with('info', 'Số buổi hiện tại đã đủ hoặc vượt mức quy định. Không cần sinh thêm.');
+                DB::commit();
+
+                return back()->with('info', 'So buoi hien tai da du hoac vuot muc quy dinh. Khong can sinh them.');
             }
 
-            $currentDate = Carbon::parse($request->ngay_bat_dau);
-            $createdCount = 0;
-            $daysOfWeek = array_map('intval', $request->thu_trong_tuan);
-
-            // Giới hạn vòng lặp để tránh treo server nếu logic có vấn đề (tối đa 2 năm)
+            $currentDate = Carbon::parse($validated['ngay_bat_dau']);
             $stopDate = $currentDate->copy()->addYears(2);
+            $daysOfWeek = array_map('intval', (array) $validated['thu_trong_tuan']);
+            $createdCount = 0;
 
             while ($createdCount < $soBuoiCanTao && $currentDate->lessThan($stopDate)) {
-                // Carbon: 0 (Sun) to 6 (Sat)
-                // DB Standard: 2 (Mon), 3 (Tue), ..., 7 (Sat), 8 (Sun)
-                $carbonDay = $currentDate->dayOfWeek;
-                $dbDay = ($carbonDay === 0) ? 8 : ($carbonDay + 1);
+                $dbDay = $this->resolveThuTrongTuan($currentDate);
 
-                if (in_array($dbDay, $daysOfWeek)) {
-                    LichHoc::create([
-                        'khoa_hoc_id'    => $khoaHocId,
-                        'module_hoc_id'  => $module->id,
-                        'ngay_hoc'       => $currentDate->toDateString(),
-                        'gio_bat_dau'    => $request->gio_bat_dau,
-                        'gio_ket_thuc'   => $request->gio_ket_thuc,
-                        'thu_trong_tuan' => $dbDay,
-                        'buoi_so'        => $soBuoiDaCo + $createdCount + 1,
-                        'phong_hoc'      => $request->phong_hoc,
-                        'hinh_thuc'      => $request->hinh_thuc,
-                        'trang_thai'     => 'cho',
-                    ]);
+                if (in_array($dbDay, $daysOfWeek, true)) {
+                    $singlePayload = [
+                        'module_hoc_id' => $module->id,
+                        'ngay_hoc' => $currentDate->toDateString(),
+                        'gio_bat_dau' => $validated['gio_bat_dau'],
+                        'gio_ket_thuc' => $validated['gio_ket_thuc'],
+                        'tiet_bat_dau' => $validated['tiet_bat_dau'] ?? null,
+                        'tiet_ket_thuc' => $validated['tiet_ket_thuc'] ?? null,
+                        'buoi_hoc' => $validated['buoi_hoc'] ?? null,
+                        'phong_hoc' => $validated['phong_hoc'] ?? null,
+                        'hinh_thuc' => $validated['hinh_thuc'],
+                        'giang_vien_id' => $validated['giang_vien_id'] ?? null,
+                        'ghi_chu' => $validated['ghi_chu'] ?? null,
+                    ];
+
+                    $planningContext = $this->planningService->inspect($khoaHocId, $singlePayload);
+                    if (!$planningContext['can_schedule']) {
+                        DB::rollBack();
+
+                        return back()
+                            ->withInput()
+                            ->with('error', 'Khong the sinh lich vao ngay ' . $currentDate->format('d/m/Y') . ': ' . $this->buildPlanningErrorMessage($planningContext));
+                    }
+
+                    LichHoc::create($this->prepareSchedulePayload(
+                        $singlePayload,
+                        $khoaHocId,
+                        $currentDate,
+                        $soBuoiDaCo + $createdCount + 1,
+                    ));
+
                     $createdCount++;
                 }
+
                 $currentDate->addDay();
             }
 
             DB::commit();
-            return back()->with('success', "Đã tự động sinh {$createdCount} buổi học mới cho module.");
-        } catch (\Exception $e) {
-            DB::rollback();
-            return back()->with('error', 'Lỗi hệ thống: ' . $e->getMessage());
+
+            return back()->with('success', "Da tu dong sinh {$createdCount} buoi hoc moi cho module.");
+        } catch (\Throwable $exception) {
+            DB::rollBack();
+
+            return back()->with('error', 'Loi he thong: ' . $exception->getMessage());
         }
     }
 
     public function edit(int $khoaHocId, int $id)
     {
-        $lichHoc = LichHoc::with('moduleHoc', 'khoaHoc')->findOrFail($id);
-        $giangViens = GiangVien::with('nguoiDung')->get();
-        return view('pages.admin.lich-hoc.edit', compact('lichHoc', 'giangViens'));
-    }
-
-    public function update(Request $request, int $khoaHocId, int $id)
-    {
-        $request->validate([
-            'ngay_hoc'     => 'required|date',
-            'gio_bat_dau'  => 'required',
-            'gio_ket_thuc' => 'required|after:gio_bat_dau',
-            'trang_thai'   => 'required|in:cho,dang_hoc,hoan_thanh,huy',
-            'hinh_thuc'    => 'required|in:truc_tiep,online',
-            'phong_hoc'    => 'nullable|string|max:255',
+        $lichHoc = $this->findCourseSchedule($khoaHocId, $id, [
+            'moduleHoc.phanCongGiangViens.giangVien.nguoiDung',
+            'moduleHoc.phanCongGiangViens.giangVien.donXinNghis',
+            'khoaHoc',
+            'giangVien.nguoiDung',
+            'giangVien.donXinNghis',
         ]);
 
-        $lichHoc = LichHoc::findOrFail($id);
-        $data = $request->all();
+        $teacherOptions = $this->buildTeacherOptionsForSchedule($lichHoc);
 
-        // Xử lý link online nếu hình thức là online
-        if ($request->hinh_thuc === 'online') {
-            $data['link_online'] = $request->phong_hoc;
+        return view('pages.admin.lich-hoc.edit', [
+            'lichHoc' => $lichHoc,
+            'teacherOptions' => $teacherOptions,
+            'planningContext' => $lichHoc->giang_vien_id
+                ? $this->planningService->inspect($khoaHocId, [
+                    'module_hoc_id' => $lichHoc->module_hoc_id,
+                    'ngay_hoc' => $lichHoc->ngay_hoc?->toDateString(),
+                    'gio_bat_dau' => substr((string) $lichHoc->gio_bat_dau, 0, 5),
+                    'gio_ket_thuc' => substr((string) $lichHoc->gio_ket_thuc, 0, 5),
+                    'tiet_bat_dau' => $lichHoc->tiet_bat_dau,
+                    'tiet_ket_thuc' => $lichHoc->tiet_ket_thuc,
+                    'buoi_hoc' => $lichHoc->buoi_hoc,
+                    'giang_vien_id' => $lichHoc->giang_vien_id,
+                ], $lichHoc->id)
+                : null,
+        ]);
+    }
+
+    public function update(UpdateAdminScheduleRequest $request, int $khoaHocId, int $id)
+    {
+        $lichHoc = $this->findCourseSchedule($khoaHocId, $id);
+        $validated = $request->validated();
+
+        if (($validated['trang_thai'] ?? 'cho') !== 'huy') {
+            $planningContext = $this->planningService->inspect($khoaHocId, [
+                'module_hoc_id' => $lichHoc->module_hoc_id,
+                'ngay_hoc' => $validated['ngay_hoc'],
+                'gio_bat_dau' => $validated['gio_bat_dau'],
+                'gio_ket_thuc' => $validated['gio_ket_thuc'],
+                'tiet_bat_dau' => $validated['tiet_bat_dau'] ?? null,
+                'tiet_ket_thuc' => $validated['tiet_ket_thuc'] ?? null,
+                'buoi_hoc' => $validated['buoi_hoc'] ?? null,
+                'giang_vien_id' => $validated['giang_vien_id'] ?? null,
+            ], $lichHoc->id);
+
+            if (!$planningContext['can_schedule']) {
+                return back()
+                    ->withErrors($planningContext['errors'])
+                    ->withInput()
+                    ->with('error', $this->buildPlanningErrorMessage($planningContext));
+            }
         }
 
+        $date = Carbon::parse($validated['ngay_hoc']);
+        $data = $this->prepareSchedulePayload($validated, $khoaHocId, $date, $lichHoc->buoi_so);
+        $data['trang_thai'] = $validated['trang_thai'];
+
         DB::beginTransaction();
+
         try {
             $lichHoc->update($data);
 
-            // Nếu tích chọn áp dụng cho tất cả buổi Online
-            if ($request->hinh_thuc === 'online' && $request->has('apply_to_all_online')) {
+            if (($validated['hinh_thuc'] ?? null) === 'online' && $request->boolean('apply_to_all_online')) {
                 LichHoc::where('khoa_hoc_id', $khoaHocId)
                     ->where('hinh_thuc', 'online')
                     ->update([
-                        'link_online' => $request->phong_hoc,
-                        'phong_hoc'   => $request->phong_hoc
+                        'link_online' => $data['link_online'],
                     ]);
             }
 
             DB::commit();
-            return redirect()->route('admin.khoa-hoc.lich-hoc.index', $khoaHocId)
-                             ->with('success', 'Đã cập nhật lịch học.');
-        } catch (\Exception $e) {
+
+            return redirect()
+                ->route('admin.khoa-hoc.lich-hoc.index', $khoaHocId)
+                ->with('success', 'Da cap nhat lich hoc.');
+        } catch (\Throwable $exception) {
             DB::rollBack();
-            return back()->with('error', 'Lỗi: ' . $e->getMessage());
+
+            return back()->with('error', 'Loi: ' . $exception->getMessage());
         }
     }
 
     public function destroy(int $khoaHocId, int $id)
     {
-        LichHoc::destroy($id);
-        return back()->with('success', 'Đã xóa buổi học.');
+        $lichHoc = $this->findCourseSchedule($khoaHocId, $id);
+        $lichHoc->delete();
+
+        return back()->with('success', 'Da xoa buoi hoc.');
     }
 
-    /**
-     * Xóa tất cả lịch học của 1 module (chỉ xóa trạng thái 'cho')
-     */
     public function destroyModuleSchedules(Request $request, int $khoaHocId, int $moduleId)
     {
         $deleted = LichHoc::where('khoa_hoc_id', $khoaHocId)
@@ -222,17 +316,14 @@ class LichHocController extends Controller
             ->where('trang_thai', 'cho')
             ->delete();
 
-        return back()->with('success', "Đã xóa {$deleted} buổi học của module.");
+        return back()->with('success', "Da xoa {$deleted} buoi hoc cua module.");
     }
 
-    /**
-     * Xóa các buổi học được chọn (Bulk delete)
-     */
     public function destroyBulk(Request $request, int $khoaHocId)
     {
         $ids = $request->input('ids', []);
         if (empty($ids)) {
-            return back()->with('error', 'Vui lòng chọn ít nhất một buổi học để xóa.');
+            return back()->with('error', 'Vui long chon it nhat mot buoi hoc de xoa.');
         }
 
         $deleted = LichHoc::whereIn('id', $ids)
@@ -240,6 +331,103 @@ class LichHocController extends Controller
             ->where('trang_thai', 'cho')
             ->delete();
 
-        return back()->with('success', "Đã xóa {$deleted} buổi học đã chọn.");
+        return back()->with('success', "Da xoa {$deleted} buoi hoc da chon.");
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function prepareSchedulePayload(array $data, int $courseId, Carbon $date, int $sessionNumber): array
+    {
+        $locationValue = $data['phong_hoc'] ?? null;
+        $isOnline = ($data['hinh_thuc'] ?? 'truc_tiep') === 'online';
+
+        return [
+            'khoa_hoc_id' => $courseId,
+            'module_hoc_id' => (int) $data['module_hoc_id'],
+            'giang_vien_id' => filled($data['giang_vien_id'] ?? null) ? (int) $data['giang_vien_id'] : null,
+            'ngay_hoc' => $date->toDateString(),
+            'gio_bat_dau' => substr((string) $data['gio_bat_dau'], 0, 5),
+            'gio_ket_thuc' => substr((string) $data['gio_ket_thuc'], 0, 5),
+            'tiet_bat_dau' => isset($data['tiet_bat_dau']) ? (int) $data['tiet_bat_dau'] : null,
+            'tiet_ket_thuc' => isset($data['tiet_ket_thuc']) ? (int) $data['tiet_ket_thuc'] : null,
+            'buoi_hoc' => $data['buoi_hoc'] ?? null,
+            'thu_trong_tuan' => $this->resolveThuTrongTuan($date),
+            'buoi_so' => $sessionNumber,
+            'phong_hoc' => !$isOnline ? $locationValue : null,
+            'hinh_thuc' => $data['hinh_thuc'],
+            'link_online' => $isOnline ? $locationValue : null,
+            'ghi_chu' => $data['ghi_chu'] ?? null,
+            'trang_thai' => $data['trang_thai'] ?? 'cho',
+        ];
+    }
+
+    private function resolveThuTrongTuan(Carbon $date): int
+    {
+        return $date->dayOfWeek === Carbon::SUNDAY ? 8 : ($date->dayOfWeek + 1);
+    }
+
+    /**
+     * @param  array<int, string>  $with
+     */
+    private function findCourseSchedule(int $courseId, int $scheduleId, array $with = []): LichHoc
+    {
+        $query = LichHoc::query()
+            ->where('khoa_hoc_id', $courseId);
+
+        if ($with !== []) {
+            $query->with($with);
+        }
+
+        return $query->findOrFail($scheduleId);
+    }
+
+    private function buildTeacherOptionsForSchedule(LichHoc $schedule)
+    {
+        $teachers = $schedule->moduleHoc->phanCongGiangViens
+            ->where('trang_thai', 'da_nhan')
+            ->map(fn ($assignment) => $assignment->giangVien)
+            ->filter(fn ($teacher) => $teacher?->nguoiDung?->trang_thai)
+            ->unique('id')
+            ->values();
+
+        $currentTeacher = $schedule->giangVien;
+        if ($currentTeacher && !$teachers->contains(fn (GiangVien $teacher) => $teacher->id === $currentTeacher->id)) {
+            $teachers->push($currentTeacher);
+        }
+
+        return $teachers->values();
+    }
+
+    /**
+     * @param  array<string, mixed>  $planningContext
+     */
+    private function buildPlanningErrorMessage(array $planningContext): string
+    {
+        $errors = array_values((array) ($planningContext['errors'] ?? []));
+        if ($errors !== []) {
+            return (string) $errors[0];
+        }
+
+        if (!empty($planningContext['conflicts']['message'])) {
+            return (string) $planningContext['conflicts']['message'];
+        }
+
+        if (!empty($planningContext['leave_requests']['message']) && ($planningContext['leave_requests']['ok'] ?? null) === false) {
+            return (string) $planningContext['leave_requests']['message'];
+        }
+
+        if (!empty($planningContext['standard_window']['message']) && ($planningContext['standard_window']['ok'] ?? null) === false) {
+            return (string) $planningContext['standard_window']['message'];
+        }
+
+        return 'Khong the luu lich hoc voi du lieu hien tai.';
     }
 }
+
+
+
+
+
+
