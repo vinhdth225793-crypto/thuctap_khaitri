@@ -45,6 +45,16 @@
 
     @include('components.alert')
 
+    <div class="alert alert-info border-0 shadow-sm d-flex align-items-start gap-3 mb-4">
+        <i class="fas fa-info-circle mt-1"></i>
+        <div>
+            <div class="fw-bold">Hướng dẫn tạo và cấu hình đề</div>
+            <div class="small mb-0">
+                Bấm <strong>Vào dạy</strong> ở từng khóa học, sau đó vào màn hình chi tiết để tạo bài kiểm tra mới hoặc mở đề đã có để cấu hình.
+            </div>
+        </div>
+    </div>
+
     @if($khoaHocs->count() > 0)
         <div class="row" id="view-container">
             @foreach($khoaHocs as $khoaHoc)
@@ -62,11 +72,19 @@
                                         <span class="mx-2 d-none d-md-inline">|</span>
                                         <i class="fas fa-calendar-check me-1"></i> Khai giảng: {{ $khoaHoc->ngay_khai_giang?->format('d/m/Y') ?? 'Chưa định ngày' }}
                                     </div>
+                                    <div class="smaller text-muted mt-1">
+                                        Tiến độ khóa học: <strong>{{ $khoaHoc->so_module_hoan_thanh }}/{{ $khoaHoc->moduleHocs->count() }}</strong> module
+                                        <span class="mx-2 d-none d-md-inline">|</span>
+                                        {{ $khoaHoc->tien_do_hoc_tap }}%
+                                    </div>
                                 </div>
                             </div>
                             <div class="d-flex align-items-center gap-3">
                                 <span class="badge bg-{{ $khoaHoc->badge_trang_thai }}-soft text-{{ $khoaHoc->badge_trang_thai }} border border-{{ $khoaHoc->badge_trang_thai }} px-3 shadow-xs d-none d-md-inline-block">
                                     {{ $khoaHoc->label_trang_thai_van_hanh }}
+                                </span>
+                                <span class="badge bg-{{ $khoaHoc->trang_thai_hoc_tap_badge }}-soft text-{{ $khoaHoc->trang_thai_hoc_tap_badge }} border border-{{ $khoaHoc->trang_thai_hoc_tap_badge }} px-3 shadow-xs d-none d-md-inline-block">
+                                    {{ $khoaHoc->trang_thai_hoc_tap_label }}
                                 </span>
                                 {{-- Nút xem nhanh ở chế độ List --}}
                                 <div class="list-actions">
@@ -85,7 +103,7 @@
                                         <tr>
                                             <th class="ps-4" width="60">STT</th>
                                             <th>Tên bài dạy (Module)</th>
-                                            <th class="text-center">Số buổi</th>
+                                            <th class="text-center">Tiến độ buổi</th>
                                             <th class="text-center">Trạng thái</th>
                                             <th class="pe-4 text-center" width="180">Hành động</th>
                                         </tr>
@@ -108,16 +126,24 @@
                                                     <div class="smaller text-muted italic">{{ Str::limit($module->mo_ta, 80) }}</div>
                                                 </td>
                                                 <td class="text-center">
-                                                    <span class="badge bg-light text-dark border">{{ $module->so_buoi ?? 0 }} buổi</span>
+                                                    <div class="d-flex flex-column align-items-center gap-1">
+                                                        <span class="badge bg-light text-dark border">{{ $module->so_buoi_hoan_thanh }}/{{ $module->so_buoi_hop_le }} buổi</span>
+                                                        <span class="smaller text-muted">Sắp tới: {{ $module->learning_progress_snapshot['upcoming_schedules'] }}</span>
+                                                    </div>
                                                 </td>
                                                 <td class="text-center">
-                                                    @if($pc->trang_thai === 'cho_xac_nhan')
-                                                        <span class="badge bg-warning-soft text-warning border border-warning px-3">Chờ xác nhận</span>
-                                                    @elseif($pc->trang_thai === 'da_nhan')
-                                                        <span class="badge bg-success-soft text-success border border-success px-3">Đã nhận</span>
-                                                    @else
-                                                        <span class="badge bg-danger-soft text-danger border border-danger px-3">Từ chối</span>
-                                                    @endif
+                                                    <div class="d-flex flex-column align-items-center gap-1">
+                                                        @if($pc->trang_thai === 'cho_xac_nhan')
+                                                            <span class="badge bg-warning-soft text-warning border border-warning px-3">Chờ xác nhận</span>
+                                                        @elseif($pc->trang_thai === 'da_nhan')
+                                                            <span class="badge bg-success-soft text-success border border-success px-3">Đã nhận</span>
+                                                        @else
+                                                            <span class="badge bg-danger-soft text-danger border border-danger px-3">Từ chối</span>
+                                                        @endif
+                                                        <span class="badge bg-{{ $module->trang_thai_hoc_tap_badge }}-soft text-{{ $module->trang_thai_hoc_tap_badge }} border border-{{ $module->trang_thai_hoc_tap_badge }} px-3">
+                                                            {{ $module->trang_thai_hoc_tap_label }}
+                                                        </span>
+                                                    </div>
                                                 </td>
                                                 <td class="pe-4 text-center">
                                                     @if($pc->trang_thai === 'cho_xac_nhan')
@@ -197,6 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
     .bg-primary-soft { background-color: rgba(13, 110, 253, 0.1); }
     .bg-success-soft { background-color: rgba(25, 135, 84, 0.1); }
     .bg-warning-soft { background-color: rgba(255, 193, 7, 0.1); }
+    .bg-secondary-soft { background-color: rgba(108, 117, 125, 0.1); }
     .bg-danger-soft { background-color: rgba(220, 53, 69, 0.1); }
     .shadow-xs { box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     

@@ -25,6 +25,9 @@
                 <span class="badge bg-{{ $moduleHoc->trang_thai ? 'success' : 'secondary' }} ms-3 px-3 shadow-xs">
                     {{ $moduleHoc->trang_thai ? 'Hoạt động' : 'Tạm dừng' }}
                 </span>
+                <span class="badge bg-{{ $moduleHoc->trang_thai_hoc_tap_badge }}-soft text-{{ $moduleHoc->trang_thai_hoc_tap_badge }} border border-{{ $moduleHoc->trang_thai_hoc_tap_badge }} ms-2 px-3 shadow-xs">
+                    {{ $moduleHoc->trang_thai_hoc_tap_label }}
+                </span>
             </div>
             <div class="mt-2 text-muted">
                 Mã module: <code class="fw-bold text-primary">{{ $moduleHoc->ma_module }}</code> 
@@ -76,6 +79,33 @@
                             <div class="p-3 border rounded bg-light">
                                 <span class="smaller text-muted fw-bold d-block text-uppercase">Ngày khởi tạo</span>
                                 <span class="fs-5 fw-bold text-dark"><i class="far fa-calendar-alt me-1"></i> {{ $moduleHoc->created_at->format('d/m/Y') }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3 col-6">
+                            <div class="p-3 border rounded bg-white h-100">
+                                <span class="smaller text-muted fw-bold d-block text-uppercase">Buổi hợp lệ</span>
+                                <span class="fs-4 fw-bold text-dark">{{ $moduleHoc->so_buoi_hop_le }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="p-3 border rounded bg-white h-100">
+                                <span class="smaller text-muted fw-bold d-block text-uppercase">Đã hoàn thành</span>
+                                <span class="fs-4 fw-bold text-success">{{ $moduleHoc->so_buoi_hoan_thanh }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="p-3 border rounded bg-white h-100">
+                                <span class="smaller text-muted fw-bold d-block text-uppercase">Còn lại</span>
+                                <span class="fs-4 fw-bold text-primary">{{ $moduleHoc->so_buoi_chua_hoan_thanh }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="p-3 border rounded bg-white h-100">
+                                <span class="smaller text-muted fw-bold d-block text-uppercase">Tiến độ</span>
+                                <span class="fs-4 fw-bold text-info">{{ $moduleHoc->tien_do_hoc_tap }}%</span>
                             </div>
                         </div>
                     </div>
@@ -189,6 +219,7 @@
                                 <tr>
                                     <th class="ps-4 text-center" width="60">STT</th>
                                     <th>Tên bài học (Module)</th>
+                                    <th class="text-center">Tiến độ</th>
                                     <th class="text-center">Thời lượng</th>
                                     <th class="pe-4 text-center" width="120">Hành động</th>
                                 </tr>
@@ -200,6 +231,14 @@
                                         <td>
                                             <div class="fw-bold text-dark">{{ $item->ten_module }}</div>
                                             <code class="smaller text-muted">{{ $item->ma_module }}</code>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="d-flex flex-column align-items-center gap-1">
+                                                <span class="badge bg-{{ $item->trang_thai_hoc_tap_badge }}-soft text-{{ $item->trang_thai_hoc_tap_badge }} border border-{{ $item->trang_thai_hoc_tap_badge }}">
+                                                    {{ $item->trang_thai_hoc_tap_label }}
+                                                </span>
+                                                <span class="smaller text-muted">{{ $item->so_buoi_hoan_thanh }}/{{ $item->so_buoi_hop_le }} buổi</span>
+                                            </div>
                                         </td>
                                         <td class="text-center text-muted">{{ $item->thoi_luong_du_kien }}p</td>
                                         <td class="pe-4 text-center">
@@ -215,7 +254,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="text-center py-4 text-muted italic">Khóa học này chỉ có duy nhất 1 module.</td>
+                                        <td colspan="5" class="text-center py-4 text-muted italic">Khóa học này chỉ có duy nhất 1 module.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -256,6 +295,18 @@
                             </span>
                         </div>
                     </div>
+                    <div class="p-3 rounded border bg-light mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="smaller text-muted text-uppercase fw-bold">Tiến độ khóa học</span>
+                            <span class="badge bg-{{ $moduleHoc->khoaHoc->trang_thai_hoc_tap_badge }}-soft text-{{ $moduleHoc->khoaHoc->trang_thai_hoc_tap_badge }} border border-{{ $moduleHoc->khoaHoc->trang_thai_hoc_tap_badge }}">
+                                {{ $moduleHoc->khoaHoc->trang_thai_hoc_tap_label }}
+                            </span>
+                        </div>
+                        <div class="fw-bold text-dark">{{ $moduleHoc->khoaHoc->so_module_hoan_thanh }}/{{ $moduleHoc->khoaHoc->moduleHocs->count() }} module hoàn thành</div>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: {{ $moduleHoc->khoaHoc->tien_do_hoc_tap }}%"></div>
+                        </div>
+                    </div>
                     <div class="mb-0">
                         <span class="smaller text-muted d-block text-uppercase">Nhóm ngành</span>
                         <span class="small fw-bold text-dark">{{ $moduleHoc->khoaHoc->nhomNganh->ten_nhom_nganh ?? 'N/A' }}</span>
@@ -286,6 +337,11 @@
 </div>
 
 <style>
+    .bg-primary-soft { background-color: rgba(13, 110, 253, 0.1); }
+    .bg-success-soft { background-color: rgba(25, 135, 84, 0.1); }
+    .bg-warning-soft { background-color: rgba(255, 193, 7, 0.1); }
+    .bg-info-soft { background-color: rgba(13, 202, 240, 0.1); }
+    .bg-secondary-soft { background-color: rgba(108, 117, 125, 0.1); }
     .border-dashed { border-style: dashed !important; }
     .object-fit-cover { object-fit: cover; }
     .italic { font-style: italic; }

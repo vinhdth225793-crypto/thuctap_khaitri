@@ -76,6 +76,13 @@
                 <span class="badge bg-primary ms-1">{{ $khoaHocSanSang->total() }}</span>
             </button>
         </li>
+        <li class="nav-item">
+            <button class="nav-link {{ $activeTab === 'ket_thuc' ? 'active fw-bold' : 'text-muted' }}"
+                    id="ket_thuc-tab" data-bs-toggle="tab" data-bs-target="#ket_thuc" type="button" role="tab" data-tab="ket_thuc">
+                <i class="fas fa-flag-checkered me-1 text-dark"></i> Đã hoàn thành
+                <span class="badge bg-dark ms-1">{{ $khoaHocHoanThanh->total() }}</span>
+            </button>
+        </li>
        
     </ul>
 
@@ -96,6 +103,10 @@
                 {{-- TAB: SẴN SÀNG --}}
                 <div class="tab-pane fade {{ $activeTab === 'san_sang' ? 'show active' : '' }}" id="san_sang" role="tabpanel">
                     @include('pages.admin.khoa-hoc.khoa-hoc.partials.table-hoat-dong', ['data' => $khoaHocSanSang, 'tab' => 'san_sang', 'search' => $search])
+                </div>
+
+                <div class="tab-pane fade {{ $activeTab === 'ket_thuc' ? 'show active' : '' }}" id="ket_thuc" role="tabpanel">
+                    @include('pages.admin.khoa-hoc.khoa-hoc.partials.table-hoat-dong', ['data' => $khoaHocHoanThanh, 'tab' => 'ket_thuc', 'search' => $search])
                 </div>
 
                 {{-- TAB: KHÓA HỌC MẪU --}}
@@ -124,6 +135,12 @@
 </script>
 
 <style>
+    .bg-primary-soft { background-color: rgba(13, 110, 253, 0.1); }
+    .bg-success-soft { background-color: rgba(25, 135, 84, 0.1); }
+    .bg-warning-soft { background-color: rgba(255, 193, 7, 0.1); }
+    .bg-info-soft { background-color: rgba(13, 202, 240, 0.1); }
+    .bg-secondary-soft { background-color: rgba(108, 117, 125, 0.1); }
+    .bg-dark-soft { background-color: rgba(33, 37, 41, 0.12); }
     .smaller { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
     .nav-tabs .nav-link { color: #6c757d; border-top: 3px solid transparent; border-bottom: 1px solid #dee2e6; padding: 1rem 1.5rem; }
     .nav-tabs .nav-link.active { color: #0d6efd; border-top-color: #0d6efd; border-bottom-color: transparent; background-color: #fff; }

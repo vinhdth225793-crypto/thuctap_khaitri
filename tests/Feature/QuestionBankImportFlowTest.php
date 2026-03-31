@@ -138,6 +138,58 @@ class QuestionBankImportFlowTest extends TestCase
         $this->assertTrue($question->supports_current_exam_builder);
     }
 
+    public function test_preview_keeps_selected_sample_course_type_for_import_flow(): void
+    {
+        $admin = $this->createUser('admin');
+        $sampleCourse = $this->createCourse($admin, 'mau');
+
+        $xlsxPath = $this->createQuestionImportXlsx([
+            ['Mau import ngan hang cau hoi'],
+            ['cau_hoi', 'dap_an_1', 'dap_an_2', 'dap_an_3', 'dap_an_4', 'dap_an_dung'],
+            ['Ghi chu', 'Dong mau 1'],
+            ['Ghi chu', 'Dong mau 2'],
+            ['Luu y:', 'Nhap cot F bang noi dung dap an dung'],
+            ['Vi du:', "Neu dap an dung la 'Ha Noi' thi cot F phai ghi 'Ha Noi'"],
+            ['Cau hoi thuoc khoa mau', 'Lua chon A', 'Lua chon B', 'Lua chon C', 'Lua chon D', 'Lua chon A'],
+        ]);
+
+        $upload = new UploadedFile(
+            $xlsxPath,
+            'sample-course.xlsx',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            null,
+            true,
+        );
+
+        $this->actingAs($admin)
+            ->post(route('admin.kiem-tra-online.cau-hoi.import'), [
+                'course_type' => 'mau',
+                'khoa_hoc_id' => $sampleCourse->id,
+                'file_import' => $upload,
+            ])
+            ->assertRedirect(route('admin.kiem-tra-online.cau-hoi.preview'));
+
+        $preview = session('import_preview');
+
+        $this->assertSame('mau', $preview['course_type']);
+        $this->assertSame('Khóa học mẫu', $preview['course_type_label']);
+        $this->assertSame('info', $preview['course_type_color']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.kiem-tra-online.cau-hoi.preview'))
+            ->assertOk()
+            ->assertSeeText('Khóa học mẫu');
+
+        $this->actingAs($admin)
+            ->post(route('admin.kiem-tra-online.cau-hoi.confirm-import'))
+            ->assertRedirect(route('admin.kiem-tra-online.cau-hoi.index'));
+
+        $this->assertDatabaseHas('ngan_hang_cau_hoi', [
+            'khoa_hoc_id' => $sampleCourse->id,
+            'noi_dung' => 'Cau hoi thuoc khoa mau',
+        ]);
+    }
+
     public function test_preview_flags_invalid_correct_answer_text_in_xlsx_file_when_data_begins_on_row_seven(): void
     {
         $admin = $this->createUser('admin');
@@ -210,6 +262,40 @@ class QuestionBankImportFlowTest extends TestCase
             ->assertSessionHasErrors('file_import');
     }
 
+    public function test_import_rejects_when_selected_course_type_does_not_match_course(): void
+    {
+        $admin = $this->createUser('admin');
+        $activeCourse = $this->createCourse($admin, 'hoat_dong');
+
+        $xlsxPath = $this->createQuestionImportXlsx([
+            ['Mau import ngan hang cau hoi'],
+            ['cau_hoi', 'dap_an_1', 'dap_an_2', 'dap_an_3', 'dap_an_4', 'dap_an_dung'],
+            ['Ghi chu', 'Dong mau 1'],
+            ['Ghi chu', 'Dong mau 2'],
+            ['Luu y:', 'Nhap cot F bang noi dung dap an dung'],
+            ['Vi du:', "Neu dap an dung la 'Ha Noi' thi cot F phai ghi 'Ha Noi'"],
+            ['Cau hoi', 'A', 'B', 'C', 'D', 'A'],
+        ]);
+
+        $upload = new UploadedFile(
+            $xlsxPath,
+            'type-mismatch.xlsx',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            null,
+            true,
+        );
+
+        $this->actingAs($admin)
+            ->from(route('admin.kiem-tra-online.cau-hoi.index'))
+            ->post(route('admin.kiem-tra-online.cau-hoi.import'), [
+                'course_type' => 'mau',
+                'khoa_hoc_id' => $activeCourse->id,
+                'file_import' => $upload,
+            ])
+            ->assertRedirect(route('admin.kiem-tra-online.cau-hoi.index'))
+            ->assertSessionHasErrors('course_type');
+    }
+
     public function test_preview_requires_session_owned_by_current_user(): void
     {
         $owner = $this->createUser('admin');
@@ -236,7 +322,7 @@ class QuestionBankImportFlowTest extends TestCase
             ])
             ->get(route('admin.kiem-tra-online.cau-hoi.preview'))
             ->assertRedirect(route('admin.kiem-tra-online.cau-hoi.index'))
-            ->assertSessionHas('error', fn (string $message) => str_contains($message, 'Khong tim thay du lieu xem truoc hoac phien import khong con hop le.'))
+            ->assertSessionHas('error', fn (string $message) => str_contains($message, 'Không tìm thấy dữ liệu xem trước hoặc phiên import không còn hợp lệ.'))
             ->assertSessionMissing('import_preview');
     }
 
@@ -250,8 +336,9 @@ class QuestionBankImportFlowTest extends TestCase
             ])
             ->get(route('admin.kiem-tra-online.cau-hoi.preview'))
             ->assertOk()
-            ->assertSeeText('Xuat toan bo')
-            ->assertSeeText('Xac nhan import 1 cau hop le');
+            ->assertSeeText('Khóa học hoạt động')
+            ->assertSeeText('Xuất toàn bộ')
+            ->assertSeeText('Xác nhận import 1 câu hợp lệ');
     }
 
     public function test_can_export_valid_preview_rows_to_standard_xlsx_template(): void
@@ -544,7 +631,7 @@ class QuestionBankImportFlowTest extends TestCase
         ], $overrides));
     }
 
-    private function createCourse(NguoiDung $creator): KhoaHoc
+    private function createCourse(NguoiDung $creator, string $type = 'hoat_dong', ?KhoaHoc $sampleCourse = null): KhoaHoc
     {
         $index = $this->sequence++;
         $group = NhomNganh::create([
@@ -563,7 +650,8 @@ class QuestionBankImportFlowTest extends TestCase
             'ty_trong_diem_danh' => 20,
             'ty_trong_kiem_tra' => 80,
             'trang_thai' => true,
-            'loai' => 'hoat_dong',
+            'loai' => $type,
+            'khoa_hoc_mau_id' => $type === 'hoat_dong' ? $sampleCourse?->id : null,
             'trang_thai_van_hanh' => 'dang_day',
             'created_by' => $creator->ma_nguoi_dung,
         ]);
@@ -774,6 +862,9 @@ class QuestionBankImportFlowTest extends TestCase
         return [
             'khoa_hoc_id' => 1,
             'khoa_hoc_ten' => 'Demo course',
+            'course_type' => 'hoat_dong',
+            'course_type_label' => 'Khóa học hoạt động',
+            'course_type_color' => 'primary',
             'module_hoc_id' => 2,
             'module_hoc_ten' => 'Demo module',
             'source_format' => 'docx',

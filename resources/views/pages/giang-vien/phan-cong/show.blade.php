@@ -29,6 +29,14 @@
                     <div class="text-muted small mt-1">
                         Thuộc khóa học: <span class="fw-bold text-primary">{{ $khoaHoc->ten_khoa_hoc }}</span>
                     </div>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        <span class="badge bg-{{ $phanCong->moduleHoc->trang_thai_hoc_tap_badge }}-soft text-{{ $phanCong->moduleHoc->trang_thai_hoc_tap_badge }} border border-{{ $phanCong->moduleHoc->trang_thai_hoc_tap_badge }}">
+                            {{ $phanCong->moduleHoc->trang_thai_hoc_tap_label }}
+                        </span>
+                        <span class="badge bg-{{ $khoaHoc->trang_thai_hoc_tap_badge }}-soft text-{{ $khoaHoc->trang_thai_hoc_tap_badge }} border border-{{ $khoaHoc->trang_thai_hoc_tap_badge }}">
+                            {{ $khoaHoc->trang_thai_hoc_tap_label }}
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -54,12 +62,97 @@
         <div class="col-lg-8">
             {{-- LỊCH DẠY CHI TIẾT (DẠNG KHỐI) --}}
             <div class="mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3 col-6">
+                        <div class="vip-card border-0 shadow-sm p-3 h-100">
+                            <div class="smaller text-muted text-uppercase fw-bold">Buổi hợp lệ</div>
+                            <div class="fs-4 fw-bold text-dark">{{ $phanCong->moduleHoc->so_buoi_hop_le }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="vip-card border-0 shadow-sm p-3 h-100">
+                            <div class="smaller text-muted text-uppercase fw-bold">Đã hoàn thành</div>
+                            <div class="fs-4 fw-bold text-success">{{ $phanCong->moduleHoc->so_buoi_hoan_thanh }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="vip-card border-0 shadow-sm p-3 h-100">
+                            <div class="smaller text-muted text-uppercase fw-bold">Sắp tới</div>
+                            <div class="fs-4 fw-bold text-primary">{{ $phanCong->moduleHoc->learning_progress_snapshot['upcoming_schedules'] }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="vip-card border-0 shadow-sm p-3 h-100">
+                            <div class="smaller text-muted text-uppercase fw-bold">Tiến độ</div>
+                            <div class="fs-4 fw-bold text-info">{{ $phanCong->moduleHoc->tien_do_hoc_tap }}%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3 mt-4">
                     <h5 class="small fw-bold text-uppercase mb-0 text-primary">
                         <i class="fas fa-calendar-check me-2"></i> Lộ trình giảng dạy
                     </h5>
-                    <span class="badge bg-white text-primary border border-primary px-3 shadow-sm">{{ $lichDays->count() }} buổi dạy</span>
+                    <div class="d-flex gap-2">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-danger dropdown-toggle shadow-sm px-3" type="button" id="createExamDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-plus-circle me-1"></i> Tạo bài kiểm tra
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="createExamDropdown">
+                                <li><h6 class="dropdown-header">Chọn phạm vi</h6></li>
+                                <li>
+                                    <button class="dropdown-item py-2 btn-add-test-module" type="button">
+                                        <i class="fas fa-layer-group me-2 text-primary"></i> Kiểm tra cuối module
+                                    </button>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item py-2 btn-add-test-course" type="button">
+                                        <i class="fas fa-graduation-cap me-2 text-danger"></i> Kiểm tra toàn khóa
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                        <span class="badge bg-white text-primary border border-primary px-3 shadow-sm d-flex align-items-center">{{ $lichDays->count() }} buổi dạy</span>
+                    </div>
                 </div>
+
+                @php
+                    $otherExams = \App\Models\BaiKiemTra::where('khoa_hoc_id', $khoaHoc->id)
+                        ->where(function($q) use ($phanCong) {
+                            $q->where('pham_vi', 'cuoi_khoa')
+                              ->orWhere(function($q2) use ($phanCong) {
+                                  $q2->where('pham_vi', 'module')
+                                     ->where('module_hoc_id', $phanCong->module_hoc_id);
+                              });
+                        })
+                        ->get();
+                @endphp
+
+                @if($otherExams->isNotEmpty())
+                    <div class="mb-4">
+                        <div class="fw-bold small mb-2 text-danger text-uppercase"><i class="fas fa-file-invoice me-1"></i> Bài kiểm tra Module & Khóa học</div>
+                        <div class="row g-3">
+                            @foreach($otherExams as $test)
+                                <div class="col-md-6">
+                                    <div class="p-3 rounded border border-danger border-opacity-25 bg-danger bg-opacity-10 d-flex align-items-center justify-content-between shadow-sm">
+                                        <div>
+                                            <div class="fw-bold text-danger">{{ $test->tieu_de }}</div>
+                                            <div class="smaller text-muted">
+                                                <span class="badge bg-danger text-white me-1">{{ $test->pham_vi_label }}</span>
+                                                {{ $test->thoi_gian_lam_bai }} phút | {{ $test->chi_tiet_cau_hois_count ?? $test->chiTietCauHois()->count() }} câu
+                                            </div>
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <a href="{{ route('giang-vien.bai-kiem-tra.edit', $test->id) }}" class="btn btn-sm btn-outline-danger px-3 shadow-xs" title="Cấu hình đề">
+                                                <i class="fas fa-cog me-1"></i> Cấu hình
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
 
                 @forelse($lichDays as $index => $lich)
                     <div class="session-block mb-4 shadow-sm border border-2 border-light-subtle rounded-3 overflow-hidden bg-white" style="border-left: 5px solid #0d6efd !important;">
@@ -305,6 +398,18 @@
                         
                         <div class="col-6 text-muted">Kết thúc dự kiến:</div>
                         <div class="col-6 text-end fw-bold">{{ $khoaHoc->ngay_ket_thuc?->format('d/m/Y') ?? '—' }}</div>
+                    </div>
+                    <div class="p-3 rounded border bg-light mt-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="smaller text-muted text-uppercase fw-bold">Tiến độ khóa học</span>
+                            <span class="badge bg-{{ $khoaHoc->trang_thai_hoc_tap_badge }}-soft text-{{ $khoaHoc->trang_thai_hoc_tap_badge }} border border-{{ $khoaHoc->trang_thai_hoc_tap_badge }}">
+                                {{ $khoaHoc->trang_thai_hoc_tap_label }}
+                            </span>
+                        </div>
+                        <div class="fw-bold text-dark">{{ $khoaHoc->so_module_hoan_thanh }}/{{ $khoaHoc->moduleHocs->count() }} module hoàn thành</div>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: {{ $khoaHoc->tien_do_hoc_tap }}%"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1194,7 +1299,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         </td>
                                         <td class="text-center">
                                             <select name="attendance[${i}][trang_thai]" class="form-select form-select-sm att-select">
-                                                <option value="" ${!hv.trang_thai ? 'selected' : ''}>Chon trang thai</option>
+                                                <option value="" ${!hv.trang_thai ? 'selected' : ''}>Chọn trạng thái</option>
                                                 <option value="co_mat" ${hv.trang_thai === 'co_mat' ? 'selected' : ''}>Có mặt</option>
                                                 <option value="vang_mat" ${hv.trang_thai === 'vang_mat' ? 'selected' : ''}>Vắng</option>
                                                 <option value="vao_tre" ${hv.trang_thai === 'vao_tre' ? 'selected' : ''}>Trễ</option>
@@ -1232,11 +1337,35 @@ document.addEventListener('DOMContentLoaded', function() {
     const modalAddTestElement = document.getElementById('modalAddTest');
     if (modalAddTestElement) {
         const modalTest = new bootstrap.Modal(modalAddTestElement);
+        const testBuoiLabel = document.getElementById('test-buoi-label');
+        const testLichId = document.getElementById('test-lich-id');
+        const testPhamVi = document.querySelector('#modalAddTest input[name="pham_vi"]');
+        const testModuleId = document.querySelector('#modalAddTest input[name="module_hoc_id"]');
+
         document.querySelectorAll('.btn-add-test').forEach(btn => {
             btn.addEventListener('click', function() {
                 const d = this.dataset;
-                document.getElementById('test-buoi-label').textContent = d.buoi;
-                document.getElementById('test-lich-id').value = d.id;
+                testBuoiLabel.textContent = d.buoi;
+                testLichId.value = d.id;
+                testPhamVi.value = 'buoi_hoc';
+                modalTest.show();
+            });
+        });
+
+        document.querySelectorAll('.btn-add-test-module').forEach(btn => {
+            btn.addEventListener('click', function() {
+                testBuoiLabel.textContent = 'Cuối Module: {{ $phanCong->moduleHoc->ten_module }}';
+                testLichId.value = '';
+                testPhamVi.value = 'module';
+                modalTest.show();
+            });
+        });
+
+        document.querySelectorAll('.btn-add-test-course').forEach(btn => {
+            btn.addEventListener('click', function() {
+                testBuoiLabel.textContent = 'Cuối Khóa: {{ $khoaHoc->ten_khoa_hoc }}';
+                testLichId.value = '';
+                testPhamVi.value = 'cuoi_khoa';
                 modalTest.show();
             });
         });
@@ -1333,6 +1462,8 @@ document.addEventListener('DOMContentLoaded', function() {
     .bg-primary-soft { background-color: rgba(13, 110, 253, 0.1); }
     .bg-success-soft { background-color: rgba(25, 135, 84, 0.1); }
     .bg-info-soft { background-color: rgba(13, 202, 240, 0.1); }
+    .bg-warning-soft { background-color: rgba(255, 193, 7, 0.1); }
+    .bg-secondary-soft { background-color: rgba(108, 117, 125, 0.1); }
     .shadow-xs { box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.05) !important; }
     .border-dashed { border-style: dashed !important; }
     .object-fit-cover { object-fit: cover; }

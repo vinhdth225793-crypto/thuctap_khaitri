@@ -58,15 +58,6 @@ class GiangVien extends Model
                     ->withTimestamps();
     }
 
-    public function lichRanh(): HasMany
-    {
-        return $this->hasMany(GiangVienLichRanh::class, 'giang_vien_id')
-            ->orderByRaw("CASE WHEN loai_lich_ranh = 'theo_tuan' THEN 0 ELSE 1 END")
-            ->orderBy('thu_trong_tuan')
-            ->orderBy('ngay_cu_the')
-            ->orderBy('gio_bat_dau');
-    }
-
     public function lichHocs(): HasMany
     {
         return $this->hasMany(LichHoc::class, 'giang_vien_id')

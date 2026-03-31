@@ -96,13 +96,28 @@
                                     @endphp
                                     <td class="schedule-cell p-1 {{ $isToday ? 'bg-today' : '' }} border-bottom">
                                         @foreach($cell['scheduled'] as $item)
-                                            <div class="schedule-item scheduled shadow-sm mb-1 p-1 rounded-1 border-start border-2 border-primary bg-white">
+                                            <div class="schedule-item scheduled shadow-sm mb-1 p-1 rounded-1 border-start border-2 border-primary bg-white position-relative">
                                                 <div class="fw-bold text-dark text-truncate mb-0" title="{{ $item['module_name'] }}" style="font-size: 0.75rem; line-height: 1.2;">
                                                     {{ $item['module_name'] }}
                                                 </div>
-                                                <div class="text-muted text-truncate" style="font-size: 0.65rem;">
-                                                    {{ $item['course_code'] }}
+                                                <div class="text-muted text-truncate d-flex justify-content-between align-items-center" style="font-size: 0.65rem;">
+                                                    <span>{{ $item['course_code'] }}</span>
+                                                    @if($item['buoi_so'])
+                                                        <span class="badge bg-light text-dark border-0 p-0 px-1" style="font-size: 0.6rem;">B{{ $item['buoi_so'] }}</span>
+                                                    @endif
                                                 </div>
+                                                
+                                                <div class="schedule-actions mt-1 d-flex gap-1">
+                                                    @if($isTeacherView)
+                                                        <a href="{{ $item['routes']['attendance'] }}" class="btn p-0 text-primary" title="Điểm danh"><i class="fas fa-user-check" style="font-size: 0.65rem;"></i></a>
+                                                        <a href="{{ $item['routes']['resources'] }}" class="btn p-0 text-success" title="Tài nguyên"><i class="fas fa-folder-open" style="font-size: 0.65rem;"></i></a>
+                                                        <a href="{{ $item['routes']['exams'] }}" class="btn p-0 text-warning" title="Kiểm tra"><i class="fas fa-file-alt" style="font-size: 0.65rem;"></i></a>
+                                                        @if($item['can_leave'])
+                                                            <a href="{{ $item['routes']['leave_request'] }}" class="btn p-0 text-danger" title="Xin nghỉ"><i class="fas fa-calendar-minus" style="font-size: 0.65rem;"></i></a>
+                                                        @endif
+                                                    @endif
+                                                </div>
+
                                                 @if($item['leave_status_label'])
                                                     <div class="mt-1 pt-1 border-top">
                                                         <span class="badge rounded-pill bg-{{ $item['leave_status_color'] }}-subtle text-{{ $item['leave_status_color'] }} border border-{{ $item['leave_status_color'] }}-subtle w-100 py-0" style="font-size: 0.6rem;">

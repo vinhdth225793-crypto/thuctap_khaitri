@@ -25,6 +25,9 @@
                     {{ $khoaHoc->loai === 'mau' ? 'KHÓA MẪU' : 'LỚP HOẠT ĐỘNG' }}
                 </span>
                 <h3 class="fw-bold mb-0">{{ $khoaHoc->ten_khoa_hoc }}</h3>
+                <span class="badge bg-{{ $khoaHoc->trang_thai_hoc_tap_badge }}-soft text-{{ $khoaHoc->trang_thai_hoc_tap_badge }} border border-{{ $khoaHoc->trang_thai_hoc_tap_badge }} ms-3 px-3 py-2">
+                    {{ $khoaHoc->trang_thai_hoc_tap_label }}
+                </span>
             </div>
             <div class="mt-2 text-muted small">
                 <i class="fas fa-barcode me-1"></i> Mã: <code class="fw-bold">{{ $khoaHoc->ma_khoa_hoc }}</code>
@@ -79,6 +82,20 @@
                                 <div class="col-6 col-md-4">
                                     <span class="smaller text-muted d-block">Trạng thái</span>
                                     <span class="badge bg-{{ $khoaHoc->badge_trang_thai }}">{{ $khoaHoc->label_trang_thai_van_hanh }}</span>
+                                </div>
+                            </div>
+                            <div class="row g-3 mt-1 pt-3 border-top">
+                                <div class="col-6 col-md-4">
+                                    <span class="smaller text-muted d-block">Module hoàn thành</span>
+                                    <span class="fw-bold">{{ $khoaHoc->so_module_hoan_thanh }}/{{ $khoaHoc->moduleHocs->count() }}</span>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <span class="smaller text-muted d-block">Tiến độ học tập</span>
+                                    <span class="fw-bold text-primary">{{ $khoaHoc->tien_do_hoc_tap }}%</span>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <span class="smaller text-muted d-block">Trạng thái học tập</span>
+                                    <span class="badge bg-{{ $khoaHoc->trang_thai_hoc_tap_badge }}">{{ $khoaHoc->trang_thai_hoc_tap_label }}</span>
                                 </div>
                             </div>
                         </div>
@@ -209,6 +226,7 @@
                                     <th class="ps-4 text-center" width="60">STT</th>
                                     <th>Tên Module học</th>
                                     <th class="text-center">TL (phút)</th>
+                                    <th class="text-center">Tiến độ học</th>
                                     @if($khoaHoc->loai === 'hoat_dong')
                                         <th>Giảng viên phụ trách</th>
                                         <th class="text-center">Xác nhận</th>
@@ -225,6 +243,19 @@
                                             <div class="smaller text-muted italic">{{ Str::limit($module->mo_ta, 60) }}</div>
                                         </td>
                                         <td class="text-center">{{ $module->thoi_luong_du_kien }}p</td>
+                                        <td class="text-center">
+                                            <div class="d-flex flex-column align-items-center gap-1">
+                                                <span class="badge bg-{{ $module->trang_thai_hoc_tap_badge }}-soft text-{{ $module->trang_thai_hoc_tap_badge }} border border-{{ $module->trang_thai_hoc_tap_badge }}">
+                                                    {{ $module->trang_thai_hoc_tap_label }}
+                                                </span>
+                                                <span class="small text-muted">
+                                                    {{ $module->so_buoi_hoan_thanh }}/{{ $module->so_buoi_hop_le }} buổi
+                                                </span>
+                                                @if($module->so_buoi_bi_huy > 0)
+                                                    <span class="smaller text-warning">Hủy: {{ $module->so_buoi_bi_huy }}</span>
+                                                @endif
+                                            </div>
+                                        </td>
                                         
                                         @if($khoaHoc->loai === 'hoat_dong')
                                             @php $pc = $module->phanCongGiangViens->first(); @endphp
@@ -530,6 +561,11 @@
 @endpush
 
 <style>
+    .bg-primary-soft { background-color: rgba(13, 110, 253, 0.1); }
+    .bg-success-soft { background-color: rgba(25, 135, 84, 0.1); }
+    .bg-warning-soft { background-color: rgba(255, 193, 7, 0.1); }
+    .bg-info-soft { background-color: rgba(13, 202, 240, 0.1); }
+    .bg-secondary-soft { background-color: rgba(108, 117, 125, 0.1); }
     .shadow-xs { box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.05) !important; }
     .timeline-point {
         position: absolute; left: -5px; top: 0;

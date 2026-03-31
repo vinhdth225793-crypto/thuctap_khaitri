@@ -4,10 +4,16 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BaiKiemTra;
+use App\Services\ExamConfigurationService;
 use Illuminate\Http\Request;
 
 class BaiKiemTraPheDuyetController extends Controller
 {
+    public function __construct(
+        private readonly ExamConfigurationService $examConfigurationService,
+    ) {
+    }
+
     public function index(Request $request)
     {
         $baiKiemTras = BaiKiemTra::query()
@@ -59,11 +65,8 @@ class BaiKiemTraPheDuyetController extends Controller
 
     public function approve(Request $request, int $id)
     {
-        $baiKiemTra = BaiKiemTra::findOrFail($id);
-
-        if ($baiKiemTra->chiTietCauHois()->count() === 0 && blank($baiKiemTra->mo_ta)) {
-            return back()->with('error', 'Đề chưa có câu hỏi hoặc nội dung để duyệt.');
-        }
+        $baiKiemTra = BaiKiemTra::with(['chiTietCauHois.cauHoi'])->findOrFail($id);
+        $this->examConfigurationService->ensureReadyForApproval($baiKiemTra);
 
         $baiKiemTra->update([
             'trang_thai_duyet' => 'da_duyet',
@@ -95,11 +98,13 @@ class BaiKiemTraPheDuyetController extends Controller
 
     public function publish(int $id)
     {
-        $baiKiemTra = BaiKiemTra::findOrFail($id);
+        $baiKiemTra = BaiKiemTra::with(['chiTietCauHois.cauHoi'])->findOrFail($id);
 
         if ($baiKiemTra->trang_thai_duyet !== 'da_duyet') {
             return back()->with('error', 'Chỉ bài đã duyệt mới được phát hành.');
         }
+
+        $this->examConfigurationService->ensureReadyForApproval($baiKiemTra);
 
         $baiKiemTra->update([
             'trang_thai_phat_hanh' => 'phat_hanh',

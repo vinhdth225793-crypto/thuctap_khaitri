@@ -33,6 +33,11 @@
                         <td>
                             <div class="fw-bold text-dark">{{ $kh->ten_khoa_hoc }}</div>
                             <div class="smaller text-muted italic">Mẫu: {{ $kh->khoaHocMau->ma_khoa_hoc ?? 'N/A' }}</div>
+                            <div class="smaller text-muted mt-1">
+                                Tiến độ học tập: <strong>{{ $kh->so_module_hoan_thanh }}/{{ $kh->moduleHocs->count() }}</strong> module
+                                <span class="mx-1">•</span>
+                                {{ $kh->tien_do_hoc_tap }}%
+                            </div>
                         </td>
                         <td class="text-center">
                             @php
@@ -54,9 +59,14 @@
                             {{ $kh->ngay_khai_giang ? $kh->ngay_khai_giang->format('d/m/Y') : '—' }}
                         </td>
                         <td class="text-center">
-                            <span class="badge bg-{{ $kh->badge_trang_thai }}-soft text-{{ $kh->badge_trang_thai }} border border-{{ $kh->badge_trang_thai }} px-2 shadow-xs">
-                                {{ $kh->label_trang_thai_van_hanh }}
-                            </span>
+                            <div class="d-flex flex-column align-items-center gap-1">
+                                <span class="badge bg-{{ $kh->badge_trang_thai }}-soft text-{{ $kh->badge_trang_thai }} border border-{{ $kh->badge_trang_thai }} px-2 shadow-xs">
+                                    {{ $kh->label_trang_thai_van_hanh }}
+                                </span>
+                                <span class="badge bg-{{ $kh->trang_thai_hoc_tap_badge }}-soft text-{{ $kh->trang_thai_hoc_tap_badge }} border border-{{ $kh->trang_thai_hoc_tap_badge }} px-2 shadow-xs">
+                                    {{ $kh->trang_thai_hoc_tap_label }}
+                                </span>
+                            </div>
                         </td>
                         <td class="pe-4 text-center">
                             <div class="d-flex justify-content-center gap-1">

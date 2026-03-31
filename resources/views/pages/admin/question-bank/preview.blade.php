@@ -15,6 +15,8 @@
         'question_document_pdf_text' => 'PDF text-based',
         default => 'Không xác định',
     };
+    $courseTypeLabel = $preview['course_type_label'] ?? 'Chưa xác định';
+    $courseTypeColor = $preview['course_type_color'] ?? 'secondary';
 @endphp
 
 @section('content')
@@ -65,6 +67,9 @@
                     <div class="bg-light rounded-4 p-3 h-100 border">
                         <div class="text-muted text-uppercase small fw-bold mb-2">Khóa học</div>
                         <div class="fw-bold text-primary">{{ $preview['khoa_hoc_ten'] }}</div>
+                        <div class="mt-2">
+                            <span class="badge bg-{{ $courseTypeColor }} rounded-pill px-3">{{ $courseTypeLabel }}</span>
+                        </div>
                         @if(!empty($preview['module_hoc_ten']))
                             <div class="small text-muted mt-1">Module: {{ $preview['module_hoc_ten'] }}</div>
                         @endif

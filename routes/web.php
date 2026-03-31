@@ -102,7 +102,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
 
     Route::get('/giang-vien', [AdminController::class, 'indexGiangVien'])->name('giang-vien.index');
     Route::get('/giang-vien/{giangVienId}/lich-giang', [AdminTeacherScheduleController::class, 'show'])->name('giang-vien.lich-giang.show');
-    Route::redirect('/giang-vien/{giangVienId}/lich-ranh', '/admin/giang-vien/{giangVienId}/lich-giang')->name('giang-vien.lich-ranh.show');
     Route::get('/hoc-vien', [AdminController::class, 'indexHocVien'])->name('hoc-vien.index');
 
     // Quản lý Nhóm ngành (Thay thế Môn học)
@@ -264,6 +263,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
 
 // =========== GIẢNG VIÊN ROUTES ===========
 Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vien'])->group(function () {
+    Route::get('/', function () {
+        return redirect()->route('giang-vien.khoa-hoc');
+    });
+
     Route::get('/dashboard', [GiangVienController::class, 'dashboard'])->name('dashboard');
     Route::get('/profile', [GiangVienController::class, 'profile'])->name('profile');
     Route::post('/profile', [GiangVienController::class, 'updateProfile'])->name('profile.update');
@@ -272,7 +275,6 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
     Route::prefix('lich-giang')->name('lich-giang.')->group(function () {
         Route::get('/', [GiangVienTeacherScheduleController::class, 'index'])->name('index');
     });
-    Route::redirect('/lich-ranh', '/giang-vien/lich-giang')->name('lich-ranh.index');
 
     Route::prefix('don-xin-nghi')->name('don-xin-nghi.')->group(function () {
         Route::get('/', [GiangVienTeacherLeaveRequestController::class, 'index'])->name('index');
@@ -336,9 +338,12 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
     Route::post('/buoi-hoc/{lichHocId}/bao-cao-diem-danh', [App\Http\Controllers\GiangVien\DiemDanhController::class, 'report'])->name('buoi-hoc.diem-danh.report');
 
     // Bài kiểm tra (Phase 8)
+    Route::get('/bai-kiem-tra', [BaiKiemTraController::class, 'index'])->name('bai-kiem-tra.index');
     Route::post('/bai-kiem-tra', [BaiKiemTraController::class, 'store'])->name('bai-kiem-tra.store');
     Route::get('/bai-kiem-tra/{id}/edit', [BaiKiemTraController::class, 'edit'])->name('bai-kiem-tra.edit');
     Route::put('/bai-kiem-tra/{id}', [BaiKiemTraController::class, 'update'])->name('bai-kiem-tra.update');
+    Route::post('/bai-kiem-tra/{id}/import-preview', [BaiKiemTraController::class, 'importPreview'])->name('bai-kiem-tra.import-preview');
+    Route::post('/bai-kiem-tra/{id}/import-confirm', [BaiKiemTraController::class, 'importConfirm'])->name('bai-kiem-tra.import-confirm');
     Route::post('/bai-kiem-tra/{id}/gui-duyet', [BaiKiemTraController::class, 'submitForApproval'])->name('bai-kiem-tra.submit');
     Route::delete('/bai-kiem-tra/{id}', [BaiKiemTraController::class, 'destroy'])->name('bai-kiem-tra.destroy');
     Route::get('/cham-diem/danh-sach', [BaiKiemTraController::class, 'chamDiemIndex'])->name('cham-diem.index');
@@ -351,7 +356,7 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
 
     // Các tính năng khác (Placeholder)
     Route::get('/tao-bai-giang', function () { return "Tính năng Tạo bài giảng đang được phát triển"; })->name('tao-bai-giang');
-    Route::redirect('/tao-bai-kiem-tra', '/giang-vien/khoa-hoc')->name('tao-bai-kiem-tra');
+    Route::redirect('/tao-bai-kiem-tra', '/giang-vien/bai-kiem-tra')->name('tao-bai-kiem-tra');
     Route::redirect('/cham-diem', '/giang-vien/cham-diem/danh-sach')->name('cham-diem');
 });
 

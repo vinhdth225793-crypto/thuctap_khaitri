@@ -16,7 +16,7 @@
                 'id' => $assignment->giang_vien_id,
                 'name' => $teacher?->nguoiDung?->ho_ten ?? 'N/A',
                 'specialty' => $teacher?->chuyen_nganh,
-                'availability_count' => $teacher?->donXinNghis?->where('trang_thai', 'cho_duyet')->count() ?? 0,
+                'pending_leave_request_count' => $teacher?->donXinNghis?->where('trang_thai', 'cho_duyet')->count() ?? 0,
             ];
         })
         ->values();
@@ -62,7 +62,7 @@
                                     <span class="badge rounded-pill bg-light text-dark border">
                                         <i class="fas fa-user-check text-success me-1"></i>
                                         {{ $teacherInfo['name'] }}
-                                        <span class="text-muted ms-1">({{ $teacherInfo['availability_count'] }} don cho duyet)</span>
+                                        <span class="text-muted ms-1">({{ $teacherInfo['pending_leave_request_count'] }} don cho duyet)</span>
                                     </span>
                                 @empty
                                     <span class="badge rounded-pill bg-warning text-dark">
@@ -274,13 +274,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function renderContext(context) {
         const assignment = context.assignment || {};
-        const availability = context.availability || {};
+        const teachingWindow = context.teaching_window || {};
+        const leaveRequests = context.leave_requests || {};
         const conflicts = context.conflicts || {};
         const suggestions = context.suggestions || [];
-        const matched = availability.matched_slots || [];
+        const matched = leaveRequests.items || [];
 
         const assignmentColor = assignment.ok === true ? 'success' : (assignment.ok === false ? 'danger' : 'secondary');
-        const availabilityColor = availability.ok === true ? 'success' : (availability.ok === false ? 'danger' : 'secondary');
+        const teachingWindowColor = teachingWindow.ok === true ? 'success' : (teachingWindow.ok === false ? 'danger' : 'secondary');
         const conflictColor = conflicts.ok === true ? 'success' : (conflicts.ok === false ? 'danger' : 'secondary');
 
         panel.innerHTML = `
@@ -302,9 +303,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 <div class="col-md-4">
                     <div class="border rounded-3 p-3 h-100 bg-white">
                         <div class="small text-uppercase fw-bold text-muted mb-2">Khung day chuan va don nghi</div>
-                        <span class="badge bg-${availabilityColor} mb-2">${availability.ok === true ? 'Phu hop' : (availability.ok === false ? 'Khong phu hop' : 'Cho chon')}</span>
-                        <div class="small text-muted">${escapeHtml(availability.message || 'Chua co du lieu')}</div>
-                        ${matched.length ? `<div class="mt-2">${matched.map(item => `<span class="badge bg-success-subtle text-success border border-success-subtle me-1 mb-1">${escapeHtml(item.label)} - ${escapeHtml(item.schedule || item.time)}</span>`).join('')}</div>` : ''}
+                        <span class="badge bg-${teachingWindowColor} mb-2">${teachingWindow.ok === true ? 'Phu hop' : (teachingWindow.ok === false ? 'Khong phu hop' : 'Cho chon')}</span>
+                        <div class="small text-muted">${escapeHtml(teachingWindow.message || 'Chua co du lieu')}</div>
+                        ${matched.length ? `<div class="mt-2">${matched.map(item => `<span class="badge bg-success-subtle text-success border border-success-subtle me-1 mb-1">${escapeHtml(item.status_label || item.label)} - ${escapeHtml(item.range || item.schedule || item.time || '-')}</span>`).join('')}</div>` : ''}
                     </div>
                 </div>
                 <div class="col-md-4">

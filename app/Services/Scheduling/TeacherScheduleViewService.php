@@ -4,12 +4,18 @@ namespace App\Services\Scheduling;
 
 use App\Models\GiangVienDonXinNghi;
 use App\Models\LichHoc;
+use App\Services\TeacherAssignmentResolver;
 use App\Support\Scheduling\TeachingPeriodCatalog;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 class TeacherScheduleViewService
 {
+    public function __construct(
+        private readonly TeacherAssignmentResolver $assignmentResolver,
+    ) {
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -91,15 +97,19 @@ class TeacherScheduleViewService
      */
     private function buildScheduledItems(int $teacherId, Carbon $weekStart, Carbon $weekEnd, Collection $leaveRequestItems): Collection
     {
-        return LichHoc::query()
+        $schedules = LichHoc::query()
             ->with(['khoaHoc', 'moduleHoc'])
             ->where('giang_vien_id', $teacherId)
             ->where('trang_thai', '!=', 'huy')
             ->whereBetween('ngay_hoc', [$weekStart->toDateString(), $weekEnd->toDateString()])
             ->orderBy('ngay_hoc')
             ->orderBy('gio_bat_dau')
-            ->get()
-            ->map(function (LichHoc $schedule) use ($leaveRequestItems) {
+            ->get();
+
+        $assignmentMap = $this->assignmentResolver->mapAcceptedAssignmentsForSchedules($teacherId, $schedules);
+
+        return $schedules
+            ->map(function (LichHoc $schedule) use ($leaveRequestItems, $assignmentMap) {
                 $range = $this->extractRangeFromSchedule($schedule);
                 $matchedLeaveRequests = $leaveRequestItems
                     ->filter(function (array $item) use ($schedule, $range) {
@@ -125,10 +135,17 @@ class TeacherScheduleViewService
                     ->sortByDesc('created_at')
                     ->values();
                 $latestLeaveRequest = $matchedLeaveRequests->first();
+                $specificKey = (int) $schedule->khoa_hoc_id . ':' . ($schedule->module_hoc_id !== null ? (int) $schedule->module_hoc_id : '*');
+                $fallbackKey = (int) $schedule->khoa_hoc_id . ':*';
+
+                $assignmentId = $assignmentMap[$specificKey] ?? $assignmentMap[$fallbackKey] ?? null;
 
                 return [
                     'id' => $schedule->id,
-                    'course_id' => $schedule->khoa_hoc_id,
+                    'assignment_id' => $assignmentId,
+                    'course_id' => $assignmentId ?? $schedule->khoa_hoc_id,
+                    'khoa_hoc_id' => $schedule->khoa_hoc_id,
+                    'module_id' => $schedule->module_hoc_id,
                     'date' => $schedule->ngay_hoc?->toDateString(),
                     'date_label' => $schedule->ngay_hoc?->format('d/m/Y'),
                     'weekday_label' => $schedule->thu_label,
@@ -140,13 +157,30 @@ class TeacherScheduleViewService
                     'course_code' => $schedule->khoaHoc?->ma_khoa_hoc,
                     'course_name' => $schedule->khoaHoc?->ten_khoa_hoc,
                     'module_name' => $schedule->moduleHoc?->ten_module,
+                    'buoi_so' => $schedule->buoi_so,
                     'status_label' => $schedule->trang_thai_label,
                     'status_color' => $schedule->trang_thai_color,
+                    'timeline_status' => $schedule->timeline_trang_thai,
                     'mode_label' => $schedule->hinh_thuc_label,
                     'leave_request_count' => $matchedLeaveRequests->count(),
                     'leave_status_label' => $latestLeaveRequest['status_label'] ?? null,
                     'leave_status_color' => $latestLeaveRequest['status_color'] ?? null,
                     'leave_reason' => $latestLeaveRequest['reason'] ?? null,
+                    
+                    // Quick Action Links
+                    'routes' => [
+                        'show_course' => route('giang-vien.khoa-hoc.show', $schedule->khoa_hoc_id),
+                        'attendance' => route('giang-vien.diem-danh.index', ['lich_hoc_id' => $schedule->id]),
+                        'resources' => route('giang-vien.tai-nguyen.index', ['lich_hoc_id' => $schedule->id]),
+                        'exams' => route('giang-vien.bai-kiem-tra.index', ['lich_hoc_id' => $schedule->id]),
+                        'leave_request' => route('giang-vien.don-xin-nghi.create', ['lich_hoc_id' => $schedule->id]),
+                    ],
+                    
+                    // Interaction Flags
+                    'can_attendance' => true,
+                    'can_resource' => true,
+                    'can_exam' => true,
+                    'can_leave' => $schedule->timeline_trang_thai === 'cho',
                 ];
             })
             ->values();

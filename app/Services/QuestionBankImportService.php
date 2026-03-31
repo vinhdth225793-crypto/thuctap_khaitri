@@ -30,7 +30,7 @@ class QuestionBankImportService
 
     /**
      * @param  array<string, mixed>  $preview
-     * @return array{created:int, skipped_duplicate_db:int}
+     * @return array{created:int, skipped_duplicate_db:int, ids:array<int, int>}
      */
     public function confirmImport(array $preview, int $khoaHocId, int $userId, ?int $moduleHocId = null): array
     {

@@ -80,12 +80,23 @@ class AuthController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'ho_ten' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:nguoi_dung',
+            'email' => [
+                'required',
+                'string',
+                'email',
+                'max:255',
+                'unique:nguoi_dung,email',
+                'unique:tai_khoan_cho_phe_duyet,email',
+            ],
             'mat_khau' => 'required|string|min:8|confirmed',
             'vai_tro' => 'required|in:hoc_vien,giang_vien',
             'so_dien_thoai' => 'nullable|string|max:15',
             'ngay_sinh' => 'nullable|date',
             'dia_chi' => 'nullable|string|max:500',
+        ], [
+            'email.unique' => 'Email này đã được sử dụng hoặc đang chờ phê duyệt.',
+            'mat_khau.confirmed' => 'Xác nhận mật khẩu không khớp.',
+            'mat_khau.min' => 'Mật khẩu phải có ít nhất 8 ký tự.',
         ]);
 
         if ($validator->fails()) {

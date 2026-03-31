@@ -334,14 +334,21 @@
     $totalReadyQuestions = $questionBankSummaries->sum('ready_questions');
     $totalReusableQuestions = $questionBankSummaries->sum('reusable_questions');
     
+    $selectedCourseType = request('course_type');
     $activeFilterCount = collect([
-        request('search'), request('khoa_hoc_id'), request('module_hoc_id'),
+        request('search'), request('course_type'), request('khoa_hoc_id'), request('module_hoc_id'),
         request('loai_cau_hoi'), request('kieu_dap_an'), request('muc_do'),
         request('trang_thai'), request('co_the_tai_su_dung')
     ])->filter(fn ($value) => filled($value))->count();
 
     $selectedCourse = filled(request('khoa_hoc_id')) ? $khoaHocs->firstWhere('id', (int) request('khoa_hoc_id')) : null;
     $selectedModule = filled(request('module_hoc_id')) ? $modules->firstWhere('id', (int) request('module_hoc_id')) : null;
+    $errors = $errors ?? new \Illuminate\Support\ViewErrorBag();
+    $viewErrors = $errors;
+    $importCourseType = old('course_type', $selectedCourseType ?: ($sampleCourses->isNotEmpty() ? 'mau' : 'hoat_dong'));
+    $importSelectedCourseId = old('khoa_hoc_id');
+    $importErrorFields = ['course_type', 'khoa_hoc_id', 'module_hoc_id', 'file_import'];
+    $shouldOpenImportModal = collect($importErrorFields)->contains(fn ($field) => $viewErrors->has($field));
 @endphp
 
 <div class="container-fluid question-bank-page pt-4">
@@ -408,6 +415,16 @@
             <i class="fas fa-exclamation-triangle me-2"></i> {{ session('error') }}
         </div>
     @endif
+    @if($viewErrors->any())
+        <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4" role="alert">
+            <div class="fw-bold mb-2"><i class="fas fa-exclamation-circle me-2"></i>Chưa thể hoàn tất thao tác</div>
+            <ul class="mb-0 ps-3">
+                @foreach($viewErrors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
     <!-- Filters Section -->
     <div class="card qbank-filter-card mb-5">
@@ -429,6 +446,15 @@
             <form action="{{ route('admin.kiem-tra-online.cau-hoi.index') }}" method="GET" class="row g-3">
                 <input type="hidden" name="view_mode" value="{{ $viewMode }}">
                 <div class="col-md-4 col-lg-3">
+                    <label class="form-label">Loại khóa học</label>
+                    <select name="course_type" id="filter-course-type" class="form-select">
+                        <option value="">Tất cả loại khóa học</option>
+                        @foreach($courseTypeOptions as $value => $label)
+                            <option value="{{ $value }}" @selected($selectedCourseType === $value)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-4 col-lg-3">
                     <label class="form-label">Từ khóa</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
@@ -440,7 +466,7 @@
                     <select name="khoa_hoc_id" id="filter-khoa-hoc" class="form-select">
                         <option value="">Tất cả khóa học</option>
                         @foreach($khoaHocs as $khoaHoc)
-                            <option value="{{ $khoaHoc->id }}" @selected((string) request('khoa_hoc_id') === (string) $khoaHoc->id)>
+                            <option value="{{ $khoaHoc->id }}" data-course-type="{{ $khoaHoc->loai }}" @selected((string) request('khoa_hoc_id') === (string) $khoaHoc->id)>
                                 {{ $khoaHoc->ten_khoa_hoc }}
                             </option>
                         @endforeach
@@ -451,7 +477,7 @@
                     <select name="module_hoc_id" id="filter-module-hoc" class="form-select">
                         <option value="">Tất cả module</option>
                         @foreach($modules as $module)
-                            <option value="{{ $module->id }}" data-course-id="{{ $module->khoa_hoc_id }}" @selected((string) request('module_hoc_id') === (string) $module->id)>
+                            <option value="{{ $module->id }}" data-course-id="{{ $module->khoa_hoc_id }}" data-course-type="{{ $module->khoa_hoc_loai }}" @selected((string) request('module_hoc_id') === (string) $module->id)>
                                 {{ $module->ten_module }}
                             </option>
                         @endforeach
@@ -507,7 +533,9 @@
             </form>
 
             @if($activeFilterCount > 0)
+                @php $selectedCourseTypeLabel = $selectedCourseType ? ($courseTypeOptions[$selectedCourseType] ?? $selectedCourseType) : null; @endphp
                 <div class="mt-4 pt-3 border-top d-flex flex-wrap gap-2">
+                    @if($selectedCourseTypeLabel) <span class="qbank-summary-chip">Loại: <b>{{ $selectedCourseTypeLabel }}</b></span> @endif
                     <span class="text-muted small align-self-center me-2">Đang lọc:</span>
                     @if(request('search')) <span class="qbank-summary-chip">Tìm: <b>{{ request('search') }}</b></span> @endif
                     @if($selectedCourse) <span class="qbank-summary-chip">Khóa: <b>{{ $selectedCourse->ten_khoa_hoc }}</b></span> @endif
@@ -536,6 +564,9 @@
                                 <span class="badge bg-primary rounded-pill px-3">{{ $summary['total_questions'] }} câu</span>
                                 <div class="text-end">
                                     <span class="qcard-code small">{{ $summary['khoa_hoc_ma'] }}</span>
+                                    <div class="mt-2">
+                                        <span class="badge bg-{{ $summary['course_type_color'] ?? 'secondary' }} rounded-pill px-3">{{ $summary['course_type_label'] }}</span>
+                                    </div>
                                 </div>
                             </div>
                             <h5 class="fw-bold text-dark mb-1">{{ $summary['group_label'] }}</h5>
@@ -594,6 +625,7 @@
                         <div class="qcard-header d-flex justify-content-between align-items-center">
                             <div class="d-flex align-items-center gap-2">
                                 <span class="qcard-code">{{ $item->ma_cau_hoi }}</span>
+                                <span class="badge bg-{{ $item->loai_khoa_hoc_color }} rounded-pill px-3">{{ $item->loai_khoa_hoc_label }}</span>
                                 <span class="badge badge-soft badge-soft-primary">{{ $item->loai_cau_hoi_label }}</span>
                                 <span class="badge badge-soft {{ $item->muc_do === 'kho' ? 'badge-soft-danger' : ($item->muc_do === 'de' ? 'badge-soft-success' : 'badge-soft-warning') }}">
                                     {{ $item->muc_do_label }}
@@ -686,12 +718,24 @@
                 </div>
                 <div class="modal-body p-4">
                     <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <label class="form-label">Loại khóa học đích <span class="text-danger">*</span></label>
+                            <select name="course_type" id="import-course-type" class="form-select @error('course_type') is-invalid @enderror" required>
+                                <option value="">--- Chọn loại khóa học ---</option>
+                                @foreach($courseTypeOptions as $value => $label)
+                                    <option value="{{ $value }}" @selected($importCourseType === $value)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            <div class="form-text">Chọn đúng nhóm khóa học trước khi chọn khóa và module để preview hoặc confirm import.</div>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <label class="form-label">Chọn Khóa học <span class="text-danger">*</span></label>
                             <select name="khoa_hoc_id" id="import-khoa-hoc" class="form-select" required>
                                 <option value="">--- Chọn khóa học ---</option>
                                 @foreach($khoaHocs as $khoaHoc)
-                                    <option value="{{ $khoaHoc->id }}">{{ $khoaHoc->ten_khoa_hoc }}</option>
+                                    <option value="{{ $khoaHoc->id }}" data-course-type="{{ $khoaHoc->loai }}" @selected((string) $importSelectedCourseId === (string) $khoaHoc->id)>{{ $khoaHoc->ten_khoa_hoc }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -700,7 +744,7 @@
                             <select name="module_hoc_id" id="import-module-hoc" class="form-select">
                                 <option value="">Dùng chung khóa học</option>
                                 @foreach($modules as $module)
-                                    <option value="{{ $module->id }}" data-course-id="{{ $module->khoa_hoc_id }}">
+                                    <option value="{{ $module->id }}" data-course-id="{{ $module->khoa_hoc_id }}" data-course-type="{{ $module->khoa_hoc_loai }}" @selected((string) old('module_hoc_id') === (string) $module->id)>
                                         {{ $module->ten_module }}
                                     </option>
                                 @endforeach
@@ -737,30 +781,108 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        const courseTypeSelect = document.getElementById('filter-course-type');
         const courseSelect = document.getElementById('filter-khoa-hoc');
         const moduleSelect = document.getElementById('filter-module-hoc');
+        const importCourseTypeSelect = document.getElementById('import-course-type');
         const importCourseSelect = document.getElementById('import-khoa-hoc');
         const importModuleSelect = document.getElementById('import-module-hoc');
 
-        const syncModules = (selectedCourse, targetSelect) => {
-            if (!targetSelect) return;
+        const syncCourseOptions = (selectedType, targetSelect, resetSelection = false) => {
+            if (!targetSelect) {
+                return;
+            }
+
             Array.from(targetSelect.options).forEach((option) => {
-                if (!option.value) { option.hidden = false; return; }
-                option.hidden = selectedCourse !== '' && option.dataset.courseId !== selectedCourse;
+                if (!option.value) {
+                    option.hidden = false;
+                    return;
+                }
+
+                option.hidden = selectedType !== '' && option.dataset.courseType !== selectedType;
             });
+
             const selectedOption = targetSelect.options[targetSelect.selectedIndex];
-            if (selectedOption && selectedOption.hidden) targetSelect.value = '';
+            if (resetSelection || (selectedOption && selectedOption.hidden)) {
+                targetSelect.value = '';
+            }
         };
 
-        if (courseSelect && moduleSelect) {
-            courseSelect.addEventListener('change', () => syncModules(courseSelect.value, moduleSelect));
-            syncModules(courseSelect.value, moduleSelect);
+        const syncModules = ({
+            selectedType,
+            selectedCourse,
+            targetSelect,
+            resetSelection = false,
+            showModulesWithoutCourse = false,
+        }) => {
+            if (!targetSelect) {
+                return;
+            }
+
+            Array.from(targetSelect.options).forEach((option) => {
+                if (!option.value) {
+                    option.hidden = false;
+                    return;
+                }
+
+                const sameType = selectedType === '' || option.dataset.courseType === selectedType;
+                const sameCourse = selectedCourse === ''
+                    ? showModulesWithoutCourse
+                    : option.dataset.courseId === selectedCourse;
+
+                option.hidden = !(sameType && sameCourse);
+            });
+
+            const selectedOption = targetSelect.options[targetSelect.selectedIndex];
+            if (resetSelection || (selectedOption && selectedOption.hidden)) {
+                targetSelect.value = '';
+            }
+        };
+
+        const syncFilterCatalog = (resetCourse = false, resetModule = false) => {
+            const selectedType = courseTypeSelect?.value || '';
+
+            syncCourseOptions(selectedType, courseSelect, resetCourse);
+            syncModules({
+                selectedType,
+                selectedCourse: courseSelect?.value || '',
+                targetSelect: moduleSelect,
+                resetSelection: resetCourse || resetModule,
+                showModulesWithoutCourse: true,
+            });
+        };
+
+        const syncImportCatalog = (resetCourse = false, resetModule = false) => {
+            const selectedType = importCourseTypeSelect?.value || '';
+
+            syncCourseOptions(selectedType, importCourseSelect, resetCourse);
+            syncModules({
+                selectedType,
+                selectedCourse: importCourseSelect?.value || '',
+                targetSelect: importModuleSelect,
+                resetSelection: resetCourse || resetModule,
+                showModulesWithoutCourse: false,
+            });
+        };
+
+        if (courseTypeSelect && courseSelect && moduleSelect) {
+            courseTypeSelect.addEventListener('change', () => syncFilterCatalog(true, true));
+            courseSelect.addEventListener('change', () => syncFilterCatalog(false, true));
+            syncFilterCatalog();
         }
 
-        if (importCourseSelect && importModuleSelect) {
-            importCourseSelect.addEventListener('change', () => syncModules(importCourseSelect.value, importModuleSelect));
-            syncModules(importCourseSelect.value, importModuleSelect);
+        if (importCourseTypeSelect && importCourseSelect && importModuleSelect) {
+            importCourseTypeSelect.addEventListener('change', () => syncImportCatalog(true, true));
+            importCourseSelect.addEventListener('change', () => syncImportCatalog(false, true));
+            syncImportCatalog();
         }
+
+        @if($shouldOpenImportModal)
+            const importModalElement = document.getElementById('importModal');
+            if (importModalElement && window.bootstrap?.Modal) {
+                window.bootstrap.Modal.getOrCreateInstance(importModalElement).show();
+            }
+        @endif
     });
 </script>
 @endpush

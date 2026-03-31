@@ -235,6 +235,93 @@ class LearningLogicTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_module_learning_status_ignores_cancelled_sessions_and_marks_complete_when_all_valid_sessions_finish(): void
+    {
+        Carbon::setTestNow('2026-03-20 14:00:00');
+
+        $admin = $this->createUser('admin');
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+
+        $this->createLichHoc($course, $module, [
+            'ngay_hoc' => '2026-03-20',
+            'gio_bat_dau' => '07:00:00',
+            'gio_ket_thuc' => '08:00:00',
+            'buoi_so' => 1,
+        ]);
+
+        $this->createLichHoc($course, $module, [
+            'ngay_hoc' => '2026-03-20',
+            'gio_bat_dau' => '09:00:00',
+            'gio_ket_thuc' => '10:00:00',
+            'buoi_so' => 2,
+        ]);
+
+        $this->createLichHoc($course, $module, [
+            'ngay_hoc' => '2026-03-22',
+            'gio_bat_dau' => '09:00:00',
+            'gio_ket_thuc' => '10:00:00',
+            'trang_thai' => 'huy',
+            'buoi_so' => 3,
+        ]);
+
+        $snapshot = $module->fresh()->learning_progress_snapshot;
+
+        $this->assertSame(ModuleHoc::LEARNING_STATUS_HOAN_THANH, $snapshot['status']);
+        $this->assertSame(2, $snapshot['valid_schedules']);
+        $this->assertSame(2, $snapshot['completed_schedules']);
+        $this->assertSame(1, $snapshot['cancelled_schedules']);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_course_moves_to_completed_when_all_modules_finish_and_returns_to_dang_day_if_reopened(): void
+    {
+        Carbon::setTestNow('2026-03-20 18:00:00');
+
+        $admin = $this->createUser('admin');
+        $course = $this->createCourse($admin);
+        $moduleOne = $this->createModule($course, 1);
+        $moduleTwo = $this->createModule($course, 2);
+
+        $course->update(['tong_so_module' => 2]);
+
+        $this->createLichHoc($course, $moduleOne, [
+            'ngay_hoc' => '2026-03-20',
+            'gio_bat_dau' => '07:00:00',
+            'gio_ket_thuc' => '08:00:00',
+            'buoi_so' => 1,
+        ]);
+
+        $this->createLichHoc($course, $moduleTwo, [
+            'ngay_hoc' => '2026-03-20',
+            'gio_bat_dau' => '09:00:00',
+            'gio_ket_thuc' => '10:00:00',
+            'buoi_so' => 1,
+        ]);
+
+        $freshCourse = $course->fresh();
+
+        $this->assertSame('ket_thuc', $freshCourse->trang_thai_van_hanh);
+        $this->assertSame(KhoaHoc::LEARNING_STATUS_HOAN_THANH, $freshCourse->trang_thai_hoc_tap);
+        $this->assertSame(2, $freshCourse->so_module_hoan_thanh);
+
+        $this->createLichHoc($course, $moduleTwo, [
+            'ngay_hoc' => '2026-03-25',
+            'gio_bat_dau' => '09:00:00',
+            'gio_ket_thuc' => '10:00:00',
+            'buoi_so' => 2,
+        ]);
+
+        $reopenedCourse = $course->fresh();
+
+        $this->assertSame('dang_day', $reopenedCourse->trang_thai_van_hanh);
+        $this->assertSame(KhoaHoc::LEARNING_STATUS_DANG_HOC, $reopenedCourse->trang_thai_hoc_tap);
+        $this->assertSame(1, $reopenedCourse->so_module_hoan_thanh);
+
+        Carbon::setTestNow();
+    }
+
     private function createUser(string $role, array $overrides = []): NguoiDung
     {
         $index = $this->sequence++;

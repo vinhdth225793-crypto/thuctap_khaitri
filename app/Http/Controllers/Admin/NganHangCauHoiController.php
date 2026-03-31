@@ -5,10 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ImportQuestionDocumentRequest;
 use App\Http\Requests\UpsertNganHangCauHoiRequest;
-use App\Models\KhoaHoc;
 use App\Models\ModuleHoc;
 use App\Models\NganHangCauHoi;
 use App\Services\QuestionBankImportService;
+use App\Services\QuestionBankCourseCatalogService;
 use App\Services\QuestionImport\ParsedQuestionExportService;
 use App\Support\Imports\ImportTemplateRegistry;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,43 +24,49 @@ class NganHangCauHoiController extends Controller
     public function __construct(
         private readonly ImportTemplateRegistry $templateRegistry,
         private readonly QuestionBankImportService $questionBankImportService,
+        private readonly QuestionBankCourseCatalogService $questionBankCourseCatalogService,
         private readonly ParsedQuestionExportService $parsedQuestionExportService,
     ) {
     }
 
-    private function getAccessibleKhoaHocs(): Collection
+    private function getCourseCatalog(): array
     {
-        $user = auth()->user();
-        $query = KhoaHoc::query();
-
-        if ($user->isGiangVien()) {
-            $giangVien = $user->giangVien;
-            $khoaHocIds = $giangVien
-                ? $giangVien->khoaHocDuocPhanCong()->pluck('khoa_hoc.id')->unique()->toArray()
-                : [];
-
-            $query->whereIn('id', $khoaHocIds);
-        }
-
-        return $query->orderBy('ten_khoa_hoc')->get(['id', 'ten_khoa_hoc', 'ma_khoa_hoc']);
-    }
-
-    private function getAccessibleModules(Collection $khoaHocs): Collection
-    {
-        if ($khoaHocs->isEmpty()) {
-            return collect();
-        }
-
-        return ModuleHoc::query()
-            ->whereIn('khoa_hoc_id', $khoaHocs->pluck('id'))
-            ->orderBy('khoa_hoc_id')
-            ->orderBy('thu_tu_module')
-            ->get(['id', 'khoa_hoc_id', 'ten_module', 'ma_module']);
+        return $this->questionBankCourseCatalogService->buildCatalogForUser(auth()->user());
     }
 
     private function getViewOptions(): array
     {
         return [
+            'courseTypeOptions' => [
+                'mau' => $this->questionBankCourseCatalogService->courseTypeLabel('mau'),
+                'hoat_dong' => $this->questionBankCourseCatalogService->courseTypeLabel('hoat_dong'),
+            ],
+            'difficultyOptions' => [
+                'de' => 'Dễ',
+                'trung_binh' => 'Trung bình',
+                'kho' => 'Khó',
+            ],
+            'statusOptions' => [
+                NganHangCauHoi::TRANG_THAI_NHAP => 'Nháp',
+                NganHangCauHoi::TRANG_THAI_SAN_SANG => 'Sẵn sàng',
+                NganHangCauHoi::TRANG_THAI_TAM_AN => 'Tạm ẩn',
+            ],
+            'questionTypeOptions' => [
+                NganHangCauHoi::LOAI_TRAC_NGHIEM => 'Trắc nghiệm',
+                NganHangCauHoi::LOAI_TU_LUAN => 'Tự luận',
+            ],
+            'answerModeOptions' => [
+                NganHangCauHoi::KIEU_MOT_DAP_AN => 'Một đáp án đúng',
+                NganHangCauHoi::KIEU_NHIEU_DAP_AN => 'Nhiều đáp án đúng',
+                NganHangCauHoi::KIEU_DUNG_SAI => 'Đúng / Sai',
+            ],
+        ];
+
+        return [
+            'courseTypeOptions' => [
+                'mau' => 'Khóa học mẫu',
+                'hoat_dong' => 'Khóa học hoạt động',
+            ],
             'difficultyOptions' => [
                 'de' => 'Dễ',
                 'trung_binh' => 'Trung bình',
@@ -86,8 +92,11 @@ class NganHangCauHoiController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
-        $khoaHocs = $this->getAccessibleKhoaHocs();
-        $modules = $this->getAccessibleModules($khoaHocs);
+        $catalog = $this->getCourseCatalog();
+        $khoaHocs = $catalog['khoaHocs'];
+        $sampleCourses = $catalog['sampleCourses'];
+        $activeCourses = $catalog['activeCourses'];
+        $modules = $catalog['modules'];
         $khoaHocIds = $khoaHocs->pluck('id')->all();
 
         $baseQuery = NganHangCauHoi::query();
@@ -114,13 +123,25 @@ class NganHangCauHoiController extends Controller
         }
 
         return view('pages.admin.question-bank.index', array_merge(
-            compact('cauHois', 'khoaHocs', 'modules', 'viewMode', 'questionBankSummaries'),
+            compact(
+                'cauHois',
+                'khoaHocs',
+                'sampleCourses',
+                'activeCourses',
+                'modules',
+                'viewMode',
+                'questionBankSummaries'
+            ),
             $this->getViewOptions()
         ));
     }
 
     private function applyIndexFilters(Builder $query, Request $request): void
     {
+        if ($request->filled('course_type')) {
+            $query->theoLoaiKhoaHoc((string) $request->string('course_type'));
+        }
+
         if ($request->filled('khoa_hoc_id')) {
             $query->where('khoa_hoc_id', $request->integer('khoa_hoc_id'));
         }
@@ -162,7 +183,7 @@ class NganHangCauHoiController extends Controller
     {
         return $query
             ->with([
-                'khoaHoc:id,ten_khoa_hoc,ma_khoa_hoc',
+                'khoaHoc:id,ten_khoa_hoc,ma_khoa_hoc,loai',
                 'moduleHoc:id,khoa_hoc_id,ten_module,ma_module',
             ])
             ->orderBy('khoa_hoc_id')
@@ -194,6 +215,9 @@ class NganHangCauHoiController extends Controller
                     'module_hoc_id' => $first->module_hoc_id,
                     'khoa_hoc_ten' => $first->khoaHoc?->ten_khoa_hoc ?? 'Không rõ khóa học',
                     'khoa_hoc_ma' => $first->khoaHoc?->ma_khoa_hoc,
+                    'course_type' => $first->khoaHoc?->loai,
+                    'course_type_label' => $first->loai_khoa_hoc_label,
+                    'course_type_color' => $first->loai_khoa_hoc_color,
                     'module_hoc_ten' => $first->moduleHoc?->ten_module,
                     'module_hoc_ma' => $first->moduleHoc?->ma_module,
                     'group_label' => $first->moduleHoc?->ten_module
@@ -214,14 +238,16 @@ class NganHangCauHoiController extends Controller
                     'remaining_preview_count' => max(0, $items->count() - $previewQuestions->count()),
                 ];
             })
-            ->sortBy(fn (array $summary) => mb_strtolower((string) $summary['group_label'], 'UTF-8'))
+            ->sortBy([
+                fn (array $summary) => $summary['course_type'] === 'mau' ? 0 : 1,
+                fn (array $summary) => mb_strtolower((string) $summary['group_label'], 'UTF-8'),
+            ])
             ->values();
     }
 
     public function create()
     {
-        $khoaHocs = $this->getAccessibleKhoaHocs();
-        $modules = $this->getAccessibleModules($khoaHocs);
+        $catalog = $this->getCourseCatalog();
 
         return view('pages.admin.question-bank.form', array_merge([
             'cauHoi' => new NganHangCauHoi([
@@ -232,8 +258,10 @@ class NganHangCauHoiController extends Controller
                 'trang_thai' => NganHangCauHoi::TRANG_THAI_NHAP,
                 'co_the_tai_su_dung' => true,
             ]),
-            'khoaHocs' => $khoaHocs,
-            'modules' => $modules,
+            'khoaHocs' => $catalog['khoaHocs'],
+            'sampleCourses' => $catalog['sampleCourses'],
+            'activeCourses' => $catalog['activeCourses'],
+            'modules' => $catalog['modules'],
             'action' => route('admin.kiem-tra-online.cau-hoi.store'),
             'method' => 'POST',
             'title' => 'Thêm mới câu hỏi',
@@ -282,15 +310,16 @@ class NganHangCauHoiController extends Controller
     {
         $user = auth()->user();
         $cauHoi = NganHangCauHoi::with('dapAns')->findOrFail($id);
-        $khoaHocs = $this->getAccessibleKhoaHocs();
-        $modules = $this->getAccessibleModules($khoaHocs);
+        $catalog = $this->getCourseCatalog();
 
         $this->authorizeCourseAccess($user, (int) $cauHoi->khoa_hoc_id);
 
         return view('pages.admin.question-bank.form', array_merge([
             'cauHoi' => $cauHoi,
-            'khoaHocs' => $khoaHocs,
-            'modules' => $modules,
+            'khoaHocs' => $catalog['khoaHocs'],
+            'sampleCourses' => $catalog['sampleCourses'],
+            'activeCourses' => $catalog['activeCourses'],
+            'modules' => $catalog['modules'],
             'action' => route('admin.kiem-tra-online.cau-hoi.update', $cauHoi->id),
             'method' => 'PUT',
             'title' => 'Chỉnh sửa câu hỏi',
@@ -399,9 +428,15 @@ class NganHangCauHoiController extends Controller
         $user = auth()->user();
         $khoaHocId = $request->integer('khoa_hoc_id');
         $this->authorizeCourseAccess($user, $khoaHocId);
+        $khoaHoc = $this->questionBankCourseCatalogService->ensureCourseMatchesType(
+            $khoaHocId,
+            $request->input('course_type')
+        );
+        $courseType = $this->questionBankCourseCatalogService->resolveCourseType(
+            $request->input('course_type'),
+            $khoaHocId
+        );
         $moduleHocId = $this->resolveImportModuleId($request, $khoaHocId);
-
-        $khoaHoc = KhoaHoc::findOrFail($khoaHocId);
         $moduleHoc = $moduleHocId ? ModuleHoc::find($moduleHocId) : null;
 
         try {
@@ -410,6 +445,9 @@ class NganHangCauHoiController extends Controller
             session(['import_preview' => [
                 'khoa_hoc_id' => $khoaHocId,
                 'khoa_hoc_ten' => $khoaHoc->ten_khoa_hoc,
+                'course_type' => $courseType,
+                'course_type_label' => $this->questionBankCourseCatalogService->courseTypeLabel($courseType),
+                'course_type_color' => $this->questionBankCourseCatalogService->courseTypeBadgeColor($courseType),
                 'module_hoc_id' => $moduleHocId,
                 'module_hoc_ten' => $moduleHoc?->ten_module,
                 'source_format' => $preview['source_format'],
@@ -587,6 +625,13 @@ class NganHangCauHoiController extends Controller
             ]);
         }
 
+        $khoaHocId = (int) $validated['khoa_hoc_id'];
+        $courseType = $this->questionBankCourseCatalogService->resolveCourseType(
+            $validated['course_type'] ?? null,
+            $khoaHocId
+        );
+        $this->questionBankCourseCatalogService->ensureCourseMatchesType($khoaHocId, $courseType);
+
         $moduleHocId = isset($validated['module_hoc_id']) && $validated['module_hoc_id'] !== null
             ? (int) $validated['module_hoc_id']
             : null;
@@ -594,7 +639,7 @@ class NganHangCauHoiController extends Controller
         if ($moduleHocId !== null) {
             $moduleBelongsToCourse = ModuleHoc::query()
                 ->where('id', $moduleHocId)
-                ->where('khoa_hoc_id', (int) $validated['khoa_hoc_id'])
+                ->where('khoa_hoc_id', $khoaHocId)
                 ->exists();
 
             if (!$moduleBelongsToCourse) {
@@ -612,7 +657,8 @@ class NganHangCauHoiController extends Controller
         $answers = $this->buildAnswers($validated, $loaiCauHoi, $kieuDapAn);
 
         return [
-            'khoa_hoc_id' => (int) $validated['khoa_hoc_id'],
+            'course_type' => $courseType,
+            'khoa_hoc_id' => $khoaHocId,
             'module_hoc_id' => $moduleHocId,
             'ma_cau_hoi' => trim((string) ($validated['ma_cau_hoi'] ?? '')) ?: ($existing?->ma_cau_hoi ?: NganHangCauHoi::generateQuestionCode()),
             'noi_dung' => $noiDung,

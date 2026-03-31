@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\LearningProgressStatusService;
 use App\Support\Scheduling\TeachingPeriodCatalog;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -103,6 +104,14 @@ class LichHoc extends Model
                 $date = Carbon::parse((string) $schedule->ngay_hoc);
                 $schedule->thu_trong_tuan = $date->dayOfWeek === Carbon::SUNDAY ? 8 : ($date->dayOfWeek + 1);
             }
+        });
+
+        static::saved(function (self $schedule) {
+            app(LearningProgressStatusService::class)->syncFromSchedule($schedule);
+        });
+
+        static::deleted(function (self $schedule) {
+            app(LearningProgressStatusService::class)->syncFromSchedule($schedule);
         });
     }
 

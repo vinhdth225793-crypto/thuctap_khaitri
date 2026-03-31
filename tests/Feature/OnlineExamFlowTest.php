@@ -213,6 +213,287 @@ class OnlineExamFlowTest extends TestCase
         ]);
     }
 
+    public function test_teacher_can_filter_questions_in_exam_builder_by_search(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+
+        $this->assignTeacher($admin, $teacher, $course, $module);
+
+        $exam = BaiKiemTra::create([
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => $module->id,
+            'tieu_de' => 'Editable exam',
+            'thoi_gian_lam_bai' => 30,
+            'pham_vi' => 'module',
+            'loai_bai_kiem_tra' => 'module',
+            'loai_noi_dung' => 'tu_luan',
+            'trang_thai_duyet' => 'nhap',
+            'trang_thai_phat_hanh' => 'nhap',
+            'tong_diem' => 10,
+            'so_lan_duoc_lam' => 1,
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+            'trang_thai' => true,
+        ]);
+
+        $this->createReadyQuestion($admin, $course, $module, 'CH-FILTER-001', 'Laravel route helper la gi?');
+        $this->createReadyQuestion($admin, $course, $module, 'CH-FILTER-002', 'Docker compose dung de lam gi?');
+
+        $response = $this->actingAs($teacherUser)->get(route('giang-vien.bai-kiem-tra.edit', [
+            'id' => $exam->id,
+            'question_search' => 'Laravel',
+            'tab' => 'questions',
+        ]));
+
+        $response->assertOk();
+        $response->assertSeeText('Laravel route helper la gi?');
+        $response->assertDontSeeText('Docker compose dung de lam gi?');
+    }
+
+    public function test_teacher_exam_builder_includes_course_level_questions_for_module_exam(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+        $otherModule = $this->createModule($course, 2);
+
+        $this->assignTeacher($admin, $teacher, $course, $module);
+
+        $exam = BaiKiemTra::create([
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => $module->id,
+            'tieu_de' => 'Editable exam',
+            'thoi_gian_lam_bai' => 30,
+            'pham_vi' => 'module',
+            'loai_bai_kiem_tra' => 'module',
+            'loai_noi_dung' => 'tu_luan',
+            'trang_thai_duyet' => 'nhap',
+            'trang_thai_phat_hanh' => 'nhap',
+            'tong_diem' => 10,
+            'so_lan_duoc_lam' => 1,
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+            'trang_thai' => true,
+        ]);
+
+        $courseLevelQuestion = $this->createReadyQuestion(
+            $admin,
+            $course,
+            null,
+            'CH-COURSE-001',
+            'Cau hoi cap khoa hoc'
+        );
+
+        $moduleLevelQuestion = $this->createReadyQuestion(
+            $admin,
+            $course,
+            $module,
+            'CH-MODULE-001',
+            'Cau hoi dung module hien tai'
+        );
+
+        $otherModuleQuestion = $this->createReadyQuestion(
+            $admin,
+            $course,
+            $otherModule,
+            'CH-MODULE-999',
+            'Cau hoi module khac'
+        );
+
+        $response = $this->actingAs($teacherUser)->get(route('giang-vien.bai-kiem-tra.edit', [
+            'id' => $exam->id,
+            'tab' => 'questions',
+        ]));
+
+        $response->assertOk();
+        $response->assertSeeText($courseLevelQuestion->noi_dung);
+        $response->assertSeeText($moduleLevelQuestion->noi_dung);
+        $response->assertDontSeeText($otherModuleQuestion->noi_dung);
+    }
+
+    public function test_teacher_root_url_redirects_to_teaching_courses(): void
+    {
+        [$teacherUser] = $this->createTeacher();
+
+        $this->actingAs($teacherUser)
+            ->get('/giang-vien')
+            ->assertRedirect(route('giang-vien.khoa-hoc'));
+    }
+
+    public function test_teacher_can_open_exam_index_and_only_see_accessible_exams(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+        $this->assignTeacher($admin, $teacher, $course, $module);
+
+        $otherCourse = $this->createCourse($admin);
+        $otherModule = $this->createModule($otherCourse);
+
+        BaiKiemTra::create([
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => $module->id,
+            'tieu_de' => 'De module co the cau hinh',
+            'thoi_gian_lam_bai' => 30,
+            'pham_vi' => 'module',
+            'loai_bai_kiem_tra' => 'module',
+            'loai_noi_dung' => 'tu_luan',
+            'trang_thai_duyet' => 'nhap',
+            'trang_thai_phat_hanh' => 'nhap',
+            'tong_diem' => 10,
+            'so_lan_duoc_lam' => 1,
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+            'trang_thai' => true,
+        ]);
+
+        BaiKiemTra::create([
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => null,
+            'tieu_de' => 'De cuoi khoa cung nhin thay',
+            'thoi_gian_lam_bai' => 45,
+            'pham_vi' => 'cuoi_khoa',
+            'loai_bai_kiem_tra' => 'cuoi_khoa',
+            'loai_noi_dung' => 'tu_luan',
+            'trang_thai_duyet' => 'cho_duyet',
+            'trang_thai_phat_hanh' => 'nhap',
+            'tong_diem' => 20,
+            'so_lan_duoc_lam' => 1,
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+            'trang_thai' => true,
+        ]);
+
+        BaiKiemTra::create([
+            'khoa_hoc_id' => $otherCourse->id,
+            'module_hoc_id' => $otherModule->id,
+            'tieu_de' => 'De ngoai pham vi phan cong',
+            'thoi_gian_lam_bai' => 30,
+            'pham_vi' => 'module',
+            'loai_bai_kiem_tra' => 'module',
+            'loai_noi_dung' => 'tu_luan',
+            'trang_thai_duyet' => 'nhap',
+            'trang_thai_phat_hanh' => 'nhap',
+            'tong_diem' => 10,
+            'so_lan_duoc_lam' => 1,
+            'nguoi_tao_id' => $admin->ma_nguoi_dung,
+            'trang_thai' => true,
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->get(route('giang-vien.bai-kiem-tra.index'))
+            ->assertOk()
+            ->assertSeeText('De module co the cau hinh')
+            ->assertSeeText('De cuoi khoa cung nhin thay')
+            ->assertDontSeeText('De ngoai pham vi phan cong');
+    }
+
+    public function test_teacher_can_remove_all_selected_questions_from_exam_configuration(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+
+        $this->assignTeacher($admin, $teacher, $course, $module);
+
+        $exam = BaiKiemTra::create([
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => $module->id,
+            'tieu_de' => 'Editable exam',
+            'mo_ta' => 'Original description',
+            'thoi_gian_lam_bai' => 30,
+            'pham_vi' => 'module',
+            'loai_bai_kiem_tra' => 'module',
+            'loai_noi_dung' => 'trac_nghiem',
+            'trang_thai_duyet' => 'nhap',
+            'trang_thai_phat_hanh' => 'nhap',
+            'tong_diem' => 5,
+            'so_lan_duoc_lam' => 1,
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+            'trang_thai' => true,
+        ]);
+
+        $question = $this->createReadyQuestion($admin, $course, $module, 'CH-CLEAR-001', 'Question to be removed');
+        $exam->chiTietCauHois()->create([
+            'ngan_hang_cau_hoi_id' => $question->id,
+            'thu_tu' => 1,
+            'diem_so' => 5,
+            'bat_buoc' => true,
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->put(route('giang-vien.bai-kiem-tra.update', $exam->id), [
+                'tieu_de' => 'Editable exam',
+                'mo_ta' => 'Essay-only description',
+                'thoi_gian_lam_bai' => 45,
+                'so_lan_duoc_lam' => 2,
+                'che_do_tinh_diem' => 'thu_cong',
+            ])
+            ->assertRedirect();
+
+        $exam->refresh();
+
+        $this->assertSame(0, $exam->chiTietCauHois()->count());
+        $this->assertSame('tu_luan', $exam->loai_noi_dung);
+        $this->assertSame('10.00', (string) $exam->tong_diem);
+    }
+
+    public function test_teacher_cannot_apply_invalid_scoring_package_below_minimum_point_threshold(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+
+        $this->assignTeacher($admin, $teacher, $course, $module);
+
+        $exam = BaiKiemTra::create([
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => $module->id,
+            'tieu_de' => 'Editable exam',
+            'thoi_gian_lam_bai' => 30,
+            'pham_vi' => 'module',
+            'loai_bai_kiem_tra' => 'module',
+            'loai_noi_dung' => 'tu_luan',
+            'trang_thai_duyet' => 'nhap',
+            'trang_thai_phat_hanh' => 'nhap',
+            'tong_diem' => 10,
+            'so_lan_duoc_lam' => 1,
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+            'trang_thai' => true,
+        ]);
+
+        $questionIds = [];
+        foreach (range(1, 5) as $index) {
+            $questionIds[] = $this->createReadyQuestion(
+                $admin,
+                $course,
+                $module,
+                'CH-PACKAGE-00' . $index,
+                'Package question ' . $index
+            )->id;
+        }
+
+        $this->actingAs($teacherUser)
+            ->from(route('giang-vien.bai-kiem-tra.edit', $exam->id))
+            ->put(route('giang-vien.bai-kiem-tra.update', $exam->id), [
+                'tieu_de' => 'Editable exam',
+                'thoi_gian_lam_bai' => 30,
+                'so_lan_duoc_lam' => 1,
+                'che_do_tinh_diem' => 'goi_diem',
+                'so_cau_goi_diem' => 5,
+                'tong_diem_goi_diem' => 1,
+                'question_ids' => $questionIds,
+            ])
+            ->assertRedirect(route('giang-vien.bai-kiem-tra.edit', $exam->id))
+            ->assertSessionHasErrors('tong_diem_goi_diem');
+
+        $this->assertSame(0, $exam->fresh()->chiTietCauHois()->count());
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -324,6 +605,28 @@ class OnlineExamFlowTest extends TestCase
             'essay_question' => $essayQuestion,
             'correct_answer' => $correctAnswer,
         ];
+    }
+
+    private function createReadyQuestion(
+        NguoiDung $creator,
+        KhoaHoc $course,
+        ?ModuleHoc $module,
+        string $code,
+        string $content
+    ): NganHangCauHoi {
+        return NganHangCauHoi::create([
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => $module?->id,
+            'nguoi_tao_id' => $creator->ma_nguoi_dung,
+            'ma_cau_hoi' => $code,
+            'noi_dung' => $content,
+            'loai_cau_hoi' => NganHangCauHoi::LOAI_TRAC_NGHIEM,
+            'kieu_dap_an' => NganHangCauHoi::KIEU_MOT_DAP_AN,
+            'muc_do' => 'trung_binh',
+            'diem_mac_dinh' => 1,
+            'trang_thai' => NganHangCauHoi::TRANG_THAI_SAN_SANG,
+            'co_the_tai_su_dung' => true,
+        ]);
     }
 
     private function createUser(string $role, array $overrides = []): NguoiDung

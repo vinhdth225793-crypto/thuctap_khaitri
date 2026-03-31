@@ -102,13 +102,17 @@ class ModuleHocController extends Controller
      */
     public function show($id)
     {
-        $moduleHoc = ModuleHoc::with(['khoaHoc.nhomNganh', 'phanCongGiangViens.giangVien.nguoiDung'])->findOrFail($id);
-        
-        // Lấy các module khác của khóa học này để hiển thị danh sách bên dưới
-        $cacModuleKhac = ModuleHoc::where('khoa_hoc_id', $moduleHoc->khoa_hoc_id)
-            ->where('id', '!=', $id)
-            ->orderBy('thu_tu_module')
-            ->get();
+        $moduleHoc = ModuleHoc::with([
+            'khoaHoc.nhomNganh',
+            'khoaHoc.moduleHocs.lichHocs',
+            'phanCongGiangViens.giangVien.nguoiDung',
+            'lichHocs',
+        ])->findOrFail($id);
+
+        $cacModuleKhac = $moduleHoc->khoaHoc->moduleHocs
+            ->where('id', '!=', $moduleHoc->id)
+            ->sortBy('thu_tu_module')
+            ->values();
 
         $giangViens = GiangVien::with('nguoiDung')
             ->whereHas('nguoiDung', fn($q) => $q->where('trang_thai', 1))

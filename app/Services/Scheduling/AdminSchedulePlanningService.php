@@ -46,15 +46,9 @@ class AdminSchedulePlanningService
                 'message' => 'Chua co du lieu de kiem tra khung day chuan.',
                 'rule_label' => $this->ruleService->ruleLabel(),
             ],
-            'availability' => [
+            'teaching_window' => [
                 'ok' => null,
-                'message' => 'Chua co du lieu de kiem tra khung day chuan.',
-                'matched_slots' => [],
-                'summary' => [
-                    'weekly' => [],
-                    'specific' => [],
-                    'active_count' => 0,
-                ],
+                'message' => 'Chua co du lieu de kiem tra khung day chuan va don xin nghi.',
             ],
             'leave_requests' => [
                 'ok' => null,
@@ -90,6 +84,10 @@ class AdminSchedulePlanningService
         $durationMinutes = Carbon::createFromFormat('H:i', $endTime)->diffInMinutes(Carbon::createFromFormat('H:i', $startTime));
         $standardWindow = $this->ruleService->inspect($date, $startTime, $endTime);
         $context['standard_window'] = $standardWindow;
+        $context['teaching_window'] = [
+            'ok' => $standardWindow['ok'],
+            'message' => $standardWindow['message'],
+        ];
 
         if (!$standardWindow['ok']) {
             $context['can_schedule'] = false;
@@ -102,6 +100,7 @@ class AdminSchedulePlanningService
             $context['assignment']['message'] = 'Vui long chon giang vien truoc khi luu lich hoc.';
             $context['leave_requests']['ok'] = true;
             $context['leave_requests']['message'] = 'Chua co giang vien de doi chieu don xin nghi.';
+            $context['teaching_window']['message'] = $standardWindow['message'] . ' Vui long chon giang vien de doi chieu don xin nghi.';
             $context['conflicts']['ok'] = true;
             $context['conflicts']['message'] = 'Chua du du lieu de kiem tra xung dot cho giang vien.';
             $context['errors']['giang_vien_id'] = $context['assignment']['message'];
@@ -177,23 +176,12 @@ class AdminSchedulePlanningService
             $context['leave_requests']['message'] = 'Khong co don xin nghi nao trung voi khung day nay.';
         }
 
-        $context['availability']['ok'] = $standardWindow['ok'] && $approvedLeaveRequests->isEmpty();
-        $context['availability']['message'] = $approvedLeaveRequests->isNotEmpty()
+        $context['teaching_window']['ok'] = $standardWindow['ok'] && $approvedLeaveRequests->isEmpty();
+        $context['teaching_window']['message'] = $approvedLeaveRequests->isNotEmpty()
             ? $context['leave_requests']['message']
             : ($pendingLeaveRequests->isNotEmpty()
                 ? $standardWindow['message'] . ' ' . $context['leave_requests']['message']
                 : $standardWindow['message']);
-        $context['availability']['matched_slots'] = $blockingLeaveRequests
-            ->map(fn (GiangVienDonXinNghi $item) => [
-                'id' => $item->id,
-                'label' => $item->trang_thai_label,
-                'time' => $item->schedule_range_label,
-                'schedule' => $item->schedule_range_label,
-                'type' => 'Don xin nghi',
-            ])
-            ->values()
-            ->all();
-        $context['availability']['summary']['active_count'] = count($context['availability']['matched_slots']);
 
         $conflicts = $this->conflictService->findConflicts(
             $teacherId,

@@ -11,7 +11,13 @@ class KhoaHoc extends Model
 {
     use HasFactory;
 
+    public const LEARNING_STATUS_CHUA_BAT_DAU = 'chua_bat_dau';
+    public const LEARNING_STATUS_DANG_HOC = 'dang_hoc';
+    public const LEARNING_STATUS_HOAN_THANH = 'hoan_thanh';
+
     protected $table = 'khoa_hoc';
+
+    protected ?array $learningProgressSnapshotCache = null;
 
     protected $fillable = [
         'nhom_nganh_id', // Đổi từ mon_hoc_id
@@ -302,6 +308,105 @@ class KhoaHoc extends Model
         if ($this->isFullyAssigned()) {
             $this->update(['trang_thai_van_hanh' => 'san_sang']);
         }
+    }
+
+    public function forgetLearningProgressSnapshot(): void
+    {
+        $this->learningProgressSnapshotCache = null;
+    }
+
+    public function getLearningProgressSnapshotAttribute(): array
+    {
+        if ($this->learningProgressSnapshotCache !== null) {
+            return $this->learningProgressSnapshotCache;
+        }
+
+        $modules = $this->relationLoaded('moduleHocs')
+            ? $this->moduleHocs
+            : $this->moduleHocs()->get();
+
+        $completedModules = $modules->filter(
+            fn (ModuleHoc $module) => $module->trang_thai_hoc_tap === ModuleHoc::LEARNING_STATUS_HOAN_THANH
+        );
+        $inProgressModules = $modules->filter(
+            fn (ModuleHoc $module) => $module->trang_thai_hoc_tap === ModuleHoc::LEARNING_STATUS_DANG_DIEN_RA
+        );
+
+        $status = self::LEARNING_STATUS_CHUA_BAT_DAU;
+        if ($modules->isNotEmpty() && $completedModules->count() === $modules->count()) {
+            $status = self::LEARNING_STATUS_HOAN_THANH;
+        } elseif ($completedModules->isNotEmpty() || $inProgressModules->isNotEmpty()) {
+            $status = self::LEARNING_STATUS_DANG_HOC;
+        }
+
+        return $this->learningProgressSnapshotCache = [
+            'status' => $status,
+            'label' => $this->resolveLearningStatusLabel($status),
+            'badge' => $this->resolveLearningStatusBadge($status),
+            'total_modules' => $modules->count(),
+            'completed_modules' => $completedModules->count(),
+            'in_progress_modules' => $inProgressModules->count(),
+            'remaining_modules' => max(0, $modules->count() - $completedModules->count()),
+            'progress_percent' => $modules->count() > 0
+                ? (int) round(($completedModules->count() / $modules->count()) * 100)
+                : 0,
+        ];
+    }
+
+    public function getTrangThaiHocTapAttribute(): string
+    {
+        return $this->learning_progress_snapshot['status'];
+    }
+
+    public function getTrangThaiHocTapLabelAttribute(): string
+    {
+        return $this->learning_progress_snapshot['label'];
+    }
+
+    public function getTrangThaiHocTapBadgeAttribute(): string
+    {
+        return $this->learning_progress_snapshot['badge'];
+    }
+
+    public function getSoModuleHoanThanhAttribute(): int
+    {
+        return $this->learning_progress_snapshot['completed_modules'];
+    }
+
+    public function getSoModuleConLaiAttribute(): int
+    {
+        return $this->learning_progress_snapshot['remaining_modules'];
+    }
+
+    public function getProgressTextAttribute(): string
+    {
+        $snapshot = $this->learning_progress_snapshot;
+        return $snapshot['completed_modules'] . '/' . $snapshot['total_modules'] . ' module';
+    }
+
+    public function getIsHoanThanhAttribute(): bool
+    {
+        return $this->trang_thai_hoc_tap === self::LEARNING_STATUS_HOAN_THANH;
+    }
+
+    private function resolveLearningStatusLabel(string $status): string
+    {
+        return match ($status) {
+            self::LEARNING_STATUS_CHUA_BAT_DAU => 'Chưa bắt đầu',
+            self::LEARNING_STATUS_DANG_HOC => 'Đang học',
+            self::LEARNING_STATUS_HOAN_THANH => 'Đã hoàn thành',
+            default => 'Đang cập nhật',
+        };
+    }
+
+    private function resolveLearningStatusBadge(string $status): string
+    {
+        return match ($status) {
+            self::LEARNING_STATUS_CHUA_BAT_DAU => 'secondary',
+            self::LEARNING_STATUS_DANG_HOC => 'primary',
+            self::LEARNING_STATUS_HOAN_THANH => 'success',
+            default => 'secondary',
+        };
     }
 }
 

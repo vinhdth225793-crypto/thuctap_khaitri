@@ -26,7 +26,7 @@ class AdminController extends Controller
      */
     public function dashboard()
     {
-        // 1. Th?ng kê t?ng quan ngu?i dùng
+        // 1. Th?ng kï¿½ t?ng quan ngu?i dï¿½ng
         $userStats = [
             'tongNguoiDung' => NguoiDung::count(),
             'tongHocVien' => NguoiDung::where('vai_tro', 'hoc_vien')->count(),
@@ -38,7 +38,7 @@ class AdminController extends Controller
                 ->get(),
         ];
 
-        // 2. Th?ng kê dào t?o & Module (Phase 5)
+        // 2. Th?ng kï¿½ dï¿½o t?o & Module (Phase 5)
         $trainingStats = [
             'tong_nhom_nganh'        => NhomNganh::count(),
             'nhom_nganh_hoat_dong'   => NhomNganh::active()->count(),
@@ -88,7 +88,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Tính toán ph?n tram tang tru?ng
+     * Tï¿½nh toï¿½n ph?n tram tang tru?ng
      */
     private function calculateGrowth($table, $role = null)
     {
@@ -120,7 +120,7 @@ class AdminController extends Controller
      */
     private function getChartData()
     {
-        // D? li?u dang ký trong 7 ngày g?n nh?t
+        // D? li?u dang kï¿½ trong 7 ngï¿½y g?n nh?t
         $registrationData = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = now()->subDays($i)->format('Y-m-d');
@@ -137,14 +137,14 @@ class AdminController extends Controller
             ];
         }
 
-        // D? li?u ngu?i dùng theo vai trò
+        // D? li?u ngu?i dï¿½ng theo vai trï¿½
         $roleDistribution = [
             'hoc_vien' => NguoiDung::where('vai_tro', 'hoc_vien')->count(),
             'giang_vien' => NguoiDung::where('vai_tro', 'giang_vien')->count(),
             'admin' => NguoiDung::where('vai_tro', 'admin')->count(),
         ];
 
-        // D? li?u ho?t d?ng theo tháng
+        // D? li?u ho?t d?ng theo thï¿½ng
         $monthlyActivity = [];
         $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         
@@ -171,13 +171,13 @@ class AdminController extends Controller
     }
 
     /**
-     * Hi?n th? danh sách ngu?i dùng
+     * Hi?n th? danh sï¿½ch ngu?i dï¿½ng
      */
     public function indexNguoiDung(Request $request)
     {
         $query = NguoiDung::withTrashed();
 
-        // Tìm ki?m
+        // Tï¿½m ki?m
         if ($request->has('search')) {
             $search = $request->get('search');
             $query->where(function ($q) use ($search) {
@@ -187,12 +187,12 @@ class AdminController extends Controller
             });
         }
 
-        // L?c theo vai trò
+        // L?c theo vai trï¿½
         if ($request->has('vai_tro') && $request->get('vai_tro') != 'all') {
             $query->where('vai_tro', $request->get('vai_tro'));
         }
 
-        // L?c theo tr?ng thái
+        // L?c theo tr?ng thï¿½i
         if ($request->has('trang_thai')) {
             $trang_thai = $request->get('trang_thai');
             if ($trang_thai == 'active') {
@@ -215,7 +215,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Hi?n th? form t?o ngu?i dùng m?i
+     * Hi?n th? form t?o ngu?i dï¿½ng m?i
      */
     public function createNguoiDung()
     {
@@ -223,13 +223,20 @@ class AdminController extends Controller
     }
 
     /**
-     * Luu ngu?i dùng m?i
+     * Luu ngu?i dï¿½ng m?i
      */
     public function storeNguoiDung(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'ho_ten' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:nguoi_dung',
+            'email' => [
+                'required',
+                'string',
+                'email',
+                'max:255',
+                'unique:nguoi_dung,email',
+                'unique:tai_khoan_cho_phe_duyet,email',
+            ],
             'mat_khau' => 'required|string|min:8|confirmed',
             'vai_tro' => 'required|in:admin,giang_vien,hoc_vien',
             'so_dien_thoai' => 'nullable|string|max:15',
@@ -237,6 +244,8 @@ class AdminController extends Controller
             'dia_chi' => 'nullable|string|max:500',
             'anh_dai_dien' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'trang_thai' => 'required|boolean',
+        ], [
+            'email.unique' => 'Email nÃ y Ä‘Ã£ Ä‘Æ°á»£c sá»­ dá»¥ng hoáº·c Ä‘ang chá» phÃª duyá»‡t.',
         ]);
 
         if ($validator->fails()) {
@@ -248,7 +257,7 @@ class AdminController extends Controller
         $data = $request->except('anh_dai_dien', 'mat_khau_confirmation');
         $data['mat_khau'] = Hash::make($request->mat_khau);
 
-        // X? lý upload ?nh d?i di?n
+        // X? lï¿½ upload ?nh d?i di?n
         if ($request->hasFile('anh_dai_dien')) {
             $file = $request->file('anh_dai_dien');
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
@@ -259,19 +268,19 @@ class AdminController extends Controller
         NguoiDung::create($data);
 
         return redirect()->route('admin.tai-khoan.index')
-            ->with('success', 'T?o ngu?i dùng m?i thành công.');
+            ->with('success', 'T?o ngu?i dï¿½ng m?i thï¿½nh cï¿½ng.');
     }
 
     /**
-     * Hi?n th? chi ti?t ngu?i dùng
+     * Hi?n th? chi ti?t ngu?i dï¿½ng
      */
     public function showNguoiDung($id)
     {
         $nguoiDung = NguoiDung::withTrashed()->findOrFail($id);
 
-        // Th?ng kê co b?n c?a ngu?i dùng
+        // Th?ng kï¿½ co b?n c?a ngu?i dï¿½ng
         $stats = [
-            'tongDangKy' => 0, // Có th? thêm sau n?u có b?ng dang ký
+            'tongDangKy' => 0, // Cï¿½ th? thï¿½m sau n?u cï¿½ b?ng dang kï¿½
             'ngayTao' => $nguoiDung->created_at,
             'lanCuoiDangNhap' => $nguoiDung->updated_at,
         ];
@@ -280,13 +289,13 @@ class AdminController extends Controller
     }
 
     /**
-     * Qu?n lý h?c viên
+     * Qu?n lï¿½ h?c viï¿½n
      */
     public function indexHocVien(Request $request)
     {
         $query = NguoiDung::where('vai_tro', 'hoc_vien')->withTrashed();
 
-        // Tìm ki?m
+        // Tï¿½m ki?m
         if ($request->has('search')) {
             $search = $request->get('search');
             $query->where(function ($q) use ($search) {
@@ -296,7 +305,7 @@ class AdminController extends Controller
             });
         }
 
-        // L?c theo tr?ng thái
+        // L?c theo tr?ng thï¿½i
         if ($request->has('trang_thai')) {
             $status = $request->get('trang_thai');
             if ($status === 'active') {
@@ -319,7 +328,7 @@ class AdminController extends Controller
             $sortDirection = 'desc';
         }
         
-        // S?p x?p theo ch? cái d?u tiên cho tên và email
+        // S?p x?p theo ch? cï¿½i d?u tiï¿½n cho tï¿½n vï¿½ email
         if ($sortField === 'ho_ten') {
             $query->orderByRaw("SUBSTRING(ho_ten, 1, 1) COLLATE utf8mb4_unicode_ci {$sortDirection}, ho_ten {$sortDirection}");
         } elseif ($sortField === 'email') {
@@ -335,13 +344,13 @@ class AdminController extends Controller
     }
 
     /**
-     * Qu?n lý gi?ng viên
+     * Qu?n lï¿½ gi?ng viï¿½n
      */
     public function indexGiangVien(Request $request)
     {
         $query = NguoiDung::where('vai_tro', 'giang_vien')->withTrashed();
 
-        // Tìm ki?m
+        // Tï¿½m ki?m
         if ($request->has('search')) {
             $search = $request->get('search');
             $query->where(function ($q) use ($search) {
@@ -351,7 +360,7 @@ class AdminController extends Controller
             });
         }
 
-        // L?c theo tr?ng thái
+        // L?c theo tr?ng thï¿½i
         if ($request->has('trang_thai')) {
             $status = $request->get('trang_thai');
             if ($status === 'active') {
@@ -374,7 +383,7 @@ class AdminController extends Controller
             $sortDirection = 'desc';
         }
         
-        // S?p x?p theo ch? cái d?u tiên cho tên và email
+        // S?p x?p theo ch? cï¿½i d?u tiï¿½n cho tï¿½n vï¿½ email
         if ($sortField === 'ho_ten') {
             $query->orderByRaw("SUBSTRING(ho_ten, 1, 1) COLLATE utf8mb4_unicode_ci {$sortDirection}, ho_ten {$sortDirection}");
         } elseif ($sortField === 'email') {
@@ -419,7 +428,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Hi?n th? form ch?nh s?a ngu?i dùng
+     * Hi?n th? form ch?nh s?a ngu?i dï¿½ng
      */
     public function editNguoiDung($id)
     {
@@ -428,7 +437,7 @@ class AdminController extends Controller
     }
 
     /**
-     * C?p nh?t thông tin ngu?i dùng
+     * C?p nh?t thï¿½ng tin ngu?i dï¿½ng
      */
     public function updateNguoiDung(Request $request, $id)
     {
@@ -436,7 +445,12 @@ class AdminController extends Controller
         
         $validator = Validator::make($request->all(), [
             'ho_ten' => 'required|string|max:255',
-            'email' => 'required|email|unique:nguoi_dung,email,' . $id . ',ma_nguoi_dung',
+            'email' => [
+                'required',
+                'email',
+                'unique:nguoi_dung,email,' . $id . ',ma_nguoi_dung',
+                'unique:tai_khoan_cho_phe_duyet,email',
+            ],
             'vai_tro' => 'required|in:admin,giang_vien,hoc_vien',
             'so_dien_thoai' => 'nullable|string|max:15',
             'ngay_sinh' => 'nullable|date|before:today',
@@ -444,6 +458,8 @@ class AdminController extends Controller
             'anh_dai_dien' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'trang_thai' => 'required|boolean',
             'mat_khau' => 'nullable|min:8|confirmed',
+        ], [
+            'email.unique' => 'Email nÃ y Ä‘Ã£ Ä‘Æ°á»£c sá»­ dá»¥ng hoáº·c Ä‘ang chá» phÃª duyá»‡t.',
         ]);
 
         if ($validator->fails()) {
@@ -454,14 +470,14 @@ class AdminController extends Controller
 
         $data = $request->except('anh_dai_dien', 'mat_khau', 'mat_khau_confirmation');
 
-        // C?p nh?t m?t kh?u n?u có
+        // C?p nh?t m?t kh?u n?u cï¿½
         if ($request->filled('mat_khau')) {
             $data['mat_khau'] = Hash::make($request->mat_khau);
         }
 
-        // X? lý upload ?nh d?i di?n m?i
+        // X? lï¿½ upload ?nh d?i di?n m?i
         if ($request->hasFile('anh_dai_dien')) {
-            // Xóa ?nh cu n?u t?n t?i
+            // Xï¿½a ?nh cu n?u t?n t?i
             if ($nguoiDung->anh_dai_dien && file_exists(public_path('images/' . $nguoiDung->anh_dai_dien))) {
                 unlink(public_path('images/' . $nguoiDung->anh_dai_dien));
             }
@@ -472,7 +488,7 @@ class AdminController extends Controller
             $data['anh_dai_dien'] = $filename;
         }
 
-        // Xóa ?nh d?i di?n n?u ngu?i dùng yêu c?u
+        // Xï¿½a ?nh d?i di?n n?u ngu?i dï¿½ng yï¿½u c?u
         if ($request->has('xoa_anh_dai_dien') && $nguoiDung->anh_dai_dien) {
             Storage::disk('public')->delete($nguoiDung->anh_dai_dien);
             $data['anh_dai_dien'] = null;
@@ -481,48 +497,48 @@ class AdminController extends Controller
         $nguoiDung->update($data);
 
         return redirect()->route('admin.tai-khoan.show', $nguoiDung->ma_nguoi_dung)
-            ->with('success', 'C?p nh?t thông tin ngu?i dùng thành công.');
+            ->with('success', 'C?p nh?t thï¿½ng tin ngu?i dï¿½ng thï¿½nh cï¿½ng.');
     }
 
     /**
-     * Khóa/M? khóa tài kho?n ngu?i dùng
+     * Khï¿½a/M? khï¿½a tï¿½i kho?n ngu?i dï¿½ng
      */
     public function toggleStatusNguoiDung($id)
     {
         $nguoiDung = NguoiDung::findOrFail($id);
         
-        // Không cho khóa chính mình
+        // Khï¿½ng cho khï¿½a chï¿½nh mï¿½nh
         if ($nguoiDung->ma_nguoi_dung == auth()->id()) {
             return response()->json([
                 'success' => false,
-                'message' => 'B?n không th? khóa tài kho?n c?a chính mình.'
+                'message' => 'B?n khï¿½ng th? khï¿½a tï¿½i kho?n c?a chï¿½nh mï¿½nh.'
             ], 403);
         }
 
         $nguoiDung->trang_thai = !$nguoiDung->trang_thai;
         $nguoiDung->save();
 
-        $action = $nguoiDung->trang_thai ? 'm? khóa' : 'khóa';
+        $action = $nguoiDung->trang_thai ? 'm? khï¿½a' : 'khï¿½a';
         
         return response()->json([
             'success' => true,
-            'message' => "Ðã {$action} tài kho?n {$nguoiDung->ho_ten}.",
+            'message' => "ï¿½ï¿½ {$action} tï¿½i kho?n {$nguoiDung->ho_ten}.",
             'trang_thai' => $nguoiDung->trang_thai
         ]);
     }
 
     /**
-     * Xóa m?m ngu?i dùng
+     * Xï¿½a m?m ngu?i dï¿½ng
      */
     public function destroyNguoiDung($id)
     {
         $nguoiDung = NguoiDung::findOrFail($id);
         
-        // Không cho xóa chính mình
+        // Khï¿½ng cho xï¿½a chï¿½nh mï¿½nh
         if ($nguoiDung->ma_nguoi_dung == auth()->id()) {
             return response()->json([
                 'success' => false,
-                'message' => 'B?n không th? xóa tài kho?n c?a chính mình.'
+                'message' => 'B?n khï¿½ng th? xï¿½a tï¿½i kho?n c?a chï¿½nh mï¿½nh.'
             ], 403);
         }
 
@@ -530,12 +546,12 @@ class AdminController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Ðã xóa tài kho?n ' . $nguoiDung->ho_ten . '. Tài kho?n có th? du?c khôi ph?c trong vòng 30 ngày.'
+            'message' => 'ï¿½ï¿½ xï¿½a tï¿½i kho?n ' . $nguoiDung->ho_ten . '. Tï¿½i kho?n cï¿½ th? du?c khï¿½i ph?c trong vï¿½ng 30 ngï¿½y.'
         ]);
     }
 
     /**
-     * Khôi ph?c ngu?i dùng dã xóa
+     * Khï¿½i ph?c ngu?i dï¿½ng dï¿½ xï¿½a
      */
     public function restoreNguoiDung($id)
     {
@@ -544,26 +560,26 @@ class AdminController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Ðã khôi ph?c tài kho?n ' . $nguoiDung->ho_ten . '.'
+            'message' => 'ï¿½ï¿½ khï¿½i ph?c tï¿½i kho?n ' . $nguoiDung->ho_ten . '.'
         ]);
     }
 
     /**
-     * Xóa vinh vi?n ngu?i dùng
+     * Xï¿½a vinh vi?n ngu?i dï¿½ng
      */
     public function forceDeleteNguoiDung($id)
     {
         $nguoiDung = NguoiDung::withTrashed()->findOrFail($id);
         
-        // Không cho xóa chính mình
+        // Khï¿½ng cho xï¿½a chï¿½nh mï¿½nh
         if ($nguoiDung->ma_nguoi_dung == auth()->id()) {
             return response()->json([
                 'success' => false,
-                'message' => 'B?n không th? xóa tài kho?n c?a chính mình.'
+                'message' => 'B?n khï¿½ng th? xï¿½a tï¿½i kho?n c?a chï¿½nh mï¿½nh.'
             ], 403);
         }
 
-        // Xóa ?nh d?i di?n n?u t?n t?i
+        // Xï¿½a ?nh d?i di?n n?u t?n t?i
         if ($nguoiDung->anh_dai_dien && file_exists(public_path('images/' . $nguoiDung->anh_dai_dien))) {
             unlink(public_path('images/' . $nguoiDung->anh_dai_dien));
         }
@@ -572,20 +588,20 @@ class AdminController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Ðã xóa vinh vi?n tài kho?n ' . $nguoiDung->ho_ten . '.'
+            'message' => 'ï¿½ï¿½ xï¿½a vinh vi?n tï¿½i kho?n ' . $nguoiDung->ho_ten . '.'
         ]);
     }
 
     /**
-     * Xu?t danh sách ngu?i dùng ra Excel
+     * Xu?t danh sï¿½ch ngu?i dï¿½ng ra Excel
      */
     public function exportNguoiDung(Request $request)
     {
         $nguoiDung = NguoiDung::all();
         
         $headers = [
-            'H? tên', 'Email', 'Vai trò', 'S? di?n tho?i', 
-            'Ngày sinh', 'Ð?a ch?', 'Tr?ng thái', 'Ngày dang ký'
+            'H? tï¿½n', 'Email', 'Vai trï¿½', 'S? di?n tho?i', 
+            'Ngï¿½y sinh', 'ï¿½?a ch?', 'Tr?ng thï¿½i', 'Ngï¿½y dang kï¿½'
         ];
 
         $data = [];
@@ -597,7 +613,7 @@ class AdminController extends Controller
                 $user->so_dien_thoai,
                 $user->ngay_sinh ? $user->ngay_sinh->format('d/m/Y') : '',
                 $user->dia_chi,
-                $user->trang_thai ? 'Ho?t d?ng' : 'Ðã khóa',
+                $user->trang_thai ? 'Ho?t d?ng' : 'ï¿½ï¿½ khï¿½a',
                 $user->created_at->format('d/m/Y H:i'),
             ];
         }
@@ -623,25 +639,25 @@ class AdminController extends Controller
     }
 
     /**
-     * L?y nhãn vai trò
+     * L?y nhï¿½n vai trï¿½
      */
     private function getRoleLabel($role)
     {
         $labels = [
-            'admin' => 'Qu?n tr? viên',
-            'giang_vien' => 'Gi?ng viên',
-            'hoc_vien' => 'H?c viên',
+            'admin' => 'Qu?n tr? viï¿½n',
+            'giang_vien' => 'Gi?ng viï¿½n',
+            'hoc_vien' => 'H?c viï¿½n',
         ];
 
         return $labels[$role] ?? $role;
     }
 
     /**
-     * Th?ng kê h? th?ng chi ti?t
+     * Th?ng kï¿½ h? th?ng chi ti?t
      */
     public function thongKe()
     {
-        // Th?ng kê theo tháng
+        // Th?ng kï¿½ theo thï¿½ng
         $monthlyStats = [];
         for ($i = 5; $i >= 0; $i--) {
             $month = now()->subMonths($i);
@@ -655,7 +671,7 @@ class AdminController extends Controller
             ];
         }
 
-        // Th?ng kê theo vai trò
+        // Th?ng kï¿½ theo vai trï¿½
         $roleStats = [
             'total' => NguoiDung::count(),
             'hoc_vien' => NguoiDung::where('vai_tro', 'hoc_vien')->count(),
@@ -667,12 +683,12 @@ class AdminController extends Controller
     }
 
     /**
-     * Cài d?t h? th?ng
+     * Cï¿½i d?t h? th?ng
      */
     public function caiDat()
     {
         $settings = [
-            'site_name' => config('app.name', 'H? th?ng Qu?n lý'),
+            'site_name' => config('app.name', 'H? th?ng Qu?n lï¿½'),
             'site_email' => config('mail.from.address', 'admin@example.com'),
             'items_per_page' => config('app.items_per_page', 20),
             'enable_registration' => config('app.enable_registration', true),
@@ -683,7 +699,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Luu cài d?t h? th?ng
+     * Luu cï¿½i d?t h? th?ng
      */
     public function luuCaiDat(Request $request)
     {
@@ -695,7 +711,7 @@ class AdminController extends Controller
             'maintenance_mode' => 'required|boolean',
         ]);
 
-        // Luu cài d?t vào file .env ho?c database
+        // Luu cï¿½i d?t vï¿½o file .env ho?c database
         $envPath = base_path('.env');
         
         if (file_exists($envPath)) {
@@ -720,7 +736,7 @@ class AdminController extends Controller
         }
 
         return redirect()->route('admin.settings')
-            ->with('success', 'C?p nh?t cài d?t h? th?ng thành công.');
+            ->with('success', 'C?p nh?t cï¿½i d?t h? th?ng thï¿½nh cï¿½ng.');
     }
 
     /**
@@ -750,19 +766,19 @@ class AdminController extends Controller
             return response()->download($path)->deleteFileAfterSend(true);
         } else {
             return redirect()->back()
-                ->with('error', 'Không th? sao luu co s? d? li?u. Vui lòng ki?m tra c?u hình.');
+                ->with('error', 'Khï¿½ng th? sao luu co s? d? li?u. Vui lï¿½ng ki?m tra c?u hï¿½nh.');
         }
     }
 
     /**
-     * Xem nh?t ký h? th?ng
+     * Xem nh?t kï¿½ h? th?ng
      */
     public function nhatKy(Request $request)
     {
         $logFile = storage_path('logs/laravel.log');
         
         if (!file_exists($logFile)) {
-            return view('pages.admin.nhat-ky.index', ['logs' => [], 'error' => 'File log không t?n t?i.']);
+            return view('pages.admin.nhat-ky.index', ['logs' => [], 'error' => 'File log khï¿½ng t?n t?i.']);
         }
 
         $logs = [];
@@ -805,7 +821,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Xác d?nh lo?i log
+     * Xï¿½c d?nh lo?i log
      */
     private function getLogType($level)
     {
@@ -824,7 +840,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Xóa nh?t ký
+     * Xï¿½a nh?t kï¿½
      */
     public function xoaNhatKy()
     {
@@ -835,11 +851,11 @@ class AdminController extends Controller
         }
 
         return redirect()->route('admin.nhat-ky')
-            ->with('success', 'Ðã xóa t?t c? nh?t ký h? th?ng.');
+            ->with('success', 'ï¿½ï¿½ xï¿½a t?t c? nh?t kï¿½ h? th?ng.');
     }
 
     /**
-     * API l?y thông tin ngu?i dùng
+     * API l?y thï¿½ng tin ngu?i dï¿½ng
      */
     public function apiGetNguoiDung(Request $request)
     {
@@ -864,7 +880,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Tìm ki?m ngu?i dùng nhanh (cho autocomplete)
+     * Tï¿½m ki?m ngu?i dï¿½ng nhanh (cho autocomplete)
      */
     public function timKiemNguoiDung(Request $request)
     {
@@ -879,14 +895,14 @@ class AdminController extends Controller
     }
 
     /**
-     * Dashboard cho gi?ng viên
+     * Dashboard cho gi?ng viï¿½n
      */
     public function giangVienDashboard()
     {
         $giangVienId = auth()->user()->giangVien->id ?? null;
 
         if (!$giangVienId) {
-            return redirect()->route('home')->with('error', 'Tài kho?n c?a b?n chua du?c thi?t l?p profile gi?ng viên.');
+            return redirect()->route('home')->with('error', 'Tï¿½i kho?n c?a b?n chua du?c thi?t l?p profile gi?ng viï¿½n.');
         }
 
         $stats = [
@@ -906,7 +922,7 @@ class AdminController extends Controller
             'so_gio_day' => auth()->user()->giangVien->so_gio_day ?? 0,
         ];
 
-        // L?y danh sách phân công m?i nh?t c?n xác nh?n
+        // L?y danh sï¿½ch phï¿½n cï¿½ng m?i nh?t c?n xï¿½c nh?n
         $phanCongMoi = PhanCongModuleGiangVien::with(['moduleHoc.khoaHoc.nhomNganh'])
             ->where('giang_vien_id', $giangVienId)
             ->where('trang_thai', 'cho_xac_nhan')
@@ -914,7 +930,7 @@ class AdminController extends Controller
             ->take(5)
             ->get();
 
-        // L?y danh sách l?p dang d?y (t? các module dã nh?n)
+        // L?y danh sï¿½ch l?p dang d?y (t? cï¿½c module dï¿½ nh?n)
         $lopDangDay = PhanCongModuleGiangVien::with(['moduleHoc.khoaHoc.nhomNganh'])
             ->where('giang_vien_id', $giangVienId)
             ->where('trang_thai', 'da_nhan')
@@ -926,7 +942,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Dashboard cho h?c viên
+     * Dashboard cho h?c viï¿½n
      */
     public function hocVienDashboard()
     {
@@ -942,7 +958,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Ð?m s? h?c viên c?a gi?ng viên
+     * ï¿½?m s? h?c viï¿½n c?a gi?ng viï¿½n
      */
     private function countStudentsOfTeacher($teacherId)
     {
@@ -950,7 +966,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Tính doanh thu c?a gi?ng viên
+     * Tï¿½nh doanh thu c?a gi?ng viï¿½n
      */
     private function calculateRevenue($teacherId)
     {
@@ -958,7 +974,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Hi?n th? danh sách tài kho?n ch? phê duy?t
+     * Hi?n th? danh sï¿½ch tï¿½i kho?n ch? phï¿½ duy?t
      */
     public function indexPheDuyetTaiKhoan(Request $request)
     {
@@ -983,11 +999,19 @@ class AdminController extends Controller
     }
 
     /**
-     * Phê duy?t tài kho?n
+     * Phï¿½ duy?t tï¿½i kho?n
      */
     public function approveTaiKhoan($id)
     {
         $taiKhoan = TaiKhoanChoPheDuyet::findOrFail($id);
+
+        // Kiá»ƒm tra email Ä‘Ã£ tá»“n táº¡i trong há»‡ thá»‘ng chÆ°a
+        if (NguoiDung::where('email', $taiKhoan->email)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Email nÃ y Ä‘Ã£ tá»“n táº¡i trong há»‡ thá»‘ng.'
+            ], 422);
+        }
 
         $nguoiDung = NguoiDung::create([
             'ho_ten' => $taiKhoan->ho_ten,
@@ -1008,14 +1032,14 @@ class AdminController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Ðã phê duy?t tài kho?n ' . $taiKhoan->ho_ten . '.',
+            'message' => 'ï¿½ï¿½ phï¿½ duy?t tï¿½i kho?n ' . $taiKhoan->ho_ten . '.',
             'redirect' => $redirectUrl,
             'vai_tro' => $taiKhoan->vai_tro
         ]);
     }
 
     /**
-     * T? ch?i tài kho?n
+     * T? ch?i tï¿½i kho?n
      */
     public function rejectTaiKhoan($id)
     {
@@ -1024,12 +1048,12 @@ class AdminController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Ðã t? ch?i tài kho?n ' . $taiKhoan->ho_ten . '.'
+            'message' => 'ï¿½ï¿½ t? ch?i tï¿½i kho?n ' . $taiKhoan->ho_ten . '.'
         ]);
     }
 
     /**
-     * H?y phê duy?t tài kho?n
+     * H?y phï¿½ duy?t tï¿½i kho?n
      */
     public function undoApproveTaiKhoan($id)
     {
@@ -1039,7 +1063,7 @@ class AdminController extends Controller
         if (!$nguoiDung) {
             return response()->json([
                 'success' => false,
-                'message' => 'Tài kho?n không t?n t?i d? h?y phê duy?t.'
+                'message' => 'Tï¿½i kho?n khï¿½ng t?n t?i d? h?y phï¿½ duy?t.'
             ], 404);
         }
 
@@ -1048,12 +1072,12 @@ class AdminController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Ðã h?y phê duy?t tài kho?n ' . $taiKhoan->ho_ten . '.'
+            'message' => 'ï¿½ï¿½ h?y phï¿½ duy?t tï¿½i kho?n ' . $taiKhoan->ho_ten . '.'
         ]);
     }
 
     /**
-     * Hi?n th? trang cài d?t h? th?ng
+     * Hi?n th? trang cï¿½i d?t h? th?ng
      */
     public function showSettings()
     {
@@ -1073,7 +1097,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Luu cài d?t h? th?ng
+     * Luu cï¿½i d?t h? th?ng
      */
     public function saveSettings(Request $request)
     {
@@ -1105,18 +1129,18 @@ class AdminController extends Controller
 
         if (str_contains($currentRoute, 'contact')) {
             return redirect()->route('admin.settings.contact')
-                ->with('success', 'Thông tin liên h? dã du?c c?p nh?t thành công!');
+                ->with('success', 'Thï¿½ng tin liï¿½n h? dï¿½ du?c c?p nh?t thï¿½nh cï¿½ng!');
         } elseif (str_contains($currentRoute, 'social')) {
             return redirect()->route('admin.settings.social')
-                ->with('success', 'M?ng xã h?i dã du?c c?p nh?t thành công!');
+                ->with('success', 'M?ng xï¿½ h?i dï¿½ du?c c?p nh?t thï¿½nh cï¿½ng!');
         } else {
             return redirect()->route('admin.settings')
-                ->with('success', 'Cài d?t h? th?ng dã du?c c?p nh?t thành công!');
+                ->with('success', 'Cï¿½i d?t h? th?ng dï¿½ du?c c?p nh?t thï¿½nh cï¿½ng!');
         }
     }
 
     /**
-     * Luu các gi?ng viên hi?n th? trên trang ch?
+     * Luu cï¿½c gi?ng viï¿½n hi?n th? trï¿½n trang ch?
      */
     public function saveInstructorSettings(Request $request)
     {
@@ -1129,11 +1153,11 @@ class AdminController extends Controller
         }
 
         return redirect()->route('admin.settings.instructors')
-            ->with('success', 'Ch?n gi?ng viên hi?n th? trên trang ch? dã du?c c?p nh?t thành công!');
+            ->with('success', 'Ch?n gi?ng viï¿½n hi?n th? trï¿½n trang ch? dï¿½ du?c c?p nh?t thï¿½nh cï¿½ng!');
     }
 
     /**
-     * Hi?n th? trang cài d?t thông tin liên h?
+     * Hi?n th? trang cï¿½i d?t thï¿½ng tin liï¿½n h?
      */
     public function showContactSettings()
     {
@@ -1153,7 +1177,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Hi?n th? trang cài d?t m?ng xã h?i
+     * Hi?n th? trang cï¿½i d?t m?ng xï¿½ h?i
      */
     public function showSocialSettings()
     {
@@ -1166,7 +1190,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Hi?n th? trang cài d?t gi?ng viên
+     * Hi?n th? trang cï¿½i d?t gi?ng viï¿½n
      */
     public function showInstructorSettings()
     {

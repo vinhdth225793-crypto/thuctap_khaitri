@@ -11,6 +11,7 @@ use App\Models\KhoaHoc;
 use App\Models\LichHoc;
 use App\Models\ModuleHoc;
 use App\Services\Scheduling\AdminSchedulePlanningService;
+use App\Services\LearningProgressStatusService;
 use App\Support\Scheduling\TeachingPeriodCatalog;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -20,6 +21,7 @@ class LichHocController extends Controller
 {
     public function __construct(
         private readonly AdminSchedulePlanningService $planningService,
+        private readonly LearningProgressStatusService $learningProgressStatusService,
     ) {
     }
 
@@ -100,7 +102,7 @@ class LichHocController extends Controller
             'can_schedule' => $context['can_schedule'],
             'teacher_name' => $context['teacher']?->nguoiDung?->ho_ten,
             'assignment' => $context['assignment'],
-            'availability' => $context['availability'],
+            'teaching_window' => $context['teaching_window'],
             'standard_window' => $context['standard_window'],
             'leave_requests' => $context['leave_requests'],
             'conflicts' => $context['conflicts'],
@@ -157,6 +159,7 @@ class LichHocController extends Controller
             $soBuoiCanTao = max(0, $soBuoiQuyDinh - $soBuoiDaCo);
 
             if ($soBuoiCanTao <= 0) {
+                $this->learningProgressStatusService->syncCourseStatus($khoaHocId);
                 DB::commit();
 
                 return back()->with('info', 'So buoi hien tai da du hoac vuot muc quy dinh. Khong can sinh them.');
@@ -207,6 +210,7 @@ class LichHocController extends Controller
                 $currentDate->addDay();
             }
 
+            $this->learningProgressStatusService->syncCourseStatus($khoaHocId);
             DB::commit();
 
             return back()->with('success', "Da tu dong sinh {$createdCount} buoi hoc moi cho module.");
@@ -316,6 +320,10 @@ class LichHocController extends Controller
             ->where('trang_thai', 'cho')
             ->delete();
 
+        if ($deleted > 0) {
+            $this->learningProgressStatusService->syncCourseStatus($khoaHocId);
+        }
+
         return back()->with('success', "Da xoa {$deleted} buoi hoc cua module.");
     }
 
@@ -330,6 +338,10 @@ class LichHocController extends Controller
             ->where('khoa_hoc_id', $khoaHocId)
             ->where('trang_thai', 'cho')
             ->delete();
+
+        if ($deleted > 0) {
+            $this->learningProgressStatusService->syncCourseStatus($khoaHocId);
+        }
 
         return back()->with('success', "Da xoa {$deleted} buoi hoc da chon.");
     }

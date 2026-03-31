@@ -52,7 +52,7 @@
         </div>
 
         <div class="nav-item mb-1">
-            <a href="{{ route('giang-vien.khoa-hoc') }}" class="nav-link {{ request()->routeIs('giang-vien.bai-kiem-tra*', 'giang-vien.tao-bai-kiem-tra') ? 'active' : '' }}">
+            <a href="{{ route('giang-vien.bai-kiem-tra.index') }}" class="nav-link {{ request()->routeIs('giang-vien.bai-kiem-tra*', 'giang-vien.tao-bai-kiem-tra') ? 'active' : '' }}">
                 <i class="fas fa-file-signature"></i>
                 <span>Tao va cau hinh de</span>
             </a>

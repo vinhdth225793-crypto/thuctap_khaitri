@@ -21,7 +21,7 @@ class GiangVienController extends Controller
         $giangVien = auth()->user()->giangVien;
 
         if (!$giangVien) {
-            return redirect()->route('home')->with('error', 'Tai khoan cua ban chua duoc thiet lap profile giang vien.');
+            return redirect()->route('home')->with('error', 'Tài khoản của bạn chưa được thiết lập hồ sơ giảng viên.');
         }
 
         $giangVienId = $giangVien->id;
@@ -55,14 +55,21 @@ class GiangVienController extends Controller
             ->take(5)
             ->get();
 
-        $lopDangDay = PhanCongModuleGiangVien::with(['moduleHoc.khoaHoc.nhomNganh'])
+        $lopDangDay = PhanCongModuleGiangVien::with(['moduleHoc.khoaHoc.nhomNganh', 'moduleHoc.lichHocs'])
             ->where('giang_vien_id', $giangVienId)
             ->where('trang_thai', 'da_nhan')
             ->latest()
             ->take(5)
             ->get();
 
-        return view('pages.giang-vien.dashboard', compact('stats', 'phanCongMoi', 'lopDangDay'));
+        $lichHomNay = $giangVien->lichHocs()
+            ->with(['khoaHoc', 'moduleHoc'])
+            ->whereDate('ngay_hoc', now()->toDateString())
+            ->where('trang_thai', '!=', 'huy')
+            ->orderBy('gio_bat_dau')
+            ->get();
+
+        return view('pages.giang-vien.dashboard', compact('stats', 'phanCongMoi', 'lopDangDay', 'lichHomNay'));
     }
 
     public function profile()

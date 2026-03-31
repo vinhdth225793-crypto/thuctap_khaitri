@@ -114,7 +114,7 @@
                                     'id' => $assignment->giang_vien_id,
                                     'name' => $teacher?->nguoiDung?->ho_ten ?? 'N/A',
                                     'specialty' => $teacher?->chuyen_nganh,
-                                    'availability_count' => $teacher?->donXinNghis?->where('trang_thai', 'cho_duyet')->count() ?? 0,
+                                    'pending_leave_request_count' => $teacher?->donXinNghis?->where('trang_thai', 'cho_duyet')->count() ?? 0,
                                 ];
                             })
                             ->values();
@@ -124,7 +124,7 @@
                             <span class="badge rounded-pill bg-light text-dark border">
                                 <i class="fas fa-user-check text-success me-1"></i>
                                 {{ $teacherInfo['name'] }}
-                                <span class="text-muted ms-1">({{ $teacherInfo['availability_count'] }} don cho duyet)</span>
+                                <span class="text-muted ms-1">({{ $teacherInfo['pending_leave_request_count'] }} don cho duyet)</span>
                             </span>
                         @empty
                             <span class="badge rounded-pill bg-warning text-dark">
@@ -602,7 +602,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const currentValue = select.value;
         const options = ['<option value="">-- Chon giang vien da nhan module --</option>'];
         teachers.forEach(teacher => {
-            const label = `${teacher.name}${teacher.specialty ? ' - ' + teacher.specialty : ''} (${teacher.availability_count} don cho duyet)`;
+            const label = `${teacher.name}${teacher.specialty ? ' - ' + teacher.specialty : ''} (${teacher.pending_leave_request_count} don cho duyet)`;
             const selected = String(currentValue) === String(teacher.id) ? 'selected' : '';
             options.push(`<option value="${teacher.id}" ${selected}>${escapeHtml(label)}</option>`);
         });
@@ -624,31 +624,27 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!panel) return;
 
         const assignment = context.assignment || {};
-        const availability = context.availability || {};
+        const teachingWindow = context.teaching_window || {};
+        const leaveRequests = context.leave_requests || {};
         const conflicts = context.conflicts || {};
-        const summary = availability.summary || { weekly: [], specific: [], active_count: 0 };
         const suggestions = context.suggestions || [];
-        const matched = availability.matched_slots || [];
+        const matched = leaveRequests.items || [];
 
         const assignmentColor = assignment.ok === true ? 'success' : (assignment.ok === false ? 'danger' : 'secondary');
-        const availabilityColor = availability.ok === true ? 'success' : (availability.ok === false ? 'danger' : 'secondary');
+        const teachingWindowColor = teachingWindow.ok === true ? 'success' : (teachingWindow.ok === false ? 'danger' : 'secondary');
         const conflictColor = conflicts.ok === true ? 'success' : (conflicts.ok === false ? 'danger' : 'secondary');
 
         const matchedHtml = matched.length
-            ? `<div class="mt-2">${matched.map(item => `<span class="badge bg-success-subtle text-success border border-success-subtle me-1 mb-1">${escapeHtml(item.label)} - ${escapeHtml(item.schedule || item.time || '-')}</span>`).join('')}</div>`
+            ? `<div class="mt-2">${matched.map(item => `<span class="badge bg-success-subtle text-success border border-success-subtle me-1 mb-1">${escapeHtml(item.status_label || item.label)} - ${escapeHtml(item.range || item.schedule || item.time || '-')}</span>`).join('')}</div>`
             : '';
-
-        const summaryWeekly = summary.weekly && summary.weekly.length
-            ? summary.weekly.map(item => `<li>${escapeHtml(item.label)} - ${escapeHtml(item.schedule || item.time || '-')}</li>`).join('')
-            : '<li>Khong co don xin nghi nao canh bao trong tuan.</li>';
-
-        const summarySpecific = summary.specific && summary.specific.length
-            ? summary.specific.map(item => `<li>${escapeHtml(item.label)} - ${escapeHtml(item.schedule || item.time || '-')}</li>`).join('')
-            : '<li>Khong co don xin nghi nao canh bao theo ngay.</li>';
 
         const conflictItems = conflicts.items && conflicts.items.length
             ? `<ul class="small ps-3 mt-2 mb-0">${conflicts.items.map(item => `<li>${escapeHtml(item.course_code)} / ${escapeHtml(item.module_name)} - ${escapeHtml(item.date)} - ${escapeHtml(item.schedule || item.time || '-')}</li>`).join('')}</ul>`
             : '';
+
+        const leaveRequestItems = matched.length
+            ? `<ul class="small ps-3 mb-0">${matched.map(item => `<li><span class="fw-semibold">${escapeHtml(item.status_label || '-')}</span> - ${escapeHtml(item.range || '-')}<br><span class="text-muted">${escapeHtml(item.reason || 'Khong co ly do')}</span></li>`).join('')}</ul>`
+            : '<div class="small text-muted">Khong co don xin nghi nao trung voi khung dang xep.</div>';
 
         const suggestionsHtml = suggestions.length
             ? `<div class="d-flex flex-wrap gap-2 mt-2">${suggestions.map(item => {
@@ -679,8 +675,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="col-md-4">
                     <div class="border rounded-3 p-3 h-100 bg-white">
                         <div class="small text-uppercase fw-bold text-muted mb-2">Khung day chuan va don nghi</div>
-                        <span class="badge bg-${availabilityColor} mb-2">${availability.ok === true ? 'Phu hop' : (availability.ok === false ? 'Khong phu hop' : 'Cho chon')}</span>
-                        <div class="small text-muted">${escapeHtml(availability.message || 'Chua co du lieu')}</div>
+                        <span class="badge bg-${teachingWindowColor} mb-2">${teachingWindow.ok === true ? 'Phu hop' : (teachingWindow.ok === false ? 'Khong phu hop' : 'Cho chon')}</span>
+                        <div class="small text-muted">${escapeHtml(teachingWindow.message || 'Chua co du lieu')}</div>
                         ${matchedHtml}
                     </div>
                 </div>
@@ -696,17 +692,8 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="row g-3 mt-1">
                 <div class="col-lg-6">
                     <div class="border rounded-3 p-3 h-100 bg-white">
-                        <div class="small text-uppercase fw-bold text-muted mb-2">Canh bao don nghi (${summary.active_count || 0})</div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="fw-bold small mb-1">Theo tuan</div>
-                                <ul class="small ps-3 mb-0">${summaryWeekly}</ul>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="fw-bold small mb-1">Theo ngay</div>
-                                <ul class="small ps-3 mb-0">${summarySpecific}</ul>
-                            </div>
-                        </div>
+                        <div class="small text-uppercase fw-bold text-muted mb-2">Canh bao don nghi (${matched.length})</div>
+                        ${leaveRequestItems}
                     </div>
                 </div>
                 <div class="col-lg-6">

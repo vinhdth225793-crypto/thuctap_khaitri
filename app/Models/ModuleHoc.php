@@ -9,7 +9,13 @@ class ModuleHoc extends Model
 {
     use HasFactory;
 
+    public const LEARNING_STATUS_CHUA_BAT_DAU = 'chua_bat_dau';
+    public const LEARNING_STATUS_DANG_DIEN_RA = 'dang_dien_ra';
+    public const LEARNING_STATUS_HOAN_THANH = 'hoan_thanh';
+
     protected $table = 'module_hoc';
+
+    protected ?array $learningProgressSnapshotCache = null;
 
     protected $fillable = [
         'khoa_hoc_id',
@@ -114,6 +120,128 @@ class ModuleHoc extends Model
     /**
      * Scope: Tìm kiếm module theo tên module
      */
+    public function forgetLearningProgressSnapshot(): void
+    {
+        $this->learningProgressSnapshotCache = null;
+    }
+
+    public function getLearningProgressSnapshotAttribute(): array
+    {
+        if ($this->learningProgressSnapshotCache !== null) {
+            return $this->learningProgressSnapshotCache;
+        }
+
+        $schedules = $this->relationLoaded('lichHocs')
+            ? $this->lichHocs
+            : $this->lichHocs()->get();
+
+        $cancelledSchedules = $schedules->filter(
+            fn (LichHoc $schedule) => $schedule->timeline_trang_thai === 'huy'
+        );
+        $validSchedules = $schedules->reject(
+            fn (LichHoc $schedule) => $schedule->timeline_trang_thai === 'huy'
+        )->values();
+
+        $completedSchedules = $validSchedules->filter(
+            fn (LichHoc $schedule) => $schedule->timeline_trang_thai === 'hoan_thanh'
+        );
+        $inProgressSchedules = $validSchedules->filter(
+            fn (LichHoc $schedule) => $schedule->timeline_trang_thai === 'dang_hoc'
+        );
+        $upcomingSchedules = $validSchedules->filter(
+            fn (LichHoc $schedule) => $schedule->timeline_trang_thai === 'cho'
+        );
+
+        $status = self::LEARNING_STATUS_CHUA_BAT_DAU;
+        if ($validSchedules->isNotEmpty() && $completedSchedules->count() === $validSchedules->count()) {
+            $status = self::LEARNING_STATUS_HOAN_THANH;
+        } elseif ($completedSchedules->isNotEmpty() || $inProgressSchedules->isNotEmpty()) {
+            $status = self::LEARNING_STATUS_DANG_DIEN_RA;
+        }
+
+        return $this->learningProgressSnapshotCache = [
+            'status' => $status,
+            'label' => $this->resolveLearningStatusLabel($status),
+            'badge' => $this->resolveLearningStatusBadge($status),
+            'total_schedules' => $schedules->count(),
+            'valid_schedules' => $validSchedules->count(),
+            'completed_schedules' => $completedSchedules->count(),
+            'in_progress_schedules' => $inProgressSchedules->count(),
+            'upcoming_schedules' => $upcomingSchedules->count(),
+            'cancelled_schedules' => $cancelledSchedules->count(),
+            'remaining_schedules' => max(0, $validSchedules->count() - $completedSchedules->count()),
+            'progress_percent' => $validSchedules->count() > 0
+                ? (int) round(($completedSchedules->count() / $validSchedules->count()) * 100)
+                : 0,
+        ];
+    }
+
+    public function getTrangThaiHocTapAttribute(): string
+    {
+        return $this->learning_progress_snapshot['status'];
+    }
+
+    public function getTrangThaiHocTapLabelAttribute(): string
+    {
+        return $this->learning_progress_snapshot['label'];
+    }
+
+    public function getTrangThaiHocTapBadgeAttribute(): string
+    {
+        return $this->learning_progress_snapshot['badge'];
+    }
+
+    public function getSoBuoiHopLeAttribute(): int
+    {
+        return $this->learning_progress_snapshot['valid_schedules'];
+    }
+
+    public function getSoBuoiHoanThanhAttribute(): int
+    {
+        return $this->learning_progress_snapshot['completed_schedules'];
+    }
+
+    public function getSoBuoiChuaHoanThanhAttribute(): int
+    {
+        return $this->learning_progress_snapshot['remaining_schedules'];
+    }
+
+    public function getSoBuoiBiHuyAttribute(): int
+    {
+        return $this->learning_progress_snapshot['cancelled_schedules'];
+    }
+
+    public function getProgressTextAttribute(): string
+    {
+        $snapshot = $this->learning_progress_snapshot;
+        return $snapshot['completed_schedules'] . '/' . $snapshot['valid_schedules'] . ' buổi';
+    }
+
+    public function getIsHoanThanhAttribute(): bool
+    {
+        return $this->trang_thai_hoc_tap === self::LEARNING_STATUS_HOAN_THANH;
+    }
+
+    private function resolveLearningStatusLabel(string $status): string
+    {
+        return match ($status) {
+            self::LEARNING_STATUS_CHUA_BAT_DAU => 'Chưa bắt đầu',
+            self::LEARNING_STATUS_DANG_DIEN_RA => 'Đang diễn ra',
+            self::LEARNING_STATUS_HOAN_THANH => 'Đã hoàn thành',
+            default => 'Đang cập nhật',
+        };
+    }
+
+    private function resolveLearningStatusBadge(string $status): string
+    {
+        return match ($status) {
+            self::LEARNING_STATUS_CHUA_BAT_DAU => 'secondary',
+            self::LEARNING_STATUS_DANG_DIEN_RA => 'primary',
+            self::LEARNING_STATUS_HOAN_THANH => 'success',
+            default => 'secondary',
+        };
+    }
+
     public function scopeSearch($query, $search)
     {
         return $query->where('ten_module', 'LIKE', "%{$search}%")

@@ -29,7 +29,7 @@ class PhanCongController extends Controller
                     $q2->where('giang_vien_id', $giangVien->id);
                 })->with(['phanCongGiangViens' => function ($q2) use ($giangVien) {
                     $q2->where('giang_vien_id', $giangVien->id);
-                }]);
+                }, 'lichHocs']);
             }])
             ->whereHas('moduleHocs.phanCongGiangViens', function ($q) use ($giangVien) {
                 $q->where('giang_vien_id', $giangVien->id);
@@ -48,15 +48,7 @@ class PhanCongController extends Controller
     {
         $giangVien = auth()->user()->giangVien;
 
-        $phanCong = PhanCongModuleGiangVien::with([
-            'khoaHoc.nhomNganh',
-            'moduleHoc',
-            'khoaHoc.hocVienKhoaHocs.hocVien' => function ($q) {
-                $q->with(['diemDanhs']);
-            },
-        ])
-        ->where('giang_vien_id', $giangVien->id)
-        ->findOrFail($id);
+        $phanCong = $this->resolveTeacherAssignment($giangVien->id, (int) $id);
 
         $khoaHoc = $phanCong->khoaHoc;
 
@@ -66,6 +58,18 @@ class PhanCongController extends Controller
             ->where('module_hoc_id', $phanCong->module_hoc_id)
             ->orderBy('ngay_hoc')
             ->get();
+
+        $phanCong->moduleHoc->setRelation('lichHocs', $lichDays);
+        $khoaHoc->setRelation(
+            'moduleHocs',
+            $khoaHoc->moduleHocs->map(function ($module) use ($phanCong, $lichDays) {
+                if ($module->id === $phanCong->module_hoc_id) {
+                    $module->setRelation('lichHocs', $lichDays);
+                }
+
+                return $module;
+            })
+        );
 
         return view('pages.giang-vien.phan-cong.show', compact('phanCong', 'khoaHoc', 'lichDays', 'lichHocIds'));
     }
@@ -190,5 +194,46 @@ class PhanCongController extends Controller
             DB::rollBack();
             return back()->with('error', 'Lỗi hệ thống: ' . $e->getMessage());
         }
+    }
+
+    private function resolveTeacherAssignment(int $teacherId, int $identifier): PhanCongModuleGiangVien
+    {
+        $relations = [
+            'khoaHoc.nhomNganh',
+            'moduleHoc',
+            'khoaHoc.hocVienKhoaHocs.hocVien' => function ($query) {
+                $query->with(['diemDanhs']);
+            },
+        ];
+
+        $baseQuery = PhanCongModuleGiangVien::with($relations)
+            ->where('giang_vien_id', $teacherId);
+
+        $directAssignment = (clone $baseQuery)->find($identifier);
+        if ($directAssignment) {
+            return $directAssignment;
+        }
+
+        $statusPriority = "CASE WHEN trang_thai = 'da_nhan' THEN 0 WHEN trang_thai = 'cho_xac_nhan' THEN 1 ELSE 2 END";
+
+        $courseAssignment = (clone $baseQuery)
+            ->where('khoa_hoc_id', $identifier)
+            ->orderByRaw($statusPriority)
+            ->orderByDesc('id')
+            ->first();
+
+        if ($courseAssignment) {
+            return $courseAssignment;
+        }
+
+        $moduleAssignment = (clone $baseQuery)
+            ->where('module_hoc_id', $identifier)
+            ->orderByRaw($statusPriority)
+            ->orderByDesc('id')
+            ->first();
+
+        abort_if(!$moduleAssignment, 404);
+
+        return $moduleAssignment;
     }
 }

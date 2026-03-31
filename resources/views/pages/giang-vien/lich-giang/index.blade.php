@@ -104,7 +104,7 @@
                             </div>
 
                             <div class="d-flex gap-2">
-                                <a href="{{ route('giang-vien.khoa-hoc.show', $schedule->khoa_hoc_id) }}" class="btn btn-sm btn-primary px-3">
+                                <a href="{{ $schedule->phan_cong_id ? route('giang-vien.khoa-hoc.show', $schedule->phan_cong_id) : route('giang-vien.khoa-hoc') }}" class="btn btn-sm btn-primary px-3">
                                     <i class="fas fa-external-link-alt me-1"></i> Vào lớp học
                                 </a>
                                 <a href="{{ route('giang-vien.don-xin-nghi.create', ['lich_hoc_id' => $schedule->id]) }}" class="btn btn-sm btn-outline-warning px-3">

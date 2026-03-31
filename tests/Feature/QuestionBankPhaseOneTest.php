@@ -138,6 +138,103 @@ class QuestionBankPhaseOneTest extends TestCase
         $response->assertSeeText('Another question in module one');
     }
 
+    public function test_admin_can_create_question_for_sample_course(): void
+    {
+        $admin = $this->createUser('admin');
+        $sampleCourse = $this->createCourse($admin, 'mau');
+        $module = $this->createModule($sampleCourse);
+
+        $this->actingAs($admin)
+            ->post(route('admin.kiem-tra-online.cau-hoi.store'), [
+                'course_type' => 'mau',
+                'khoa_hoc_id' => $sampleCourse->id,
+                'module_hoc_id' => $module->id,
+                'ma_cau_hoi' => 'CH-SAMPLE-001',
+                'noi_dung_cau_hoi' => 'Câu hỏi thuộc khóa mẫu',
+                'loai_cau_hoi' => NganHangCauHoi::LOAI_TRAC_NGHIEM,
+                'kieu_dap_an' => NganHangCauHoi::KIEU_MOT_DAP_AN,
+                'muc_do' => 'trung_binh',
+                'diem_mac_dinh' => 1,
+                'trang_thai' => NganHangCauHoi::TRANG_THAI_SAN_SANG,
+                'co_the_tai_su_dung' => '1',
+                'correct_answer_key' => '0',
+                'dap_ans' => [
+                    ['ky_hieu' => 'A', 'noi_dung' => 'Đáp án đúng'],
+                    ['ky_hieu' => 'B', 'noi_dung' => 'Đáp án sai'],
+                ],
+            ])
+            ->assertRedirect(route('admin.kiem-tra-online.cau-hoi.index'));
+
+        $question = NganHangCauHoi::query()
+            ->with('khoaHoc')
+            ->where('ma_cau_hoi', 'CH-SAMPLE-001')
+            ->firstOrFail();
+
+        $this->assertSame($sampleCourse->id, $question->khoa_hoc_id);
+        $this->assertSame('mau', $question->khoaHoc?->loai);
+    }
+
+    public function test_admin_can_move_question_between_sample_and_active_courses(): void
+    {
+        $admin = $this->createUser('admin');
+        $sampleCourse = $this->createCourse($admin, 'mau');
+        $activeCourse = $this->createCourse($admin, 'hoat_dong', $sampleCourse);
+        $sampleModule = $this->createModule($sampleCourse);
+        $activeModule = $this->createModule($activeCourse);
+        $question = $this->createSingleCorrectQuestion($admin, $sampleCourse, $sampleModule, 'CH-MOVE-001', 'Chuyển loại khóa học');
+
+        $this->actingAs($admin)
+            ->put(route('admin.kiem-tra-online.cau-hoi.update', $question->id), [
+                'course_type' => 'hoat_dong',
+                'khoa_hoc_id' => $activeCourse->id,
+                'module_hoc_id' => $activeModule->id,
+                'ma_cau_hoi' => 'CH-MOVE-001',
+                'noi_dung_cau_hoi' => 'Chuyển sang khóa đang hoạt động',
+                'loai_cau_hoi' => NganHangCauHoi::LOAI_TRAC_NGHIEM,
+                'kieu_dap_an' => NganHangCauHoi::KIEU_MOT_DAP_AN,
+                'muc_do' => 'de',
+                'diem_mac_dinh' => 1,
+                'trang_thai' => NganHangCauHoi::TRANG_THAI_SAN_SANG,
+                'co_the_tai_su_dung' => '1',
+                'correct_answer_key' => '0',
+                'dap_ans' => [
+                    ['ky_hieu' => 'A', 'noi_dung' => 'Đáp án đúng'],
+                    ['ky_hieu' => 'B', 'noi_dung' => 'Đáp án sai'],
+                ],
+            ])
+            ->assertRedirect(route('admin.kiem-tra-online.cau-hoi.index'));
+
+        $question->refresh();
+        $question->load('khoaHoc');
+
+        $this->assertSame($activeCourse->id, $question->khoa_hoc_id);
+        $this->assertSame($activeModule->id, $question->module_hoc_id);
+        $this->assertSame('hoat_dong', $question->khoaHoc?->loai);
+        $this->assertSame('Chuyển sang khóa đang hoạt động', $question->noi_dung);
+    }
+
+    public function test_question_bank_index_can_filter_by_course_type(): void
+    {
+        $admin = $this->createUser('admin');
+        $sampleCourse = $this->createCourse($admin, 'mau');
+        $activeCourse = $this->createCourse($admin, 'hoat_dong', $sampleCourse);
+        $sampleModule = $this->createModule($sampleCourse);
+        $activeModule = $this->createModule($activeCourse);
+
+        $this->createSingleCorrectQuestion($admin, $sampleCourse, $sampleModule, 'CH-TYPE-001', 'Câu hỏi của khóa mẫu');
+        $this->createSingleCorrectQuestion($admin, $activeCourse, $activeModule, 'CH-TYPE-002', 'Câu hỏi của khóa hoạt động');
+
+        $response = $this->actingAs($admin)->get(route('admin.kiem-tra-online.cau-hoi.index', [
+            'course_type' => 'mau',
+            'view_mode' => 'detail',
+        ]));
+
+        $response->assertOk();
+        $response->assertSeeText('Câu hỏi của khóa mẫu');
+        $response->assertDontSeeText('Câu hỏi của khóa hoạt động');
+        $response->assertSeeText('Khóa học mẫu');
+    }
+
     public function test_toggle_status_and_reusable_flags_work(): void
     {
         $admin = $this->createUser('admin');
@@ -227,7 +324,7 @@ class QuestionBankPhaseOneTest extends TestCase
         return [$user, $teacher];
     }
 
-    private function createCourse(NguoiDung $creator): KhoaHoc
+    private function createCourse(NguoiDung $creator, string $type = 'hoat_dong', ?KhoaHoc $sampleCourse = null): KhoaHoc
     {
         $index = $this->sequence++;
         $group = NhomNganh::create([
@@ -246,7 +343,8 @@ class QuestionBankPhaseOneTest extends TestCase
             'ty_trong_diem_danh' => 20,
             'ty_trong_kiem_tra' => 80,
             'trang_thai' => true,
-            'loai' => 'hoat_dong',
+            'loai' => $type,
+            'khoa_hoc_mau_id' => $type === 'hoat_dong' ? $sampleCourse?->id : null,
             'trang_thai_van_hanh' => 'dang_day',
             'created_by' => $creator->ma_nguoi_dung,
         ]);

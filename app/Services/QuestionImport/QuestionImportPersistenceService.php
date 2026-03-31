@@ -9,14 +9,15 @@ class QuestionImportPersistenceService
 {
     /**
      * @param  array<string, mixed>  $preview
-     * @return array{created:int, skipped_duplicate_db:int}
+     * @return array{created:int, skipped_duplicate_db:int, ids:array<int, int>}
      */
     public function confirmImport(array $preview, int $khoaHocId, int $userId, ?int $moduleHocId = null): array
     {
         $createdCount = 0;
         $skippedDuplicateDbCount = 0;
+        $createdIds = [];
 
-        DB::transaction(function () use ($preview, $khoaHocId, $moduleHocId, $userId, &$createdCount, &$skippedDuplicateDbCount) {
+        DB::transaction(function () use ($preview, $khoaHocId, $moduleHocId, $userId, &$createdCount, &$skippedDuplicateDbCount, &$createdIds) {
             foreach (($preview['data'] ?? []) as $item) {
                 if (($item['status'] ?? null) !== 'hop_le') {
                     continue;
@@ -63,12 +64,14 @@ class QuestionImportPersistenceService
                 }
 
                 $createdCount++;
+                $createdIds[] = (int) $cauHoi->id;
             }
         });
 
         return [
             'created' => $createdCount,
             'skipped_duplicate_db' => $skippedDuplicateDbCount,
+            'ids' => $createdIds,
         ];
     }
 }

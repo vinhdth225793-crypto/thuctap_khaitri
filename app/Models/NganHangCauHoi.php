@@ -78,6 +78,23 @@ class NganHangCauHoi extends Model
         });
     }
 
+    public function scopeTheoLoaiKhoaHoc($query, ?string $courseType)
+    {
+        if (!in_array($courseType, ['mau', 'hoat_dong'], true)) {
+            return $query;
+        }
+
+        return $query->whereHas('khoaHoc', function ($courseQuery) use ($courseType) {
+            if ($courseType === 'mau') {
+                $courseQuery->mau();
+
+                return;
+            }
+
+            $courseQuery->hoatDong();
+        });
+    }
+
     public function khoaHoc(): BelongsTo
     {
         return $this->belongsTo(KhoaHoc::class, 'khoa_hoc_id');
@@ -206,6 +223,39 @@ class NganHangCauHoi extends Model
         return $this->moduleHoc?->ten_module
             ? ($this->khoaHoc?->ten_khoa_hoc . ' / ' . $this->moduleHoc->ten_module)
             : ($this->khoaHoc?->ten_khoa_hoc ?? 'Chưa gắn khóa học');
+    }
+
+    public function getLoaiKhoaHocAttribute(): ?string
+    {
+        return $this->khoaHoc?->loai;
+    }
+
+    public function getLoaiKhoaHocLabelAttribute(): string
+    {
+        if ($this->loai_khoa_hoc === 'mau') {
+            return 'Khóa học mẫu';
+        }
+
+        if ($this->loai_khoa_hoc === 'hoat_dong') {
+            return 'Khóa học hoạt động';
+        }
+
+        return 'Chưa xác định';
+
+        return match ($this->loai_khoa_hoc) {
+            'mau' => 'Khóa mẫu',
+            'hoat_dong' => 'Khóa hoạt động',
+            default => 'Chưa xác định',
+        };
+    }
+
+    public function getLoaiKhoaHocColorAttribute(): string
+    {
+        return match ($this->loai_khoa_hoc) {
+            'mau' => 'info',
+            'hoat_dong' => 'primary',
+            default => 'secondary',
+        };
     }
 
     public function getIsEssayAttribute(): bool

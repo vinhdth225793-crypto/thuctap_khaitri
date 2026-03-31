@@ -66,7 +66,15 @@ class BaiKiemTraController extends Controller
 
         $cauHoiHienThi = $baiKiemTra->chiTietCauHois;
         if ($baiKiemTra->randomize_questions && $baiLam && $baiLam->can_resume) {
-            $cauHoiHienThi = $cauHoiHienThi->shuffle()->values();
+            $cauHoiHienThi = $cauHoiHienThi->shuffle($baiLam->id)->values();
+        }
+
+        if ($baiKiemTra->randomize_answers && $baiLam && $baiLam->can_resume) {
+            foreach ($cauHoiHienThi as $chiTiet) {
+                if ($chiTiet->cauHoi && $chiTiet->cauHoi->relationLoaded('dapAns')) {
+                    $chiTiet->cauHoi->setRelation('dapAns', $chiTiet->cauHoi->dapAns->shuffle($baiLam->id + $chiTiet->id));
+                }
+            }
         }
 
         $attemptsUsed = $baiKiemTra->baiLams->count();

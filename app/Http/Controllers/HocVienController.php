@@ -218,8 +218,10 @@ class HocVienController extends Controller
 
         $stats = [
             'tong_module' => $khoaHoc->moduleHocs->count(),
+            'module_hoan_thanh' => $khoaHoc->so_module_hoan_thanh,
             'module_co_lich' => $khoaHoc->moduleHocs->filter(fn ($module) => $module->lichHocs->isNotEmpty())->count(),
             'tong_buoi_hoc' => $khoaHoc->moduleHocs->sum(fn ($module) => $module->lichHocs->count()),
+            'buoi_hoan_thanh' => $khoaHoc->moduleHocs->sum(fn ($module) => $module->so_buoi_hoan_thanh),
             'buoi_online' => $khoaHoc->moduleHocs->sum(fn ($module) => $module->lichHocs->where('hinh_thuc', 'online')->count()),
         ];
 

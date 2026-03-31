@@ -44,7 +44,7 @@ class KhoaHocManagementController extends Controller
 
         // 2. Lớp đang giảng dạy
         $khoaHocDangDay = KhoaHoc::hoatDong()
-            ->with(['nhomNganh', 'moduleHocs', 'khoaHocMau'])
+            ->with(['nhomNganh', 'moduleHocs.lichHocs', 'khoaHocMau'])
             ->withCount(['moduleHocs as module_xac_nhan_count' => function($q) {
                 $q->whereHas('phanCongGiangViens', fn($q2) => $q2->where('trang_thai', 'da_nhan'));
             }])
@@ -55,7 +55,7 @@ class KhoaHocManagementController extends Controller
 
         // 3. Lớp chờ giảng viên xác nhận
         $khoaHocChoGV = KhoaHoc::hoatDong()
-            ->with(['nhomNganh', 'moduleHocs', 'khoaHocMau'])
+            ->with(['nhomNganh', 'moduleHocs.lichHocs', 'khoaHocMau'])
             ->withCount(['moduleHocs as module_xac_nhan_count' => function($q) {
                 $q->whereHas('phanCongGiangViens', fn($q2) => $q2->where('trang_thai', 'da_nhan'));
             }])
@@ -66,7 +66,7 @@ class KhoaHocManagementController extends Controller
 
         // 4. Lớp sẵn sàng khai giảng
         $khoaHocSanSang = KhoaHoc::hoatDong()
-            ->with(['nhomNganh', 'moduleHocs', 'khoaHocMau'])
+            ->with(['nhomNganh', 'moduleHocs.lichHocs', 'khoaHocMau'])
             ->withCount(['moduleHocs as module_xac_nhan_count' => function($q) {
                 $q->whereHas('phanCongGiangViens', fn($q2) => $q2->where('trang_thai', 'da_nhan'));
             }])
@@ -75,8 +75,24 @@ class KhoaHocManagementController extends Controller
             ->orderBy('ngay_mo_lop', 'asc')
             ->paginate(10, ['*'], 'page_ss');
 
+        $khoaHocHoanThanh = KhoaHoc::hoatDong()
+            ->with(['nhomNganh', 'moduleHocs.lichHocs', 'khoaHocMau'])
+            ->withCount(['moduleHocs as module_xac_nhan_count' => function($q) {
+                $q->whereHas('phanCongGiangViens', fn($q2) => $q2->where('trang_thai', 'da_nhan'));
+            }])
+            ->tap($applySearch)
+            ->where('trang_thai_van_hanh', 'ket_thuc')
+            ->orderByDesc('updated_at')
+            ->paginate(10, ['*'], 'page_ht');
+
         return view('pages.admin.khoa-hoc.khoa-hoc.index', compact(
-            'khoaHocMau', 'khoaHocDangDay', 'khoaHocChoGV', 'khoaHocSanSang', 'activeTab', 'search'
+            'khoaHocMau',
+            'khoaHocDangDay',
+            'khoaHocChoGV',
+            'khoaHocSanSang',
+            'khoaHocHoanThanh',
+            'activeTab',
+            'search'
         ));
     }
 
@@ -171,6 +187,7 @@ class KhoaHocManagementController extends Controller
     {
         $khoaHoc = KhoaHoc::with([
             'nhomNganh',
+            'moduleHocs.lichHocs',
             'moduleHocs.phanCongGiangViens.giangVien.nguoiDung',
             'moduleHocs.phanCongGiangViens.giangVien.donXinNghis',
             'khoaHocMau',

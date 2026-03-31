@@ -1,6 +1,16 @@
 @extends('layouts.app')
 
 @php
+    $selectedCourseId = old('khoa_hoc_id', $cauHoi->khoa_hoc_id);
+    $selectedCourse = filled($selectedCourseId)
+        ? $khoaHocs->firstWhere('id', (int) $selectedCourseId)
+        : null;
+    $defaultCourseType = $sampleCourses->isNotEmpty() ? 'mau' : 'hoat_dong';
+    $selectedCourseType = old('course_type', $selectedCourse?->loai ?? $defaultCourseType);
+    $selectedCourseType = in_array($selectedCourseType, ['mau', 'hoat_dong'], true)
+        ? $selectedCourseType
+        : $defaultCourseType;
+
     $selectedQuestionType = old('loai_cau_hoi', $cauHoi->loai_cau_hoi ?: \App\Models\NganHangCauHoi::LOAI_TRAC_NGHIEM);
     $selectedAnswerMode = old('kieu_dap_an', $cauHoi->kieu_dap_an ?: \App\Models\NganHangCauHoi::KIEU_MOT_DAP_AN);
 
@@ -58,6 +68,20 @@
 
 @section('title', $title)
 
+@push('styles')
+<style>
+    .bg-primary-soft { background-color: rgba(13, 110, 253, 0.1); }
+    .bg-info-soft { background-color: rgba(13, 202, 240, 0.1); }
+    .course-type-option {
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .course-type-option:hover {
+        transform: translateY(-2px);
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="container-fluid">
     <div class="row mb-4">
@@ -102,16 +126,50 @@
                 @endif
 
                 <div class="row g-4">
+                    <div class="col-12">
+                        <label class="form-label fw-bold d-block">Loại khóa học đích <span class="text-danger">*</span></label>
+                        <div class="row g-3">
+                            @foreach($courseTypeOptions as $value => $label)
+                                @php
+                                    $courseCount = $value === 'mau' ? $sampleCourses->count() : $activeCourses->count();
+                                    $accentClass = $value === 'mau' ? 'info' : 'primary';
+                                @endphp
+                                <div class="col-md-6">
+                                    <label class="card border h-100 shadow-sm course-type-option {{ $selectedCourseType === $value ? 'border-' . $accentClass : '' }}">
+                                        <div class="card-body d-flex align-items-start gap-3">
+                                            <input type="radio" name="course_type" value="{{ $value }}" class="form-check-input mt-1" @checked($selectedCourseType === $value)>
+                                            <div>
+                                                <div class="fw-bold text-dark">{{ $label }}</div>
+                                                <div class="small text-muted">
+                                                    {{ $value === 'mau' ? 'Dùng cho bộ câu hỏi gốc theo khóa mẫu.' : 'Dùng cho lớp đang vận hành thực tế.' }}
+                                                </div>
+                                                <div class="mt-2">
+                                                    <span class="badge bg-{{ $accentClass }}-soft text-{{ $accentClass }} border border-{{ $accentClass }}">
+                                                        {{ $courseCount }} khóa khả dụng
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            @endforeach
+                        </div>
+                        @error('course_type')
+                            <div class="text-danger small mt-2">{{ $message }}</div>
+                        @enderror
+                    </div>
+
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Khóa học <span class="text-danger">*</span></label>
                         <select name="khoa_hoc_id" id="khoa_hoc_id" class="form-select @error('khoa_hoc_id') is-invalid @enderror" required>
                             <option value="">Chọn khóa học</option>
                             @foreach($khoaHocs as $khoaHoc)
-                                <option value="{{ $khoaHoc->id }}" @selected((string) old('khoa_hoc_id', $cauHoi->khoa_hoc_id) === (string) $khoaHoc->id)>
+                                <option value="{{ $khoaHoc->id }}" data-course-type="{{ $khoaHoc->loai }}" @selected((string) $selectedCourseId === (string) $khoaHoc->id)>
                                     [{{ $khoaHoc->ma_khoa_hoc }}] {{ $khoaHoc->ten_khoa_hoc }}
                                 </option>
                             @endforeach
                         </select>
+                        <div class="form-text" id="course-select-hint">Chỉ hiển thị các khóa học đúng với loại đã chọn.</div>
                         @error('khoa_hoc_id')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -122,11 +180,12 @@
                         <select name="module_hoc_id" id="module_hoc_id" class="form-select @error('module_hoc_id') is-invalid @enderror">
                             <option value="">Dùng chung toàn khóa</option>
                             @foreach($modules as $module)
-                                <option value="{{ $module->id }}" data-course-id="{{ $module->khoa_hoc_id }}" @selected((string) old('module_hoc_id', $cauHoi->module_hoc_id) === (string) $module->id)>
+                                <option value="{{ $module->id }}" data-course-id="{{ $module->khoa_hoc_id }}" data-course-type="{{ $module->khoa_hoc_loai }}" @selected((string) old('module_hoc_id', $cauHoi->module_hoc_id) === (string) $module->id)>
                                     [{{ $module->ma_module }}] {{ $module->ten_module }}
                                 </option>
                             @endforeach
                         </select>
+                        <div class="form-text">Module sẽ được lọc theo khóa học đã chọn.</div>
                         @error('module_hoc_id')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -356,8 +415,11 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        const courseTypeInputs = Array.from(document.querySelectorAll('input[name="course_type"]'));
         const courseSelect = document.getElementById('khoa_hoc_id');
         const moduleSelect = document.getElementById('module_hoc_id');
+        const courseSelectHint = document.getElementById('course-select-hint');
+        const moduleSelectHint = moduleSelect?.parentElement?.querySelector('.form-text');
         const questionTypeSelect = document.getElementById('loai_cau_hoi');
         const answerModeSelect = document.getElementById('kieu_dap_an');
         const answerModeWrapper = document.getElementById('answer-mode-wrapper');
@@ -368,8 +430,30 @@
         const answerList = document.getElementById('answer-list');
         const answerTemplate = document.getElementById('answer-row-template');
 
-        const syncModules = () => {
+        const getSelectedCourseType = () => {
+            return courseTypeInputs.find((input) => input.checked)?.value || '';
+        };
+
+        const syncCourseTypeCards = () => {
+            const selectedType = getSelectedCourseType();
+
+            courseTypeInputs.forEach((input) => {
+                const card = input.closest('label');
+                if (!card) {
+                    return;
+                }
+
+                const accentClass = input.value === 'mau' ? 'info' : 'primary';
+                const isActive = input.value === selectedType;
+
+                card.classList.toggle(`border-${accentClass}`, isActive);
+                card.classList.toggle('shadow', isActive);
+            });
+        };
+
+        const syncModules = ({ resetSelection = false } = {}) => {
             const selectedCourse = courseSelect.value;
+            const selectedCourseType = getSelectedCourseType();
 
             Array.from(moduleSelect.options).forEach((option) => {
                 if (!option.value) {
@@ -377,13 +461,62 @@
                     return;
                 }
 
-                option.hidden = selectedCourse !== '' && option.dataset.courseId !== selectedCourse;
+                const sameCourse = selectedCourse !== '' && option.dataset.courseId === selectedCourse;
+                const sameType = selectedCourseType === '' || option.dataset.courseType === selectedCourseType;
+
+                option.hidden = selectedCourse === ''
+                    ? true
+                    : !(sameCourse && sameType);
             });
 
             const selectedOption = moduleSelect.options[moduleSelect.selectedIndex];
-            if (selectedOption && selectedOption.hidden) {
+            if (resetSelection || (selectedOption && selectedOption.hidden)) {
                 moduleSelect.value = '';
             }
+
+            if (moduleSelectHint) {
+                moduleSelectHint.textContent = selectedCourse === ''
+                    ? 'Chọn khóa học trước để hệ thống lọc module tương ứng.'
+                    : 'Module được lọc đúng theo khóa học và loại khóa học đang chọn.';
+            }
+        };
+
+        const syncCourseOptions = ({ resetSelection = false } = {}) => {
+            const selectedCourseType = getSelectedCourseType();
+            let visibleCourseCount = 0;
+
+            Array.from(courseSelect.options).forEach((option) => {
+                if (!option.value) {
+                    option.hidden = false;
+                    return;
+                }
+
+                const shouldShow = selectedCourseType === '' || option.dataset.courseType === selectedCourseType;
+                option.hidden = !shouldShow;
+
+                if (shouldShow) {
+                    visibleCourseCount += 1;
+                }
+            });
+
+            const selectedOption = courseSelect.options[courseSelect.selectedIndex];
+            if (resetSelection || (selectedOption && selectedOption.hidden)) {
+                courseSelect.value = '';
+            }
+
+            if (courseSelectHint) {
+                if (visibleCourseCount === 0) {
+                    courseSelectHint.textContent = 'Chưa có khóa học nào phù hợp với loại bạn đang chọn.';
+                } else if (selectedCourseType === 'mau') {
+                    courseSelectHint.textContent = 'Đang hiển thị các khóa học mẫu để xây dựng ngân hàng câu hỏi nền.';
+                } else if (selectedCourseType === 'hoat_dong') {
+                    courseSelectHint.textContent = 'Đang hiển thị các khóa học hoạt động để phục vụ lớp đang chạy thực tế.';
+                } else {
+                    courseSelectHint.textContent = 'Chỉ hiển thị các khóa học đúng với loại đã chọn.';
+                }
+            }
+
+            syncModules({ resetSelection: resetSelection || courseSelect.value === '' });
         };
 
         const syncAnswerPanels = () => {
@@ -440,7 +573,14 @@
             row.remove();
         };
 
-        courseSelect.addEventListener('change', syncModules);
+        courseTypeInputs.forEach((input) => {
+            input.addEventListener('change', () => {
+                syncCourseTypeCards();
+                syncCourseOptions({ resetSelection: true });
+            });
+        });
+
+        courseSelect.addEventListener('change', () => syncModules());
         questionTypeSelect.addEventListener('change', syncAnswerPanels);
         answerModeSelect.addEventListener('change', syncAnswerPanels);
         addAnswerButton.addEventListener('click', createAnswerRow);
@@ -454,7 +594,8 @@
             removeAnswerRow(removeButton);
         });
 
-        syncModules();
+        syncCourseTypeCards();
+        syncCourseOptions();
         syncAnswerPanels();
     });
 </script>

@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\GiangVien;
 
 use App\Http\Controllers\Controller;
+use App\Services\TeacherAssignmentResolver;
 use App\Services\Scheduling\TeacherScheduleViewService;
 use Illuminate\Http\Request;
 
 class TeacherScheduleController extends Controller
 {
     public function __construct(
+        private readonly TeacherAssignmentResolver $assignmentResolver,
         private readonly TeacherScheduleViewService $scheduleViewService,
     ) {
     }
@@ -24,6 +26,14 @@ class TeacherScheduleController extends Controller
             ->where('trang_thai', '!=', 'huy')
             ->limit(10)
             ->get();
+
+        $assignmentMap = $this->assignmentResolver->mapAcceptedAssignmentsForSchedules($teacher->id, $upcomingSchedules);
+        $upcomingSchedules->each(function ($schedule) use ($assignmentMap) {
+            $specificKey = (int) $schedule->khoa_hoc_id . ':' . ($schedule->module_hoc_id !== null ? (int) $schedule->module_hoc_id : '*');
+            $fallbackKey = (int) $schedule->khoa_hoc_id . ':*';
+
+            $schedule->setAttribute('phan_cong_id', $assignmentMap[$specificKey] ?? $assignmentMap[$fallbackKey] ?? null);
+        });
 
         $recentLeaveRequests = $teacher->donXinNghis()
             ->with(['khoaHoc', 'moduleHoc', 'lichHoc'])

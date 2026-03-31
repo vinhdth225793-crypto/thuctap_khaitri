@@ -17,6 +17,7 @@ class UpsertNganHangCauHoiRequest extends FormRequest
         $questionId = $this->route('id');
 
         return [
+            'course_type' => ['nullable', Rule::in(['mau', 'hoat_dong'])],
             'khoa_hoc_id' => ['required', 'integer', 'exists:khoa_hoc,id'],
             'module_hoc_id' => ['nullable', 'integer', 'exists:module_hoc,id'],
             'ma_cau_hoi' => [
@@ -49,6 +50,7 @@ class UpsertNganHangCauHoiRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'course_type.in' => 'Loại khóa học không hợp lệ.',
             'khoa_hoc_id.required' => 'Vui lòng chọn khóa học.',
             'khoa_hoc_id.exists' => 'Khóa học được chọn không hợp lệ.',
             'module_hoc_id.exists' => 'Module được chọn không hợp lệ.',
