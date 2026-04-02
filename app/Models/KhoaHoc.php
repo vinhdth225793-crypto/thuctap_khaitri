@@ -281,6 +281,20 @@ class KhoaHoc extends Model
         return $this->module_hocs_count ?? $this->moduleHocs()->count();
     }
 
+    public function getSoModuleDaNhanAttribute(): int
+    {
+        return $this->moduleHocs->filter(function($module) {
+            return $module->phanCongGiangViens->where('trang_thai', 'da_nhan')->count() > 0;
+        })->count();
+    }
+
+    public function getTienDoPhanCongAttribute(): int
+    {
+        $total = $this->moduleHocs->count();
+        if ($total === 0) return 0;
+        return round(($this->so_module_da_nhan / $total) * 100);
+    }
+
     public function getPhuongThucDanhGiaLabelAttribute(): string
     {
         return match ($this->phuong_thuc_danh_gia) {
@@ -382,6 +396,11 @@ class KhoaHoc extends Model
     {
         $snapshot = $this->learning_progress_snapshot;
         return $snapshot['completed_modules'] . '/' . $snapshot['total_modules'] . ' module';
+    }
+
+    public function getTienDoHocTapAttribute(): int
+    {
+        return $this->learning_progress_snapshot['progress_percent'];
     }
 
     public function getIsHoanThanhAttribute(): bool

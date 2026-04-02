@@ -178,6 +178,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
 
     // Quản lý Yêu cầu từ Giảng viên (Phase 3)
     Route::get('/yeu-cau-hoc-vien', [App\Http\Controllers\Admin\YeuCauHocVienController::class, 'index'])->name('yeu-cau-hoc-vien.index');
+    Route::post('/yeu-cau-hoc-vien/{id}/xac-nhan', [App\Http\Controllers\Admin\YeuCauHocVienController::class, 'xacNhan'])->name('yeu-cau-hoc-vien.xac-nhan');
     
 
     Route::prefix('giang-vien-don-xin-nghi')->name('giang-vien-don-xin-nghi.')->group(function () {
@@ -286,6 +287,8 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
     Route::get('/khoa-hoc/{id}', [PhanCongController::class, 'show'])->name('khoa-hoc.show');
     Route::post('/khoa-hoc/{id}/xac-nhan', [PhanCongController::class, 'xacNhan'])->name('khoa-hoc.xac-nhan');
     Route::put('/buoi-hoc/{id}/link', [PhanCongController::class, 'updateLinkOnline'])->name('buoi-hoc.update-link');
+    Route::get('/diem-danh', [DiemDanhController::class, 'redirectToSession'])->name('diem-danh.index');
+    Route::get('/tai-nguyen', [TaiNguyenController::class, 'redirectToSession'])->name('tai-nguyen.index');
     
     // Quản lý Học viên & Yêu cầu (Phase 6)
     Route::post('/khoa-hoc/{khoaHocId}/yeu-cau-hoc-vien', [PhanCongController::class, 'guiYeuCauHocVien'])->name('khoa-hoc.gui-yeu-cau-hoc-vien');
@@ -373,6 +376,7 @@ Route::prefix('hoc-vien')->name('hoc-vien.')->middleware(['auth', \App\Http\Midd
     Route::get('/khoa-hoc-tham-gia', [HocVienController::class, 'khoaHocCoTheThamGia'])->name('khoa-hoc-tham-gia');
     Route::post('/khoa-hoc/{khoaHocId}/xin-tham-gia', [HocVienController::class, 'guiYeuCauThamGia'])->name('khoa-hoc.gui-yeu-cau-tham-gia');
     Route::get('/khoa-hoc/{id}', [HocVienController::class, 'chiTietKhoaHoc'])->name('chi-tiet-khoa-hoc');
+    Route::get('/buoi-hoc/{id}', [HocVienController::class, 'chiTietBuoiHoc'])->name('buoi-hoc.show');
     Route::get('/bai-giang/{id}', [HocVienController::class, 'chiTietBaiGiang'])->name('bai-giang.show');
     Route::get('/live-room/{id}', [HocVienLiveRoomController::class, 'show'])->name('live-room.show');
     Route::post('/live-room/{id}/join', [HocVienLiveRoomController::class, 'join'])->name('live-room.join');

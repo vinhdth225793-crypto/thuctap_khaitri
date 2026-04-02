@@ -8,6 +8,9 @@
                 <ol class="breadcrumb mb-2">
                     <li class="breadcrumb-item"><a href="{{ route('hoc-vien.dashboard') }}">Dashboard</a></li>
                     <li class="breadcrumb-item"><a href="{{ route('hoc-vien.bai-kiem-tra') }}">Bài kiểm tra</a></li>
+                    @if($baiKiemTra->lich_hoc_id)
+                        <li class="breadcrumb-item"><a href="{{ route('hoc-vien.buoi-hoc.show', $baiKiemTra->lich_hoc_id) }}">Buổi {{ $baiKiemTra->lichHoc->buoi_so ?: '#' }}</a></li>
+                    @endif
                     <li class="breadcrumb-item active" aria-current="page">{{ $baiKiemTra->tieu_de }}</li>
                 </ol>
             </nav>
@@ -71,6 +74,12 @@
                         <span class="label">Ngày đóng</span>
                         <strong>{{ $baiKiemTra->ngay_dong ? $baiKiemTra->ngay_dong->format('d/m/Y H:i') : 'Chưa đặt lịch đóng' }}</strong>
                     </div>
+                    @if($baiKiemTra->lich_hoc_id)
+                        <div class="info-row">
+                            <span class="label">Buổi học liên quan</span>
+                            <a href="{{ route('hoc-vien.buoi-hoc.show', $baiKiemTra->lich_hoc_id) }}" class="fw-semibold">Mở buổi học</a>
+                        </div>
+                    @endif
 
                     @if($baiLam)
                         <hr>

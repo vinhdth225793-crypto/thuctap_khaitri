@@ -129,25 +129,6 @@
     </nav>
 </aside>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const sidebar = document.getElementById('sidebarScrollContainer');
-        if (!sidebar) return;
-        const scrollPos = sessionStorage.getItem('sidebar-scroll');
-        if (scrollPos) {
-            sidebar.scrollTop = scrollPos;
-        }
-        const saveScroll = () => {
-            sessionStorage.setItem('sidebar-scroll', sidebar.scrollTop);
-        };
-        sidebar.addEventListener('scroll', saveScroll);
-        const links = sidebar.querySelectorAll('a');
-        links.forEach(link => {
-            link.addEventListener('click', saveScroll);
-        });
-    });
-</script>
-
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700;800&display=swap');
 

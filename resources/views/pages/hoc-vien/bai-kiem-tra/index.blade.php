@@ -107,6 +107,12 @@
                                 Xem chi tiết
                             </a>
 
+                            @if($baiKiemTra->lich_hoc_id)
+                                <a href="{{ route('hoc-vien.buoi-hoc.show', $baiKiemTra->lich_hoc_id) }}" class="btn btn-outline-secondary">
+                                    Về buổi học
+                                </a>
+                            @endif
+
                             @if($baiLam && $baiLam->is_submitted)
                                 <span class="btn btn-success disabled">Đã nộp bài</span>
                             @elseif($baiKiemTra->can_student_start)

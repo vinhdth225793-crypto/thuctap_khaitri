@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PhanCongModuleGiangVien;
+use App\Services\TeacherAssignmentResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -68,6 +69,14 @@ class GiangVienController extends Controller
             ->where('trang_thai', '!=', 'huy')
             ->orderBy('gio_bat_dau')
             ->get();
+
+        $assignmentMap = app(TeacherAssignmentResolver::class)->mapAcceptedAssignmentsForSchedules($giangVienId, $lichHomNay);
+        $lichHomNay->each(function ($lichHoc) use ($assignmentMap) {
+            $specificKey = (int) $lichHoc->khoa_hoc_id . ':' . ($lichHoc->module_hoc_id !== null ? (int) $lichHoc->module_hoc_id : '*');
+            $fallbackKey = (int) $lichHoc->khoa_hoc_id . ':*';
+
+            $lichHoc->setAttribute('phan_cong_id', $assignmentMap[$specificKey] ?? $assignmentMap[$fallbackKey] ?? null);
+        });
 
         return view('pages.giang-vien.dashboard', compact('stats', 'phanCongMoi', 'lopDangDay', 'lichHomNay'));
     }

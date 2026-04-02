@@ -31,4 +31,37 @@ class PhongHocLiveBanGhi extends Model
     {
         return $this->belongsTo(PhongHocLive::class, 'phong_hoc_live_id');
     }
+
+    public function getPlaybackUrlAttribute(): ?string
+    {
+        if (!empty($this->link_ngoai)) {
+            return $this->link_ngoai;
+        }
+
+        if (empty($this->duong_dan_file)) {
+            return null;
+        }
+
+        if (str_starts_with($this->duong_dan_file, 'storage/')) {
+            return asset($this->duong_dan_file);
+        }
+
+        return asset('storage/' . ltrim($this->duong_dan_file, '/'));
+    }
+
+    public function getDurationLabelAttribute(): string
+    {
+        if (!$this->thoi_luong) {
+            return 'Chưa cập nhật';
+        }
+
+        $hours = intdiv($this->thoi_luong, 3600);
+        $minutes = intdiv($this->thoi_luong % 3600, 60);
+
+        if ($hours > 0) {
+            return sprintf('%dh %02dph', $hours, $minutes);
+        }
+
+        return sprintf('%d phút', $minutes);
+    }
 }

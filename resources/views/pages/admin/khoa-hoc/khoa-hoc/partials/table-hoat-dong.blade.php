@@ -22,7 +22,7 @@
                     <th class="text-center">Xác nhận GV</th>
                     <th class="text-center">Khai giảng</th>
                     <th class="text-center">Trạng thái</th>
-                    <th class="pe-4 text-center" width="120">Hành động</th>
+                    <th class="pe-4 text-center" width="{{ $tab === 'san_sang' ? '220' : '120' }}">Hành động</th>
                 </tr>
             </thead>
             <tbody>
@@ -69,13 +69,18 @@
                             </div>
                         </td>
                         <td class="pe-4 text-center">
-                            <div class="d-flex justify-content-center gap-1">
+                            <div class="d-flex justify-content-center gap-1 flex-wrap">
                                 <a href="{{ route('admin.khoa-hoc.hoc-vien.index', $kh->id) }}" class="btn btn-sm btn-outline-success action-btn" title="Quản lý học viên">
                                     <i class="fas fa-users"></i>
                                 </a>
                                 <a href="{{ route('admin.khoa-hoc.show', $kh->id) }}" class="btn btn-sm btn-outline-primary action-btn" title="Xem chi tiết">
                                     <i class="fas fa-eye"></i>
                                 </a>
+                                @if($tab === 'san_sang' && $kh->trang_thai_van_hanh === 'san_sang')
+                                    <a href="{{ route('admin.khoa-hoc.show', $kh->id) }}#kich-hoat-khoa-hoc" class="btn btn-sm btn-primary fw-bold px-2" title="Kích hoạt khóa học">
+                                        <i class="fas fa-play me-1"></i> Kích hoạt
+                                    </a>
+                                @endif
                             </div>
                         </td>
                     </tr>

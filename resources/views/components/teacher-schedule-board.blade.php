@@ -13,6 +13,11 @@
 
     <div class="card border-0 shadow-sm mb-4 overflow-hidden">
         <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+            <div class="text-center mb-3">
+                <h5 class="mb-1 fw-bold">Thoi khoa bieu theo tuan</h5>
+                <p class="text-muted small mb-0">Tong hop lich day va don xin nghi trong cung mot man hinh.</p>
+            </div>
+
             <div class="d-flex flex-column align-items-center mb-4">
                 <div class="d-flex align-items-center gap-2 mb-2">
                     <a href="{{ request()->fullUrlWithQuery(['week_start' => $prevWeek]) }}" class="btn btn-outline-primary border-2 rounded-circle shadow-sm p-2" title="Tuần trước" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
@@ -151,6 +156,7 @@
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-white border-0 pt-3 px-3 d-flex justify-content-between align-items-center">
             <div>
+                <span class="visually-hidden">Danh sach lich day trong tuan</span>
                 <h6 class="mb-0 fw-bold">Danh sách buổi dạy tuần này</h6>
             </div>
             @if(!empty($scheduleView['scheduled_items']))

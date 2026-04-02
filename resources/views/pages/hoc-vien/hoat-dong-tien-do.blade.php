@@ -213,7 +213,10 @@
                                 @endif
                             </div>
                             <div class="d-flex flex-wrap gap-2 mt-3">
-                                <a href="{{ route('hoc-vien.chi-tiet-khoa-hoc', $lichHoc->khoa_hoc_id) }}" class="btn btn-sm btn-outline-primary">
+                                <a href="{{ route('hoc-vien.buoi-hoc.show', $lichHoc->id) }}" class="btn btn-sm btn-outline-primary">
+                                    Xem buổi học
+                                </a>
+                                <a href="{{ route('hoc-vien.chi-tiet-khoa-hoc', $lichHoc->khoa_hoc_id) }}" class="btn btn-sm btn-outline-secondary">
                                     Xem khóa học
                                 </a>
                                 @if($lichHoc->can_open_online_room)
@@ -283,6 +286,53 @@
                         </div>
                     @endforelse
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card vip-card mb-4">
+        <div class="card-header border-0 d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="mb-1 fw-semibold">Bài kiểm tra cần chú ý</h5>
+                <p class="text-muted small mb-0">Các bài sắp mở hoặc đang mở trong những khóa học bạn đang theo học.</p>
+            </div>
+            <span class="badge bg-light text-dark border">{{ $baiKiemTraCanChuY->count() }}</span>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                @forelse($baiKiemTraCanChuY as $baiKiemTra)
+                    <div class="col-lg-6">
+                        <div class="course-progress-card h-100">
+                            <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                                <div>
+                                    <h5 class="fw-semibold mb-1">{{ $baiKiemTra->tieu_de }}</h5>
+                                    <div class="small text-muted">{{ $baiKiemTra->khoaHoc->ten_khoa_hoc ?? 'Chưa xác định khóa học' }}</div>
+                                    <div class="small text-muted">{{ $baiKiemTra->moduleHoc->ten_module ?? 'Toàn khóa' }}</div>
+                                </div>
+                                <span class="badge bg-{{ $baiKiemTra->access_status_color }}">{{ $baiKiemTra->access_status_label }}</span>
+                            </div>
+                            <div class="small text-muted mb-3">
+                                {{ $baiKiemTra->thoi_gian_lam_bai }} phút
+                                • {{ $baiKiemTra->ngay_mo ? $baiKiemTra->ngay_mo->format('d/m/Y H:i') : 'Mở ngay' }}
+                            </div>
+                            <div class="d-flex flex-wrap gap-2">
+                                <a href="{{ route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id) }}" class="btn btn-sm btn-outline-primary">
+                                    Xem bài kiểm tra
+                                </a>
+                                @if($baiKiemTra->lich_hoc_id)
+                                    <a href="{{ route('hoc-vien.buoi-hoc.show', $baiKiemTra->lich_hoc_id) }}" class="btn btn-sm btn-outline-secondary">
+                                        Về buổi học
+                                    </a>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="col-12">
+                        <div class="empty-icon mb-3"><i class="fas fa-list-check"></i></div>
+                        <p class="text-muted mb-0 text-center">Hiện chưa có bài kiểm tra sắp mở hoặc đang mở.</p>
+                    </div>
+                @endforelse
             </div>
         </div>
     </div>

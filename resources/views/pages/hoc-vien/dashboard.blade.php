@@ -3,7 +3,6 @@
 @section('content')
 @php
     $hasBaiKiemTraRoute = Route::has('hoc-vien.bai-kiem-tra');
-    $hasKetQuaRoute = Route::has('hoc-vien.ket-qua');
 @endphp
 
 <div class="container-fluid">
@@ -29,7 +28,8 @@
                         <p class="mb-0 hero-text">
                             Hôm nay bạn có {{ $dashboardStats['buoi_hoc_hom_nay'] }} buổi học,
                             {{ $dashboardStats['buoi_hoc_sap_toi'] }} buổi sắp tới
-                            và {{ $dashboardStats['tai_lieu_moi_7_ngay'] }} tài liệu mới trong 7 ngày gần đây.
+                            {{ $dashboardStats['tai_lieu_moi_7_ngay'] }} tài liệu mới
+                            và {{ $dashboardStats['bai_kiem_tra_dang_mo'] }} bài kiểm tra đang mở.
                         </p>
                     @else
                         <p class="mb-0 hero-text">
@@ -163,6 +163,9 @@
                                                         @endif
                                                     </div>
                                                     <div class="small text-muted">{{ $buoiSapToiTheoKhoa->hinh_thuc_label }}</div>
+                                                    <a href="{{ route('hoc-vien.buoi-hoc.show', $buoiSapToiTheoKhoa->id) }}" class="btn btn-link btn-sm px-0 mt-1">
+                                                        Xem buổi học
+                                                    </a>
                                                 @else
                                                     <span class="text-muted small">Chưa có buổi học sắp tới</span>
                                                 @endif
@@ -212,7 +215,10 @@
                                 <span class="badge bg-{{ $lichHoc->trang_thai_color }}">{{ $lichHoc->trang_thai_label }}</span>
                             </div>
                             <div class="d-flex flex-wrap gap-2 mt-3">
-                                <a href="{{ route('hoc-vien.chi-tiet-khoa-hoc', $lichHoc->khoa_hoc_id) }}" class="btn btn-sm btn-outline-primary">
+                                <a href="{{ route('hoc-vien.buoi-hoc.show', $lichHoc->id) }}" class="btn btn-sm btn-outline-primary">
+                                    Xem buổi học
+                                </a>
+                                <a href="{{ route('hoc-vien.chi-tiet-khoa-hoc', $lichHoc->khoa_hoc_id) }}" class="btn btn-sm btn-outline-secondary">
                                     Xem khóa học
                                 </a>
                                 @if($lichHoc->can_open_online_room)
@@ -228,6 +234,48 @@
                         <div class="text-center py-4">
                             <div class="empty-icon mb-3"><i class="fas fa-calendar-check"></i></div>
                             <p class="text-muted mb-0">Chưa có buổi học sắp tới.</p>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+
+            <div class="card vip-card mb-4">
+                <div class="card-header border-0">
+                    <h5 class="mb-1 fw-semibold">Bài kiểm tra cần chú ý</h5>
+                    <p class="text-muted small mb-0">Các bài sắp mở hoặc đang mở trong những khóa học bạn đang theo học.</p>
+                </div>
+                <div class="card-body">
+                    @forelse($baiKiemTraCanChuY as $baiKiemTra)
+                        <div class="upcoming-item">
+                            <div class="d-flex justify-content-between gap-2">
+                                <div class="fw-semibold text-dark">{{ $baiKiemTra->tieu_de }}</div>
+                                <span class="badge bg-{{ $baiKiemTra->access_status_color }}">{{ $baiKiemTra->access_status_label }}</span>
+                            </div>
+                            <div class="small text-muted">{{ $baiKiemTra->khoaHoc->ten_khoa_hoc ?? 'Chưa xác định khóa học' }}</div>
+                            <div class="small text-muted">
+                                {{ $baiKiemTra->moduleHoc->ten_module ?? 'Toàn khóa' }}
+                                @if($baiKiemTra->lichHoc)
+                                    • Buổi {{ $baiKiemTra->lichHoc->buoi_so ?: '#' }}
+                                @endif
+                            </div>
+                            <div class="small text-muted">
+                                {{ $baiKiemTra->ngay_mo ? $baiKiemTra->ngay_mo->format('d/m/Y H:i') : 'Mở ngay' }}
+                            </div>
+                            <div class="d-flex flex-wrap gap-2 mt-3">
+                                <a href="{{ route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id) }}" class="btn btn-sm btn-outline-primary">
+                                    Xem bài kiểm tra
+                                </a>
+                                @if($baiKiemTra->lich_hoc_id)
+                                    <a href="{{ route('hoc-vien.buoi-hoc.show', $baiKiemTra->lich_hoc_id) }}" class="btn btn-sm btn-outline-secondary">
+                                        Về buổi học
+                                    </a>
+                                @endif
+                            </div>
+                        </div>
+                    @empty
+                        <div class="text-center py-4">
+                            <div class="empty-icon mb-3"><i class="fas fa-list-check"></i></div>
+                            <p class="text-muted mb-0">Hiện chưa có bài kiểm tra sắp mở hoặc đang mở.</p>
                         </div>
                     @endforelse
                 </div>
@@ -258,17 +306,10 @@
                             </a>
                         </div>
                         <div class="col-6">
-                            @if($hasKetQuaRoute)
-                                <a href="{{ route('hoc-vien.ket-qua') }}" class="btn btn-outline-info w-100 quick-btn">
-                                    <i class="fas fa-chart-column mb-2"></i>
-                                    <span>Kết quả học tập</span>
-                                </a>
-                            @else
-                                <button type="button" class="btn btn-outline-secondary w-100 quick-btn" disabled>
-                                    <i class="fas fa-chart-column mb-2"></i>
-                                    <span>Kết quả học tập</span>
-                                </button>
-                            @endif
+                            <a href="{{ route('hoc-vien.hoat-dong-tien-do') }}" class="btn btn-outline-info w-100 quick-btn">
+                                <i class="fas fa-chart-column mb-2"></i>
+                                <span>Tiến độ học tập</span>
+                            </a>
                         </div>
                         <div class="col-12">
                             @if($hasBaiKiemTraRoute)

@@ -7,6 +7,7 @@ use App\Http\Requests\StoreTaiNguyenRequest;
 use App\Models\LichHoc;
 use App\Models\PhanCongModuleGiangVien;
 use App\Models\TaiNguyenBuoiHoc;
+use App\Services\TeacherAssignmentResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -29,6 +30,26 @@ class TaiNguyenController extends Controller
         'zip', 'rar', '7z',
         'txt',
     ];
+
+    public function redirectToSession(Request $request, TeacherAssignmentResolver $assignmentResolver): RedirectResponse
+    {
+        $lichHoc = LichHoc::findOrFail((int) $request->query('lich_hoc_id'));
+
+        $this->authorizeGiangVienForLichHoc($lichHoc);
+
+        $giangVien = auth()->user()->giangVien;
+        $assignmentId = $assignmentResolver->resolveForSchedule($giangVien->id, $lichHoc);
+
+        abort_if($assignmentId === null, 403, 'Khong tim thay phan cong phu hop cho buoi hoc nay.');
+
+        return redirect()->to(
+            route('giang-vien.khoa-hoc.show', [
+                'id' => $assignmentId,
+                'focus_lich_hoc_id' => $lichHoc->id,
+                'quick_action' => 'resources',
+            ]) . '#session-' . $lichHoc->id
+        );
+    }
 
     public function index()
     {

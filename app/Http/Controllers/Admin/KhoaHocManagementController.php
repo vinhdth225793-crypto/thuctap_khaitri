@@ -42,48 +42,38 @@ class KhoaHocManagementController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10, ['*'], 'page_mau');
 
-        // 2. Lớp đang giảng dạy
-        $khoaHocDangDay = KhoaHoc::hoatDong()
+        // Lấy tất cả khóa học hoạt động để phân loại
+        $allHoatDong = KhoaHoc::hoatDong()
             ->with(['nhomNganh', 'moduleHocs.lichHocs', 'khoaHocMau'])
             ->withCount(['moduleHocs as module_xac_nhan_count' => function($q) {
                 $q->whereHas('phanCongGiangViens', fn($q2) => $q2->where('trang_thai', 'da_nhan'));
             }])
             ->tap($applySearch)
-            ->where('trang_thai_van_hanh', 'dang_day')
-            ->orderBy('ngay_mo_lop', 'asc')
-            ->paginate(10, ['*'], 'page_dd');
+            ->get();
+
+        // 2. Lớp đang giảng dạy (Chưa hoàn thành 100% và trạng thái là dang_day)
+        $khoaHocDangDayRaw = $allHoatDong->filter(function($kh) {
+            return $kh->trang_thai_van_hanh === 'dang_day' && (int)$kh->tien_do_hoc_tap < 100;
+        });
+        $khoaHocDangDay = $this->paginateCollection($khoaHocDangDayRaw, 10, 'page_dd');
 
         // 3. Lớp chờ giảng viên xác nhận
-        $khoaHocChoGV = KhoaHoc::hoatDong()
-            ->with(['nhomNganh', 'moduleHocs.lichHocs', 'khoaHocMau'])
-            ->withCount(['moduleHocs as module_xac_nhan_count' => function($q) {
-                $q->whereHas('phanCongGiangViens', fn($q2) => $q2->where('trang_thai', 'da_nhan'));
-            }])
-            ->tap($applySearch)
-            ->where('trang_thai_van_hanh', 'cho_giang_vien')
-            ->orderBy('created_at', 'desc')
-            ->paginate(10, ['*'], 'page_cgv');
+        $khoaHocChoGVRaw = $allHoatDong->filter(function($kh) {
+            return $kh->trang_thai_van_hanh === 'cho_giang_vien';
+        });
+        $khoaHocChoGV = $this->paginateCollection($khoaHocChoGVRaw, 10, 'page_cgv');
 
         // 4. Lớp sẵn sàng khai giảng
-        $khoaHocSanSang = KhoaHoc::hoatDong()
-            ->with(['nhomNganh', 'moduleHocs.lichHocs', 'khoaHocMau'])
-            ->withCount(['moduleHocs as module_xac_nhan_count' => function($q) {
-                $q->whereHas('phanCongGiangViens', fn($q2) => $q2->where('trang_thai', 'da_nhan'));
-            }])
-            ->tap($applySearch)
-            ->where('trang_thai_van_hanh', 'san_sang')
-            ->orderBy('ngay_mo_lop', 'asc')
-            ->paginate(10, ['*'], 'page_ss');
+        $khoaHocSanSangRaw = $allHoatDong->filter(function($kh) {
+            return $kh->trang_thai_van_hanh === 'san_sang';
+        });
+        $khoaHocSanSang = $this->paginateCollection($khoaHocSanSangRaw, 10, 'page_ss');
 
-        $khoaHocHoanThanh = KhoaHoc::hoatDong()
-            ->with(['nhomNganh', 'moduleHocs.lichHocs', 'khoaHocMau'])
-            ->withCount(['moduleHocs as module_xac_nhan_count' => function($q) {
-                $q->whereHas('phanCongGiangViens', fn($q2) => $q2->where('trang_thai', 'da_nhan'));
-            }])
-            ->tap($applySearch)
-            ->where('trang_thai_van_hanh', 'ket_thuc')
-            ->orderByDesc('updated_at')
-            ->paginate(10, ['*'], 'page_ht');
+        // 5. Lớp đã hoàn thành (Trạng thái ket_thuc HOẶC tiến độ 100%)
+        $khoaHocHoanThanhRaw = $allHoatDong->filter(function($kh) {
+            return $kh->trang_thai_van_hanh === 'ket_thuc' || (int)$kh->tien_do_hoc_tap === 100;
+        });
+        $khoaHocHoanThanh = $this->paginateCollection($khoaHocHoanThanhRaw, 10, 'page_ht');
 
         return view('pages.admin.khoa-hoc.khoa-hoc.index', compact(
             'khoaHocMau',
@@ -94,6 +84,25 @@ class KhoaHocManagementController extends Controller
             'activeTab',
             'search'
         ));
+    }
+
+    /**
+     * Paginate a collection
+     */
+    protected function paginateCollection($items, $perPage = 10, $pageName = 'page', $page = null)
+    {
+        $page = $page ?: (\Illuminate\Pagination\Paginator::resolveCurrentPage($pageName) ?: 1);
+        $items = $items instanceof \Illuminate\Support\Collection ? $items : \Illuminate\Support\Collection::make($items);
+        return new \Illuminate\Pagination\LengthAwarePaginator(
+            $items->forPage($page, $perPage)->values(),
+            $items->count(),
+            $perPage,
+            $page,
+            [
+                'path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(),
+                'pageName' => $pageName,
+            ]
+        );
     }
 
     /**
@@ -411,8 +420,3 @@ class KhoaHocManagementController extends Controller
         return redirect()->route('admin.khoa-hoc.show', $id)->with('success', 'Đã mở lớp học chính thức!');
     }
 }
-
-
-
-
-

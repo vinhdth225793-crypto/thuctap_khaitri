@@ -519,26 +519,85 @@
             
             // Đổi icon và lưu trạng thái
             if (wrapper.classList.contains('sidebar-collapsed')) {
-                icon.classList.replace('fa-indent', 'fa-outdent');
                 localStorage.setItem('sidebar-state', 'collapsed');
             } else {
-                icon.classList.replace('fa-outdent', 'fa-indent');
                 localStorage.setItem('sidebar-state', 'expanded');
             }
         }
         
-        // Khôi phục trạng thái khi load trang
+        // --- Xử lý giữ vị trí cuộn Sidebar ---
+        const SIDEBAR_SCROLL_KEY = 'sidebar_scroll_pos';
+        const WINDOW_SCROLL_KEY = 'window_scroll_pos';
+        
+        function saveSidebarScroll() {
+            const sidebarNav = document.getElementById('sidebarScrollContainer');
+            if (sidebarNav) {
+                sessionStorage.setItem(SIDEBAR_SCROLL_KEY, sidebarNav.scrollTop);
+            }
+        }
+
+        function restoreSidebarScroll() {
+            const sidebarNav = document.getElementById('sidebarScrollContainer');
+            const scrollPos = sessionStorage.getItem(SIDEBAR_SCROLL_KEY);
+            if (sidebarNav && scrollPos) {
+                sidebarNav.scrollTop = scrollPos;
+            }
+        }
+
+        function saveWindowScroll() {
+            sessionStorage.setItem(WINDOW_SCROLL_KEY, window.scrollY);
+        }
+
+        function restoreWindowScroll() {
+            const scrollPos = sessionStorage.getItem(WINDOW_SCROLL_KEY);
+            if (scrollPos) {
+                window.scrollTo(0, parseInt(scrollPos));
+                // Xóa sau khi khôi phục để tránh nhảy trang ngoài ý muốn khi F5 thủ công
+                sessionStorage.removeItem(WINDOW_SCROLL_KEY);
+            }
+        }
+        
         document.addEventListener('DOMContentLoaded', function() {
+            // 1. Khôi phục trạng thái thu gọn/mở rộng
             const sidebarState = localStorage.getItem('sidebar-state');
             const wrapper = document.querySelector('.app-wrapper');
-            const icon = document.querySelector('#desktopSidebarToggle i');
-            
-            if (sidebarState === 'collapsed') {
+            if (sidebarState === 'collapsed' && wrapper) {
                 wrapper.classList.add('sidebar-collapsed');
-                if (icon) icon.classList.replace('fa-indent', 'fa-outdent');
             }
 
-            // Xử lý loading button như cũ
+            // 2. Khôi phục vị trí cuộn (Cả sidebar và cửa sổ chính)
+            restoreSidebarScroll();
+            restoreWindowScroll();
+
+            // 3. Lưu vị trí cuộn khi người dùng cuộn hoặc nhấn link
+            const sidebarNav = document.getElementById('sidebarScrollContainer');
+            if (sidebarNav) {
+                sidebarNav.addEventListener('scroll', saveSidebarScroll);
+                
+                // Lưu khi nhấn vào bất kỳ link nào trong sidebar
+                const links = sidebarNav.querySelectorAll('a');
+                links.forEach(link => {
+                    link.addEventListener('click', () => {
+                        saveSidebarScroll();
+                        saveWindowScroll();
+                    });
+                });
+
+                // Ngăn chặn sidebar cuộn lên đầu khi nhấn vào nút collapse (menu con)
+                const collapseButtons = sidebarNav.querySelectorAll('[data-bs-toggle="collapse"]');
+                collapseButtons.forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        saveSidebarScroll();
+                    });
+                });
+            }
+
+            // Lưu vị trí cửa sổ khi submit bất kỳ form nào
+            document.querySelectorAll('form').forEach(form => {
+                form.addEventListener('submit', saveWindowScroll);
+            });
+
+            // Xử lý loading button
             const forms = document.querySelectorAll('.needs-validation');
             Array.from(forms).forEach(form => {
                 form.addEventListener('submit', event => {

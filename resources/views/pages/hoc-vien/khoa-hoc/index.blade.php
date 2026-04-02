@@ -108,10 +108,26 @@
                             <div class="col-6 text-end fw-bold text-dark text-capitalize">{{ ['co_ban'=>'Cơ bản','trung_binh'=>'Trung bình','nang_cao'=>'Nâng cao'][$khoa->cap_do] ?? 'N/A' }}</div>
                         </div>
 
-                        <div class="d-grid">
+                        <div class="small text-muted mb-2 d-flex justify-content-between">
+                            <span>Tiến độ khóa học</span>
+                            <strong class="text-dark">{{ $khoa->tien_do_hoc_tap }}%</strong>
+                        </div>
+                        <div class="progress progress-thin mb-4">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: {{ $khoa->tien_do_hoc_tap }}%"></div>
+                        </div>
+
+                        <div class="d-grid gap-2">
                             <a href="{{ route('hoc-vien.chi-tiet-khoa-hoc', $khoa->id) }}" class="btn btn-primary fw-bold py-2 shadow-sm">
                                 <i class="fas fa-rocket me-2"></i> VÀO HỌC NGAY
                             </a>
+                            <div class="d-flex gap-2">
+                                <a href="{{ route('hoc-vien.chi-tiet-khoa-hoc', $khoa->id) }}#lich-hoc" class="btn btn-outline-secondary btn-sm w-100">
+                                    Lịch học
+                                </a>
+                                <a href="{{ route('hoc-vien.chi-tiet-khoa-hoc', $khoa->id) }}#bai-kiem-tra" class="btn btn-outline-secondary btn-sm w-100">
+                                    Bài kiểm tra
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -139,6 +155,7 @@
 
 <style>
     .bg-primary-soft { background-color: rgba(13, 110, 253, 0.1); }
+    .progress-thin { height: 8px; border-radius: 999px; background: #e2e8f0; }
     .hover-lift { transition: transform 0.3s ease, box-shadow 0.3s ease; }
     .hover-lift:hover { transform: translateY(-5px); box-shadow: 0 1rem 3rem rgba(0,0,0,.1) !important; }
     .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }

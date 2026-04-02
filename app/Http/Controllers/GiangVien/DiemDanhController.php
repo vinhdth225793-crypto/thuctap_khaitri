@@ -8,6 +8,7 @@ use App\Models\HocVienKhoaHoc;
 use App\Models\LichHoc;
 use App\Models\PhanCongModuleGiangVien;
 use App\Services\KetQuaHocTapService;
+use App\Services\TeacherAssignmentResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -17,6 +18,26 @@ class DiemDanhController extends Controller
     public function __construct(
         private readonly KetQuaHocTapService $ketQuaHocTapService,
     ) {
+    }
+
+    public function redirectToSession(Request $request, TeacherAssignmentResolver $assignmentResolver)
+    {
+        $lichHoc = LichHoc::findOrFail((int) $request->query('lich_hoc_id'));
+
+        $this->authorizeGiangVienForLichHoc($lichHoc);
+
+        $giangVien = auth()->user()->giangVien;
+        $assignmentId = $assignmentResolver->resolveForSchedule($giangVien->id, $lichHoc);
+
+        abort_if($assignmentId === null, 403, 'Khong tim thay phan cong phu hop cho buoi hoc nay.');
+
+        return redirect()->to(
+            route('giang-vien.khoa-hoc.show', [
+                'id' => $assignmentId,
+                'focus_lich_hoc_id' => $lichHoc->id,
+                'quick_action' => 'attendance',
+            ]) . '#session-' . $lichHoc->id
+        );
     }
 
     /**

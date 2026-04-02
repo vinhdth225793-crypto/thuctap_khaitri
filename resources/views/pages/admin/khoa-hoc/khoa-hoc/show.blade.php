@@ -359,7 +359,7 @@
                         </div>
                         
                         @if($khoaHoc->trang_thai_van_hanh === 'san_sang')
-                            <hr class="my-4">
+                            <hr class="my-4" id="kich-hoat-khoa-hoc">
                             <form action="{{ route('admin.khoa-hoc.xac-nhan-mo-lop', $khoaHoc->id) }}" method="POST">
                                 @csrf
                                 <button type="submit" class="btn btn-primary w-100 py-3 fw-bold shadow-sm">

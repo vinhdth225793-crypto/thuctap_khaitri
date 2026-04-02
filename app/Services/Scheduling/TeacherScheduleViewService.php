@@ -169,10 +169,10 @@ class TeacherScheduleViewService
                     
                     // Quick Action Links
                     'routes' => [
-                        'show_course' => route('giang-vien.khoa-hoc.show', $schedule->khoa_hoc_id),
-                        'attendance' => route('giang-vien.diem-danh.index', ['lich_hoc_id' => $schedule->id]),
-                        'resources' => route('giang-vien.tai-nguyen.index', ['lich_hoc_id' => $schedule->id]),
-                        'exams' => route('giang-vien.bai-kiem-tra.index', ['lich_hoc_id' => $schedule->id]),
+                        'show_course' => $this->buildTeacherSessionActionUrl($assignmentId, (int) $schedule->khoa_hoc_id, (int) $schedule->id),
+                        'attendance' => $this->buildTeacherSessionActionUrl($assignmentId, (int) $schedule->khoa_hoc_id, (int) $schedule->id, 'attendance'),
+                        'resources' => $this->buildTeacherSessionActionUrl($assignmentId, (int) $schedule->khoa_hoc_id, (int) $schedule->id, 'resources'),
+                        'exams' => $this->buildTeacherSessionActionUrl($assignmentId, (int) $schedule->khoa_hoc_id, (int) $schedule->id, 'exams'),
                         'leave_request' => route('giang-vien.don-xin-nghi.create', ['lich_hoc_id' => $schedule->id]),
                     ],
                     
@@ -184,6 +184,20 @@ class TeacherScheduleViewService
                 ];
             })
             ->values();
+    }
+
+    private function buildTeacherSessionActionUrl(?int $assignmentId, int $courseId, int $scheduleId, ?string $quickAction = null): string
+    {
+        $params = [
+            'id' => $assignmentId ?? $courseId,
+            'focus_lich_hoc_id' => $scheduleId,
+        ];
+
+        if ($quickAction !== null) {
+            $params['quick_action'] = $quickAction;
+        }
+
+        return route('giang-vien.khoa-hoc.show', $params) . '#session-' . $scheduleId;
     }
 
     /**

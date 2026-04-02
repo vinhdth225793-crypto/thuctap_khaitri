@@ -20,8 +20,8 @@ class ModuleHocController extends Controller
         $search = $request->get('search');
         $khoaHocId = $request->get('khoa_hoc_id');
 
-        // Phân trang theo KhoaHoc
-        $khoaHocsPaginated = KhoaHoc::with(['nhomNganh', 'moduleHocs' => function($q) use ($search) {
+        // Query chung lấy tất cả khóa học (cả mẫu và hoạt động)
+        $query = KhoaHoc::with(['nhomNganh', 'moduleHocs' => function($q) use ($search) {
                 $q->when($search, function($q2) use ($search) {
                     $q2->where('ten_module', 'like', "%{$search}%")
                        ->orWhere('ma_module', 'like', "%{$search}%");
@@ -30,25 +30,58 @@ class ModuleHocController extends Controller
             }])
             ->withCount('moduleHocs')
             ->when($search, function($q) use ($search) {
-                $q->whereHas('moduleHocs', function($q2) use ($search) {
-                    $q2->where('ten_module', 'like', "%{$search}%")
-                       ->orWhere('ma_module', 'like', "%{$search}%");
+                $q->where(function($sub) use ($search) {
+                    $sub->where('ten_khoa_hoc', 'like', "%{$search}%")
+                        ->orWhere('ma_khoa_hoc', 'like', "%{$search}%")
+                        ->orWhereHas('moduleHocs', function($q2) use ($search) {
+                            $q2->where('ten_module', 'like', "%{$search}%")
+                               ->orWhere('ma_module', 'like', "%{$search}%");
+                        });
                 });
             })
             ->when($khoaHocId, function($q) use ($khoaHocId) {
                 $q->where('id', $khoaHocId);
             })
-            ->orderBy('id', 'desc')
-            ->paginate(3)
-            ->appends($request->query());
+            ->orderBy('id', 'desc');
+
+        $allResult = $query->get();
+
+        // PHÂN LOẠI Y HỆT TRANG KHOA HỌC
+        // 1. Khóa học mẫu
+        $khoaHocsMau = $allResult->filter(fn($kh) => $kh->loai === 'mau');
+
+        // 2. Đang giảng dạy (Phải là hoat_dong, trang thái dang_day và TIẾN ĐỘ < 100)
+        $khoaHocsDangDay = $allResult->filter(function($kh) {
+            return $kh->loai === 'hoat_dong' && $kh->trang_thai_van_hanh === 'dang_day' && (int)$kh->tien_do_hoc_tap < 100;
+        });
+
+        // 3. Chờ GV xác nhận
+        $khoaHocsChoXacNhan = $allResult->filter(function($kh) {
+            return $kh->loai === 'hoat_dong' && $kh->trang_thai_van_hanh === 'cho_giang_vien';
+        });
+
+        // 4. Sẵn sàng mở
+        $khoaHocsSanSang = $allResult->filter(function($kh) {
+            return $kh->loai === 'hoat_dong' && $kh->trang_thai_van_hanh === 'san_sang';
+        });
+
+        // 5. Đã hoàn thành (ket_thuc HOẶC tiến độ 100%)
+        $khoaHocsHoanThanh = $allResult->filter(function($kh) {
+            if ($kh->loai === 'mau') return false;
+            return $kh->trang_thai_van_hanh === 'ket_thuc' || (int)$kh->tien_do_hoc_tap === 100;
+        });
 
         $khoaHocsAll = KhoaHoc::with('nhomNganh')->orderBy('ma_khoa_hoc')->get();
 
         return view('pages.admin.khoa-hoc.module-hoc.index', [
-            'khoaHocsPaginated' => $khoaHocsPaginated,
-            'khoaHocsAll' => $khoaHocsAll,
-            'search' => $search,
-            'khoaHocId' => $khoaHocId
+            'khoaHocsMau'        => $khoaHocsMau,
+            'khoaHocsDangDay'    => $khoaHocsDangDay,
+            'khoaHocsChoXacNhan' => $khoaHocsChoXacNhan,
+            'khoaHocsSanSang'    => $khoaHocsSanSang,
+            'khoaHocsHoanThanh'  => $khoaHocsHoanThanh,
+            'khoaHocsAll'        => $khoaHocsAll,
+            'search'             => $search,
+            'khoaHocId'          => $khoaHocId
         ]);
     }
 

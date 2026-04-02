@@ -34,14 +34,44 @@ class PhanCongController extends Controller
             ->whereHas('moduleHocs.phanCongGiangViens', function ($q) use ($giangVien) {
                 $q->where('giang_vien_id', $giangVien->id);
             })
-            ->orderBy('id', 'desc')
-            ->get();
+            ->orderBy('id', 'desc');
+
+        $khoaHocs = $khoaHocs->get();
+
+        // 1. Khóa học có module chưa xác nhận
+        $khoaHocsChuaNhan = $khoaHocs->filter(function ($khoaHoc) {
+            return $khoaHoc->moduleHocs->contains(function ($module) {
+                $pc = $module->phanCongGiangViens->first();
+                return $pc && $pc->trang_thai === 'cho_xac_nhan';
+            });
+        });
+
+        // 2. Khóa học đã nhận dạy và đã hoàn thành (tiến độ 100%)
+        $khoaHocsHoanThanh = $khoaHocs->filter(function ($khoaHoc) {
+            // Không nằm trong nhóm chưa nhận
+            $daXacNhanHet = !$khoaHoc->moduleHocs->contains(function ($module) {
+                $pc = $module->phanCongGiangViens->first();
+                return $pc && $pc->trang_thai === 'cho_xac_nhan';
+            });
+            return $daXacNhanHet && (int)$khoaHoc->tien_do_hoc_tap === 100;
+        });
+
+        // 3. Khóa học đã nhận dạy và đang trong quá trình (tiến độ < 100%)
+        $khoaHocsDaNhan = $khoaHocs->filter(function ($khoaHoc) use ($khoaHocsChuaNhan, $khoaHocsHoanThanh) {
+            return !$khoaHocsChuaNhan->contains('id', $khoaHoc->id) && 
+                   !$khoaHocsHoanThanh->contains('id', $khoaHoc->id);
+        });
 
         $phanCongChoXacNhan = PhanCongModuleGiangVien::where('giang_vien_id', $giangVien->id)
             ->where('trang_thai', 'cho_xac_nhan')
             ->count();
 
-        return view('pages.giang-vien.phan-cong.index', compact('khoaHocs', 'phanCongChoXacNhan'));
+        return view('pages.giang-vien.phan-cong.index', compact(
+            'khoaHocsChuaNhan', 
+            'khoaHocsDaNhan', 
+            'khoaHocsHoanThanh',
+            'phanCongChoXacNhan'
+        ));
     }
 
     public function show($id)

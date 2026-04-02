@@ -3,14 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\BaiGiang;
-use App\Models\DiemDanh;
 use App\Models\HocVienKhoaHoc;
-use App\Models\KetQuaHocTap;
 use App\Models\KhoaHoc;
-use App\Models\LichHoc;
-use App\Models\TaiNguyenBuoiHoc;
 use App\Models\YeuCauHocVien;
-use Carbon\CarbonInterface;
+use App\Services\StudentLearningDashboardService;
+use App\Services\StudentScheduleViewService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -18,23 +15,25 @@ use Illuminate\Support\Facades\Validator;
 
 class HocVienController extends Controller
 {
-    public function __construct()
-    {
+    public function __construct(
+        private readonly StudentLearningDashboardService $dashboardService,
+        private readonly StudentScheduleViewService $scheduleViewService,
+    ) {
         $this->middleware(['auth', \App\Http\Middleware\CheckHocVien::class]);
     }
 
     public function dashboard()
     {
-        return view('pages.hoc-vien.dashboard', $this->buildHocTapData(auth()->user()));
+        return view('pages.hoc-vien.dashboard', $this->dashboardService->buildFor(auth()->user()));
     }
 
     public function hoatDongVaTienDo()
     {
-        return view('pages.hoc-vien.hoat-dong-tien-do', $this->buildHocTapData(auth()->user()));
+        return view('pages.hoc-vien.hoat-dong-tien-do', $this->dashboardService->buildFor(auth()->user()));
     }
 
     /**
-     * Danh sach khoa hoc cua hoc vien (Phase 2)
+     * Danh sach khoa hoc cua hoc vien.
      */
     public function khoaHocCuaToi()
     {
@@ -109,7 +108,14 @@ class HocVienController extends Controller
             ->with(['khoaHoc.nhomNganh', 'admin'])
             ->where('hoc_vien_id', $user->ma_nguoi_dung)
             ->where('loai_yeu_cau', 'them')
-            ->orderByRaw("FIELD(trang_thai, 'cho_duyet', 'tu_choi', 'da_duyet')")
+            ->orderByRaw("
+                CASE trang_thai
+                    WHEN 'cho_duyet' THEN 1
+                    WHEN 'tu_choi' THEN 2
+                    WHEN 'da_duyet' THEN 3
+                    ELSE 4
+                END
+            ")
             ->orderByDesc('created_at')
             ->get();
 
@@ -147,7 +153,7 @@ class HocVienController extends Controller
             ->exists();
 
         if ($daThamGia) {
-            return back()->with('error', 'Bạn đã ở trong khóa học này rồi.');
+            return back()->with('error', 'Báº¡n Ä‘Ã£ á»Ÿ trong khÃ³a há»c nÃ y rá»“i.');
         }
 
         $dangChoDuyet = YeuCauHocVien::query()
@@ -158,7 +164,7 @@ class HocVienController extends Controller
             ->exists();
 
         if ($dangChoDuyet) {
-            return back()->with('error', 'Bạn đã gửi yêu cầu tham gia khóa học này và đang chờ duyệt.');
+            return back()->with('error', 'Báº¡n Ä‘Ã£ gá»­i yÃªu cáº§u tham gia khÃ³a há»c nÃ y vÃ  Ä‘ang chá» duyá»‡t.');
         }
 
         YeuCauHocVien::create([
@@ -177,389 +183,65 @@ class HocVienController extends Controller
 
         return redirect()
             ->route('hoc-vien.khoa-hoc-tham-gia')
-            ->with('success', 'Đã gửi yêu cầu tham gia khóa học. Vui lòng chờ admin duyệt.');
+            ->with('success', 'ÄÃ£ gá»­i yÃªu cáº§u tham gia khÃ³a há»c. Vui lÃ²ng chá» admin duyá»‡t.');
     }
 
     /**
-     * Chi tiet khoa hoc va xem buoi hoc theo module (Phase 3)
+     * Chi tiet khoa hoc va lo trinh hoc tap.
      */
     public function chiTietKhoaHoc($id)
     {
-        $user = auth()->user();
+        $data = $this->scheduleViewService->buildCourseDetail(auth()->user(), (int) $id);
 
-        $ghiDanh = HocVienKhoaHoc::where('khoa_hoc_id', $id)
-            ->where('hoc_vien_id', $user->ma_nguoi_dung)
-            ->first();
-
-        if (!$ghiDanh || $ghiDanh->trang_thai === 'ngung_hoc') {
-            return redirect()->route('hoc-vien.khoa-hoc-cua-toi')->with('error', 'Bạn không có quyền truy cập khóa học này.');
+        if (!$data) {
+            return redirect()->route('hoc-vien.khoa-hoc-cua-toi')->with('error', 'Báº¡n khÃ´ng cÃ³ quyá»n truy cáº­p khÃ³a há»c nÃ y.');
         }
 
-        $khoaHoc = KhoaHoc::with([
-            'nhomNganh',
-            'moduleHocs' => function ($query) use ($id) {
-                $query->orderBy('thu_tu_module')
-                    ->with([
-                        'lichHocs' => function ($lichHocQuery) use ($id) {
-                            $lichHocQuery->where('khoa_hoc_id', $id)
-                                ->with([
-                                    'baiGiangs' => function ($bgQuery) {
-                                        $bgQuery->hienThiChoHocVien()
-                                            ->with('phongHocLive')
-                                            ->orderBy('thu_tu_hien_thi');
-                                    },
-                                ])
-                                ->orderBy('ngay_hoc')
-                                ->orderBy('gio_bat_dau');
-                        },
-                    ]);
-            },
-        ])->findOrFail($id);
+        return view('pages.hoc-vien.khoa-hoc.show', $data);
+    }
 
-        $stats = [
-            'tong_module' => $khoaHoc->moduleHocs->count(),
-            'module_hoan_thanh' => $khoaHoc->so_module_hoan_thanh,
-            'module_co_lich' => $khoaHoc->moduleHocs->filter(fn ($module) => $module->lichHocs->isNotEmpty())->count(),
-            'tong_buoi_hoc' => $khoaHoc->moduleHocs->sum(fn ($module) => $module->lichHocs->count()),
-            'buoi_hoan_thanh' => $khoaHoc->moduleHocs->sum(fn ($module) => $module->so_buoi_hoan_thanh),
-            'buoi_online' => $khoaHoc->moduleHocs->sum(fn ($module) => $module->lichHocs->where('hinh_thuc', 'online')->count()),
-        ];
+    public function chiTietBuoiHoc($id)
+    {
+        $data = $this->scheduleViewService->buildSessionDetail(auth()->user(), (int) $id);
 
-        return view('pages.hoc-vien.khoa-hoc.show', compact('khoaHoc', 'ghiDanh', 'stats'));
+        if (!$data) {
+            return redirect()->route('hoc-vien.khoa-hoc-cua-toi')->with('error', 'Báº¡n khÃ´ng cÃ³ quyá»n truy cáº­p buá»•i há»c nÃ y.');
+        }
+
+        return view('pages.hoc-vien.buoi-hoc.show', $data);
     }
 
     public function chiTietBaiGiang($id)
     {
-        $baiGiang = BaiGiang::with(['taiNguyenChinh', 'taiNguyenPhu', 'khoaHoc', 'moduleHoc', 'phongHocLive'])
+        $baiGiang = BaiGiang::with([
+            'taiNguyenChinh',
+            'taiNguyenPhu',
+            'khoaHoc',
+            'moduleHoc',
+            'phongHocLive',
+            'lichHoc',
+        ])
             ->hienThiChoHocVien()
             ->findOrFail($id);
 
-        // Kiểm tra học viên có đăng ký khóa học này không
         $daGhiDanh = HocVienKhoaHoc::where('khoa_hoc_id', $baiGiang->khoa_hoc_id)
             ->where('hoc_vien_id', auth()->user()->ma_nguoi_dung)
             ->whereIn('trang_thai', ['dang_hoc', 'hoan_thanh'])
             ->exists();
 
         if (!$daGhiDanh) {
-            return redirect()->route('hoc-vien.khoa-hoc-cua-toi')->with('error', 'Bạn chưa đăng ký khóa học này.');
+            return redirect()->route('hoc-vien.khoa-hoc-cua-toi')->with('error', 'Báº¡n chÆ°a Ä‘Äƒng kÃ½ khÃ³a há»c nÃ y.');
         }
 
         if ($baiGiang->isLive() && $baiGiang->phongHocLive) {
             return redirect()->route('hoc-vien.live-room.show', $baiGiang->id);
         }
 
-        return view('pages.hoc-vien.bai-giang.show', compact('baiGiang'));
-    }
+        $backUrl = $baiGiang->lich_hoc_id
+            ? route('hoc-vien.buoi-hoc.show', $baiGiang->lich_hoc_id)
+            : route('hoc-vien.chi-tiet-khoa-hoc', $baiGiang->khoa_hoc_id);
 
-    private function buildHocTapData($user): array
-    {
-        $user->loadMissing('hocVien');
-
-        $ghiDanhKhoaHoc = HocVienKhoaHoc::query()
-            ->where('hoc_vien_id', $user->ma_nguoi_dung)
-            ->whereHas('khoaHoc')
-            ->with([
-                'khoaHoc' => fn ($query) => $query->with('nhomNganh'),
-            ])
-            ->orderByRaw("
-                CASE trang_thai
-                    WHEN 'dang_hoc' THEN 1
-                    WHEN 'hoan_thanh' THEN 2
-                    WHEN 'ngung_hoc' THEN 3
-                    ELSE 4
-                END
-            ")
-            ->orderByDesc('ngay_tham_gia')
-            ->orderByDesc('created_at')
-            ->get();
-
-        $tatCaKhoaHocIds = $ghiDanhKhoaHoc->pluck('khoa_hoc_id')->filter()->values();
-        $khoaHocDangHocIds = $ghiDanhKhoaHoc
-            ->where('trang_thai', 'dang_hoc')
-            ->pluck('khoa_hoc_id')
-            ->filter()
-            ->values();
-        $khoaHocDangHocIdSet = $khoaHocDangHocIds
-            ->map(fn ($id) => (int) $id)
-            ->all();
-
-        $lichHocTheoKhoaHoc = collect();
-        if ($tatCaKhoaHocIds->isNotEmpty()) {
-            $lichHocTheoKhoaHoc = LichHoc::query()
-                ->with([
-                    'khoaHoc:id,ten_khoa_hoc,ma_khoa_hoc',
-                    'moduleHoc:id,ten_module,ma_module',
-                    'baiGiangs' => function ($query) {
-                        $query->where('loai_bai_giang', BaiGiang::TYPE_LIVE)
-                            ->where('trang_thai_duyet', BaiGiang::STATUS_DUYET_DA_DUYET)
-                            ->where('trang_thai_cong_bo', BaiGiang::CONG_BO_DA_CONG_BO)
-                            ->with('phongHocLive');
-                    },
-                ])
-                ->whereIn('khoa_hoc_id', $tatCaKhoaHocIds->all())
-                ->where('trang_thai', '!=', 'huy')
-                ->get([
-                    'id',
-                    'khoa_hoc_id',
-                    'module_hoc_id',
-                    'ngay_hoc',
-                    'gio_bat_dau',
-                    'gio_ket_thuc',
-                    'hinh_thuc',
-                    'link_online',
-                    'trang_thai',
-                ])
-                ->groupBy('khoa_hoc_id');
-        }
-
-        $homNay = now()->startOfDay();
-        $hienTai = now();
-        $tatCaLichHoc = $lichHocTheoKhoaHoc->flatten(1)->values();
-        $lichHocCuaKhoaDangHoc = $tatCaLichHoc
-            ->filter(fn (LichHoc $lichHoc) => in_array((int) $lichHoc->khoa_hoc_id, $khoaHocDangHocIdSet, true))
-            ->values();
-        $cacBuoiSapToi = $lichHocCuaKhoaDangHoc
-            ->filter(fn (LichHoc $lichHoc) => $this->shouldShowInUpcomingList($lichHoc, $hienTai))
-            ->sortBy(fn (LichHoc $lichHoc) => $lichHoc->starts_at?->getTimestamp() ?? PHP_INT_MAX)
-            ->values();
-
-        $taiLieuCongKhaiQuery = TaiNguyenBuoiHoc::query()
-            ->hienThi()
-            ->whereHas('lichHoc', function ($query) use ($tatCaKhoaHocIds) {
-                $query->whereIn('khoa_hoc_id', $tatCaKhoaHocIds->all());
-            });
-
-        $diemDanhTheoKhoaHoc = collect();
-        $diemDanhGanDay = collect();
-
-        if ($tatCaKhoaHocIds->isNotEmpty()) {
-            $diemDanhGanDay = DiemDanh::query()
-                ->where('hoc_vien_id', $user->ma_nguoi_dung)
-                ->whereHas('lichHoc', function ($query) use ($tatCaKhoaHocIds) {
-                    $query->whereIn('khoa_hoc_id', $tatCaKhoaHocIds->all());
-                })
-                ->with([
-                    'lichHoc:id,khoa_hoc_id,module_hoc_id,ngay_hoc,gio_bat_dau,trang_thai',
-                    'lichHoc.khoaHoc:id,ten_khoa_hoc,ma_khoa_hoc',
-                    'lichHoc.moduleHoc:id,ten_module,ma_module',
-                ])
-                ->orderByDesc('updated_at')
-                ->orderByDesc('created_at')
-                ->get();
-
-            $diemDanhTheoKhoaHoc = $diemDanhGanDay->groupBy(fn ($item) => optional($item->lichHoc)->khoa_hoc_id);
-        }
-
-        $ketQuaHocTapTheoKhoaHoc = KetQuaHocTap::query()
-            ->where('hoc_vien_id', $user->ma_nguoi_dung)
-            ->whereIn('khoa_hoc_id', $tatCaKhoaHocIds->all())
-            ->get()
-            ->keyBy('khoa_hoc_id');
-
-        $soCoMat = $diemDanhGanDay->where('trang_thai', 'co_mat')->count();
-        $soVaoTre = $diemDanhGanDay->where('trang_thai', 'vao_tre')->count();
-        $soVangMat = $diemDanhGanDay->where('trang_thai', 'vang_mat')->count();
-        $tongLanDiemDanh = $diemDanhGanDay->count();
-        $tyLeChuyenCan = $tongLanDiemDanh > 0
-            ? (int) round((($soCoMat + $soVaoTre) / $tongLanDiemDanh) * 100)
-            : 0;
-
-        $yeuCauThamGiaDangChoDuyet = YeuCauHocVien::query()
-            ->where('hoc_vien_id', $user->ma_nguoi_dung)
-            ->where('loai_yeu_cau', 'them')
-            ->where('trang_thai', 'cho_duyet')
-            ->count();
-
-        $tongBuoiHoc = $tatCaLichHoc->count();
-        $tongBuoiHoanThanh = $tatCaLichHoc
-            ->filter(fn (LichHoc $lichHoc) => $lichHoc->is_ended)
-            ->count();
-        $tienDoTongQuan = $tongBuoiHoc > 0
-            ? (int) round(($tongBuoiHoanThanh / $tongBuoiHoc) * 100)
-            : 0;
-
-        $dashboardStats = [
-            'khoa_hoc_dang_hoc' => $ghiDanhKhoaHoc->where('trang_thai', 'dang_hoc')->count(),
-            'buoi_hoc_hom_nay' => $lichHocCuaKhoaDangHoc
-                ->filter(fn (LichHoc $lichHoc) => $lichHoc->ngay_hoc && $lichHoc->ngay_hoc->isSameDay($homNay))
-                ->count(),
-            'buoi_hoc_sap_toi' => $cacBuoiSapToi->count(),
-            'tai_lieu_cong_khai' => (clone $taiLieuCongKhaiQuery)->count(),
-            'tai_lieu_moi_7_ngay' => (clone $taiLieuCongKhaiQuery)->where('created_at', '>=', now()->subDays(7))->count(),
-            'buoi_co_tai_lieu' => (clone $taiLieuCongKhaiQuery)->distinct('lich_hoc_id')->count('lich_hoc_id'),
-            'tien_do_tong_quan' => $tienDoTongQuan,
-            'tong_buoi_hoc' => $tongBuoiHoc,
-            'tong_buoi_hoan_thanh' => $tongBuoiHoanThanh,
-            'yeu_cau_dang_cho_duyet' => $yeuCauThamGiaDangChoDuyet,
-            'tong_lan_diem_danh' => $tongLanDiemDanh,
-            'ty_le_chuyen_can' => $tyLeChuyenCan,
-        ];
-
-        $tienDoKhoaHoc = $ghiDanhKhoaHoc->map(function (HocVienKhoaHoc $ghiDanh) use ($lichHocTheoKhoaHoc, $diemDanhTheoKhoaHoc, $ketQuaHocTapTheoKhoaHoc, $hienTai) {
-            $cacBuoiHoc = $lichHocTheoKhoaHoc->get($ghiDanh->khoa_hoc_id, collect());
-            $tongBuoi = $cacBuoiHoc->count();
-            $buoiHoanThanh = $cacBuoiHoc
-                ->filter(fn (LichHoc $lichHoc) => $lichHoc->is_ended)
-                ->count();
-            $buoiOnline = $cacBuoiHoc->where('hinh_thuc', 'online')->count();
-            $tienDo = $tongBuoi > 0
-                ? (int) round(($buoiHoanThanh / $tongBuoi) * 100)
-                : 0;
-
-            $diemDanhTheoKhoa = $diemDanhTheoKhoaHoc->get($ghiDanh->khoa_hoc_id, collect());
-            $coMat = $diemDanhTheoKhoa->where('trang_thai', 'co_mat')->count();
-            $vaoTre = $diemDanhTheoKhoa->where('trang_thai', 'vao_tre')->count();
-            $vangMat = $diemDanhTheoKhoa->where('trang_thai', 'vang_mat')->count();
-            $tongDiemDanh = $diemDanhTheoKhoa->count();
-            $tyLeThamDu = $tongDiemDanh > 0
-                ? (int) round((($coMat + $vaoTre) / $tongDiemDanh) * 100)
-                : null;
-
-            $buoiSapToi = $cacBuoiHoc
-                ->filter(fn (LichHoc $lichHoc) => $this->shouldShowInUpcomingList($lichHoc, $hienTai))
-                ->sortBy(fn (LichHoc $lichHoc) => $lichHoc->starts_at?->getTimestamp() ?? PHP_INT_MAX)
-                ->first();
-
-            $ketQuaHocTap = $ketQuaHocTapTheoKhoaHoc->get($ghiDanh->khoa_hoc_id);
-
-            return [
-                'ghi_danh' => $ghiDanh,
-                'khoa_hoc' => $ghiDanh->khoaHoc,
-                'tong_buoi' => $tongBuoi,
-                'buoi_hoan_thanh' => $buoiHoanThanh,
-                'buoi_online' => $buoiOnline,
-                'tien_do' => $tienDo,
-                'buoi_sap_toi' => $buoiSapToi,
-                'co_mat' => $coMat,
-                'vao_tre' => $vaoTre,
-                'vang_mat' => $vangMat,
-                'tong_diem_danh' => $tongDiemDanh,
-                'ty_le_tham_du' => $tyLeThamDu,
-                'ket_qua_hoc_tap' => $ketQuaHocTap,
-            ];
-        });
-
-        $buoiSapToi = $cacBuoiSapToi->take(5)->values();
-
-        $taiLieuMoi = (clone $taiLieuCongKhaiQuery)
-            ->with([
-                'lichHoc.khoaHoc:id,ten_khoa_hoc,ma_khoa_hoc',
-                'lichHoc.moduleHoc:id,ten_module,ma_module',
-            ])
-            ->latest()
-            ->take(6)
-            ->get();
-
-        $buoiHoanThanhGanDay = $tatCaLichHoc
-            ->filter(fn (LichHoc $lichHoc) => $lichHoc->is_ended)
-            ->sortByDesc(fn (LichHoc $lichHoc) => $lichHoc->ends_at?->getTimestamp() ?? ($lichHoc->starts_at?->getTimestamp() ?? 0))
-            ->take(6)
-            ->values();
-
-        $hoatDongGanDay = $this->buildHoatDongGanDay($diemDanhGanDay, $taiLieuMoi, $buoiHoanThanhGanDay);
-
-        $chuyenCanTongQuan = [
-            'co_mat' => $soCoMat,
-            'vao_tre' => $soVaoTre,
-            'vang_mat' => $soVangMat,
-            'tong' => $tongLanDiemDanh,
-            'ty_le_tham_du' => $tyLeChuyenCan,
-        ];
-
-        return [
-            'dashboardStats' => $dashboardStats,
-            'tienDoKhoaHoc' => $tienDoKhoaHoc,
-            'buoiSapToi' => $buoiSapToi,
-            'taiLieuMoi' => $taiLieuMoi,
-            'diemDanhGanDay' => $diemDanhGanDay->take(6)->values(),
-            'hoatDongGanDay' => $hoatDongGanDay,
-            'chuyenCanTongQuan' => $chuyenCanTongQuan,
-        ];
-    }
-
-    private function shouldShowInUpcomingList(LichHoc $lichHoc, CarbonInterface $referenceTime): bool
-    {
-        if ($lichHoc->trang_thai === 'huy') {
-            return false;
-        }
-
-        if ($lichHoc->ends_at) {
-            return $lichHoc->ends_at->greaterThanOrEqualTo($referenceTime);
-        }
-
-        return $lichHoc->ngay_hoc
-            && $lichHoc->ngay_hoc->greaterThanOrEqualTo($referenceTime->copy()->startOfDay());
-    }
-
-    private function buildHoatDongGanDay($diemDanhGanDay, $taiLieuMoi, $buoiHoanThanhGanDay)
-    {
-        $hoatDongDiemDanh = $diemDanhGanDay->map(function ($diemDanh) {
-            $trangThai = $diemDanh->trang_thai;
-
-            return [
-                'sort_at' => $diemDanh->updated_at ?? $diemDanh->created_at,
-                'icon' => match ($trangThai) {
-                    'co_mat' => 'fa-check-circle',
-                    'vao_tre' => 'fa-clock',
-                    'vang_mat' => 'fa-times-circle',
-                    default => 'fa-circle',
-                },
-                'color' => match ($trangThai) {
-                    'co_mat' => 'success',
-                    'vao_tre' => 'warning',
-                    'vang_mat' => 'danger',
-                    default => 'secondary',
-                },
-                'title' => match ($trangThai) {
-                    'co_mat' => 'Điểm danh: có mặt',
-                    'vao_tre' => 'Điểm danh: vào trễ',
-                    'vang_mat' => 'Điểm danh: vắng mặt',
-                    default => 'Cập nhật điểm danh',
-                },
-                'description' => trim(collect([
-                    optional(optional($diemDanh->lichHoc)->khoaHoc)->ten_khoa_hoc,
-                    optional(optional($diemDanh->lichHoc)->moduleHoc)->ten_module,
-                ])->filter()->implode(' • ')),
-                'meta' => optional(optional($diemDanh->lichHoc)->ngay_hoc)->format('d/m/Y'),
-            ];
-        });
-
-        $hoatDongTaiLieu = $taiLieuMoi->map(function ($taiLieu) {
-            return [
-                'sort_at' => $taiLieu->created_at,
-                'icon' => 'fa-folder-open',
-                'color' => 'info',
-                'title' => 'Tài liệu mới được công khai',
-                'description' => $taiLieu->tieu_de,
-                'meta' => optional(optional($taiLieu->lichHoc)->khoaHoc)->ten_khoa_hoc,
-            ];
-        });
-
-        $hoatDongBuoiHoc = $buoiHoanThanhGanDay->map(function ($lichHoc) {
-            $sortAt = $lichHoc->ends_at
-                ?? ($lichHoc->ngay_hoc
-                    ? $lichHoc->ngay_hoc->copy()->setTimeFromTimeString($lichHoc->gio_bat_dau ?: '00:00:00')
-                    : $lichHoc->updated_at);
-
-            return [
-                'sort_at' => $sortAt,
-                'icon' => 'fa-calendar-check',
-                'color' => 'primary',
-                'title' => 'Hoàn thành buổi học',
-                'description' => trim(collect([
-                    optional($lichHoc->khoaHoc)->ten_khoa_hoc,
-                    optional($lichHoc->moduleHoc)->ten_module,
-                ])->filter()->implode(' • ')),
-                'meta' => optional($lichHoc->ngay_hoc)->format('d/m/Y'),
-            ];
-        });
-
-        return $hoatDongDiemDanh
-            ->concat($hoatDongTaiLieu)
-            ->concat($hoatDongBuoiHoc)
-            ->sortByDesc('sort_at')
-            ->take(10)
-            ->values();
+        return view('pages.hoc-vien.bai-giang.show', compact('baiGiang', 'backUrl'));
     }
 
     public function profile()

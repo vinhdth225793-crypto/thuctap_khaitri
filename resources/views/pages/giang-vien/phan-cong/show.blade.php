@@ -154,8 +154,12 @@
                     </div>
                 @endif
 
+                @php
+                    $focusedLichHocId = (int) request('focus_lich_hoc_id', 0);
+                @endphp
+
                 @forelse($lichDays as $index => $lich)
-                    <div class="session-block mb-4 shadow-sm border border-2 border-light-subtle rounded-3 overflow-hidden bg-white" style="border-left: 5px solid #0d6efd !important;">
+                    <div id="session-{{ $lich->id }}" class="session-block mb-4 shadow-sm border border-2 border-light-subtle rounded-3 overflow-hidden bg-white {{ $focusedLichHocId === (int) $lich->id ? 'session-block-focused' : '' }}" style="border-left: 5px solid #0d6efd !important;">
                         {{-- Header của buổi học --}}
                         <div class="session-header p-3 d-flex flex-wrap align-items-center justify-content-between bg-light border-bottom border-primary border-3 border-top-0 border-end-0 border-start-0">
                             <div class="d-flex align-items-center gap-3">
@@ -1479,6 +1483,10 @@ document.addEventListener('DOMContentLoaded', function() {
         justify-content: center;
         padding: 0;
         border-radius: 6px;
+    }
+    .session-block-focused {
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.12), 0 0.5rem 1rem rgba(13, 110, 253, 0.08) !important;
+        scroll-margin-top: 90px;
     }
 </style>
 @endsection

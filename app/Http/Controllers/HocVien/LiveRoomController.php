@@ -25,7 +25,9 @@ class LiveRoomController extends Controller
             'phongHocLive' => $phongHocLive,
             'canManageRoom' => false,
             'canJoinRoom' => $phongHocLive->can_student_join,
-            'backUrl' => route('hoc-vien.chi-tiet-khoa-hoc', $baiGiang->khoa_hoc_id),
+            'backUrl' => $baiGiang->lich_hoc_id
+                ? route('hoc-vien.buoi-hoc.show', $baiGiang->lich_hoc_id)
+                : route('hoc-vien.chi-tiet-khoa-hoc', $baiGiang->khoa_hoc_id),
             'playerMode' => $playerMode,
             'playerUrl' => $playerUrl,
             'playerSupportsEmbed' => $playerSupportsEmbed,

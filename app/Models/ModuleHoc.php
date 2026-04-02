@@ -217,6 +217,11 @@ class ModuleHoc extends Model
         return $snapshot['completed_schedules'] . '/' . $snapshot['valid_schedules'] . ' buổi';
     }
 
+    public function getTienDoHocTapAttribute(): int
+    {
+        return $this->learning_progress_snapshot['progress_percent'];
+    }
+
     public function getIsHoanThanhAttribute(): bool
     {
         return $this->trang_thai_hoc_tap === self::LEARNING_STATUS_HOAN_THANH;

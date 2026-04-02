@@ -294,6 +294,30 @@ class TaiNguyenBuoiHoc extends Model
     }
 
     /**
+     * Scope: Tai nguyen hop le de hoc vien truy cap.
+     */
+    public function scopeHienThiChoHocVien($query)
+    {
+        return $query
+            ->where(function ($visibilityQuery) {
+                $visibilityQuery->whereNull('trang_thai_hien_thi')
+                    ->orWhere('trang_thai_hien_thi', 'hien');
+            })
+            ->where(function ($openQuery) {
+                $openQuery->whereNull('ngay_mo_hien_thi')
+                    ->orWhere('ngay_mo_hien_thi', '<=', now());
+            })
+            ->where(function ($approvalQuery) {
+                $approvalQuery->whereNull('trang_thai_duyet')
+                    ->orWhere('trang_thai_duyet', self::STATUS_DUYET_DA_DUYET);
+            })
+            ->where(function ($processingQuery) {
+                $processingQuery->whereNull('trang_thai_xu_ly')
+                    ->orWhereIn('trang_thai_xu_ly', [self::STATUS_XU_LY_NONE, self::STATUS_XU_LY_SAN_SANG]);
+            });
+    }
+
+    /**
      * Scope: Tài nguyên đã duyệt
      */
     public function scopeDaDuyet($query)
