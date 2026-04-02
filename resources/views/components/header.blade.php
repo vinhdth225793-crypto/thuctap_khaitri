@@ -1,10 +1,64 @@
 <header class="header">
-    <div class="header-left">
-        <button class="btn d-md-none" onclick="toggleSidebar()">
-            <i class="fas fa-bars"></i>
+    <div class="header-left d-flex align-items-center gap-3">
+        <!-- Mobile Toggle -->
+        <button class="btn d-md-none p-0 border-0" onclick="toggleSidebarMobile()">
+            <i class="fas fa-bars fs-4"></i>
         </button>
-        <h1>@yield('title', 'Dashboard')</h1>
+        <!-- Desktop Toggle -->
+        <button class="btn d-none d-md-flex align-items-center justify-content-center sidebar-toggle-btn" id="desktopSidebarToggle" onclick="toggleSidebarDesktop()" title="Thu gọn/Mở rộng menu">
+            <div class="toggle-icon-wrapper">
+                <i class="fas fa-bars-staggered" id="toggleIcon"></i>
+            </div>
+        </button>
+        <h1 class="ms-2">@yield('title', 'Dashboard')</h1>
     </div>
+
+<style>
+    .sidebar-toggle-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: #ffffff;
+        border: 1.5px solid #f1f5f9;
+        color: #1e293b;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+    }
+    
+    .sidebar-toggle-btn:hover {
+        background: #1d4ed8;
+        color: #ffffff;
+        border-color: #1d4ed8;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(29, 78, 216, 0.15);
+    }
+
+    .sidebar-toggle-btn:active {
+        transform: scale(0.95);
+    }
+
+    .toggle-icon-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+    }
+
+    .sidebar-toggle-btn i {
+        font-size: 1.2rem;
+        transition: transform 0.4s cubic-bezier(0.68, -0.6, 0.32, 1.6);
+    }
+
+    /* Khi sidebar bị thu gọn, icon sẽ xoay */
+    .sidebar-collapsed .sidebar-toggle-btn i {
+        transform: rotate(180deg);
+    }
+</style>
     
     <div class="header-right">
         <a href="{{ route('home') }}"

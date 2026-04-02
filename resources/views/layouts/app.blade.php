@@ -57,85 +57,73 @@
         /* Sidebar Styles */
         .sidebar {
             width: var(--sidebar-width);
-            background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
-            color: white;
+            background: #ffffff;
+            color: #333;
             position: fixed;
             height: 100vh;
-            transition: all 0.3s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 1000;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            box-shadow: 10px 0 40px rgba(0, 0, 0, 0.03);
+            overflow-x: hidden;
         }
         
-        .sidebar-header {
-            padding: 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            text-align: center;
+        .app-wrapper.sidebar-collapsed .sidebar {
+            width: 85px;
         }
-        
-        .sidebar-logo {
-            display: flex;
-            align-items: center;
+
+        .app-wrapper.sidebar-collapsed .main-content {
+            margin-left: 85px;
+        }
+
+        /* Hide text elements in collapsed state */
+        .app-wrapper.sidebar-collapsed .edu-brand-name,
+        .app-wrapper.sidebar-collapsed .edu-tagline,
+        .app-wrapper.sidebar-collapsed .edu-profile-card .overflow-hidden,
+        .app-wrapper.sidebar-collapsed .edu-link-parent span,
+        .app-wrapper.sidebar-collapsed .arrow-toggle,
+        .app-wrapper.sidebar-collapsed .edu-submenu-container,
+        .app-wrapper.sidebar-collapsed .edu-btn-logout span {
+            display: none !important;
+        }
+
+        .app-wrapper.sidebar-collapsed .edu-logo-wrapper {
+            width: 45px; height: 45px;
+            margin: 0 auto;
+        }
+
+        .app-wrapper.sidebar-collapsed .sidebar-header {
+            padding: 30px 10px;
+        }
+
+        .app-wrapper.sidebar-collapsed .edu-link-parent {
             justify-content: center;
-            gap: 10px;
-            font-size: 1.5rem;
-            font-weight: 700;
+            padding: 12px 0;
+            margin: 0 10px 8px;
         }
-        
-        .sidebar-logo i {
-            font-size: 2rem;
+
+        .app-wrapper.sidebar-collapsed .edu-icon-circle {
+            margin-right: 0;
+            width: 45px;
+            height: 45px;
         }
-        
-        .sidebar-nav {
-            padding: 20px 0;
+
+        .app-wrapper.sidebar-collapsed .edu-profile-card {
+            padding: 10px 0;
+            background: transparent;
+            border: none;
+            justify-content: center;
         }
-        
-        .nav-item {
-            margin-bottom: 5px;
+
+        .app-wrapper.sidebar-collapsed .edu-avatar-box {
+            width: 45px;
+            height: 45px;
+            margin: 0 auto;
         }
-        
-        .nav-link {
-            color: rgba(255, 255, 255, 0.8);
-            padding: 12px 20px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            text-decoration: none;
-            transition: all 0.3s;
-            border-left: 3px solid transparent;
-        }
-        
-        .nav-link:hover, .nav-link.active {
-            color: white;
-            background-color: rgba(255, 255, 255, 0.1);
-            border-left-color: white;
-        }
-        
-        .nav-link i {
-            width: 20px;
-            text-align: center;
-        }
-        
-        /* Badge Notification Styles */
-        .nav-link .badge {
-            font-size: 0.75rem;
-            padding: 0.35rem 0.6rem;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: 0.7;
-            }
-        }
-        
-        /* Main Content Styles */
+
         .main-content {
             flex: 1;
             margin-left: var(--sidebar-width);
-            transition: all 0.3s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         .header {
@@ -517,25 +505,48 @@
     
     <script>
         // Toggle sidebar trên mobile
-        function toggleSidebar() {
+        function toggleSidebarMobile() {
             const sidebar = document.querySelector('.sidebar');
             sidebar.classList.toggle('active');
         }
-        
-        // Loading button
-        document.addEventListener('DOMContentLoaded', function() {
-            const forms = document.querySelectorAll('.needs-validation');
+
+        // Toggle sidebar trên desktop (Thu gọn/Mở rộng)
+        function toggleSidebarDesktop() {
+            const wrapper = document.querySelector('.app-wrapper');
+            const icon = document.querySelector('#desktopSidebarToggle i');
             
+            wrapper.classList.toggle('sidebar-collapsed');
+            
+            // Đổi icon và lưu trạng thái
+            if (wrapper.classList.contains('sidebar-collapsed')) {
+                icon.classList.replace('fa-indent', 'fa-outdent');
+                localStorage.setItem('sidebar-state', 'collapsed');
+            } else {
+                icon.classList.replace('fa-outdent', 'fa-indent');
+                localStorage.setItem('sidebar-state', 'expanded');
+            }
+        }
+        
+        // Khôi phục trạng thái khi load trang
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarState = localStorage.getItem('sidebar-state');
+            const wrapper = document.querySelector('.app-wrapper');
+            const icon = document.querySelector('#desktopSidebarToggle i');
+            
+            if (sidebarState === 'collapsed') {
+                wrapper.classList.add('sidebar-collapsed');
+                if (icon) icon.classList.replace('fa-indent', 'fa-outdent');
+            }
+
+            // Xử lý loading button như cũ
+            const forms = document.querySelectorAll('.needs-validation');
             Array.from(forms).forEach(form => {
                 form.addEventListener('submit', event => {
                     if (!form.checkValidity()) {
                         event.preventDefault();
                         event.stopPropagation();
                     }
-                    
                     form.classList.add('was-validated');
-                    
-                    // Thêm hiệu ứng loading cho button submit
                     const submitBtn = form.querySelector('button[type="submit"]');
                     if (submitBtn) {
                         submitBtn.classList.add('btn-loading');
@@ -543,14 +554,6 @@
                     }
                 }, false);
             });
-            
-            // Auto remove loading after 3 seconds (for demo)
-            setTimeout(() => {
-                document.querySelectorAll('.btn-loading').forEach(btn => {
-                    btn.classList.remove('btn-loading');
-                    btn.disabled = false;
-                });
-            }, 3000);
         });
     </script>
     
