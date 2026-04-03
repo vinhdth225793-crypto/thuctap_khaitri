@@ -135,6 +135,12 @@ class LichHoc extends Model
         return $this->hasMany(DiemDanh::class, 'lich_hoc_id');
     }
 
+    public function teacherAttendanceLogs(): HasMany
+    {
+        return $this->hasMany(DiemDanhGiangVien::class, 'lich_hoc_id')
+            ->orderByDesc('created_at');
+    }
+
     public function teacherLeaveRequests(): HasMany
     {
         return $this->hasMany(GiangVienDonXinNghi::class, 'lich_hoc_id')
@@ -488,6 +494,44 @@ class LichHoc extends Model
     public function getStudentLiveRoomAttribute(): ?PhongHocLive
     {
         return $this->studentLiveLecture?->phongHocLive;
+    }
+
+    public function getTeacherAttendanceLogAttribute(): ?DiemDanhGiangVien
+    {
+        if ($this->relationLoaded('teacherAttendanceLogs')) {
+            return $this->teacherAttendanceLogs->first();
+        }
+
+        return $this->teacherAttendanceLogs()->first();
+    }
+
+    public function getAssignedTeacherAttribute(): ?GiangVien
+    {
+        if ($this->relationLoaded('giangVien') && $this->giangVien) {
+            return $this->giangVien;
+        }
+
+        if ($this->relationLoaded('moduleHoc') && $this->moduleHoc?->relationLoaded('phanCongGiangViens')) {
+            $assignment = $this->moduleHoc->phanCongGiangViens
+                ->first(function (PhanCongModuleGiangVien $item) {
+                    return (int) $item->khoa_hoc_id === (int) $this->khoa_hoc_id
+                        && $item->trang_thai === 'da_nhan';
+                });
+
+            return $assignment?->giangVien;
+        }
+
+        if ($this->giang_vien_id) {
+            return $this->giangVien()->with('nguoiDung')->first();
+        }
+
+        return PhanCongModuleGiangVien::query()
+            ->with('giangVien.nguoiDung')
+            ->where('khoa_hoc_id', $this->khoa_hoc_id)
+            ->where('module_hoc_id', $this->module_hoc_id)
+            ->where('trang_thai', 'da_nhan')
+            ->latest('id')
+            ->first()?->giangVien;
     }
 
     private function isStudentVisibleLiveLecture(BaiGiang $baiGiang): bool

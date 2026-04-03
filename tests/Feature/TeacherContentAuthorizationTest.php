@@ -180,6 +180,39 @@ class TeacherContentAuthorizationTest extends TestCase
         ]);
     }
 
+    public function test_teacher_can_create_regular_lecture_and_submit_for_approval(): void
+    {
+        $admin = $this->createUser('admin');
+        [$actingTeacherUser, $actingTeacher] = $this->createTeacher();
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+        $assignment = $this->assignTeacher($admin, $actingTeacher, $course, $module);
+        $lichHoc = $this->createLichHoc($course, $module);
+
+        $response = $this->actingAs($actingTeacherUser)
+            ->post(route('giang-vien.bai-giang.store'), [
+                'tieu_de' => 'Bai giang gui duyet',
+                'mo_ta' => 'Noi dung can admin duyet',
+                'phan_cong_id' => $assignment->id,
+                'lich_hoc_id' => $lichHoc->id,
+                'loai_bai_giang' => 'tai_lieu',
+                'hanh_dong' => 'gui_duyet',
+            ]);
+
+        $response->assertRedirect(route('giang-vien.bai-giang.index'));
+
+        $lecture = BaiGiang::query()->firstOrFail();
+
+        $this->assertDatabaseHas('bai_giangs', [
+            'id' => $lecture->id,
+            'nguoi_tao_id' => $actingTeacherUser->ma_nguoi_dung,
+            'lich_hoc_id' => $lichHoc->id,
+            'trang_thai_duyet' => BaiGiang::STATUS_DUYET_CHO,
+            'trang_thai_cong_bo' => BaiGiang::CONG_BO_AN,
+        ]);
+        $this->assertNotNull($lecture->fresh()->ngay_gui_duyet);
+    }
+
     public function test_unassigned_teacher_cannot_send_student_request_for_course(): void
     {
         $admin = $this->createUser('admin');

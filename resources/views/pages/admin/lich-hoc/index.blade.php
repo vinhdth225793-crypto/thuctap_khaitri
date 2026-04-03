@@ -16,65 +16,31 @@
 
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1">
-                <i class="fas fa-calendar-alt me-2 text-info"></i>
-                Quản lý lịch học — {{ $khoaHoc->ten_khoa_hoc }}
-            </h4>
-            <span class="badge bg-{{ $khoaHoc->badge_trang_thai }}">{{ $khoaHoc->label_trang_thai_van_hanh }}</span>
+        <div class="d-flex align-items-center gap-3">
+            <div class="form-check p-0 ms-2">
+                <input type="checkbox" id="checkAllGlobal" class="form-check-input ms-0" style="width: 1.2rem; height: 1.2rem; cursor: pointer;" title="Chọn tất cả các buổi học đang chờ">
+            </div>
+            <div>
+                <h4 class="fw-bold mb-1">
+                    <i class="fas fa-calendar-alt me-2 text-info"></i>
+                    Quản lý lịch học — {{ $khoaHoc->ten_khoa_hoc }}
+                </h4>
+                <span class="badge bg-{{ $khoaHoc->badge_trang_thai }}">{{ $khoaHoc->label_trang_thai_van_hanh }}</span>
+            </div>
         </div>
         <div class="d-flex gap-2">
             <button id="btnBulkDelete" class="btn btn-danger btn-sm shadow-sm fw-bold d-none" onclick="submitBulkDelete()">
-                <i class="fas fa-trash-alt me-1"></i> Xóa <span id="selectedCount">0</span> buổi đã chọn
+                <i class="fas fa-trash-alt me-1"></i> Xóa <span id="selectedCount">0</span> buổi
             </button>
             <a href="{{ route('admin.khoa-hoc.show', $khoaHoc->id) }}" class="btn btn-outline-secondary btn-sm">
-                <i class="fas fa-arrow-left me-1"></i> Quay lại chi tiết
+                <i class="fas fa-arrow-left me-1"></i> Quay lại
             </a>
         </div>
     </div>
 
     @include('components.alert')
 
-    <!-- Thống kê tổng quát -->
-    <div class="row g-3 mb-4">
-        @php
-            $tongBuoiQuyDinh = $khoaHoc->moduleHocs->sum('so_buoi');
-            $tongBuoiDaLen = $khoaHoc->lichHocs->count();
-            $conThieu = max(0, $tongBuoiQuyDinh - $tongBuoiDaLen);
-            $moduleDuLich = $khoaHoc->moduleHocs->filter(fn($m) => $m->lichHocs->count() >= $m->so_buoi)->count();
-            $moduleThieuLich = $khoaHoc->moduleHocs->count() - $moduleDuLich;
-        @endphp
-        <div class="col-md-3">
-            <div class="vip-card p-3 text-center border-0 shadow-sm bg-info text-white">
-                <div class="smaller text-uppercase fw-bold opacity-75">Đã lên lịch</div>
-                <div class="fs-2 fw-bold">{{ $tongBuoiDaLen }}</div>
-                <div class="small">buổi học thực tế</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="vip-card p-3 text-center border-0 shadow-sm {{ $conThieu > 0 ? 'bg-warning' : 'bg-success text-white' }}">
-                <div class="smaller text-uppercase fw-bold opacity-75">Cần bổ sung</div>
-                <div class="fs-2 fw-bold">{{ $conThieu }}</div>
-                <div class="small">buổi học còn thiếu</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="vip-card p-3 text-center border-0 shadow-sm bg-white border-start border-4 border-success">
-                <div class="smaller text-muted text-uppercase fw-bold">Module đủ lịch</div>
-                <div class="fs-2 fw-bold text-success">{{ $moduleDuLich }}</div>
-                <div class="small text-muted">/ {{ $khoaHoc->moduleHocs->count() }} module</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="vip-card p-3 text-center border-0 shadow-sm bg-white border-start border-4 border-danger">
-                <div class="smaller text-muted text-uppercase fw-bold">Module thiếu lịch</div>
-                <div class="fs-2 fw-bold text-danger">{{ $moduleThieuLich }}</div>
-                <div class="small text-muted">chưa hoàn thiện lịch</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Form Xóa Hàng Loạt (Bao phủ bảng nhưng không lồng vào các form khác) -->
+    <!-- Form Xóa Hàng Loạt -->
     <form id="bulkDeleteForm" action="{{ route('admin.khoa-hoc.lich-hoc.destroy-bulk', $khoaHoc->id) }}" method="POST">
         @csrf @method('DELETE')
     </form>
@@ -82,69 +48,50 @@
     <!-- Loop qua từng module -->
     @foreach($khoaHoc->moduleHocs as $index => $module)
         @php
-            // Lấy ngày kết thúc của module đứng trước đó (nếu có)
             $prevModule = $index > 0 ? $khoaHoc->moduleHocs[$index - 1] : null;
             $minDate = $prevModule ? $prevModule->ngay_ket_thuc_thuc_te : date('Y-m-d');
+            
+            // Lấy danh sách giảng viên đã được phân công cho module này
+            $assignedTeachers = $module->phanCongGiangViens->map(function($pc) {
+                $gv = $pc->giangVien;
+                return [
+                    'id' => $pc->giang_vien_id,
+                    'name' => $gv?->nguoiDung?->ho_ten ?? 'N/A',
+                    'pending_leave_count' => $gv?->donXinNghis?->where('trang_thai', 'cho_duyet')->count() ?? 0
+                ];
+            })->values();
         @endphp
-        <div class="vip-card mb-4 border-0 shadow-sm">
-            <div class="vip-card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
-                <div style="flex: 1; min-width: 250px;">
-                    <h5 class="vip-card-title small fw-bold text-uppercase mb-1 text-primary">
+        <div class="vip-card mb-4 border-0 shadow-sm overflow-hidden">
+            <div class="vip-card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div style="flex: 1;">
+                    <h5 class="small fw-bold text-uppercase mb-1 text-primary">
                         <i class="fas fa-cube me-2"></i> Module {{ $module->thu_tu_module }}: {{ $module->ten_module }}
                     </h5>
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="small text-muted">
-                            Quy định: <strong class="text-dark">{{ $module->so_buoi }} buổi</strong> | 
-                            Đã lên: <strong class="{{ $module->lichHocs->count() < $module->so_buoi ? 'text-danger' : 'text-success' }}">{{ $module->lichHocs->count() }} buổi</strong>
-                        </div>
+                    <div class="d-flex align-items-center gap-3 small">
+                        <span>Quy định: <strong>{{ $module->so_buoi }}</strong> | Đã lên: <strong class="{{ $module->lichHocs->count() < $module->so_buoi ? 'text-danger' : 'text-success' }}">{{ $module->lichHocs->count() }}</strong></span>
                         @if($module->so_buoi > 0)
-                            <div class="progress" style="width: 100px; height: 6px;">
-                                @php $percent = min(100, ($module->lichHocs->count() / $module->so_buoi) * 100); @endphp
-                                <div class="progress-bar bg-success" role="progressbar" style="width: {{ $percent }}%"></div>
+                            <div class="progress" style="width: 80px; height: 5px;">
+                                <div class="progress-bar bg-success" style="width: {{ min(100, ($module->lichHocs->count() / $module->so_buoi) * 100) }}%"></div>
                             </div>
                         @endif
                     </div>
-                    @php
-                        $assignedTeacherPayload = $module->assignedTeachers
-                            ->unique('giang_vien_id')
-                            ->map(function ($assignment) {
-                                $teacher = $assignment->giangVien;
-
-                                return [
-                                    'id' => $assignment->giang_vien_id,
-                                    'name' => $teacher?->nguoiDung?->ho_ten ?? 'N/A',
-                                    'specialty' => $teacher?->chuyen_nganh,
-                                    'pending_leave_request_count' => $teacher?->donXinNghis?->where('trang_thai', 'cho_duyet')->count() ?? 0,
-                                ];
-                            })
-                            ->values();
-                    @endphp
-                    <div class="d-flex flex-wrap gap-2 mt-3">
-                        @forelse($assignedTeacherPayload as $teacherInfo)
-                            <span class="badge rounded-pill bg-light text-dark border">
-                                <i class="fas fa-user-check text-success me-1"></i>
-                                {{ $teacherInfo['name'] }}
-                                <span class="text-muted ms-1">({{ $teacherInfo['pending_leave_request_count'] }} don cho duyet)</span>
-                            </span>
-                        @empty
-                            <span class="badge rounded-pill bg-warning text-dark">
-                                <i class="fas fa-exclamation-triangle me-1"></i>Chua co giang vien da nhan module nay
-                            </span>
-                        @endforelse
-                    </div>
                 </div>
                 <div class="d-flex flex-wrap gap-2 align-items-center">
-                    <!-- Form lưu số buổi -->
+                    <!-- Form lưu số buổi (ĐÃ KHÔI PHỤC) -->
                     <div class="d-flex gap-1 align-items-center me-2 border-end pe-3">
                         <form action="{{ route('admin.khoa-hoc.lich-hoc.update-so-buoi', [$khoaHoc->id, $module->id]) }}" method="POST" class="d-flex gap-1 align-items-center">
                             @csrf
-                            <input type="number" name="so_buoi" value="{{ $module->so_buoi }}" class="form-control form-control-sm text-center" style="width: 55px;" min="1">
-                            <button type="submit" class="btn btn-sm btn-light border" title="Lưu số buổi">
-                                <i class="fas fa-save text-primary"></i>
-                            </button>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white border-0 smaller fw-bold text-muted">SỐ BUỔI:</span>
+                                <input type="number" name="so_buoi" value="{{ $module->so_buoi }}" class="form-control text-center fw-bold text-primary border-0 bg-light" style="width: 50px;" min="1">
+                                <button type="submit" class="btn btn-primary border-0" title="Lưu số buổi">
+                                    <i class="fas fa-save"></i>
+                                </button>
+                            </div>
                         </form>
                     </div>
-                    
+
+                    <!-- Nút Xóa nhanh (ĐÃ KHÔI PHỤC) -->
                     <div class="dropdown">
                         <button class="btn btn-sm btn-outline-danger dropdown-toggle fw-bold" type="button" data-bs-toggle="dropdown">
                             <i class="fas fa-trash-alt me-1"></i> Xóa
@@ -162,17 +109,17 @@
                             data-module-id="{{ $module->id }}" 
                             data-module-name="{{ $module->ten_module }}"
                             data-so-buoi="{{ $module->so_buoi }}"
-                            data-khoa-hoc-end="{{ optional($khoaHoc->ngay_ket_thuc)->format('Y-m-d') ?: now()->addMonths(6)->format('Y-m-d') }}"
                             data-min-date="{{ $minDate }}"
-                            data-assigned-teachers="{{ e(json_encode($assignedTeacherPayload)) }}">
+                            data-teachers="{{ json_encode($assignedTeachers) }}"
+                            data-existing-days="{{ json_encode($module->lichHocs->map(fn($l) => $l->ngay_hoc->dayOfWeek === 0 ? 8 : $l->ngay_hoc->dayOfWeek + 1)->unique()->values()) }}">
                         <i class="fas fa-magic me-1"></i> Sinh lịch tự động
                     </button>
                     <button type="button" class="btn btn-sm btn-primary fw-bold px-3 btn-add-single" 
                             data-module-id="{{ $module->id }}" 
                             data-module-name="{{ $module->ten_module }}"
                             data-min-date="{{ $minDate }}"
-                            data-assigned-teachers="{{ e(json_encode($assignedTeacherPayload)) }}">
-                        <i class="fas fa-plus me-1"></i> Thêm buổi lẻ
+                            data-teachers="{{ json_encode($assignedTeachers) }}">
+                        <i class="fas fa-plus me-1"></i> Buổi lẻ
                     </button>
                 </div>
             </div>
@@ -181,90 +128,103 @@
                     <table class="table table-hover align-middle mb-0 small">
                         <thead class="bg-light smaller">
                             <tr>
-                                <th class="ps-4" width="40">
-                                    <input type="checkbox" class="form-check-input check-all-module" data-module="{{ $module->id }}">
-                                </th>
-                                <th width="80">Thứ tự</th>
-                                <th>Ngày học</th>
-                                <th>Thứ</th>
-                                <th class="text-center">Thời gian</th>
-                                <th>Phòng / Link</th>
-                                <th>Giảng viên</th>
-                                <th class="text-center">Báo cáo</th>
-                                <th class="text-center">Trạng thái</th>
-                                <th class="pe-4 text-center" width="100">Thao tác</th>
+                                <th class="ps-4" width="40"><input type="checkbox" class="form-check-input check-all-module" data-module="{{ $module->id }}"></th>
+                                <th width="70">Buổi</th>
+                                <th width="140">Thời gian</th>
+                                <th width="180">Nội dung & Tài nguyên</th>
+                                <th>Địa điểm / Giảng viên</th>
+                                <th class="text-center" width="120">Tiến trình</th>
+                                <th class="text-center" width="110">Trạng thái</th>
+                                <th class="pe-4 text-center" width="80">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($module->lichHocs as $index => $lich)
-                                <tr class="{{ $lich->trang_thai === 'cho' ? 'row-selectable' : 'table-light opacity-75' }}">
+                            @forelse($module->lichHocs as $lich)
+                                @php
+                                    $hasAttendance = $lich->diemDanhs->isNotEmpty();
+                                    $lectureCount = $lich->baiGiangs->count();
+                                    $resourceCount = $lich->taiNguyen->count();
+                                @endphp
+                                <tr class="{{ $lich->trang_thai === 'cho' ? '' : 'table-light' }}">
                                     <td class="ps-4">
                                         @if($lich->trang_thai === 'cho')
-                                            <!-- Chú ý: input checkbox này có thuộc tính form="bulkDeleteForm" để nó thuộc về form xóa hàng loạt nằm bên ngoài -->
                                             <input type="checkbox" name="ids[]" value="{{ $lich->id }}" form="bulkDeleteForm" class="form-check-input check-item module-{{ $module->id }}">
                                         @else
-                                            <i class="fas fa-lock text-muted small" title="Không thể xóa buổi đã học/đang học"></i>
-                                        @endif
-                                    </td>
-                                    <td class="text-muted">Buổi {{ $lich->buoi_so }}</td>
-                                    <td class="fw-bold">{{ $lich->ngay_hoc->format('d/m/Y') }}</td>
-                                    <td><span class="badge bg-light text-dark border">{{ $lich->thu_label }}</span></td>
-                                    <td class="text-center">
-                                        <div class="fw-bold text-dark">{{ $lich->schedule_range_label }}</div>
-                                        <code class="text-muted">{{ \Carbon\Carbon::parse($lich->gio_bat_dau)->format('H:i') }} - {{ \Carbon\Carbon::parse($lich->gio_ket_thuc)->format('H:i') }}</code>
-                                    </td>
-                                    <td>
-                                        @if($lich->hinh_thuc === 'online')
-                                            <span class="text-info"><i class="fas fa-globe me-1"></i> Online</span>
-                                        @else
-                                            <span class="text-dark"><i class="fas fa-door-open me-1"></i> {{ $lich->phong_hoc ?: 'Chưa gán' }}</span>
+                                            <i class="fas fa-lock text-muted smaller" title="Buổi học đã bắt đầu hoặc kết thúc, không thể chọn xóa nhanh"></i>
                                         @endif
                                     </td>
                                     <td>
-                                        @if($lich->giangVien)
-                                            <div class="small fw-bold text-truncate" style="max-width: 120px;">{{ $lich->giangVien->nguoiDung->ho_ten }}</div>
+                                        <div class="fw-bold text-dark">#{{ $lich->buoi_so }}</div>
+                                        <div class="smaller text-muted">{{ $lich->thu_label }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold"><i class="far fa-calendar-alt me-1 text-primary"></i>{{ $lich->ngay_hoc->format('d/m/Y') }}</div>
+                                        <div class="smaller text-muted mt-1">
+                                            <i class="far fa-clock me-1"></i>{{ \Carbon\Carbon::parse($lich->gio_bat_dau)->format('H:i') }}-{{ \Carbon\Carbon::parse($lich->gio_ket_thuc)->format('H:i') }}
+                                            <span class="ms-1">({{ $lich->buoi_hoc_label }})</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-column gap-1">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="badge {{ $lectureCount > 0 ? 'bg-info-subtle text-info border border-info-subtle' : 'bg-light text-muted border' }} px-2 py-1">
+                                                    <i class="fas fa-book-open me-1"></i>{{ $lectureCount }} bài giảng
+                                                </span>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="badge {{ $resourceCount > 0 ? 'bg-warning-subtle text-warning border border-warning-subtle' : 'bg-light text-muted border' }} px-2 py-1">
+                                                    <i class="fas fa-paperclip me-1"></i>{{ $resourceCount }} tài liệu
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="mb-1">
+                                            @if($lich->hinh_thuc === 'online')
+                                                <span class="text-info fw-bold"><i class="fas fa-video me-1"></i>Online</span>
+                                                @if($lich->link_online)
+                                                    <a href="{{ $lich->link_online }}" target="_blank" class="smaller text-decoration-none ms-1"><i class="fas fa-external-link-alt"></i></a>
+                                                @endif
+                                            @else
+                                                <span class="text-success fw-bold"><i class="fas fa-map-marker-alt me-1"></i>{{ $lich->phong_hoc ?: 'Chưa gán phòng' }}</span>
+                                            @endif
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="avatar-xs bg-light rounded-circle text-center border" style="width: 24px; height: 24px; line-height: 22px;">
+                                                <i class="fas fa-user-tie text-muted smaller"></i>
+                                            </div>
+                                            <span class="text-dark">{{ $lich->giangVien?->nguoiDung?->ho_ten ?? 'Chưa gán giảng viên' }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        @if($hasAttendance)
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" title="Đã thực hiện điểm danh">
+                                                <i class="fas fa-check-circle me-1"></i>Đã điểm danh
+                                            </span>
                                         @else
-                                            <span class="text-muted italic smaller">Chưa gán</span>
+                                            <span class="badge bg-light text-muted border px-2 py-1">
+                                                <i class="far fa-circle me-1"></i>Chưa điểm danh
+                                            </span>
                                         @endif
                                     </td>
                                     <td class="text-center">
-                                        @if($lich->trang_thai_bao_cao === 'da_bao_cao')
-                                            <button type="button" class="btn btn-xs btn-success fw-bold px-2 btn-view-report" 
-                                                    data-content="{{ $lich->bao_cao_giang_vien }}"
-                                                    data-time="{{ $lich->thoi_gian_bao_cao?->format('d/m/Y H:i') }}"
-                                                    data-gv="{{ $lich->giangVien->nguoiDung->ho_ten ?? 'N/A' }}"
-                                                    data-buoi="{{ $lich->buoi_so }}">
-                                                <i class="fas fa-file-alt me-1"></i> Xem
-                                            </button>
-                                        @else
-                                            <span class="text-muted smaller">Chưa có</span>
-                                        @endif
-                                    </td>
-                                    <td class="text-center">
-                                        @php
-                                            $color = match($lich->trang_thai) {
-                                                'cho' => 'secondary',
-                                                'dang_hoc' => 'info',
-                                                'hoan_thanh' => 'success',
-                                                'huy' => 'danger',
-                                                default => 'light'
-                                            };
-                                        @endphp
-                                        <span class="badge bg-{{ $color }}">{{ $lich->trang_thai_label }}</span>
+                                        <span class="badge bg-{{ match($lich->trang_thai){'cho'=>'secondary','dang_hoc'=>'info','hoan_thanh'=>'success','huy'=>'danger',default=>'light'} }} w-100 py-2">
+                                            {{ $lich->trang_thai_label }}
+                                        </span>
                                     </td>
                                     <td class="pe-4 text-center">
-                                        <div class="d-flex justify-content-center gap-1">
-                                            <a href="{{ route('admin.khoa-hoc.lich-hoc.edit', [$khoaHoc->id, $lich->id]) }}" class="btn btn-sm btn-outline-warning border-0"><i class="fas fa-edit"></i></a>
-                                            <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="confirmDeleteSingle('{{ route('admin.khoa-hoc.lich-hoc.destroy', [$khoaHoc->id, $lich->id]) }}')">
+                                        <div class="d-flex gap-1 justify-content-center">
+                                            <a href="{{ route('admin.khoa-hoc.lich-hoc.edit', [$khoaHoc->id, $lich->id]) }}" class="btn btn-sm btn-outline-primary border-0" title="Chỉnh sửa">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="confirmDeleteSingle('{{ route('admin.khoa-hoc.lich-hoc.destroy', [$khoaHoc->id, $lich->id]) }}')" title="Xóa">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
                                     </td>
                                 </tr>
                             @empty
-                                <tr>
-                                    <td colspan="9" class="text-center py-4 text-muted italic">Module này chưa có lịch học nào.</td>
-                                </tr>
+                                <tr><td colspan="9" class="text-center py-4 text-muted italic">Chưa có lịch.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -274,85 +234,57 @@
     @endforeach
 </div>
 
-{{-- Hidden Form for Module Delete --}}
-<form id="deleteModuleForm" method="POST" style="display: none;">
-    @csrf @method('DELETE')
-</form>
+<form id="deleteSingleForm" method="POST" style="display: none;">@csrf @method('DELETE')</form>
+<form id="deleteModuleForm" method="POST" style="display: none;">@csrf @method('DELETE')</form>
 
-{{-- Hidden Form for Single Delete --}}
-<form id="deleteSingleForm" method="POST" style="display: none;">
-    @csrf @method('DELETE')
-</form>
-
-{{-- MODAL XEM BÁO CÁO GIẢNG VIÊN (PHASE 7 ADD-ON) --}}
-<div class="modal fade shadow" id="modalViewReport" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0">
-            <div class="modal-header bg-success text-white border-0 py-3">
-                <h5 class="modal-title fw-bold"><i class="fas fa-file-alt me-2"></i> Báo cáo giảng dạy buổi <span id="view-buoi-label"></span></h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4">
-                <div class="mb-3 d-flex justify-content-between align-items-start border-bottom pb-3">
-                    <div>
-                        <label class="smaller text-muted d-block fw-bold">Giảng viên báo cáo</label>
-                        <span id="view-gv-name" class="fw-bold text-dark fs-6"></span>
-                    </div>
-                    <div class="text-end">
-                        <label class="smaller text-muted d-block fw-bold">Thời gian gửi</label>
-                        <span id="view-report-time" class="small text-muted"></span>
-                    </div>
-                </div>
-                <div class="mb-0">
-                    <label class="smaller text-muted d-block fw-bold mb-2">Nội dung báo cáo</label>
-                    <div id="view-report-content" class="p-3 bg-light rounded border small text-dark lh-base" style="min-height: 150px; white-space: pre-wrap;"></div>
-                </div>
-            </div>
-            <div class="modal-footer border-0 p-3 justify-content-center bg-light">
-                <button type="button" class="btn btn-secondary px-5 fw-bold shadow-xs" data-bs-dismiss="modal">ĐÓNG</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-{{-- Các Modal (Sinh lịch, Thêm buổi lẻ) --}}
 @include('pages.admin.lich-hoc.modals')
 
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Xử lý Modal Xem báo cáo
-    const modalViewReport = new bootstrap.Modal(document.getElementById('modalViewReport'));
-    document.querySelectorAll('.btn-view-report').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const d = this.dataset;
-            document.getElementById('view-buoi-label').textContent = d.buoi;
-            document.getElementById('view-gv-name').textContent = d.gv;
-            document.getElementById('view-report-time').textContent = d.time;
-            document.getElementById('view-report-content').textContent = d.content;
-            modalViewReport.show();
-        });
-    });
-
-    // Khởi tạo Bootstrap Modals
     const modalSingle = new bootstrap.Modal(document.getElementById('modalThemBuoi'));
     const modalAuto   = new bootstrap.Modal(document.getElementById('modalSinhTuDong'));
-    const PERIODS = @json(\App\Support\Scheduling\TeachingPeriodCatalog::periods());
+    
+    const previewContainer = document.getElementById('auto-preview-container');
+    const emptyPreview = document.getElementById('auto-empty-preview');
+    const previewBody = document.getElementById('auto-preview-body');
+    const btnConfirmAutoSave = document.getElementById('btnConfirmAutoSave');
+    const btnPreviewAuto = document.getElementById('btnPreviewAuto');
+    const ngayBatDauInput = document.getElementById('auto-start-date');
+    const thuLabels = Array.from(document.querySelectorAll('.thu-label-box'));
+    const autoPlanningPanel = document.getElementById('auto-planning-panel');
+    const autoTeacherInput = document.getElementById('auto-teacher-id');
+    const autoPhongHocInput = document.querySelector('#auto-schedule-form input[name="phong_hoc"]');
+    const autoHinhThucInput = document.querySelector('#auto-schedule-form select[name="hinh_thuc"]');
+    const lockThuSelection = document.getElementById('lockThuSelection');
+    const thuContainer = document.getElementById('container-thu-auto');
+    const thuInputs = Array.from(document.querySelectorAll('#container-thu-auto input[name="thu_trong_tuan[]"]'));
+    const autoEndDateText = document.getElementById('auto-end-date-text');
+    const autoExistingDaysNote = document.getElementById('auto-existing-days-note');
+    const btnUseExistingDays = document.getElementById('btnUseExistingDays');
+    const btnUseDefaultDays = document.getElementById('btnUseDefaultDays');
+    const btnClearDays = document.getElementById('btnClearDays');
+
     const SESSIONS = @json(\App\Support\Scheduling\TeachingPeriodCatalog::sessions());
+    const defaultThuSelection = thuInputs
+        .filter(input => input.checked)
+        .map(input => parseInt(input.value, 10));
+    const PATTERN_246 = [2, 4, 6];
+    const PATTERN_357 = [3, 5, 7];
+    let currentModuleSoBuoi = 0;
+    let currentExistingDays = [];
+    let currentConflictDays = [];
 
-    // Hàm hỗ trợ cộng 1 ngày
-    function getNextDay(dateString) {
-        if (!dateString) return "{{ date('Y-m-d') }}";
-        const date = new Date(dateString);
-        date.setDate(date.getDate() + 1);
-        return date.toISOString().split('T')[0];
-    }
+    btnConfirmAutoSave.disabled = true;
 
-    function dbDayFromDate(dateString) {
-        if (!dateString) return null;
-        const date = new Date(dateString);
-        const day = date.getDay();
-        return day === 0 ? 8 : day + 1;
+    function populateTeachers(selectId, data) {
+        const select = document.getElementById(selectId);
+        let html = '<option value="">-- Chọn giảng viên --</option>';
+        data.forEach(t => {
+            html += `<option value="${t.id}">${t.name} (${t.pending_leave_count} đơn nghỉ)</option>`;
+        });
+        select.innerHTML = html;
+        if (data.length > 0) select.value = data[0].id;
     }
 
     function escapeHtml(value) {
@@ -364,367 +296,287 @@ document.addEventListener('DOMContentLoaded', function() {
             .replace(/'/g, '&#039;');
     }
 
-    function normalizeTime(value) {
-        return String(value || '').slice(0, 5);
+    function normalizeThuValues(values) {
+        return [...new Set((values || [])
+            .map(value => parseInt(value, 10))
+            .filter(value => Number.isInteger(value) && value >= 2 && value <= 8))]
+            .sort((a, b) => a - b);
     }
 
-    function getPickerCheckboxes(prefix) {
-        return Array.from(document.querySelectorAll(`#${prefix}-period-grid input[type="checkbox"]`));
+    function formatDateValue(date) {
+        const year = date.getFullYear();
+        const month = `${date.getMonth() + 1}`.padStart(2, '0');
+        const day = `${date.getDate()}`.padStart(2, '0');
+
+        return `${year}-${month}-${day}`;
     }
 
-    function getSelectedPeriods(prefix) {
-        return getPickerCheckboxes(prefix)
-            .filter((checkbox) => checkbox.checked)
-            .map((checkbox) => Number(checkbox.value))
-            .sort((left, right) => left - right);
+    function formatThuLabel(thu) {
+        return thu === 8 ? 'Chu nhat' : `Thu ${thu}`;
     }
 
-    function buildPeriodLabel(startPeriod, endPeriod) {
-        if (!startPeriod || !endPeriod) {
-            return '';
-        }
-
-        return startPeriod === endPeriod
-            ? `Tiet ${startPeriod}`
-            : `Tiet ${startPeriod} - ${endPeriod}`;
-    }
-
-    function resolveSessionFromRange(startPeriod, endPeriod) {
-        const match = Object.entries(SESSIONS).find(([, session]) => Number(session.start) <= startPeriod && Number(session.end) >= endPeriod);
-        return match ? match[0] : '';
-    }
-
-    function buildTimeRange(startPeriod, endPeriod) {
-        if (!startPeriod || !endPeriod || !PERIODS[startPeriod] || !PERIODS[endPeriod]) {
-            return '';
-        }
-
-        return `${PERIODS[startPeriod].start} - ${PERIODS[endPeriod].end}`;
-    }
-
-    function buildPreviewLabel(startPeriod, endPeriod) {
-        if (!startPeriod || !endPeriod) {
-            return '';
-        }
-
-        const sessionKey = resolveSessionFromRange(startPeriod, endPeriod);
-        const sessionLabel = sessionKey ? SESSIONS[sessionKey]?.label || '' : '';
-        const periodLabel = buildPeriodLabel(startPeriod, endPeriod);
-        const timeLabel = buildTimeRange(startPeriod, endPeriod);
-
-        return [sessionLabel, periodLabel, timeLabel].filter(Boolean).join(' | ');
-    }
-
-    function findPeriodRangeByTime(startTime, endTime) {
-        const normalizedStart = normalizeTime(startTime);
-        const normalizedEnd = normalizeTime(endTime);
-        const matches = Object.entries(PERIODS)
-            .filter(([, period]) => period.start < normalizedEnd && period.end > normalizedStart)
-            .map(([period]) => Number(period))
-            .sort((left, right) => left - right);
-
-        if (matches.length === 0) {
+    function resolveThuFromDate(dateValue) {
+        if (!dateValue) {
             return null;
         }
 
-        return {
-            start: matches[0],
-            end: matches[matches.length - 1],
-        };
+        const date = new Date(`${dateValue}T00:00:00`);
+        if (Number.isNaN(date.getTime())) {
+            return null;
+        }
+
+        return date.getDay() === 0 ? 8 : date.getDay() + 1;
     }
 
-    function updateSessionButtons(prefix, sessionKey) {
-        document.querySelectorAll(`.schedule-session-btn[data-prefix="${prefix}"]`).forEach((button) => {
-            const isActive = button.dataset.session === sessionKey && sessionKey !== '';
-            button.classList.toggle('active', isActive);
-            button.classList.toggle('shadow-sm', isActive);
+    function getSessionDefinition(sessionKey) {
+        return sessionKey ? (SESSIONS[sessionKey] || null) : null;
+    }
+
+    function updatePreviewRowThuLabel(row, thu) {
+        const thuLabel = row.querySelector('.preview-thu-label') || row.children[2];
+        if (!thuLabel) {
+            return;
+        }
+
+        thuLabel.textContent = thu !== null ? formatThuLabel(thu) : '--';
+    }
+
+    function collectPreviewRows() {
+        return Array.from(previewBody.querySelectorAll('tr[data-preview-date]')).map((row, index) => {
+            const dateInput = row.querySelector('input[name="preview_dates[]"]');
+            const sessionSelect = row.querySelector('select[name="preview_sessions[]"]');
+            const date = dateInput?.value || '';
+            const session = sessionSelect?.value || '';
+            const thu = resolveThuFromDate(date);
+            const sessionDefinition = getSessionDefinition(session);
+
+            row.dataset.previewDate = date;
+            row.dataset.previewThu = thu ?? '';
+            row.dataset.previewSession = session;
+            updatePreviewRowThuLabel(row, thu);
+
+            return {
+                rowIndex: index,
+                row,
+                date,
+                thu,
+                session,
+                buoi: index + 1,
+                startTime: sessionDefinition?.start_time || '',
+                endTime: sessionDefinition?.end_time || '',
+                periodStart: sessionDefinition?.start ?? null,
+                periodEnd: sessionDefinition?.end ?? null,
+            };
         });
     }
 
-    function setHiddenScheduleFields(prefix, startPeriod, endPeriod, sessionKey, startTime, endTime, preview) {
-        const startPeriodInput = document.getElementById(`${prefix}-tiet-bat-dau`);
-        const endPeriodInput = document.getElementById(`${prefix}-tiet-ket-thuc`);
-        const sessionInput = document.getElementById(`${prefix}-buoi-hoc`);
-        const startTimeInput = document.getElementById(`${prefix}-start-time`);
-        const endTimeInput = document.getElementById(`${prefix}-end-time`);
-        const previewInput = document.getElementById(`${prefix}-time-preview`);
-
-        if (startPeriodInput) startPeriodInput.value = startPeriod || '';
-        if (endPeriodInput) endPeriodInput.value = endPeriod || '';
-        if (sessionInput) sessionInput.value = sessionKey || '';
-        if (startTimeInput) startTimeInput.value = startTime || '';
-        if (endTimeInput) endTimeInput.value = endTime || '';
-        if (previewInput) previewInput.value = preview || '';
+    function getSelectedThuValues() {
+        return normalizeThuValues(
+            thuInputs.filter(input => input.checked).map(input => input.value)
+        );
     }
 
-    function parseAssignedTeachers(raw) {
-        try {
-            return JSON.parse(raw || '[]');
-        } catch (error) {
+    function renderAutoPlanningPlaceholder(message, tone = 'muted') {
+        if (!autoPlanningPanel) {
+            return;
+        }
+
+        autoPlanningPanel.innerHTML = `<div class="small text-${tone} mb-0">${message}</div>`;
+    }
+
+    function invalidateAutoPreview() {
+        previewBody.innerHTML = '';
+        previewContainer.classList.add('d-none');
+        emptyPreview.classList.remove('d-none');
+        btnConfirmAutoSave.classList.add('disabled');
+        btnConfirmAutoSave.disabled = true;
+        currentConflictDays = [];
+        syncThuSelectionState();
+        renderAutoPlanningPlaceholder('Chua co du lieu kiem tra trung lich.');
+    }
+
+    function buildPreviewList() {
+        if (!ngayBatDauInput.value || currentModuleSoBuoi <= 0) {
             return [];
         }
+
+        const selectedDays = getSelectedThuValues();
+        if (selectedDays.length === 0) {
+            return [];
+        }
+
+        const list = [];
+        const currentDate = new Date(`${ngayBatDauInput.value}T00:00:00`);
+        let count = 0;
+        let safety = 0;
+
+        while (count < currentModuleSoBuoi && safety < 500) {
+            safety++;
+            const day = currentDate.getDay();
+            const dbDay = day === 0 ? 8 : day + 1;
+
+            if (selectedDays.includes(dbDay)) {
+                count++;
+                list.push({
+                    buoi: count,
+                    date: formatDateValue(currentDate),
+                    thu: dbDay,
+                });
+            }
+
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        return list;
     }
 
-    function syncSchedulePicker(prefix, options = {}) {
-        const { triggerPlanning = true } = options;
-        const checkboxes = getPickerCheckboxes(prefix);
-        const selected = getSelectedPeriods(prefix);
+    function updateAutoEndDateText() {
+        const previewList = buildPreviewList();
 
-        if (selected.length > 1) {
-            const rangeStart = selected[0];
-            const rangeEnd = selected[selected.length - 1];
-            checkboxes.forEach((checkbox) => {
-                const value = Number(checkbox.value);
-                checkbox.checked = value >= rangeStart && value <= rangeEnd;
+        if (previewList.length === 0) {
+            autoEndDateText.textContent = '--/--';
+            return;
+        }
+
+        const [, month, day] = previewList[previewList.length - 1].date.split('-');
+        autoEndDateText.textContent = `${day}/${month}`;
+    }
+
+    function updateThuSummary() {
+        const selectedDays = getSelectedThuValues();
+        const conflictDays = normalizeThuValues(currentConflictDays);
+        const existingText = currentExistingDays.length > 0
+            ? currentExistingDays.map(formatThuLabel).join(', ')
+            : 'Chua co lich co dinh';
+        const selectedText = selectedDays.length > 0
+            ? selectedDays.map(formatThuLabel).join(', ')
+            : 'Chua chon thu nao';
+        const conflictText = conflictDays.length > 0
+            ? ` Thu dang bi trung: ${conflictDays.map(formatThuLabel).join(', ')}.`
+            : '';
+
+        autoExistingDaysNote.textContent = `Module dang co: ${existingText}. Ban dang chon sinh lich: ${selectedText}.${conflictText}`;
+    }
+
+    function updateThuUI() {
+        if (!ngayBatDauInput.value) {
+            thuLabels.forEach(label => {
+                label.dataset.position = 'none';
             });
-        }
-
-        const normalized = getSelectedPeriods(prefix);
-        if (normalized.length === 0) {
-            setHiddenScheduleFields(prefix, '', '', '', '', '', '');
-            updateSessionButtons(prefix, '');
-        } else {
-            const startPeriod = normalized[0];
-            const endPeriod = normalized[normalized.length - 1];
-            const sessionKey = resolveSessionFromRange(startPeriod, endPeriod);
-            const startTime = PERIODS[startPeriod]?.start || '';
-            const endTime = PERIODS[endPeriod]?.end || '';
-
-            setHiddenScheduleFields(
-                prefix,
-                startPeriod,
-                endPeriod,
-                sessionKey,
-                startTime,
-                endTime,
-                buildPreviewLabel(startPeriod, endPeriod),
-            );
-            updateSessionButtons(prefix, sessionKey);
-        }
-
-        if (!triggerPlanning) {
+            updateAutoEndDateText();
             return;
         }
 
-        if (prefix === 'single') {
-            refreshSinglePlanning();
-            return;
-        }
+        const start = new Date(`${ngayBatDauInput.value}T00:00:00`);
+        const day = start.getDay();
+        const startThu = day === 0 ? 8 : day + 1;
+        const endOfWeek = new Date(start);
+        endOfWeek.setDate(start.getDate() + (day === 0 ? 0 : 7 - day));
 
-        calculateExpectedEndDate();
-        updateThuColors();
-        refreshAutoPlanning();
-    }
+        thuLabels.forEach(label => {
+            const thu = parseInt(label.dataset.thu, 10);
 
-    function clearSchedulePicker(prefix, options = {}) {
-        getPickerCheckboxes(prefix).forEach((checkbox) => {
-            checkbox.checked = false;
-        });
-
-        syncSchedulePicker(prefix, options);
-    }
-
-    function setPeriodRange(prefix, startPeriod, endPeriod, options = {}) {
-        const rangeStart = Number(startPeriod || 0);
-        const rangeEnd = Number(endPeriod || 0);
-
-        if (!rangeStart || !rangeEnd) {
-            clearSchedulePicker(prefix, options);
-            return;
-        }
-
-        getPickerCheckboxes(prefix).forEach((checkbox) => {
-            const value = Number(checkbox.value);
-            checkbox.checked = value >= rangeStart && value <= rangeEnd;
-        });
-
-        syncSchedulePicker(prefix, options);
-    }
-
-    function setPickerFromTimes(prefix, startTime, endTime, options = {}) {
-        const periodRange = findPeriodRangeByTime(startTime, endTime);
-        if (periodRange) {
-            setPeriodRange(prefix, periodRange.start, periodRange.end, options);
-            return;
-        }
-
-        clearSchedulePicker(prefix, { triggerPlanning: false });
-        setHiddenScheduleFields(prefix, '', '', '', normalizeTime(startTime), normalizeTime(endTime), `${normalizeTime(startTime)} - ${normalizeTime(endTime)}`);
-        updateSessionButtons(prefix, '');
-
-        if (options.triggerPlanning === false) {
-            return;
-        }
-
-        if (prefix === 'single') {
-            refreshSinglePlanning();
-        } else {
-            calculateExpectedEndDate();
-            updateThuColors();
-            refreshAutoPlanning();
-        }
-    }
-
-    function applySuggestionToPicker(prefix, button) {
-        const startPeriod = Number(button.dataset.periodStart || 0);
-        const endPeriod = Number(button.dataset.periodEnd || 0);
-
-        if (prefix === 'single') {
-            const singleDate = document.getElementById('single-date');
-            if (singleDate && button.dataset.date) {
-                singleDate.value = button.dataset.date;
-            }
-        } else {
-            const autoDate = document.getElementById('auto-start-date');
-            if (autoDate && button.dataset.date) {
-                autoDate.value = button.dataset.date;
+            if (thu === startThu) {
+                label.dataset.position = 'start';
+                return;
             }
 
-            const suggestedDay = dbDayFromDate(button.dataset.date);
-            const targetCheckbox = document.querySelector(`#container-thu-auto input[value="${suggestedDay}"]`);
-            if (targetCheckbox) {
-                targetCheckbox.checked = true;
-            }
-        }
+            let diff = thu - startThu;
+            if (diff < 0) diff += 7;
 
-        if (startPeriod && endPeriod) {
-            setPeriodRange(prefix, startPeriod, endPeriod);
-            return;
-        }
-
-        setPickerFromTimes(prefix, button.dataset.start, button.dataset.end);
-    }
-
-    function populateTeacherSelect(selectId, teachers) {
-        const select = document.getElementById(selectId);
-        if (!select) return;
-
-        const currentValue = select.value;
-        const options = ['<option value="">-- Chon giang vien da nhan module --</option>'];
-        teachers.forEach(teacher => {
-            const label = `${teacher.name}${teacher.specialty ? ' - ' + teacher.specialty : ''} (${teacher.pending_leave_request_count} don cho duyet)`;
-            const selected = String(currentValue) === String(teacher.id) ? 'selected' : '';
-            options.push(`<option value="${teacher.id}" ${selected}>${escapeHtml(label)}</option>`);
+            const target = new Date(start);
+            target.setDate(start.getDate() + diff);
+            label.dataset.position = target <= endOfWeek ? 'same-week' : 'next-week';
         });
 
-        select.innerHTML = options.join('');
-        if (!currentValue && teachers.length > 0) {
-            select.value = teachers[0].id;
-        }
+        updateAutoEndDateText();
     }
 
-    function renderPlanningPlaceholder(panelId, message) {
-        const panel = document.getElementById(panelId);
-        if (!panel) return;
-        panel.innerHTML = `<div class="small text-muted mb-0">${escapeHtml(message)}</div>`;
+    function syncThuSelectionState() {
+        const isLocked = lockThuSelection.checked;
+        const existingSet = new Set(currentExistingDays);
+        const conflictSet = new Set(currentConflictDays);
+
+        thuContainer.classList.toggle('selection-locked', isLocked);
+
+        thuInputs.forEach(input => {
+            const thu = parseInt(input.value, 10);
+            const label = thuContainer.querySelector(`label[for="${input.id}"]`);
+            const stateEl = label?.querySelector('.thu-state');
+            const isExisting = existingSet.has(thu);
+            const isSelected = input.checked;
+
+            input.disabled = false;
+
+            if (!label || !stateEl) {
+                return;
+            }
+
+            label.classList.toggle('thu-existing', isExisting);
+            label.classList.toggle('thu-selected', isSelected);
+            label.classList.toggle('thu-locked', isLocked);
+            label.classList.toggle('thu-conflict', conflictSet.has(thu));
+
+            if (conflictSet.has(thu) && isSelected) {
+                stateEl.textContent = 'Trung lich';
+            } else if (isExisting && isSelected) {
+                stateEl.textContent = 'Da co + chon';
+            } else if (isExisting) {
+                stateEl.textContent = 'Da co lich';
+            } else if (isSelected) {
+                stateEl.textContent = 'Dang chon';
+            } else {
+                stateEl.textContent = 'Chua chon';
+            }
+        });
+
+        btnUseExistingDays.disabled = isLocked || currentExistingDays.length === 0;
+        btnUseDefaultDays.disabled = isLocked;
+        btnClearDays.disabled = isLocked;
+
+        updateThuSummary();
+        updateThuUI();
     }
 
-    function renderPlanningPanel(panelId, context, previewLabel = '') {
-        const panel = document.getElementById(panelId);
-        if (!panel) return;
+    function applyThuSelection(values) {
+        const normalizedValues = new Set(normalizeThuValues(values));
 
-        const assignment = context.assignment || {};
-        const teachingWindow = context.teaching_window || {};
-        const leaveRequests = context.leave_requests || {};
-        const conflicts = context.conflicts || {};
-        const suggestions = context.suggestions || [];
-        const matched = leaveRequests.items || [];
+        thuInputs.forEach(input => {
+            input.checked = normalizedValues.has(parseInt(input.value, 10));
+        });
 
-        const assignmentColor = assignment.ok === true ? 'success' : (assignment.ok === false ? 'danger' : 'secondary');
-        const teachingWindowColor = teachingWindow.ok === true ? 'success' : (teachingWindow.ok === false ? 'danger' : 'secondary');
-        const conflictColor = conflicts.ok === true ? 'success' : (conflicts.ok === false ? 'danger' : 'secondary');
-
-        const matchedHtml = matched.length
-            ? `<div class="mt-2">${matched.map(item => `<span class="badge bg-success-subtle text-success border border-success-subtle me-1 mb-1">${escapeHtml(item.status_label || item.label)} - ${escapeHtml(item.range || item.schedule || item.time || '-')}</span>`).join('')}</div>`
-            : '';
-
-        const conflictItems = conflicts.items && conflicts.items.length
-            ? `<ul class="small ps-3 mt-2 mb-0">${conflicts.items.map(item => `<li>${escapeHtml(item.course_code)} / ${escapeHtml(item.module_name)} - ${escapeHtml(item.date)} - ${escapeHtml(item.schedule || item.time || '-')}</li>`).join('')}</ul>`
-            : '';
-
-        const leaveRequestItems = matched.length
-            ? `<ul class="small ps-3 mb-0">${matched.map(item => `<li><span class="fw-semibold">${escapeHtml(item.status_label || '-')}</span> - ${escapeHtml(item.range || '-')}<br><span class="text-muted">${escapeHtml(item.reason || 'Khong co ly do')}</span></li>`).join('')}</ul>`
-            : '<div class="small text-muted">Khong co don xin nghi nao trung voi khung dang xep.</div>';
-
-        const suggestionsHtml = suggestions.length
-            ? `<div class="d-flex flex-wrap gap-2 mt-2">${suggestions.map(item => {
-                const suggestionLabel = item.session_label
-                    ? `${item.date_label} - ${item.session_label} (${item.period_label})`
-                    : `${item.date_label} - ${item.period_label || `${item.start_time} - ${item.end_time}`}`;
-
-                return `<button type="button" class="btn btn-sm btn-outline-primary suggestion-btn" data-date="${item.date}" data-start="${item.start_time}" data-end="${item.end_time}" data-period-start="${item.period_start || ''}" data-period-end="${item.period_end || ''}" data-panel="${panelId}" title="${escapeHtml(item.source || '')}">${escapeHtml(suggestionLabel)}</button>`;
-            }).join('')}</div>`
-            : '<div class="small text-muted mt-2">Chua tim thay slot goi y trong 30 ngay toi.</div>';
-
-        panel.innerHTML = `
-            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
-                <div>
-                    <div class="fw-bold text-dark">Planning context ${previewLabel ? `<span class="small text-muted">(${escapeHtml(previewLabel)})</span>` : ''}</div>
-                    <div class="small text-muted">Teacher: ${escapeHtml(context.teacher_name || 'Chua chon')}</div>
-                </div>
-                <span class="badge rounded-pill bg-${context.can_schedule ? 'success' : 'warning'}">${context.can_schedule ? 'Co the luu lich' : 'Can xu ly truoc khi luu'}</span>
-            </div>
-            <div class="row g-3 mt-1">
-                <div class="col-md-4">
-                    <div class="border rounded-3 p-3 h-100 bg-white">
-                        <div class="small text-uppercase fw-bold text-muted mb-2">Assignment</div>
-                        <span class="badge bg-${assignmentColor} mb-2">${assignment.ok === true ? 'Dat' : (assignment.ok === false ? 'Chua dat' : 'Cho chon')}</span>
-                        <div class="small text-muted">${escapeHtml(assignment.message || 'Chua co du lieu')}</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="border rounded-3 p-3 h-100 bg-white">
-                        <div class="small text-uppercase fw-bold text-muted mb-2">Khung day chuan va don nghi</div>
-                        <span class="badge bg-${teachingWindowColor} mb-2">${teachingWindow.ok === true ? 'Phu hop' : (teachingWindow.ok === false ? 'Khong phu hop' : 'Cho chon')}</span>
-                        <div class="small text-muted">${escapeHtml(teachingWindow.message || 'Chua co du lieu')}</div>
-                        ${matchedHtml}
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="border rounded-3 p-3 h-100 bg-white">
-                        <div class="small text-uppercase fw-bold text-muted mb-2">Xung dot</div>
-                        <span class="badge bg-${conflictColor} mb-2">${conflicts.ok === true ? 'Khong trung lich' : (conflicts.ok === false ? 'Dang trung lich' : 'Cho kiem tra')}</span>
-                        <div class="small text-muted">${escapeHtml(conflicts.message || 'Chua co du lieu')}</div>
-                        ${conflictItems}
-                    </div>
-                </div>
-            </div>
-            <div class="row g-3 mt-1">
-                <div class="col-lg-6">
-                    <div class="border rounded-3 p-3 h-100 bg-white">
-                        <div class="small text-uppercase fw-bold text-muted mb-2">Canh bao don nghi (${matched.length})</div>
-                        ${leaveRequestItems}
-                    </div>
-                </div>
-                <div class="col-lg-6">
-                    <div class="border rounded-3 p-3 h-100 bg-white">
-                        <div class="small text-uppercase fw-bold text-muted mb-2">Goi y slot</div>
-                        <div class="small text-muted">Nhan vao 1 slot de dien nhanh ngay va khung tiet.</div>
-                        ${suggestionsHtml}
-                    </div>
-                </div>
-            </div>
-        `;
+        syncThuSelectionState();
+        invalidateAutoPreview();
     }
 
-    async function fetchPlanningContext(panelId, payload, previewLabel = '') {
-        const panel = document.getElementById(panelId);
-        if (!panel) return;
-
-        if (!payload.module_hoc_id || !payload.ngay_hoc || !payload.gio_bat_dau || !payload.gio_ket_thuc) {
-            renderPlanningPlaceholder(panelId, 'Chon day du ngay hoc va khung tiet de he thong phan tich.');
-            return;
+    async function inspectAutoPreviewItem(item) {
+        if (!autoPlanningPanel) {
+            return { item, hasConflict: false, canSchedule: true, message: 'Khong co panel kiem tra.' };
         }
 
-        if (!payload.giang_vien_id) {
-            renderPlanningPlaceholder(panelId, 'Chon giang vien de kiem tra assignment, khung day chuan, don nghi va xung dot.');
-            return;
+        if (!item.date || !item.session || !item.startTime || !item.endTime || item.periodStart === null || item.periodEnd === null) {
+            return {
+                item,
+                context: null,
+                hasConflict: false,
+                canSchedule: false,
+                message: 'Buoi preview chua du thong tin ngay hoc hoac ca hoc.',
+            };
         }
 
-        panel.innerHTML = '<div class="small text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Dang kiem tra planning context...</div>';
+        const payload = new URLSearchParams({
+            module_hoc_id: document.getElementById('auto-module-id').value,
+            ngay_hoc: item.date,
+            giang_vien_id: autoTeacherInput.value,
+            gio_bat_dau: item.startTime,
+            gio_ket_thuc: item.endTime,
+            tiet_bat_dau: String(item.periodStart),
+            tiet_ket_thuc: String(item.periodEnd),
+            buoi_hoc: item.session,
+        });
 
         try {
-            const response = await fetch(`${panel.dataset.endpoint}?${new URLSearchParams(payload).toString()}`, {
+            const response = await fetch(`${autoPlanningPanel.dataset.endpoint}?${payload.toString()}`, {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
                     'Accept': 'application/json',
@@ -732,311 +584,343 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             if (!response.ok) {
-                throw new Error('Planning context failed');
+                throw new Error('planning-check-failed');
             }
 
             const context = await response.json();
-            renderPlanningPanel(panelId, context, previewLabel);
+
+            return {
+                item,
+                context,
+                hasConflict: context?.conflicts?.ok === false,
+                canSchedule: context?.can_schedule !== false,
+                message: context?.conflicts?.message || context?.errors?.gio_bat_dau || 'Khong co xung dot.',
+            };
         } catch (error) {
-            renderPlanningPlaceholder(panelId, 'Khong the tai planning context luc nay. Vui long thu lai.');
+            return {
+                item,
+                context: null,
+                hasConflict: false,
+                canSchedule: false,
+                message: 'Khong the kiem tra xung dot luc nay.',
+                hasError: true,
+            };
         }
     }
 
-    function refreshSinglePlanning() {
-        fetchPlanningContext('single-planning-panel', {
-            module_hoc_id: document.getElementById('single-module-id')?.value || '',
-            ngay_hoc: document.getElementById('single-date')?.value || '',
-            gio_bat_dau: document.getElementById('single-start-time')?.value || '',
-            gio_ket_thuc: document.getElementById('single-end-time')?.value || '',
-            tiet_bat_dau: document.getElementById('single-tiet-bat-dau')?.value || '',
-            tiet_ket_thuc: document.getElementById('single-tiet-ket-thuc')?.value || '',
-            buoi_hoc: document.getElementById('single-buoi-hoc')?.value || '',
-            giang_vien_id: document.getElementById('single-teacher-id')?.value || '',
-        });
-    }
-
-    function getFirstAutoPreviewDate() {
-        const startDate = document.getElementById('auto-start-date')?.value;
-        const selectedDays = Array.from(document.querySelectorAll('input[name="thu_trong_tuan[]"]:checked')).map(cb => Number(cb.value));
-
-        if (!startDate || selectedDays.length === 0) return null;
-
-        const probe = new Date(startDate);
-        for (let index = 0; index < 14; index++) {
-            const dbDay = probe.getDay() === 0 ? 8 : probe.getDay() + 1;
-            if (selectedDays.includes(dbDay)) {
-                return probe.toISOString().split('T')[0];
-            }
-            probe.setDate(probe.getDate() + 1);
-        }
-
-        return null;
-    }
-
-    function refreshAutoPlanning() {
-        const previewDate = getFirstAutoPreviewDate();
-        if (!previewDate) {
-            renderPlanningPlaceholder('auto-planning-panel', 'Chon ngay bat dau va it nhat 1 thu trong tuan de preview buoi dau tien.');
+    function renderAutoPlanningSummary(results) {
+        if (!autoPlanningPanel) {
             return;
         }
 
-        fetchPlanningContext('auto-planning-panel', {
-            module_hoc_id: document.getElementById('auto-module-id')?.value || '',
-            ngay_hoc: previewDate,
-            gio_bat_dau: document.getElementById('auto-start-time')?.value || '',
-            gio_ket_thuc: document.getElementById('auto-end-time')?.value || '',
-            tiet_bat_dau: document.getElementById('auto-tiet-bat-dau')?.value || '',
-            tiet_ket_thuc: document.getElementById('auto-tiet-ket-thuc')?.value || '',
-            buoi_hoc: document.getElementById('auto-buoi-hoc')?.value || '',
-            giang_vien_id: document.getElementById('auto-teacher-id')?.value || '',
-        }, `Preview buoi dau tien: ${previewDate.split('-').reverse().join('/')}`);
+        const conflictItems = results.filter(result => result.hasConflict);
+        const invalidItems = results.filter(result => result.canSchedule === false);
+        const errorItems = results.filter(result => result.hasError);
+
+        autoPlanningPanel.innerHTML = `
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div>
+                    <div class="fw-bold text-dark">Kiem tra trung lich</div>
+                    <div class="small text-muted">Da quet ${results.length} buoi trong lo trinh xem truoc.</div>
+                </div>
+                <span class="badge rounded-pill bg-${conflictItems.length > 0 ? 'danger' : 'success'}">${conflictItems.length > 0 ? `${conflictItems.length} buoi bi trung` : 'Khong bi trung lich'}</span>
+            </div>
+            <div class="small text-muted mb-2">${invalidItems.length > 0 ? `Co ${invalidItems.length} buoi can xu ly truoc khi luu.` : 'Tat ca buoi hop le de tiep tuc luu lich.'}</div>
+            ${conflictItems.length > 0 ? `
+                <div class="d-flex flex-wrap gap-2">
+                    ${conflictItems.slice(0, 8).map(result => `<span class="badge bg-danger-subtle text-danger border border-danger-subtle">${result.item.date} - ${escapeHtml(formatThuLabel(result.item.thu))}</span>`).join('')}
+                </div>
+            ` : ''}
+            ${errorItems.length > 0 ? `<div class="small text-warning mt-3">Co mot vai buoi chua kiem tra duoc planning context. Vui long thu lai.</div>` : ''}
+        `;
     }
 
-    // Sự kiện mở Modal thêm buổi lẻ
-    document.querySelectorAll('.btn-add-single').forEach(btn => {
-        btn.addEventListener('click', function() {
-            clearSchedulePicker('single', { triggerPlanning: false });
-            document.getElementById('single-module-id').value = this.dataset.moduleId;
-            document.getElementById('single-module-name').textContent = this.dataset.moduleName;
-            populateTeacherSelect('single-teacher-id', parseAssignedTeachers(this.dataset.assignedTeachers));
-            
-            const minDate = this.dataset.minDate;
-            const inputNgay = document.querySelector('#modalThemBuoi input[name="ngay_hoc"]');
-            if (inputNgay && minDate) {
-                const nextDay = getNextDay(minDate);
-                inputNgay.min = nextDay;
-                inputNgay.value = nextDay;
+    async function highlightAutoPreviewConflicts(previewList) {
+        renderAutoPlanningPlaceholder('<span class="spinner-border spinner-border-sm me-2"></span>Dang kiem tra trung lich...', 'muted');
+
+        const results = await Promise.all(previewList.map(inspectAutoPreviewItem));
+        const rowNodes = Array.from(previewBody.querySelectorAll('tr'));
+
+        currentConflictDays = normalizeThuValues(
+            results
+                .filter(result => result.hasConflict && result.item.thu !== null)
+                .map(result => result.item.thu)
+        );
+
+        rowNodes.forEach((row, index) => {
+            const result = results[index];
+            const note = row.querySelector('.preview-conflict-note');
+
+            row.classList.remove('table-danger', 'table-warning');
+
+            if (!result) {
+                return;
             }
 
-            if (document.getElementById('single-teacher-id').options.length <= 1) {
-                renderPlanningPlaceholder('single-planning-panel', 'Module nay chua co giang vien da nhan phan cong.');
-            } else {
-                refreshSinglePlanning();
+            if (result.hasConflict) {
+                row.classList.add('table-danger');
+                if (note) {
+                    note.textContent = result.message || 'Buoi nay dang trung lich.';
+                    note.classList.remove('d-none', 'text-warning');
+                    note.classList.add('text-danger');
+                }
+                return;
             }
-            
-            modalSingle.show();
+
+            if (result.canSchedule === false) {
+                row.classList.add('table-warning');
+                if (note) {
+                    note.textContent = result.message || 'Buoi nay can kiem tra them.';
+                    note.classList.remove('d-none', 'text-danger');
+                    note.classList.add('text-warning');
+                }
+                return;
+            }
+
+            if (note) {
+                note.textContent = '';
+                note.classList.add('d-none');
+                note.classList.remove('text-danger', 'text-warning');
+            }
         });
-    });
 
-    // Biến lưu trữ dữ liệu module đang thao tác
-    let currentModuleSoBuoi = 0;
-    let currentCourseEndDate = "";
+        syncThuSelectionState();
+        renderAutoPlanningSummary(results);
 
-    // Sự kiện mở Modal sinh lịch tự động
+        const hasBlockingIssue = results.some(result => result.canSchedule === false);
+        btnConfirmAutoSave.disabled = hasBlockingIssue;
+        btnConfirmAutoSave.classList.toggle('disabled', hasBlockingIssue);
+    }
+
+    async function refreshPreviewChecksFromTable() {
+        if (previewContainer.classList.contains('d-none')) {
+            return;
+        }
+
+        const previewRows = collectPreviewRows();
+        if (previewRows.length === 0) {
+            invalidateAutoPreview();
+            return;
+        }
+
+        btnConfirmAutoSave.disabled = true;
+        btnConfirmAutoSave.classList.add('disabled');
+        await highlightAutoPreviewConflicts(previewRows);
+    }
+
+    // Sự kiện mở modal Sinh tự động
     document.querySelectorAll('.btn-auto-schedule').forEach(btn => {
         btn.addEventListener('click', function() {
-            clearSchedulePicker('auto', { triggerPlanning: false });
-            const moduleId = this.dataset.moduleId;
-            document.getElementById('auto-module-id').value = moduleId;
+            document.getElementById('auto-module-id').value = this.dataset.moduleId;
             document.getElementById('auto-module-name').textContent = this.dataset.moduleName;
-            populateTeacherSelect('auto-teacher-id', parseAssignedTeachers(this.dataset.assignedTeachers));
+            currentModuleSoBuoi = parseInt(this.dataset.soBuoi, 10);
+            document.getElementById('auto-so-buoi-text').textContent = currentModuleSoBuoi;
             
-            // Lưu thông tin phục vụ tính toán
-            currentModuleSoBuoi = parseInt(this.dataset.soBuoi, 10) || 0;
-            currentCourseEndDate = this.dataset.khoaHocEnd;
+            ngayBatDauInput.value = this.dataset.minDate;
+            ngayBatDauInput.min = this.dataset.minDate;
             
-            document.getElementById('auto-so-buoi-text').textContent = `${currentModuleSoBuoi} buoi`;
-            document.getElementById('auto-course-end-date').textContent = currentCourseEndDate ? new Date(currentCourseEndDate).toLocaleDateString('vi-VN') : '--/--/----';
+            populateTeachers('auto-teacher-id', JSON.parse(this.dataset.teachers));
+            
+            // Đánh dấu các Thứ đã có lịch học
+            currentExistingDays = normalizeThuValues(JSON.parse(this.dataset.existingDays || '[]'));
+            thuLabels.forEach(lbl => {
+                const v = parseInt(lbl.dataset.thu);
+                lbl.classList.toggle('thu-existing', currentExistingDays.includes(v));
+                const icon = lbl.querySelector('.existing-icon');
+                if (currentExistingDays.includes(v)) {
+                    if (!icon) lbl.insertAdjacentHTML('beforeend', '<i class="fas fa-check-double existing-icon"></i>');
+                } else {
+                    if (icon) icon.remove();
+                }
+            });
 
-            const minDate = this.dataset.minDate;
-            const inputNgayBatDau = document.querySelector('#modalSinhTuDong input[name="ngay_bat_dau"]');
-            if (inputNgayBatDau && minDate) {
-                const nextDay = getNextDay(minDate);
-                inputNgayBatDau.min = nextDay;
-                inputNgayBatDau.value = nextDay;
-            }
-
-            calculateExpectedEndDate();
-            updateThuColors();
-            if (document.getElementById('auto-teacher-id').options.length <= 1) {
-                renderPlanningPlaceholder('auto-planning-panel', 'Module nay chua co giang vien da nhan phan cong.');
-            } else {
-                refreshAutoPlanning();
-            }
+            // Mặc định không khóa khi mới mở
+            lockThuSelection.checked = false;
+            applyThuSelection(currentExistingDays.length > 0 ? currentExistingDays : defaultThuSelection);
             modalAuto.show();
         });
     });
 
-    // --- LOGIC TÍNH TOÁN LỘ TRÌNH DỰ KIẾN ---
-    function calculateExpectedEndDate() {
-        const startDateVal = document.getElementById('auto-start-date').value;
-        const selectedDays = Array.from(document.querySelectorAll('input[name="thu_trong_tuan[]"]:checked')).map(cb => parseInt(cb.value));
-        const endDateDisplay = document.getElementById('auto-end-date-text');
-        const warningBox = document.getElementById('auto-conflict-warning');
-
-        if (!startDateVal || selectedDays.length === 0 || currentModuleSoBuoi <= 0) {
-            endDateDisplay.textContent = "--/--/----";
-            warningBox.classList.add('d-none');
+    // Xử lý Khóa lựa chọn Thứ
+    lockThuSelection.addEventListener('change', function() {
+        syncThuSelectionState();
+        invalidateAutoPreview();
+    });
+    btnUseExistingDays.addEventListener('click', function() {
+        if (currentExistingDays.length === 0) {
             return;
         }
 
-        let currentDate = new Date(startDateVal);
-        let count = 0;
-        let safetyLoop = 0;
+        applyThuSelection(currentExistingDays);
+    });
 
-        while (count < currentModuleSoBuoi && safetyLoop < 1000) {
-            safetyLoop++;
-            let day = currentDate.getDay(); // 0 (Sun) to 6 (Sat)
-            let dbDay = (day === 0) ? 8 : (day + 1);
+    btnUseDefaultDays.addEventListener('click', function() {
+        applyThuSelection(PATTERN_246);
+    });
 
-            if (selectedDays.includes(dbDay)) {
-                count++;
-                if (count === currentModuleSoBuoi) break;
-            }
-            currentDate.setDate(currentDate.getDate() + 1);
-        }
-
-        const expectedEndDateStr = currentDate.toISOString().split('T')[0];
-        endDateDisplay.textContent = currentDate.toLocaleDateString('vi-VN');
-
-        // So sánh với ngày kết thúc khóa học
-        if (expectedEndDateStr > currentCourseEndDate) {
-            warningBox.classList.remove('d-none');
-            endDateDisplay.classList.add('text-danger');
-        } else {
-            warningBox.classList.add('d-none');
-            endDateDisplay.classList.remove('text-danger');
-        }
-
-        // Đồng thời cập nhật màu sắc các thứ
-        updateThuColors();
+    const btnUse357Days = document.getElementById('btnUse357Days');
+    if (btnUse357Days) {
+        btnUse357Days.addEventListener('click', function() {
+            applyThuSelection(PATTERN_357);
+        });
     }
 
-    // Lắng nghe sự kiện thay đổi để tính toán lại
-    document.querySelectorAll('input[name="thu_trong_tuan[]"]').forEach(cb => {
-        cb.addEventListener('change', function() {
-            calculateExpectedEndDate();
-            updateThuColors();
-            refreshAutoPlanning();
+    btnClearDays.addEventListener('click', function() {
+        applyThuSelection([]);
+    });
+
+    // Sự kiện mở modal Buổi lẻ
+    document.querySelectorAll('.btn-add-single').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('single-module-id').value = this.dataset.moduleId;
+            document.getElementById('single-module-name').textContent = this.dataset.moduleName;
+            document.getElementById('single-date').value = this.dataset.minDate;
+            document.getElementById('single-date').min = this.dataset.minDate;
+            populateTeachers('single-teacher-id', JSON.parse(this.dataset.teachers));
+            modalSingle.show();
         });
     });
 
-    // --- LOGIC TÔ MÀU THỨ (MODAL SINH TỰ ĐỘNG) ---
-    const ngayBatDauInput = document.querySelector('#modalSinhTuDong input[name="ngay_bat_dau"]');
-    const thuLabels = document.querySelectorAll('#container-thu-auto .thu-label-box');
+    // Xem trước lộ trình
+    btnPreviewAuto.addEventListener('click', async function() {
+        const startTiet = document.getElementById('auto-tiet-bat-dau').value;
+        const previewList = buildPreviewList();
+        
+        if (!ngayBatDauInput.value || previewList.length === 0 || !startTiet) {
+            alert('Vui lòng chọn Ngày bắt đầu, Giảng viên, ít nhất 1 Thứ và Ca học!');
+            return;
+        }
+        previewBody.innerHTML = previewList.map(item => `
+            <tr data-preview-date="${item.date}" data-preview-thu="${item.thu}">
+                <td class="text-center fw-bold text-muted">${item.buoi}</td>
+                <td><input type="date" name="preview_dates[]" value="${item.date}" class="form-control form-control-sm border-0 bg-light"></td>
+                <td class="text-center small">${item.thu === 8 ? 'Chủ nhật' : 'Thứ ' + item.thu}</td>
+                <td>
+                    <select name="preview_sessions[]" class="form-select form-select-sm border-0 bg-light select-preview-session">
+                        ${Object.entries(SESSIONS).map(([k, v]) => `<option value="${k}" ${parseInt(startTiet, 10) === v.start ? 'selected' : ''}>${v.label} (T${v.start}-${v.end})</option>`).join('')}
+                    </select>
+                    <div class="preview-conflict-note small mt-1 d-none"></div>
+                </td>
+            </tr>`).join('');
 
-    function updateThuColors() {
-        if (!ngayBatDauInput.value) return;
+        const previewRows = collectPreviewRows();
 
-        const date = new Date(ngayBatDauInput.value);
-        let carbonDay = date.getDay(); // 0 (Sun) to 6 (Sat)
-        let startThu = (carbonDay === 0) ? 8 : (carbonDay + 1); // 2 to 8
+        previewContainer.classList.remove('d-none');
+        emptyPreview.classList.add('d-none');
+        btnConfirmAutoSave.classList.remove('disabled');
+        btnConfirmAutoSave.disabled = true;
+        await highlightAutoPreviewConflicts(previewRows);
+    });
 
-        thuLabels.forEach(label => {
-            let thuVal = parseInt(label.dataset.thu);
-            label.classList.remove('bg-danger', 'bg-success', 'bg-warning', 'text-white', 'text-dark');
+    previewBody.addEventListener('change', async function(event) {
+        if (!event.target.matches('input[name="preview_dates[]"], select[name="preview_sessions[]"]')) {
+            return;
+        }
 
-            if (thuVal === startThu) {
-                label.classList.add('bg-danger', 'text-white');
-            } else if (thuVal > startThu) {
-                label.classList.add('bg-success', 'text-white');
-            } else {
-                label.classList.add('bg-warning', 'text-dark');
-            }
-        });
-    }
+        await refreshPreviewChecksFromTable();
+    });
 
-    if (ngayBatDauInput) {
-        ngayBatDauInput.addEventListener('change', updateThuColors);
-        // Cập nhật ngay khi mở modal (vì có giá trị mặc định)
-    }
-
-    document.querySelectorAll('.schedule-session-btn').forEach((button) => {
-        button.addEventListener('click', function() {
+    // Chọn nhanh ca học
+    document.querySelectorAll('.schedule-session-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
             const prefix = this.dataset.prefix;
-            const sessionKey = this.dataset.session;
-            const definition = SESSIONS[sessionKey];
-
-            if (!definition) {
-                return;
+            const def = SESSIONS[this.dataset.session];
+            document.getElementById(`${prefix}-tiet-bat-dau`).value = def.start;
+            document.getElementById(`${prefix}-tiet-ket-thuc`).value = def.end;
+            document.getElementById(`${prefix}-buoi-hoc`).value = this.dataset.session;
+            document.getElementById(`${prefix}-time-preview`).value = `${def.label} | Tiết ${def.start}-${def.end}`;
+            if (prefix === 'auto') {
+                document.getElementById('auto-start-time').value = def.start_time || '';
+                document.getElementById('auto-end-time').value = def.end_time || '';
+                invalidateAutoPreview();
             }
-
-            const startPeriod = Number(definition.start);
-            const endPeriod = Number(definition.end);
-            const currentStart = Number(document.getElementById(`${prefix}-tiet-bat-dau`)?.value || 0);
-            const currentEnd = Number(document.getElementById(`${prefix}-tiet-ket-thuc`)?.value || 0);
-
-            if (currentStart === startPeriod && currentEnd === endPeriod) {
-                clearSchedulePicker(prefix);
-                return;
-            }
-
-            setPeriodRange(prefix, startPeriod, endPeriod);
         });
     });
 
-    ['single', 'auto'].forEach((prefix) => {
-        getPickerCheckboxes(prefix).forEach((checkbox) => {
-            checkbox.addEventListener('change', () => syncSchedulePicker(prefix));
+    thuInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            syncThuSelectionState();
+            invalidateAutoPreview();
         });
     });
 
-    ['single-date', 'single-teacher-id'].forEach(id => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.addEventListener('change', refreshSinglePlanning);
-        }
-    });
-
-    ['auto-start-date', 'auto-teacher-id'].forEach(id => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.addEventListener('change', function() {
-                calculateExpectedEndDate();
-                updateThuColors();
-                refreshAutoPlanning();
-            });
-        }
-    });
-
-    document.getElementById('single-planning-panel')?.addEventListener('click', function(event) {
-        const button = event.target.closest('.suggestion-btn');
-        if (!button) return;
-
-        applySuggestionToPicker('single', button);
-    });
-
-    document.getElementById('auto-planning-panel')?.addEventListener('click', function(event) {
-        const button = event.target.closest('.suggestion-btn');
-        if (!button) return;
-
-        applySuggestionToPicker('auto', button);
-    });
-
-    document.querySelectorAll('.check-item, .check-all-module').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            if (this.classList.contains('check-all-module')) {
-                document.querySelectorAll(`.module-${this.dataset.module}`).forEach(item => {
-                    item.checked = this.checked;
-                });
-            }
-
-            const count = document.querySelectorAll('.check-item:checked').length;
-            document.getElementById('selectedCount').textContent = count;
-            document.getElementById('btnBulkDelete').classList.toggle('d-none', count === 0);
+    [ngayBatDauInput, autoTeacherInput, autoPhongHocInput, autoHinhThucInput].forEach(element => {
+        element?.addEventListener('change', function() {
+            updateThuUI();
+            invalidateAutoPreview();
         });
     });
+
+    // Duy trì vị trí cuộn
+    const pos = localStorage.getItem('lichHocScrollPos');
+    if (pos) { window.scrollTo(0, parseInt(pos)); localStorage.removeItem('lichHocScrollPos'); }
+    document.querySelectorAll('form').forEach(f => f.addEventListener('submit', () => localStorage.setItem('lichHocScrollPos', window.scrollY)));
+    
+    // Checkbox tất cả
+    const checkAllGlobal = document.getElementById('checkAllGlobal');
+    if (checkAllGlobal) {
+        checkAllGlobal.addEventListener('change', function() {
+            const isChecked = this.checked;
+            document.querySelectorAll('.check-item').forEach(item => item.checked = isChecked);
+            document.querySelectorAll('.check-all-module').forEach(item => item.checked = isChecked);
+            updateBulkBtn();
+        });
+    }
+
+    document.querySelectorAll('.check-all-module').forEach(cb => {
+        cb.addEventListener('change', function() {
+            document.querySelectorAll(`.module-${this.dataset.module}`).forEach(item => item.checked = this.checked);
+            updateBulkBtn();
+            updateGlobalCheckState();
+        });
+    });
+
+    function updateGlobalCheckState() {
+        if (!checkAllGlobal) return;
+        const totalItems = document.querySelectorAll('.check-item').length;
+        const checkedItems = document.querySelectorAll('.check-item:checked').length;
+        checkAllGlobal.checked = totalItems > 0 && totalItems === checkedItems;
+        checkAllGlobal.indeterminate = checkedItems > 0 && checkedItems < totalItems;
+    }
+
+    function updateBulkBtn() {
+        const count = document.querySelectorAll('.check-item:checked').length;
+        document.getElementById('selectedCount').textContent = count;
+        document.getElementById('btnBulkDelete').classList.toggle('d-none', count === 0);
+        updateGlobalCheckState();
+    }
+    document.querySelectorAll('.check-item').forEach(cb => cb.addEventListener('change', updateBulkBtn));
 });
 
-function confirmDeleteSingle(url) {
-    if (confirm('Bạn chắc chắn muốn xóa buổi học này?')) {
-        const form = document.getElementById('deleteSingleForm');
+function confirmDeleteSingle(url) { if (confirm('Xóa buổi học này?')) { const f = document.getElementById('deleteSingleForm'); f.action = url; f.submit(); } }
+function confirmDeleteModule(moduleId, moduleName) {
+    if (confirm('Bạn có chắc chắn muốn xóa TẤT CẢ các buổi học có trạng thái "Chờ" của module "' + moduleName + '" không?')) {
+        const form = document.getElementById('deleteModuleForm');
+        // Tạo URL dựa trên pattern route Laravel
+        let url = '{{ route("admin.khoa-hoc.lich-hoc.destroy-module", [$khoaHoc->id, ":moduleId"]) }}';
+        url = url.replace(':moduleId', moduleId);
         form.action = url;
         form.submit();
     }
 }
-
-function confirmDeleteModule(moduleId, moduleName) {
-    if (confirm(`Bạn chắc chắn muốn xóa TOÀN BỘ các buổi học đang ở trạng thái "Chờ" của module: ${moduleName}?`)) {
-        const form = document.getElementById('deleteModuleForm');
-        form.action = `{{ url('admin/khoa-hoc/'.$khoaHoc->id.'/lich-hoc/module') }}/${moduleId}`;
-        form.submit();
-    }
-}
-
 function submitBulkDelete() {
-    if (confirm('Bạn chắc chắn muốn xóa toàn bộ các buổi học đã chọn?')) {
+    const checkedItems = document.querySelectorAll('.check-item:checked');
+    if (checkedItems.length === 0) {
+        alert('Vui lòng chọn ít nhất một buổi học để xóa.');
+        return;
+    }
+    if (confirm('Xóa ' + checkedItems.length + ' buổi đã chọn?')) {
         const form = document.getElementById('bulkDeleteForm');
+        // Xóa các input ids[] cũ nếu có
+        form.querySelectorAll('input[name="ids[]"]').forEach(el => el.remove());
+        // Thêm các ID đã chọn vào form
+        checkedItems.forEach(cb => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'ids[]';
+            input.value = cb.value;
+            form.appendChild(input);
+        });
         form.submit();
     }
 }
@@ -1045,81 +929,98 @@ function submitBulkDelete() {
 
 <style>
     .smaller { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
-    .row-selectable:hover { background-color: rgba(13, 110, 253, 0.02); }
-    .italic { font-style: italic; }
-    .planning-panel { min-height: 140px; }
-
-    /* Style cho ô chọn Thứ - VIP Upgrade */
+    .vip-card { border-radius: 12px; margin-bottom: 1.5rem; transition: transform 0.2s; }
+    .vip-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.08) !important; }
+    .planning-panel { min-height: 80px; }
     .thu-label-box {
+        position: relative;
         display: inline-flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        width: 50px;
-        height: 50px;
-        border-radius: 12px;
-        border: 2px solid #edf2f7;
+        width: 78px;
+        min-height: 58px;
+        padding: 10px 8px 8px;
+        border-radius: 14px;
+        border: 2px solid #e2e8f0;
         cursor: pointer;
         font-weight: 700;
-        font-size: 1rem;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        user-select: none;
-        background-color: #fff;
-        color: #4a5568;
-        position: relative;
-    }
-    
-    .thu-label-box:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        border-color: #cbd5e0;
-    }
-
-    input.form-check-input:checked + .thu-label-box {
-        border-color: #0d6efd;
-        color: #0d6efd;
-        background-color: #f0f7ff;
-        transform: scale(1.05);
-        z-index: 2;
-    }
-
-    input.form-check-input:checked + .thu-label-box::after {
-        content: '\f058';
-        font-family: "Font Awesome 6 Free";
-        position: absolute;
-        top: -8px;
-        right: -8px;
         background: #fff;
-        border-radius: 50%;
-        font-size: 14px;
+        transition: all 0.2s ease;
+        gap: 3px;
+        overflow: hidden;
+    }
+    .thu-label-box::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: transparent;
+    }
+    .thu-title {
+        font-size: 0.95rem;
+        line-height: 1;
+    }
+    .thu-state {
+        font-size: 0.56rem;
+        line-height: 1.15;
+        text-transform: uppercase;
+        letter-spacing: 0.35px;
+        color: #64748b;
+        text-align: center;
+    }
+    input:checked + .thu-label-box,
+    .thu-label-box.thu-selected {
+        border-color: #0d6efd;
+        background: #eff6ff;
         color: #0d6efd;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 14px rgba(13, 110, 253, 0.12);
     }
-
-    /* Màu sắc theo logic tuần */
-    .thu-label-box.bg-danger { background-color: #fff5f5 !important; color: #c53030 !important; border-color: #feb2b2 !important; }
-    .thu-label-box.bg-success { background-color: #f0fff4 !important; color: #2f855a !important; border-color: #9ae6b4 !important; }
-    .thu-label-box.bg-warning { background-color: #fffaf0 !important; color: #975a16 !important; border-color: #fbd38d !important; }
-
-    /* Hiệu ứng nháy khi tự động thay đổi */
-    @keyframes pulse-highlight {
-        0% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.4); }
-        70% { box-shadow: 0 0 0 10px rgba(13, 110, 253, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0); }
+    .thu-label-box.thu-existing {
+        border-color: #198754;
+        background: #f0fff4;
+        box-shadow: inset 0 0 0 1px rgba(25, 135, 84, 0.18);
     }
-    .auto-filled {
-        animation: pulse-highlight 1.5s infinite;
-        border-color: #0d6efd !important;
+    .thu-label-box.thu-existing .thu-state {
+        color: #198754;
     }
-
-    .legend-box {
-        display: inline-block;
-        width: 14px;
-        height: 14px;
-        border-radius: 4px;
-        margin-right: 6px;
-        vertical-align: middle;
+    .thu-label-box.thu-selected.thu-existing {
+        border-color: #157347;
+        background: linear-gradient(180deg, #f0fff4 0%, #e6ffed 100%);
+        color: #157347;
     }
+    .thu-label-box.thu-conflict {
+        border-color: #dc3545 !important;
+        background: linear-gradient(180deg, #fff5f5 0%, #ffe3e3 100%) !important;
+        color: #b42318 !important;
+        box-shadow: 0 6px 14px rgba(220, 53, 69, 0.12);
+    }
+    .thu-label-box.thu-conflict .thu-state {
+        color: #b42318 !important;
+    }
+    .thu-label-box[data-position="start"]::before { background: #dc3545; }
+    .thu-label-box[data-position="same-week"]::before { background: #198754; }
+    .thu-label-box[data-position="next-week"]::before { background: #0d6efd; }
+    .selection-locked .thu-label-box,
+    .thu-label-box.thu-locked,
+    .thu-check-item input:disabled + .thu-label-box {
+        cursor: not-allowed;
+        opacity: 0.68;
+        transform: none;
+        box-shadow: none;
+    }
+    .selection-locked .thu-label-box,
+    .thu-label-box.thu-locked {
+        pointer-events: none;
+    }
+    .existing-icon { display: none !important; }
+    .legend-box { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 4px; vertical-align: middle; }
+    .legend-existing { background-color: #d1fae5; border: 1px solid #198754; }
+    .shadow-xs { box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    #auto-existing-days-note { line-height: 1.5; }
+    .preview-conflict-note { line-height: 1.35; }
 </style>
 @endsection
-
-
-

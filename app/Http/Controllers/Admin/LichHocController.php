@@ -30,7 +30,12 @@ class LichHocController extends Controller
         $khoaHoc = KhoaHoc::with([
             'nhomNganh',
             'lichHocs',
+            'moduleHocs' => fn($q) => $q->orderBy('thu_tu_module'),
+            'moduleHocs.lichHocs' => fn($q) => $q->orderBy('ngay_hoc')->orderBy('gio_bat_dau'),
             'moduleHocs.lichHocs.giangVien.nguoiDung',
+            'moduleHocs.lichHocs.baiGiangs',
+            'moduleHocs.lichHocs.taiNguyen',
+            'moduleHocs.lichHocs.diemDanhs',
             'moduleHocs.phanCongGiangViens.giangVien.nguoiDung',
             'moduleHocs.phanCongGiangViens.giangVien.donXinNghis',
         ])->findOrFail($khoaHocId);
@@ -165,23 +170,42 @@ class LichHocController extends Controller
                 return back()->with('info', 'So buoi hien tai da du hoac vuot muc quy dinh. Khong can sinh them.');
             }
 
-            $currentDate = Carbon::parse($validated['ngay_bat_dau']);
-            $stopDate = $currentDate->copy()->addYears(2);
-            $daysOfWeek = array_map('intval', (array) $validated['thu_trong_tuan']);
             $createdCount = 0;
+            $previewDates = array_values(array_filter((array) ($validated['preview_dates'] ?? [])));
+            $previewSessions = array_values(array_filter((array) ($validated['preview_sessions'] ?? [])));
 
-            while ($createdCount < $soBuoiCanTao && $currentDate->lessThan($stopDate)) {
-                $dbDay = $this->resolveThuTrongTuan($currentDate);
+            if ($previewDates !== [] || $previewSessions !== []) {
+                if (count($previewDates) !== $soBuoiCanTao || count($previewSessions) !== $soBuoiCanTao) {
+                    DB::rollBack();
 
-                if (in_array($dbDay, $daysOfWeek, true)) {
+                    return back()
+                        ->withInput()
+                        ->with('error', 'Ban xem truoc lai lo trinh truoc khi luu de dong bo danh sach buoi hoc.');
+                }
+
+                $sessionCatalog = TeachingPeriodCatalog::sessions();
+
+                foreach ($previewDates as $index => $previewDate) {
+                    $sessionKey = $previewSessions[$index] ?? null;
+                    $sessionDefinition = $sessionKey ? ($sessionCatalog[$sessionKey] ?? null) : null;
+
+                    if ($sessionDefinition === null) {
+                        DB::rollBack();
+
+                        return back()
+                            ->withInput()
+                            ->with('error', 'Khong tim thay ca hoc hop le o dong preview thu ' . ($index + 1) . '.');
+                    }
+
+                    $scheduleDate = Carbon::parse($previewDate);
                     $singlePayload = [
                         'module_hoc_id' => $module->id,
-                        'ngay_hoc' => $currentDate->toDateString(),
-                        'gio_bat_dau' => $validated['gio_bat_dau'],
-                        'gio_ket_thuc' => $validated['gio_ket_thuc'],
-                        'tiet_bat_dau' => $validated['tiet_bat_dau'] ?? null,
-                        'tiet_ket_thuc' => $validated['tiet_ket_thuc'] ?? null,
-                        'buoi_hoc' => $validated['buoi_hoc'] ?? null,
+                        'ngay_hoc' => $scheduleDate->toDateString(),
+                        'gio_bat_dau' => $sessionDefinition['start_time'],
+                        'gio_ket_thuc' => $sessionDefinition['end_time'],
+                        'tiet_bat_dau' => $sessionDefinition['start'],
+                        'tiet_ket_thuc' => $sessionDefinition['end'],
+                        'buoi_hoc' => $sessionKey,
                         'phong_hoc' => $validated['phong_hoc'] ?? null,
                         'hinh_thuc' => $validated['hinh_thuc'],
                         'giang_vien_id' => $validated['giang_vien_id'] ?? null,
@@ -194,20 +218,62 @@ class LichHocController extends Controller
 
                         return back()
                             ->withInput()
-                            ->with('error', 'Khong the sinh lich vao ngay ' . $currentDate->format('d/m/Y') . ': ' . $this->buildPlanningErrorMessage($planningContext));
+                            ->with('error', 'Khong the luu buoi preview ngay ' . $scheduleDate->format('d/m/Y') . ': ' . $this->buildPlanningErrorMessage($planningContext));
                     }
 
                     LichHoc::create($this->prepareSchedulePayload(
                         $singlePayload,
                         $khoaHocId,
-                        $currentDate,
+                        $scheduleDate,
                         $soBuoiDaCo + $createdCount + 1,
                     ));
 
                     $createdCount++;
                 }
+            } else {
+                $currentDate = Carbon::parse($validated['ngay_bat_dau']);
+                $stopDate = $currentDate->copy()->addYears(2);
+                $daysOfWeek = array_map('intval', (array) $validated['thu_trong_tuan']);
 
-                $currentDate->addDay();
+                while ($createdCount < $soBuoiCanTao && $currentDate->lessThan($stopDate)) {
+                    $dbDay = $this->resolveThuTrongTuan($currentDate);
+
+                    if (in_array($dbDay, $daysOfWeek, true)) {
+                        $singlePayload = [
+                            'module_hoc_id' => $module->id,
+                            'ngay_hoc' => $currentDate->toDateString(),
+                            'gio_bat_dau' => $validated['gio_bat_dau'],
+                            'gio_ket_thuc' => $validated['gio_ket_thuc'],
+                            'tiet_bat_dau' => $validated['tiet_bat_dau'] ?? null,
+                            'tiet_ket_thuc' => $validated['tiet_ket_thuc'] ?? null,
+                            'buoi_hoc' => $validated['buoi_hoc'] ?? null,
+                            'phong_hoc' => $validated['phong_hoc'] ?? null,
+                            'hinh_thuc' => $validated['hinh_thuc'],
+                            'giang_vien_id' => $validated['giang_vien_id'] ?? null,
+                            'ghi_chu' => $validated['ghi_chu'] ?? null,
+                        ];
+
+                        $planningContext = $this->planningService->inspect($khoaHocId, $singlePayload);
+                        if (!$planningContext['can_schedule']) {
+                            DB::rollBack();
+
+                            return back()
+                                ->withInput()
+                                ->with('error', 'Khong the sinh lich vao ngay ' . $currentDate->format('d/m/Y') . ': ' . $this->buildPlanningErrorMessage($planningContext));
+                        }
+
+                        LichHoc::create($this->prepareSchedulePayload(
+                            $singlePayload,
+                            $khoaHocId,
+                            $currentDate,
+                            $soBuoiDaCo + $createdCount + 1,
+                        ));
+
+                        $createdCount++;
+                    }
+
+                    $currentDate->addDay();
+                }
             }
 
             $this->learningProgressStatusService->syncCourseStatus($khoaHocId);

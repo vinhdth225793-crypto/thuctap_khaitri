@@ -35,6 +35,12 @@
                         <span class="badge bg-{{ $baiKiemTra->access_status_color }}">{{ $baiKiemTra->access_status_label }}</span>
                     </div>
                     <div class="info-row">
+                        <span class="label">Chế độ thi</span>
+                        <span class="badge {{ $baiKiemTra->co_giam_sat ? 'bg-warning-subtle text-warning border border-warning-subtle' : 'bg-light text-dark border' }}">
+                            {{ $baiKiemTra->co_giam_sat ? 'Giám sát nâng cao' : 'Bài thường' }}
+                        </span>
+                    </div>
+                    <div class="info-row">
                         <span class="label">Loại bài</span>
                         <strong>{{ $baiKiemTra->loai_bai_kiem_tra_label }}</strong>
                     </div>
@@ -74,6 +80,16 @@
                         <span class="label">Ngày đóng</span>
                         <strong>{{ $baiKiemTra->ngay_dong ? $baiKiemTra->ngay_dong->format('d/m/Y H:i') : 'Chưa đặt lịch đóng' }}</strong>
                     </div>
+                    @if($baiKiemTra->co_giam_sat)
+                        <div class="info-row">
+                            <span class="label">Quy tắc giám sát</span>
+                            <div class="text-end small">
+                                <div>{{ $baiKiemTra->bat_buoc_fullscreen ? 'Yêu cầu fullscreen' : 'Không bắt buộc fullscreen' }}</div>
+                                <div>{{ $baiKiemTra->bat_buoc_camera ? 'Yêu cầu camera' : 'Không bắt buộc camera' }}</div>
+                                <div>Ngưỡng vi phạm: {{ $baiKiemTra->so_lan_vi_pham_toi_da }}</div>
+                            </div>
+                        </div>
+                    @endif
                     @if($baiKiemTra->lich_hoc_id)
                         <div class="info-row">
                             <span class="label">Buổi học liên quan</span>
@@ -103,6 +119,16 @@
                             <span class="label">Điểm hiện tại</span>
                             <strong>{{ $baiLam->diem_so !== null ? number_format((float) $baiLam->diem_so, 2) : 'Đang chờ chấm' }}</strong>
                         </div>
+                        @if($baiKiemTra->co_giam_sat)
+                            <div class="info-row">
+                                <span class="label">Trạng thái giám sát</span>
+                                <span class="badge bg-{{ $baiLam->trang_thai_giam_sat_color }}">{{ $baiLam->trang_thai_giam_sat_label }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="label">Tổng vi phạm</span>
+                                <strong id="currentViolationCount">{{ (int) $baiLam->tong_so_vi_pham }}</strong>
+                            </div>
+                        @endif
                     @endif
                 </div>
             </div>
@@ -113,10 +139,26 @@
                 <div class="card-header border-0 d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 fw-semibold">Nội dung bài kiểm tra</h5>
                     @if(!$baiLam && $baiKiemTra->can_student_start)
-                        <form action="{{ route('hoc-vien.bai-kiem-tra.bat-dau', $baiKiemTra->id) }}" method="POST">
-                            @csrf
-                            <button type="submit" class="btn btn-primary">Bắt đầu làm bài</button>
-                        </form>
+                        @if($baiKiemTra->co_giam_sat)
+                            @if($precheckState)
+                                <div class="d-flex gap-2">
+                                    <a href="{{ route('hoc-vien.bai-kiem-tra.precheck', $baiKiemTra->id) }}" class="btn btn-outline-warning">Kiểm tra lại pre-check</a>
+                                    <form action="{{ route('hoc-vien.bai-kiem-tra.bat-dau', $baiKiemTra->id) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="btn btn-primary">Bắt đầu làm bài</button>
+                                    </form>
+                                </div>
+                            @else
+                                <a href="{{ route('hoc-vien.bai-kiem-tra.precheck', $baiKiemTra->id) }}" class="btn btn-warning">
+                                    Kiểm tra trước khi thi
+                                </a>
+                            @endif
+                        @else
+                            <form action="{{ route('hoc-vien.bai-kiem-tra.bat-dau', $baiKiemTra->id) }}" method="POST">
+                                @csrf
+                                <button type="submit" class="btn btn-primary">Bắt đầu làm bài</button>
+                            </form>
+                        @endif
                     @endif
                 </div>
                 <div class="card-body">
@@ -133,9 +175,25 @@
                                 Bài làm đang chờ giảng viên chấm tự luận.
                             @endif
                         </div>
+                        @if($baiKiemTra->co_giam_sat)
+                            <div class="alert {{ $baiLam->trang_thai_giam_sat === 'binh_thuong' ? 'alert-info' : 'alert-warning' }}">
+                                Trạng thái hậu kiểm hiện tại: <strong>{{ $baiLam->trang_thai_giam_sat_label }}</strong>.
+                                @if($baiLam->tong_so_vi_pham > 0)
+                                    Hệ thống đã ghi nhận {{ $baiLam->tong_so_vi_pham }} vi phạm trong quá trình làm bài.
+                                @endif
+                            </div>
+                        @endif
                     @elseif(!$baiLam && !$baiKiemTra->can_student_start)
                         <div class="alert alert-secondary">
                             Bài kiểm tra này hiện {{ strtolower($baiKiemTra->access_status_label) }}. Bạn sẽ có thể bắt đầu khi bài kiểm tra đến thời gian mở.
+                        </div>
+                    @elseif(!$baiLam && $baiKiemTra->co_giam_sat && $precheckState)
+                        <div class="alert alert-success">
+                            Bạn đã hoàn tất pre-check. Kết quả này sẽ được giữ trong một khoảng thời gian ngắn để bắt đầu bài thi.
+                        </div>
+                    @elseif(!$baiLam && $baiKiemTra->co_giam_sat)
+                        <div class="alert alert-primary">
+                            Bài thi này yêu cầu giám sát. Bạn cần hoàn tất bước pre-check trước khi bắt đầu làm bài.
                         </div>
                     @elseif(!$baiLam)
                         <div class="alert alert-primary">
@@ -144,13 +202,39 @@
                     @endif
 
                     @if($baiLam && $baiLam->can_resume)
-                        <form action="{{ route('hoc-vien.bai-kiem-tra.nop', $baiKiemTra->id) }}" method="POST">
+                        @if($baiKiemTra->co_giam_sat)
+                            <div class="surveillance-live-bar mb-4">
+                                <div class="surveillance-pill">
+                                    <span class="surveillance-label">Vi phạm</span>
+                                    <strong id="liveViolationCount">{{ (int) $baiLam->tong_so_vi_pham }}</strong> / {{ $baiKiemTra->so_lan_vi_pham_toi_da }}
+                                </div>
+                                <div class="surveillance-pill">
+                                    <span class="surveillance-label">Fullscreen</span>
+                                    <strong id="fullscreenStatusText">{{ $baiKiemTra->bat_buoc_fullscreen ? 'Chờ kích hoạt' : 'Không bắt buộc' }}</strong>
+                                </div>
+                                <div class="surveillance-pill">
+                                    <span class="surveillance-label">Camera</span>
+                                    <strong id="cameraStatusText">{{ $baiKiemTra->bat_buoc_camera ? 'Chờ kích hoạt' : 'Không bắt buộc' }}</strong>
+                                </div>
+                            </div>
+                            <div id="surveillanceAlertArea" class="mb-3"></div>
+                            <div class="camera-preview-shell {{ $baiKiemTra->bat_buoc_camera ? '' : 'd-none' }}">
+                                <div class="camera-preview-header">
+                                    <span>Camera giám sát</span>
+                                    <span id="cameraStatusBadge" class="badge bg-secondary">Đang chờ</span>
+                                </div>
+                                <video id="surveillanceCameraPreview" autoplay muted playsinline></video>
+                            </div>
+                        @endif
+
+                        <form action="{{ route('hoc-vien.bai-kiem-tra.nop', $baiKiemTra->id) }}" method="POST" id="examSubmissionForm">
                             @csrf
+                            <input type="hidden" name="tu_dong_nop" value="0" id="autoSubmitInput">
 
                             @if($cauHoiHienThi->isEmpty())
                                 <div class="mb-3">
                                     <label class="form-label fw-semibold">Nội dung bài làm</label>
-                                    <textarea name="noi_dung_bai_lam" rows="14" class="form-control" required>{{ old('noi_dung_bai_lam', $baiLam->noi_dung_bai_lam) }}</textarea>
+                                    <textarea name="noi_dung_bai_lam" rows="14" class="form-control">{{ old('noi_dung_bai_lam', $baiLam->noi_dung_bai_lam) }}</textarea>
                                 </div>
                             @else
                                 @foreach($cauHoiHienThi as $index => $chiTiet)
@@ -222,6 +306,33 @@
     </div>
 </div>
 
+@if($baiKiemTra->co_giam_sat && $baiLam && $baiLam->can_resume)
+    <div class="surveillance-overlay" id="surveillanceOverlay">
+        <div class="surveillance-overlay-card">
+            <span class="badge bg-warning-subtle text-warning border border-warning-subtle mb-3">Giám sát nâng cao</span>
+            <h4 class="fw-bold mb-2">Kích hoạt môi trường thi</h4>
+            <p class="text-muted mb-4">
+                Bài thi này chỉ được tiếp tục khi môi trường giám sát đã sẵn sàng.
+                @if($baiKiemTra->bat_buoc_fullscreen)
+                    Bạn cần bật toàn màn hình.
+                @endif
+                @if($baiKiemTra->bat_buoc_camera)
+                    Bạn cần bật camera để hệ thống chụp snapshot định kỳ.
+                @endif
+            </p>
+            <ul class="small text-muted text-start mb-4">
+                <li>Không chuyển tab hoặc rời khỏi cửa sổ đang thi.</li>
+                <li>Không tắt camera trong quá trình làm bài nếu bài thi yêu cầu.</li>
+                <li>Mọi vi phạm đều được ghi log để giảng viên và admin hậu kiểm.</li>
+            </ul>
+            <button type="button" class="btn btn-primary btn-lg" id="activateSurveillanceBtn">
+                Kích hoạt giám sát và tiếp tục làm bài
+            </button>
+            <div class="small text-danger mt-3 d-none" id="surveillanceOverlayError"></div>
+        </div>
+    </div>
+@endif
+
 @push('styles')
 <style>
     .info-row {
@@ -272,6 +383,82 @@
         margin-bottom: 0.75rem;
         background: #fff;
     }
+
+    .surveillance-live-bar {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 0.75rem;
+    }
+
+    .surveillance-pill {
+        border: 1px solid #e2e8f0;
+        background: #fff7ed;
+        border-radius: 14px;
+        padding: 0.9rem 1rem;
+    }
+
+    .surveillance-label {
+        display: block;
+        font-size: 0.75rem;
+        color: #9a3412;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.35rem;
+    }
+
+    .camera-preview-shell {
+        width: 220px;
+        margin-left: auto;
+        margin-bottom: 1rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 18px;
+        overflow: hidden;
+        background: #0f172a;
+        color: #fff;
+        box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
+    }
+
+    .camera-preview-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.7rem 0.85rem;
+        font-size: 0.8rem;
+        background: rgba(15, 23, 42, 0.92);
+    }
+
+    #surveillanceCameraPreview {
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        object-fit: cover;
+        display: block;
+        background: #020617;
+    }
+
+    .surveillance-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 1200;
+        background: rgba(15, 23, 42, 0.72);
+        backdrop-filter: blur(6px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+    }
+
+    .surveillance-overlay-card {
+        width: min(560px, 100%);
+        background: #fff;
+        border-radius: 26px;
+        padding: 2rem;
+        box-shadow: 0 35px 80px rgba(15, 23, 42, 0.28);
+        text-align: center;
+    }
 </style>
 @endpush
+
+@if($baiKiemTra->co_giam_sat && $baiLam && $baiLam->can_resume)
+    @include('pages.hoc-vien.bai-kiem-tra._surveillance-script')
+@endif
 @endsection

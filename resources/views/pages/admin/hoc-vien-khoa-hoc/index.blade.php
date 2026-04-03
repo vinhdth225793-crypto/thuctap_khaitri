@@ -144,64 +144,131 @@
 
 {{-- MODAL THÊM HỌC VIÊN (PHASE 3) --}}
 <div class="modal fade shadow" id="modalAddHocVien" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content border-0">
-            <div class="modal-header bg-success text-white border-0">
-                <h5 class="modal-title fw-bold"><i class="fas fa-user-plus me-2"></i> Thêm học viên vào lớp</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <form action="{{ route('admin.khoa-hoc.hoc-vien.store', $khoaHoc->id) }}" method="POST">
-                @csrf
-                <div class="modal-body p-4">
-                    <div class="mb-4">
-                        <label class="form-label small fw-bold">1. Chọn học viên từ hệ thống <span class="text-danger">*</span></label>
-                        <div class="alert alert-info border-0 smaller mb-3">
-                            <i class="fas fa-info-circle me-1"></i> Danh sách dưới đây chỉ hiển thị những học viên chưa tham gia khóa học này.
-                        </div>
-                        <div class="table-responsive border rounded" style="max-height: 300px; overflow-y: auto;">
-                            <table class="table table-sm table-hover align-middle mb-0">
-                                <thead class="bg-light sticky-top">
-                                    <tr>
-                                        <th class="text-center" width="40">Chọn</th>
-                                        <th>Họ tên</th>
-                                        <th>Email</th>
-                                        <th>SĐT</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @forelse($availableStudents as $student)
-                                        <tr>
-                                            <td class="text-center">
-                                                <input type="checkbox" name="hoc_vien_ids[]" value="{{ $student->ma_nguoi_dung }}" class="form-check-input">
-                                            </td>
-                                            <td class="fw-bold small">{{ $student->ho_ten }}</td>
-                                            <td class="small">{{ $student->email }}</td>
-                                            <td class="small text-muted">{{ $student->so_dien_thoai }}</td>
-                                        </tr>
-                                    @empty
-                                        <tr>
-                                            <td colspan="4" class="text-center py-4 text-muted small italic">Không còn học viên nào khả dụng để thêm.</td>
-                                        </tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
-                        </div>
+            <div class="modal-header bg-success text-white border-0 py-3">
+                <div class="d-flex align-items-center">
+                    <div class="bg-white text-success rounded-circle p-2 me-3 shadow-sm" style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-user-plus fs-5"></i>
                     </div>
-
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">2. Ngày tham gia</label>
-                            <input type="date" name="ngay_tham_gia" class="form-control vip-form-control" value="{{ date('Y-m-d') }}">
-                        </div>
-                        <div class="col-md-12">
-                            <label class="form-label small fw-bold">3. Ghi chú (Nếu có)</label>
-                            <textarea name="ghi_chu" class="form-control vip-form-control" rows="2" placeholder="VD: Học viên chuyển lớp từ khóa khác sang..."></textarea>
-                        </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0">Thêm học viên vào lớp</h5>
+                        <p class="small mb-0 opacity-75">Chọn học viên từ danh sách hệ thống để ghi danh</p>
                     </div>
                 </div>
-                <div class="modal-footer border-0 p-3 justify-content-center gap-2">
-                    <button type="button" class="btn btn-light px-4 fw-bold" data-bs-dismiss="modal">Hủy bỏ</button>
-                    <button type="submit" class="btn btn-success px-4 fw-bold shadow-sm">XÁC NHẬN THÊM</button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ route('admin.khoa-hoc.hoc-vien.store', $khoaHoc->id) }}" method="POST" id="formAddHocVien">
+                @csrf
+                <div class="modal-body p-0">
+                    <div class="row g-0 h-100">
+                        <!-- Cột bên trái: Danh sách học viên -->
+                        <div class="col-lg-8 border-end d-flex flex-column" style="height: 600px;">
+                            <div class="p-3 bg-light border-bottom sticky-top">
+                                <div class="input-group shadow-sm">
+                                    <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                                    <input type="text" id="searchHocVien" class="form-control border-start-0 ps-0 py-2" placeholder="Tìm kiếm theo tên, email hoặc số điện thoại...">
+                                    <button class="btn btn-outline-secondary btn-sm px-3" type="button" id="btnClearSearch">Xóa</button>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-2 px-1">
+                                    <div class="small text-muted">
+                                        Hiển thị: <span id="visibleCount" class="fw-bold text-dark">{{ count($availableStudents) }}</span> / {{ count($availableStudents) }} học viên
+                                    </div>
+                                    <div class="form-check small mb-0">
+                                        <input class="form-check-input" type="checkbox" id="checkAllHocVien">
+                                        <label class="form-check-label fw-bold text-success cursor-pointer" for="checkAllHocVien">
+                                            CHỌN TẤT CẢ HIỂN THỊ
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex-grow-1 overflow-auto bg-white">
+                                <table class="table table-hover align-middle mb-0" id="tableAvailableHocVien">
+                                    <thead class="bg-light smaller text-muted text-uppercase sticky-top" style="top: -1px; z-index: 10;">
+                                        <tr>
+                                            <th class="text-center" width="50">#</th>
+                                            <th>Thông tin học viên</th>
+                                            <th class="text-center">Liên hệ</th>
+                                            <th class="text-center" width="80">Chọn</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($availableStudents as $student)
+                                            <tr class="hoc-vien-row pointer-row" data-search="{{ strtolower($student->ho_ten . ' ' . $student->email . ' ' . $student->so_dien_thoai) }}">
+                                                <td class="text-center text-muted smaller">{{ $loop->iteration }}</td>
+                                                <td>
+                                                    <div class="fw-bold text-dark">{{ $student->ho_ten }}</div>
+                                                    <div class="smaller text-muted italic">ID: #{{ $student->ma_nguoi_dung }}</div>
+                                                </td>
+                                                <td class="text-center">
+                                                    <div class="smaller text-dark">{{ $student->email }}</div>
+                                                    <div class="smaller text-muted">{{ $student->so_dien_thoai }}</div>
+                                                </td>
+                                                <td class="text-center">
+                                                    <div class="form-check d-flex justify-content-center">
+                                                        <input type="checkbox" name="hoc_vien_ids[]" value="{{ $student->ma_nguoi_dung }}" 
+                                                               class="form-check-input hoc-vien-checkbox shadow-none border-secondary"
+                                                               data-name="{{ $student->ho_ten }}">
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="4" class="text-center py-5 text-muted small italic">
+                                                    Không có học viên nào khả dụng để thêm vào lớp.
+                                                </td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Cột bên phải: Cấu hình và tóm tắt -->
+                        <div class="col-lg-4 bg-light d-flex flex-column" style="height: 600px;">
+                            <div class="p-4 flex-grow-1 overflow-auto">
+                                <h6 class="fw-bold mb-3 border-bottom pb-2"><i class="fas fa-cog me-2"></i>CẤU HÌNH GHI DANH</h6>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">Ngày tham gia</label>
+                                    <input type="date" name="ngay_tham_gia" class="form-control vip-form-control border-0 shadow-sm" value="{{ date('Y-m-d') }}">
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label class="form-label small fw-bold">Ghi chú mặc định</label>
+                                    <textarea name="ghi_chu" class="form-control vip-form-control border-0 shadow-sm" rows="3" placeholder="Ghi chú chung cho các học viên được chọn..."></textarea>
+                                </div>
+
+                                <div class="card border-0 shadow-sm rounded-3 mb-3">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="small fw-bold text-uppercase">Đã chọn:</span>
+                                            <span class="badge bg-success rounded-pill px-3 py-2 fs-6 shadow-sm" id="selectedCountDisplay">0</span>
+                                        </div>
+                                        <div id="selectedNamesContainer" class="mt-3 overflow-auto" style="max-height: 200px;">
+                                            <div class="text-center text-muted smaller py-4 italic" id="emptySelectedText">
+                                                Chưa có học viên nào được chọn
+                                            </div>
+                                            <div id="selectedList" class="d-flex flex-wrap gap-1"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="alert alert-warning border-0 smaller">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    Bạn có thể thêm nhiều học viên cùng lúc. Hệ thống sẽ tự động bỏ qua các trường hợp đã tồn tại trong lớp.
+                                </div>
+                            </div>
+
+                            <div class="p-4 border-top mt-auto bg-white">
+                                <button type="submit" class="btn btn-success w-100 py-2 fw-bold shadow disabled" id="btnConfirmAdd">
+                                    XÁC NHẬN THÊM VÀO LỚP
+                                </button>
+                                <button type="button" class="btn btn-link text-muted w-100 mt-2 smaller text-decoration-none" data-bs-dismiss="modal">Đóng cửa sổ</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
@@ -255,26 +322,137 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Xử lý mở Modal Sửa
-    const modalEdit = new bootstrap.Modal(document.getElementById('modalEditEnrollment'));
-    const formEdit = document.getElementById('formEditEnrollment');
-    const nameLabel = document.getElementById('edit-hv-name');
-    const dateInput = document.getElementById('edit-ngay-tham-gia');
-    const statusSelect = document.getElementById('edit-trang-thai');
-    const noteTextarea = document.getElementById('edit-ghi-chu');
+    // 1. XỬ LÝ MODAL THÊM HỌC VIÊN
+    const modalAdd = document.getElementById('modalAddHocVien');
+    if (modalAdd) {
+        const searchInput = document.getElementById('searchHocVien');
+        const btnClearSearch = document.getElementById('btnClearSearch');
+        const checkAll = document.getElementById('checkAllHocVien');
+        const hocVienRows = document.querySelectorAll('.hoc-vien-row');
+        const hocVienCheckboxes = document.querySelectorAll('.hoc-vien-checkbox');
+        const selectedCountDisplay = document.getElementById('selectedCountDisplay');
+        const selectedList = document.getElementById('selectedList');
+        const emptyText = document.getElementById('emptySelectedText');
+        const btnConfirm = document.getElementById('btnConfirmAdd');
+        const visibleCountSpan = document.getElementById('visibleCount');
 
-    document.querySelectorAll('.btn-edit-enroll').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const id = this.dataset.id;
-            nameLabel.textContent = this.dataset.name;
-            dateInput.value = this.dataset.date;
-            statusSelect.value = this.dataset.status;
-            noteTextarea.value = this.dataset.note;
+        // Hàm cập nhật trạng thái UI (số lượng chọn, danh sách tên, nút xác nhận)
+        function updateSelectionUI() {
+            const selectedBoxes = document.querySelectorAll('.hoc-vien-checkbox:checked');
+            const count = selectedBoxes.length;
             
-            formEdit.action = `{{ url('admin/khoa-hoc/'.$khoaHoc->id.'/hoc-vien') }}/${id}`;
-            modalEdit.show();
+            selectedCountDisplay.textContent = count;
+            
+            if (count > 0) {
+                emptyText.classList.add('d-none');
+                btnConfirm.classList.remove('disabled');
+                selectedCountDisplay.classList.replace('bg-secondary', 'bg-success');
+            } else {
+                emptyText.classList.remove('d-none');
+                btnConfirm.classList.add('disabled');
+                selectedCountDisplay.classList.replace('bg-success', 'bg-secondary');
+            }
+
+            // Cập nhật danh sách tag tên học viên đã chọn (tối đa hiện 10 người cho đỡ rối)
+            selectedList.innerHTML = '';
+            selectedBoxes.forEach((box, index) => {
+                if (index < 10) {
+                    const span = document.createElement('span');
+                    span.className = 'badge bg-white text-dark border shadow-sm smaller fw-normal mb-1 me-1 px-2 py-1';
+                    span.innerHTML = `<i class="fas fa-check text-success me-1"></i> ${box.dataset.name}`;
+                    selectedList.appendChild(span);
+                }
+            });
+            
+            if (count > 10) {
+                const more = document.createElement('span');
+                more.className = 'smaller text-muted ms-1';
+                more.textContent = `và ${count - 10} người khác...`;
+                selectedList.appendChild(more);
+            }
+        }
+
+        // Tìm kiếm nhanh
+        searchInput.addEventListener('input', function() {
+            const term = this.value.toLowerCase().trim();
+            let visibleCount = 0;
+
+            hocVienRows.forEach(row => {
+                const searchText = row.dataset.search;
+                if (searchText.includes(term)) {
+                    row.classList.remove('d-none');
+                    visibleCount++;
+                } else {
+                    row.classList.add('d-none');
+                    // Nếu dòng bị ẩn, bỏ check (tùy chọn - ở đây tôi giữ check nhưng check-all sẽ chỉ áp dụng cho dòng hiện)
+                }
+            });
+
+            visibleCountSpan.textContent = visibleCount;
+            // Bỏ check-all nếu đang check mà kết quả tìm kiếm thay đổi
+            checkAll.checked = false;
         });
-    });
+
+        // Xóa tìm kiếm
+        btnClearSearch.addEventListener('click', function() {
+            searchInput.value = '';
+            searchInput.dispatchEvent(new Event('input'));
+        });
+
+        // Chọn tất cả (chỉ các dòng đang hiển thị)
+        checkAll.addEventListener('change', function() {
+            const isChecked = this.checked;
+            hocVienRows.forEach(row => {
+                if (!row.classList.contains('d-none')) {
+                    const cb = row.querySelector('.hoc-vien-checkbox');
+                    if (cb) cb.checked = isChecked;
+                }
+            });
+            updateSelectionUI();
+        });
+
+        // Click vào dòng để chọn
+        hocVienRows.forEach(row => {
+            row.addEventListener('click', function(e) {
+                if (e.target.type !== 'checkbox') {
+                    const cb = this.querySelector('.hoc-vien-checkbox');
+                    if (cb) {
+                        cb.checked = !cb.checked;
+                        updateSelectionUI();
+                    }
+                }
+            });
+        });
+
+        // Thay đổi checkbox lẻ
+        hocVienCheckboxes.forEach(cb => {
+            cb.addEventListener('change', updateSelectionUI);
+        });
+    }
+
+    // 2. XỬ LÝ MODAL SỬA GHI DANH
+    const modalEditEl = document.getElementById('modalEditEnrollment');
+    if (modalEditEl) {
+        const modalEdit = new bootstrap.Modal(modalEditEl);
+        const formEdit = document.getElementById('formEditEnrollment');
+        const nameLabel = document.getElementById('edit-hv-name');
+        const dateInput = document.getElementById('edit-ngay-tham-gia');
+        const statusSelect = document.getElementById('edit-trang-thai');
+        const noteTextarea = document.getElementById('edit-ghi-chu');
+
+        document.querySelectorAll('.btn-edit-enroll').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const id = this.dataset.id;
+                nameLabel.textContent = this.dataset.name;
+                dateInput.value = this.dataset.date;
+                statusSelect.value = this.dataset.status;
+                noteTextarea.value = this.dataset.note;
+                
+                formEdit.action = `{{ url('admin/khoa-hoc/'.$khoaHoc->id.'/hoc-vien') }}/${id}`;
+                modalEdit.show();
+            });
+        });
+    }
 });
 </script>
 @endpush
@@ -283,5 +461,10 @@ document.addEventListener('DOMContentLoaded', function() {
     .vip-form-control:focus { box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1); border-color: #0d6efd; }
     .shadow-xs { box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.05) !important; }
     .italic { font-style: italic; }
+    .cursor-pointer { cursor: pointer; }
+    .pointer-row { cursor: pointer; transition: all 0.2s; }
+    .pointer-row:hover { background-color: rgba(25, 135, 84, 0.05) !important; }
+    .hoc-vien-checkbox { width: 1.2rem; height: 1.2rem; cursor: pointer; }
+    .sticky-top { z-index: 10; }
 </style>
 @endsection

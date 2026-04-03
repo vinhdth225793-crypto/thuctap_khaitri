@@ -12,7 +12,8 @@ class TeacherScheduleRuleService
      */
     public function allowedWeekdays(): array
     {
-        return [2, 3, 4, 5, 6];
+        // Cho phép từ Thứ 2 (2) đến Chủ nhật (8)
+        return [2, 3, 4, 5, 6, 7, 8];
     }
 
     public function weekdayLabel(Carbon|string $date): string
@@ -36,8 +37,9 @@ class TeacherScheduleRuleService
         $start = substr($startTime, 0, 5);
         $end = substr($endTime, 0, 5);
 
+        // Giới hạn khung giờ chuẩn của trung tâm: 07:30 - 20:45
         return $start >= TeachingPeriodCatalog::standardStartTime()
-            && $end <= '20:00'
+            && $end <= TeachingPeriodCatalog::standardEndTime()
             && $start < $end;
     }
 
@@ -51,7 +53,7 @@ class TeacherScheduleRuleService
         if (!$this->isAllowedWeekday($date)) {
             return [
                 'ok' => false,
-                'message' => 'He thong chi cho phep xep lich tu Thu 2 den Thu 6. ' . $this->weekdayLabel($date) . ' mac dinh khong duoc sap lich.',
+                'message' => 'Hệ thống chỉ cho phép xếp lịch từ Thứ 2 đến Chủ nhật.',
                 'rule_label' => $this->ruleLabel(),
             ];
         }
@@ -59,20 +61,20 @@ class TeacherScheduleRuleService
         if (!$this->isWithinStandardHours($startTime, $endTime)) {
             return [
                 'ok' => false,
-                'message' => 'Khung gio phai nam trong lich day chuan 08:00 - 20:00.',
+                'message' => 'Khung giờ phải nằm trong lịch dạy chuẩn ' . TeachingPeriodCatalog::standardStartTime() . ' - ' . TeachingPeriodCatalog::standardEndTime() . '.',
                 'rule_label' => $this->ruleLabel(),
             ];
         }
 
         return [
             'ok' => true,
-            'message' => 'Khung day nam trong lich day chuan cua he thong.',
+            'message' => 'Khung dạy nằm trong lịch dạy chuẩn của hệ thống.',
             'rule_label' => $this->ruleLabel(),
         ];
     }
 
     public function ruleLabel(): string
     {
-        return 'Thu 2 - Thu 6 | 08:00 - 20:00 | 12 tiet';
+        return 'Thứ 2 - Chủ nhật | ' . TeachingPeriodCatalog::standardStartTime() . ' - ' . TeachingPeriodCatalog::standardEndTime() . ' | 12 tiết';
     }
 }

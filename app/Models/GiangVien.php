@@ -71,6 +71,12 @@ class GiangVien extends Model
             ->orderByDesc('created_at');
     }
 
+    public function teacherAttendanceLogs(): HasMany
+    {
+        return $this->hasMany(DiemDanhGiangVien::class, 'giang_vien_id')
+            ->orderByDesc('created_at');
+    }
+
     /**
      * Scope untuk lay giang vien hien thi tren trang chu
      */

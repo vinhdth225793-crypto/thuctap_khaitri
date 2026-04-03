@@ -24,7 +24,7 @@ class LiveRoomController extends Controller
         $user = auth()->user();
         [$playerMode, $playerUrl, $playerSupportsEmbed] = $this->resolvePlayerState($phongHocLive, true);
 
-        return view('pages.live-room.show', [
+        return view('pages.giang-vien.live-room.show', [
             'mode' => 'teacher',
             'baiGiang' => $baiGiang,
             'phongHocLive' => $phongHocLive,

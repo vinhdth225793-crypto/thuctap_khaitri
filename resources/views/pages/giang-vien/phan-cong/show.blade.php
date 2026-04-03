@@ -146,6 +146,9 @@
                                             <a href="{{ route('giang-vien.bai-kiem-tra.edit', $test->id) }}" class="btn btn-sm btn-outline-danger px-3 shadow-xs" title="Cấu hình đề">
                                                 <i class="fas fa-cog me-1"></i> Cấu hình
                                             </a>
+                                            <a href="{{ route('giang-vien.bai-kiem-tra.surveillance.edit', $test->id) }}" class="btn btn-sm btn-outline-warning px-3 shadow-xs" title="Cấu hình giám sát">
+                                                <i class="fas fa-shield-alt me-1"></i> Giám sát
+                                            </a>
                                         </div>
                                     </div>
                                 </div>
@@ -242,6 +245,8 @@
                                 </div>
 
                                 {{-- Khu vực Bài kiểm tra --}}
+                                @include('pages.giang-vien.phan-cong.partials.teacher-attendance-card', ['lich' => $lich, 'phanCong' => $phanCong])
+
                                 @if($lich->baiKiemTras->count() > 0)
                                     <div class="col-12 mt-3">
                                         <div class="fw-bold small mb-2 text-danger text-uppercase"><i class="fas fa-file-alt me-1"></i> Bài kiểm tra</div>
@@ -254,6 +259,7 @@
                                                     </div>
                                                     <div class="d-flex gap-1">
                                                         <a href="{{ route('giang-vien.bai-kiem-tra.edit', $test->id) }}" class="btn btn-xs btn-outline-danger p-1" title="Cấu hình đề"><i class="fas fa-tasks"></i></a>
+                                                        <a href="{{ route('giang-vien.bai-kiem-tra.surveillance.edit', $test->id) }}" class="btn btn-xs btn-outline-warning p-1" title="Cấu hình giám sát"><i class="fas fa-shield-alt"></i></a>
                                                         <form action="{{ route('giang-vien.bai-kiem-tra.destroy', $test->id) }}" method="POST" onsubmit="return confirm('Xóa bài kiểm tra này?')">
                                                             @csrf @method('DELETE')
                                                             <button type="submit" class="btn btn-xs btn-link p-1 text-danger"><i class="fas fa-trash-alt"></i></button>
@@ -920,6 +926,55 @@
                         <label class="form-label small fw-bold">Ghi chú / Mô tả</label>
                         <textarea name="mo_ta" class="form-control vip-form-control" rows="2" placeholder="Nội dung tóm tắt..."></textarea>
                     </div>
+                    <div class="mt-3 pt-3 border-top">
+                        <label class="form-label small fw-bold d-block">Chế độ bài kiểm tra</label>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="co_giam_sat" value="1" id="test-co-giam-sat">
+                            <label class="form-check-label fw-semibold" for="test-co-giam-sat">
+                                Bật giám sát nâng cao
+                            </label>
+                        </div>
+                        <div class="row g-2 small">
+                            <div class="col-md-6">
+                                <label class="form-label">Ngưỡng vi phạm</label>
+                                <input type="number" name="so_lan_vi_pham_toi_da" class="form-control vip-form-control" value="3" min="1" max="20">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Chu kỳ snapshot (giây)</label>
+                                <input type="number" name="chu_ky_snapshot_giay" class="form-control vip-form-control" value="30" min="10" max="300">
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" name="bat_buoc_fullscreen" value="1" id="test-fullscreen">
+                                    <label class="form-check-label" for="test-fullscreen">Bắt buộc fullscreen</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" name="bat_buoc_camera" value="1" id="test-camera">
+                                    <label class="form-check-label" for="test-camera">Bắt buộc camera</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="tu_dong_nop_khi_vi_pham" value="1" id="test-auto-submit">
+                                    <label class="form-check-label" for="test-auto-submit">Tự động nộp khi vượt ngưỡng</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="chan_copy_paste" value="1" id="test-copy-paste">
+                                    <label class="form-check-label" for="test-copy-paste">Chặn copy/paste</label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="chan_chuot_phai" value="1" id="test-right-click">
+                                    <label class="form-check-label" for="test-right-click">Chặn chuột phải</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer border-0 p-3 justify-content-center gap-2">
                     <button type="button" class="btn btn-light px-4 fw-bold" data-bs-dismiss="modal">Hủy bỏ</button>
@@ -1487,6 +1542,23 @@ document.addEventListener('DOMContentLoaded', function() {
     .session-block-focused {
         box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.12), 0 0.5rem 1rem rgba(13, 110, 253, 0.08) !important;
         scroll-margin-top: 90px;
+    }
+    .teacher-attendance-panel {
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+    }
+    .teacher-attendance-metric {
+        min-height: 72px;
+        padding: 0.75rem 0.85rem;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.75);
+        border: 1px solid rgba(13, 110, 253, 0.08);
+    }
+    .teacher-attendance-note {
+        padding: 0.75rem 0.85rem;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px dashed rgba(108, 117, 125, 0.4);
+        white-space: normal;
     }
 </style>
 @endsection

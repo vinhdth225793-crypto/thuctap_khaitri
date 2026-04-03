@@ -198,6 +198,8 @@ document.addEventListener('DOMContentLoaded', function() {
     .bg-warning-soft { background-color: rgba(255, 193, 7, 0.1); }
     .bg-secondary-soft { background-color: rgba(108, 117, 125, 0.1); }
     .bg-danger-soft { background-color: rgba(220, 53, 69, 0.1); }
+    .bg-info-soft { background-color: rgba(13, 202, 240, 0.1); }
+    .bg-dark-soft { background-color: rgba(33, 37, 41, 0.1); }
     .shadow-xs { box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     
     .btn-group .btn { border: none !important; transition: all 0.3s; }

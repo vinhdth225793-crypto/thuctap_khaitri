@@ -151,6 +151,7 @@ class TeacherScheduleViewService
                     'weekday_label' => $schedule->thu_label,
                     'period_start' => $range['start'] ?? null,
                     'period_end' => $range['end'] ?? null,
+                    'session' => $range['session'] ?? null,
                     'period_label' => TeachingPeriodCatalog::rangeLabel($range['start'] ?? null, $range['end'] ?? null),
                     'session_label' => TeachingPeriodCatalog::sessionLabel($range['session'] ?? null),
                     'summary' => $schedule->schedule_range_label,

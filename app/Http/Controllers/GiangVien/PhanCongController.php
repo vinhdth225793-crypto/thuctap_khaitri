@@ -84,7 +84,16 @@ class PhanCongController extends Controller
 
         $lichHocIds = LichHoc::where('khoa_hoc_id', $khoaHoc->id)->pluck('id');
 
-        $lichDays = LichHoc::with(['taiNguyen', 'baiKiemTras'])
+        $lichDays = LichHoc::with([
+                'taiNguyen',
+                'baiKiemTras',
+                'giangVien.nguoiDung',
+                'moduleHoc.phanCongGiangViens.giangVien.nguoiDung',
+                'teacherAttendanceLogs' => function ($query) use ($giangVien) {
+                    $query->where('giang_vien_id', $giangVien->id)
+                        ->with('giangVien.nguoiDung');
+                },
+            ])
             ->where('module_hoc_id', $phanCong->module_hoc_id)
             ->orderBy('ngay_hoc')
             ->get();

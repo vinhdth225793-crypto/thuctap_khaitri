@@ -34,6 +34,14 @@ class BaiKiemTra extends Model
         'so_lan_duoc_lam',
         'randomize_questions',
         'randomize_answers',
+        'co_giam_sat',
+        'bat_buoc_fullscreen',
+        'bat_buoc_camera',
+        'so_lan_vi_pham_toi_da',
+        'chu_ky_snapshot_giay',
+        'tu_dong_nop_khi_vi_pham',
+        'chan_copy_paste',
+        'chan_chuot_phai',
         'nguoi_tao_id',
         'nguoi_duyet_id',
         'de_xuat_duyet_luc',
@@ -51,6 +59,14 @@ class BaiKiemTra extends Model
         'so_cau_goi_diem' => 'integer',
         'randomize_questions' => 'boolean',
         'randomize_answers' => 'boolean',
+        'co_giam_sat' => 'boolean',
+        'bat_buoc_fullscreen' => 'boolean',
+        'bat_buoc_camera' => 'boolean',
+        'so_lan_vi_pham_toi_da' => 'integer',
+        'chu_ky_snapshot_giay' => 'integer',
+        'tu_dong_nop_khi_vi_pham' => 'boolean',
+        'chan_copy_paste' => 'boolean',
+        'chan_chuot_phai' => 'boolean',
         'de_xuat_duyet_luc' => 'datetime',
         'duyet_luc' => 'datetime',
         'phat_hanh_luc' => 'datetime',
@@ -126,6 +142,13 @@ class BaiKiemTra extends Model
             'hon_hop' => 'Hỗn hợp',
             default => 'Không xác định',
         };
+    }
+
+    public function getCheDoGiamSatLabelAttribute(): string
+    {
+        return $this->co_giam_sat
+            ? 'Giám sát nâng cao'
+            : 'Bài kiểm tra thường';
     }
 
     public function getTrangThaiDuyetLabelAttribute(): string
@@ -213,5 +236,10 @@ class BaiKiemTra extends Model
     public function getHasMultipleChoiceQuestionsAttribute(): bool
     {
         return in_array($this->loai_noi_dung, ['trac_nghiem', 'hon_hop'], true);
+    }
+
+    public function getCanUseSurveillanceAttribute(): bool
+    {
+        return $this->co_giam_sat;
     }
 }

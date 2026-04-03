@@ -276,6 +276,27 @@ class LiveRoomWorkflowTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_teacher_live_room_page_shows_start_action_when_room_reaches_start_time(): void
+    {
+        Carbon::setTestNow('2026-04-04 09:05:00');
+
+        [$teacherUser] = $this->createTeacher();
+        $lecture = $this->createApprovedPublishedLiveLecture($teacherUser, [
+            'thoi_gian_bat_dau' => '2026-04-04 09:00:00',
+            'thoi_luong_phut' => 90,
+            'join_url' => 'https://example.com/join-live',
+            'start_url' => 'https://example.com/start-live',
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->get(route('giang-vien.live-room.show', $lecture->id))
+            ->assertOk()
+            ->assertSee(route('giang-vien.live-room.start', $lecture->id), false)
+            ->assertSee('Bat dau buoi hoc', false);
+
+        Carbon::setTestNow();
+    }
+
     private function createUser(string $role): NguoiDung
     {
         $index = $this->sequence++;

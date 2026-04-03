@@ -89,6 +89,16 @@ class ExamConfigurationService
             }
         }
 
+        if ($baiKiemTra->co_giam_sat) {
+            if ((int) $baiKiemTra->so_lan_vi_pham_toi_da < 1) {
+                $errors['so_lan_vi_pham_toi_da'] = 'Ngưỡng vi phạm tối đa phải lớn hơn hoặc bằng 1.';
+            }
+
+            if ($baiKiemTra->bat_buoc_camera && (int) $baiKiemTra->chu_ky_snapshot_giay < ExamSurveillanceService::MIN_SNAPSHOT_INTERVAL) {
+                $errors['chu_ky_snapshot_giay'] = 'Chu kỳ snapshot phải từ ' . ExamSurveillanceService::MIN_SNAPSHOT_INTERVAL . ' giây trở lên.';
+            }
+        }
+
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
         }

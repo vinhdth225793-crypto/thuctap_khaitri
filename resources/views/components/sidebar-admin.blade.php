@@ -91,6 +91,13 @@
             </div>
         </div>
 
+        <div class="nav-item mb-3">
+            <a href="{{ route('admin.diem-danh.index') }}" class="edu-link-parent {{ request()->routeIs('admin.diem-danh.*') ? 'active' : '' }}">
+                <div class="edu-icon-circle bg-soft-primary"><i class="fas fa-user-check"></i></div>
+                <span class="fw-bold">Điểm danh</span>
+            </a>
+        </div>
+
         <!-- Nội dung & Khảo thí -->
         <div class="nav-item mb-3">
             <a class="edu-link-parent {{ request()->routeIs('admin.thu-vien.*', 'admin.bai-giang.*', 'admin.kiem-tra-online.*') ? '' : 'collapsed' }}" 
@@ -233,7 +240,6 @@
     .custom-scrollbar::-webkit-scrollbar { width: 5px; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 </style>
-
 
 
 

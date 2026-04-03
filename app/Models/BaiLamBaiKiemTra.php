@@ -16,6 +16,10 @@ class BaiLamBaiKiemTra extends Model
     protected $fillable = [
         'bai_kiem_tra_id',
         'hoc_vien_id',
+        'dia_chi_ip',
+        'user_agent',
+        'precheck_data',
+        'precheck_completed_at',
         'lan_lam_thu',
         'noi_dung_bai_lam',
         'trang_thai',
@@ -29,10 +33,18 @@ class BaiLamBaiKiemTra extends Model
         'manual_graded_at',
         'nguoi_cham_id',
         'nhan_xet',
+        'tong_so_vi_pham',
+        'trang_thai_giam_sat',
+        'da_tu_dong_nop',
+        'ghi_chu_giam_sat',
+        'nguoi_hau_kiem_id',
+        'hau_kiem_luc',
     ];
 
     protected $casts = [
         'lan_lam_thu' => 'integer',
+        'precheck_data' => 'array',
+        'precheck_completed_at' => 'datetime',
         'bat_dau_luc' => 'datetime',
         'nop_luc' => 'datetime',
         'diem_so' => 'decimal:2',
@@ -40,6 +52,9 @@ class BaiLamBaiKiemTra extends Model
         'tong_diem_tu_luan' => 'decimal:2',
         'auto_graded_at' => 'datetime',
         'manual_graded_at' => 'datetime',
+        'tong_so_vi_pham' => 'integer',
+        'da_tu_dong_nop' => 'boolean',
+        'hau_kiem_luc' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -59,9 +74,24 @@ class BaiLamBaiKiemTra extends Model
         return $this->belongsTo(NguoiDung::class, 'nguoi_cham_id', 'ma_nguoi_dung');
     }
 
+    public function nguoiHauKiem(): BelongsTo
+    {
+        return $this->belongsTo(NguoiDung::class, 'nguoi_hau_kiem_id', 'ma_nguoi_dung');
+    }
+
     public function chiTietTraLois(): HasMany
     {
         return $this->hasMany(ChiTietBaiLamBaiKiemTra::class, 'bai_lam_bai_kiem_tra_id');
+    }
+
+    public function giamSatLogs(): HasMany
+    {
+        return $this->hasMany(BaiLamViPhamGiamSat::class, 'bai_lam_bai_kiem_tra_id')->latest('created_at');
+    }
+
+    public function giamSatSnapshots(): HasMany
+    {
+        return $this->hasMany(BaiLamSnapshotGiamSat::class, 'bai_lam_bai_kiem_tra_id')->latest('captured_at');
     }
 
     public function getTrangThaiLabelAttribute(): string
@@ -99,5 +129,32 @@ class BaiLamBaiKiemTra extends Model
     public function getNeedManualGradingAttribute(): bool
     {
         return $this->trang_thai_cham === 'cho_cham';
+    }
+
+    public function getTrangThaiGiamSatLabelAttribute(): string
+    {
+        return match ($this->trang_thai_giam_sat) {
+            'binh_thuong' => 'Bình thường',
+            'can_xem_xet' => 'Cần xem xét',
+            'da_xac_nhan' => 'Đã xác nhận',
+            'nghi_ngo' => 'Nghi ngờ',
+            default => 'Không áp dụng',
+        };
+    }
+
+    public function getTrangThaiGiamSatColorAttribute(): string
+    {
+        return match ($this->trang_thai_giam_sat) {
+            'binh_thuong' => 'success',
+            'can_xem_xet' => 'warning',
+            'da_xac_nhan' => 'info',
+            'nghi_ngo' => 'danger',
+            default => 'secondary',
+        };
+    }
+
+    public function getCanReviewSurveillanceAttribute(): bool
+    {
+        return $this->baiKiemTra?->co_giam_sat ?? false;
     }
 }

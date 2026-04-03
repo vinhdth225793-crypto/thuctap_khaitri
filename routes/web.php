@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\ModuleHocController;
 use App\Http\Controllers\Admin\LichHocController;
 use App\Http\Controllers\Admin\TeacherScheduleController as AdminTeacherScheduleController;
 use App\Http\Controllers\Admin\TeacherLeaveRequestController as AdminTeacherLeaveRequestController;
+use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
 use App\Http\Controllers\Admin\NganHangCauHoiController;
 use App\Http\Controllers\Admin\BaiKiemTraPheDuyetController;
 use App\Http\Controllers\Admin\PhanCongController as AdminPhanCongController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\GiangVien\TeacherLeaveRequestController as GiangVienTea
 use App\Http\Controllers\GiangVien\PhanCongController;
 use App\Http\Controllers\GiangVien\TaiNguyenController;
 use App\Http\Controllers\GiangVien\DiemDanhController;
+use App\Http\Controllers\GiangVien\TeacherAttendanceController;
 use App\Http\Controllers\GiangVien\BaiKiemTraController;
 use App\Http\Controllers\GiangVien\BaiGiangController;
 use App\Http\Controllers\GiangVien\LiveRoomController as GiangVienLiveRoomController;
@@ -103,6 +105,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     Route::get('/giang-vien', [AdminController::class, 'indexGiangVien'])->name('giang-vien.index');
     Route::get('/giang-vien/{giangVienId}/lich-giang', [AdminTeacherScheduleController::class, 'show'])->name('giang-vien.lich-giang.show');
     Route::get('/hoc-vien', [AdminController::class, 'indexHocVien'])->name('hoc-vien.index');
+    Route::get('/diem-danh', [AdminAttendanceController::class, 'index'])->name('diem-danh.index');
+    Route::get('/diem-danh/giang-vien/{lichHoc}/{giangVien}', [AdminAttendanceController::class, 'showTeacherAttendance'])->name('diem-danh.giang-vien.show');
 
     // Quản lý Nhóm ngành (Thay thế Môn học)
     Route::prefix('nhom-nganh')->name('mon-hoc.')->group(function () {
@@ -232,6 +236,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
         Route::prefix('phe-duyet')->name('phe-duyet.')->group(function () {
             Route::get('/', [BaiKiemTraPheDuyetController::class, 'index'])->name('index');
             Route::get('/{id}', [BaiKiemTraPheDuyetController::class, 'show'])->name('show');
+            Route::get('/bai-lam/{baiLamId}', [BaiKiemTraPheDuyetController::class, 'showAttempt'])->name('attempt.show');
+            Route::post('/bai-lam/{baiLamId}/giam-sat', [BaiKiemTraPheDuyetController::class, 'updateAttemptSurveillance'])->name('attempt.surveillance');
             Route::post('/{id}/approve', [BaiKiemTraPheDuyetController::class, 'approve'])->name('approve');
             Route::post('/{id}/reject', [BaiKiemTraPheDuyetController::class, 'reject'])->name('reject');
             Route::post('/{id}/publish', [BaiKiemTraPheDuyetController::class, 'publish'])->name('publish');
@@ -339,12 +345,16 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
     Route::get('/buoi-hoc/{lichHocId}/diem-danh', [App\Http\Controllers\GiangVien\DiemDanhController::class, 'show'])->name('buoi-hoc.diem-danh.show');
     Route::post('/buoi-hoc/{lichHocId}/diem-danh', [App\Http\Controllers\GiangVien\DiemDanhController::class, 'store'])->name('buoi-hoc.diem-danh.store');
     Route::post('/buoi-hoc/{lichHocId}/bao-cao-diem-danh', [App\Http\Controllers\GiangVien\DiemDanhController::class, 'report'])->name('buoi-hoc.diem-danh.report');
+    Route::post('/buoi-hoc/{lichHocId}/diem-danh-giang-vien/bat-dau', [TeacherAttendanceController::class, 'start'])->name('buoi-hoc.teacher-attendance.start');
+    Route::post('/buoi-hoc/{lichHocId}/diem-danh-giang-vien/ket-thuc', [TeacherAttendanceController::class, 'finish'])->name('buoi-hoc.teacher-attendance.finish');
 
     // Bài kiểm tra (Phase 8)
     Route::get('/bai-kiem-tra', [BaiKiemTraController::class, 'index'])->name('bai-kiem-tra.index');
     Route::post('/bai-kiem-tra', [BaiKiemTraController::class, 'store'])->name('bai-kiem-tra.store');
     Route::get('/bai-kiem-tra/{id}/edit', [BaiKiemTraController::class, 'edit'])->name('bai-kiem-tra.edit');
+    Route::get('/bai-kiem-tra/{id}/giam-sat', [BaiKiemTraController::class, 'editSurveillance'])->name('bai-kiem-tra.surveillance.edit');
     Route::put('/bai-kiem-tra/{id}', [BaiKiemTraController::class, 'update'])->name('bai-kiem-tra.update');
+    Route::put('/bai-kiem-tra/{id}/giam-sat', [BaiKiemTraController::class, 'updateSurveillanceSettings'])->name('bai-kiem-tra.surveillance.update');
     Route::post('/bai-kiem-tra/{id}/import-preview', [BaiKiemTraController::class, 'importPreview'])->name('bai-kiem-tra.import-preview');
     Route::post('/bai-kiem-tra/{id}/import-confirm', [BaiKiemTraController::class, 'importConfirm'])->name('bai-kiem-tra.import-confirm');
     Route::post('/bai-kiem-tra/{id}/gui-duyet', [BaiKiemTraController::class, 'submitForApproval'])->name('bai-kiem-tra.submit');
@@ -352,6 +362,7 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
     Route::get('/cham-diem/danh-sach', [BaiKiemTraController::class, 'chamDiemIndex'])->name('cham-diem.index');
     Route::get('/cham-diem/{id}', [BaiKiemTraController::class, 'chamDiemShow'])->name('cham-diem.show');
     Route::post('/cham-diem/{id}', [BaiKiemTraController::class, 'chamDiemStore'])->name('cham-diem.store');
+    Route::post('/cham-diem/{id}/giam-sat', [BaiKiemTraController::class, 'updateSurveillanceReview'])->name('cham-diem.surveillance');
     
     // Giữ route cũ cho backward compatibility nếu cần (nhưng ta sẽ cập nhật các view chính)
     Route::get('/phan-cong', [PhanCongController::class, 'index'])->name('phan-cong.index');
@@ -369,8 +380,12 @@ Route::prefix('hoc-vien')->name('hoc-vien.')->middleware(['auth', \App\Http\Midd
     Route::get('/hoat-dong-tien-do', [HocVienController::class, 'hoatDongVaTienDo'])->name('hoat-dong-tien-do');
     Route::get('/bai-kiem-tra', [HocVienBaiKiemTraController::class, 'index'])->name('bai-kiem-tra');
     Route::get('/bai-kiem-tra/{id}', [HocVienBaiKiemTraController::class, 'show'])->name('bai-kiem-tra.show');
+    Route::get('/bai-kiem-tra/{id}/pre-check', [HocVienBaiKiemTraController::class, 'precheck'])->name('bai-kiem-tra.precheck');
+    Route::post('/bai-kiem-tra/{id}/pre-check', [HocVienBaiKiemTraController::class, 'submitPrecheck'])->name('bai-kiem-tra.precheck.submit');
     Route::post('/bai-kiem-tra/{id}/bat-dau', [HocVienBaiKiemTraController::class, 'batDau'])->name('bai-kiem-tra.bat-dau');
     Route::post('/bai-kiem-tra/{id}/nop', [HocVienBaiKiemTraController::class, 'nopBai'])->name('bai-kiem-tra.nop');
+    Route::post('/bai-lam/{baiLamId}/giam-sat/log', [HocVienBaiKiemTraController::class, 'logSurveillance'])->name('bai-lam.giam-sat.log');
+    Route::post('/bai-lam/{baiLamId}/giam-sat/snapshot', [HocVienBaiKiemTraController::class, 'captureSnapshot'])->name('bai-lam.giam-sat.snapshot');
     
     Route::get('/khoa-hoc-cua-toi', [HocVienController::class, 'khoaHocCuaToi'])->name('khoa-hoc-cua-toi');
     Route::get('/khoa-hoc-tham-gia', [HocVienController::class, 'khoaHocCoTheThamGia'])->name('khoa-hoc-tham-gia');

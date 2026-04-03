@@ -101,6 +101,12 @@ class ModuleHoc extends Model
         return $this->hasMany(NganHangCauHoi::class, 'module_hoc_id')->orderByDesc('created_at');
     }
 
+    public function teacherAttendanceLogs()
+    {
+        return $this->hasMany(DiemDanhGiangVien::class, 'module_hoc_id')
+            ->orderByDesc('created_at');
+    }
+
     /**
      * Accessor: Tổng số buổi đã lên lịch thực tế
      */
@@ -241,7 +247,7 @@ class ModuleHoc extends Model
     {
         return match ($status) {
             self::LEARNING_STATUS_CHUA_BAT_DAU => 'secondary',
-            self::LEARNING_STATUS_DANG_DIEN_RA => 'primary',
+            self::LEARNING_STATUS_DANG_DIEN_RA => 'info',
             self::LEARNING_STATUS_HOAN_THANH => 'success',
             default => 'secondary',
         };

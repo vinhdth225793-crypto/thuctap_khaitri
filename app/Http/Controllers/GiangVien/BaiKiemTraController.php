@@ -13,6 +13,7 @@ use App\Models\PhanCongModuleGiangVien;
 use App\Services\BaiKiemTraScoringService;
 use App\Services\ExamConfigurationService;
 use App\Services\ExamQuestionSelectionService;
+use App\Services\ExamSurveillanceService;
 use App\Services\KetQuaHocTapService;
 use App\Services\TeacherAssignmentResolver;
 use Illuminate\Http\Request;
@@ -28,6 +29,7 @@ class BaiKiemTraController extends Controller
         private readonly \App\Services\ExamQuestionImportService $importService,
         private readonly ExamQuestionSelectionService $questionSelectionService,
         private readonly ExamConfigurationService $examConfigurationService,
+        private readonly ExamSurveillanceService $surveillanceService,
     ) {
     }
 
@@ -102,6 +104,7 @@ class BaiKiemTraController extends Controller
             'module_hoc_id' => 'nullable|exists:module_hoc,id',
             'lich_hoc_id' => 'nullable|exists:lich_hoc,id',
             'mo_ta' => 'nullable|string',
+            'co_giam_sat' => 'nullable|boolean',
         ]);
 
         $giangVien = auth()->user()?->giangVien;
@@ -109,6 +112,7 @@ class BaiKiemTraController extends Controller
 
         [$moduleId, $lichHoc] = $this->resolveScope($validated);
         $loaiBaiKiemTra = $this->resolveExamType($validated['pham_vi']);
+        $surveillanceConfig = $this->surveillanceService->normalizeExamConfig($validated, $request);
 
         $this->authorizeTeacherForScope($giangVien, (int) $validated['khoa_hoc_id'], $moduleId, $loaiBaiKiemTra);
 
@@ -128,6 +132,7 @@ class BaiKiemTraController extends Controller
             'so_lan_duoc_lam' => 1,
             'nguoi_tao_id' => auth()->id(),
             'trang_thai' => true,
+            ...$surveillanceConfig,
         ]);
 
         return redirect()
@@ -204,6 +209,23 @@ class BaiKiemTraController extends Controller
         ));
     }
 
+    public function editSurveillance(int $id)
+    {
+        $baiKiemTra = BaiKiemTra::with([
+            'khoaHoc:id,ma_khoa_hoc,ten_khoa_hoc',
+            'moduleHoc:id,ma_module,ten_module',
+            'lichHoc:id,buoi_so,ngay_hoc',
+        ])->withCount([
+            'chiTietCauHois',
+            'baiLams',
+            'baiLams as bai_lams_dang_lam_count' => fn ($query) => $query->where('trang_thai', 'dang_lam'),
+        ])->findOrFail($id);
+
+        $this->authorizeTeacherForExam(auth()->user()?->giangVien, $baiKiemTra);
+
+        return view('pages.hoc-vien.bai-kiem-tra.teacher-surveillance-settings', compact('baiKiemTra'));
+    }
+
     public function update(Request $request, int $id)
     {
         $baiKiemTra = BaiKiemTra::with('chiTietCauHois')->findOrFail($id);
@@ -218,6 +240,14 @@ class BaiKiemTraController extends Controller
             'so_lan_duoc_lam' => 'required|integer|min:1|max:10',
             'randomize_questions' => 'nullable|boolean',
             'randomize_answers' => 'nullable|boolean',
+            'co_giam_sat' => 'nullable|boolean',
+            'bat_buoc_fullscreen' => 'nullable|boolean',
+            'bat_buoc_camera' => 'nullable|boolean',
+            'so_lan_vi_pham_toi_da' => 'nullable|integer|min:1|max:20',
+            'chu_ky_snapshot_giay' => 'nullable|integer|min:10|max:300',
+            'tu_dong_nop_khi_vi_pham' => 'nullable|boolean',
+            'chan_copy_paste' => 'nullable|boolean',
+            'chan_chuot_phai' => 'nullable|boolean',
             'che_do_tinh_diem' => 'required|in:goi_diem,thu_cong',
             'so_cau_goi_diem' => 'nullable|required_if:che_do_tinh_diem,goi_diem|integer|min:1',
             'tong_diem_goi_diem' => 'nullable|required_if:che_do_tinh_diem,goi_diem|numeric|min:0.25',
@@ -228,6 +258,28 @@ class BaiKiemTraController extends Controller
         ]);
 
         DB::transaction(function () use ($baiKiemTra, $validated, $request) {
+            $surveillanceConfig = $request->hasAny([
+                'co_giam_sat',
+                'bat_buoc_fullscreen',
+                'bat_buoc_camera',
+                'so_lan_vi_pham_toi_da',
+                'chu_ky_snapshot_giay',
+                'tu_dong_nop_khi_vi_pham',
+                'chan_copy_paste',
+                'chan_chuot_phai',
+            ])
+                ? $this->surveillanceService->normalizeExamConfig($validated, $request)
+                : [
+                    'co_giam_sat' => $baiKiemTra->co_giam_sat,
+                    'bat_buoc_fullscreen' => $baiKiemTra->bat_buoc_fullscreen,
+                    'bat_buoc_camera' => $baiKiemTra->bat_buoc_camera,
+                    'so_lan_vi_pham_toi_da' => $baiKiemTra->so_lan_vi_pham_toi_da,
+                    'chu_ky_snapshot_giay' => $baiKiemTra->chu_ky_snapshot_giay,
+                    'tu_dong_nop_khi_vi_pham' => $baiKiemTra->tu_dong_nop_khi_vi_pham,
+                    'chan_copy_paste' => $baiKiemTra->chan_copy_paste,
+                    'chan_chuot_phai' => $baiKiemTra->chan_chuot_phai,
+                ];
+
             $baiKiemTra->update([
                 'tieu_de' => $validated['tieu_de'],
                 'mo_ta' => $validated['mo_ta'] ?? null,
@@ -239,6 +291,7 @@ class BaiKiemTraController extends Controller
                 'randomize_answers' => $request->boolean('randomize_answers'),
                 'che_do_tinh_diem' => $validated['che_do_tinh_diem'],
                 'so_cau_goi_diem' => $validated['che_do_tinh_diem'] === 'goi_diem' ? $validated['so_cau_goi_diem'] : null,
+                ...$surveillanceConfig,
             ]);
 
             $questionIds = array_values(array_unique(array_map('intval', $validated['question_ids'] ?? [])));
@@ -252,6 +305,36 @@ class BaiKiemTraController extends Controller
         });
 
         return back()->with('success', 'Đã cập nhật bài kiểm tra.');
+    }
+
+    public function updateSurveillanceSettings(Request $request, int $id)
+    {
+        $baiKiemTra = BaiKiemTra::withCount([
+            'baiLams as bai_lams_dang_lam_count' => fn ($query) => $query->where('trang_thai', 'dang_lam'),
+        ])->findOrFail($id);
+
+        $this->authorizeTeacherForExam(auth()->user()?->giangVien, $baiKiemTra);
+
+        if ((int) $baiKiemTra->bai_lams_dang_lam_count > 0) {
+            return back()->with('error', 'KhÃ´ng thá»ƒ thay Ä‘á»•i cáº¥u hÃ¬nh giÃ¡m sÃ¡t khi Ä‘ang cÃ³ há»c viÃªn lÃ m bÃ i.');
+        }
+
+        $validated = $request->validate([
+            'co_giam_sat' => 'nullable|boolean',
+            'bat_buoc_fullscreen' => 'nullable|boolean',
+            'bat_buoc_camera' => 'nullable|boolean',
+            'so_lan_vi_pham_toi_da' => 'nullable|integer|min:1|max:20',
+            'chu_ky_snapshot_giay' => 'nullable|integer|min:10|max:300',
+            'tu_dong_nop_khi_vi_pham' => 'nullable|boolean',
+            'chan_copy_paste' => 'nullable|boolean',
+            'chan_chuot_phai' => 'nullable|boolean',
+        ]);
+
+        $baiKiemTra->update($this->surveillanceService->normalizeExamConfig($validated, $request));
+
+        return redirect()
+            ->route('giang-vien.bai-kiem-tra.surveillance.edit', $baiKiemTra->id)
+            ->with('success', 'ÄÃ£ cáº­p nháº­t cáº¥u hÃ¬nh giÃ¡m sÃ¡t cho bÃ i kiá»ƒm tra.');
     }
 
     public function importPreview(Request $request, int $id)
@@ -396,11 +479,23 @@ class BaiKiemTraController extends Controller
             'chiTietTraLois.chiTietBaiKiemTra',
             'chiTietTraLois.cauHoi.dapAns',
             'chiTietTraLois.dapAn',
+            'giamSatLogs',
+            'giamSatSnapshots',
+            'nguoiHauKiem:ma_nguoi_dung,ho_ten,email',
         ])->findOrFail($id);
 
         $this->authorizeTeacherForExam(auth()->user()?->giangVien, $baiLam->baiKiemTra);
 
-        return view('pages.giang-vien.bai-kiem-tra.cham-diem-show', compact('baiLam'));
+        $surveillanceSummary = $baiLam->baiKiemTra->co_giam_sat
+            ? $this->surveillanceService->summarizeLogs($baiLam)
+            : [];
+        $reviewStatusOptions = $this->surveillanceService->reviewStatusOptions();
+
+        return view('pages.hoc-vien.bai-kiem-tra.teacher-review', compact(
+            'baiLam',
+            'surveillanceSummary',
+            'reviewStatusOptions'
+        ));
     }
 
     public function chamDiemStore(Request $request, int $id)
@@ -452,6 +547,28 @@ class BaiKiemTraController extends Controller
         return redirect()
             ->route('giang-vien.cham-diem.show', $baiLam->id)
             ->with('success', 'Đã chấm bài và cập nhật kết quả học tập.');
+    }
+
+    public function updateSurveillanceReview(Request $request, int $id)
+    {
+        $baiLam = BaiLamBaiKiemTra::with(['baiKiemTra', 'nguoiHauKiem'])->findOrFail($id);
+        $giangVien = auth()->user()?->giangVien;
+        $this->authorizeTeacherForExam($giangVien, $baiLam->baiKiemTra);
+
+        if (!$baiLam->baiKiemTra->co_giam_sat) {
+            return back()->with('error', 'Bài làm này không áp dụng giám sát.');
+        }
+
+        $reviewStatusOptions = array_keys($this->surveillanceService->reviewStatusOptions());
+
+        $validated = $request->validate([
+            'trang_thai_giam_sat' => 'required|string|in:' . implode(',', $reviewStatusOptions),
+            'ghi_chu_giam_sat' => 'nullable|string|max:2000',
+        ]);
+
+        $this->surveillanceService->updateReview($baiLam, $validated, auth()->id());
+
+        return back()->with('success', 'Đã cập nhật trạng thái hậu kiểm cho bài làm.');
     }
 
     /**

@@ -3,6 +3,14 @@
 @section('title', 'Tạo bài giảng mới')
 
 @section('content')
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-10 mx-auto pt-3">
+                @include('components.alert')
+            </div>
+        </div>
+    </div>
+
     @include('pages.shared.bai-giang.form', [
         'formAction' => route('giang-vien.bai-giang.store'),
         'method' => 'POST',
@@ -11,5 +19,9 @@
         'isAdmin' => false,
         'pageTitle' => 'Thiết kế bài giảng',
         'pageSubtitle' => 'Tạo bài giảng thường hoặc phòng học live trong luồng giảng viên.',
+    ])
+
+    @include('pages.giang-vien.bai-giang.partials.form-submit-enhancements', [
+        'formAction' => route('giang-vien.bai-giang.store'),
     ])
 @endsection

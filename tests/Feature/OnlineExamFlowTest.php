@@ -180,6 +180,135 @@ class OnlineExamFlowTest extends TestCase
         ]);
     }
 
+    public function test_student_must_pass_precheck_before_starting_supervised_exam(): void
+    {
+        $context = $this->buildMixedExamContext();
+
+        $student = $context['student'];
+        $exam = $context['exam'];
+
+        $exam->update([
+            'co_giam_sat' => true,
+            'bat_buoc_fullscreen' => true,
+            'bat_buoc_camera' => true,
+            'so_lan_vi_pham_toi_da' => 3,
+            'chu_ky_snapshot_giay' => 30,
+        ]);
+
+        $this->actingAs($student)
+            ->post(route('hoc-vien.bai-kiem-tra.bat-dau', $exam->id))
+            ->assertRedirect(route('hoc-vien.bai-kiem-tra.precheck', $exam->id));
+
+        $payload = json_encode([
+            'browser_supported' => true,
+            'camera_supported' => true,
+            'camera_ok' => true,
+            'fullscreen_supported' => true,
+            'fullscreen_ok' => true,
+            'visibility_supported' => true,
+            'user_agent' => 'PHPUnit',
+            'platform' => 'Testing',
+            'captured_at' => now()->toIso8601String(),
+        ], JSON_THROW_ON_ERROR);
+
+        $this->actingAs($student)
+            ->post(route('hoc-vien.bai-kiem-tra.precheck.submit', $exam->id), [
+                'precheck_payload' => $payload,
+            ])
+            ->assertRedirect(route('hoc-vien.bai-kiem-tra.show', $exam->id));
+
+        $this->actingAs($student)
+            ->post(route('hoc-vien.bai-kiem-tra.bat-dau', $exam->id))
+            ->assertRedirect(route('hoc-vien.bai-kiem-tra.show', $exam->id));
+
+        $this->assertDatabaseHas('bai_lam_bai_kiem_tra', [
+            'bai_kiem_tra_id' => $exam->id,
+            'hoc_vien_id' => $student->ma_nguoi_dung,
+            'trang_thai' => 'dang_lam',
+            'trang_thai_giam_sat' => 'binh_thuong',
+        ]);
+    }
+
+    public function test_surveillance_violation_marks_attempt_for_review_and_teacher_can_update_review(): void
+    {
+        $context = $this->buildMixedExamContext();
+
+        $student = $context['student'];
+        $teacherUser = $context['teacher_user'];
+        $exam = $context['exam'];
+
+        $exam->update([
+            'co_giam_sat' => true,
+            'bat_buoc_fullscreen' => true,
+            'bat_buoc_camera' => true,
+            'so_lan_vi_pham_toi_da' => 1,
+            'chu_ky_snapshot_giay' => 30,
+            'tu_dong_nop_khi_vi_pham' => false,
+        ]);
+
+        $payload = json_encode([
+            'browser_supported' => true,
+            'camera_supported' => true,
+            'camera_ok' => true,
+            'fullscreen_supported' => true,
+            'fullscreen_ok' => true,
+            'visibility_supported' => true,
+            'user_agent' => 'PHPUnit',
+            'platform' => 'Testing',
+            'captured_at' => now()->toIso8601String(),
+        ], JSON_THROW_ON_ERROR);
+
+        $this->actingAs($student)
+            ->post(route('hoc-vien.bai-kiem-tra.precheck.submit', $exam->id), [
+                'precheck_payload' => $payload,
+            ]);
+
+        $this->actingAs($student)
+            ->post(route('hoc-vien.bai-kiem-tra.bat-dau', $exam->id))
+            ->assertRedirect(route('hoc-vien.bai-kiem-tra.show', $exam->id));
+
+        $baiLam = $exam->fresh()->baiLams()->where('hoc_vien_id', $student->ma_nguoi_dung)->firstOrFail();
+
+        $this->actingAs($student)
+            ->postJson(route('hoc-vien.bai-lam.giam-sat.log', $baiLam->id), [
+                'event_type' => 'tab_switch',
+                'description' => 'Student switched tab during exam.',
+                'meta' => ['source' => 'phpunit'],
+            ])
+            ->assertOk()
+            ->assertJson([
+                'violation_count' => 1,
+                'max_violations' => 1,
+                'should_review' => true,
+            ]);
+
+        $this->assertDatabaseHas('bai_lam_bai_kiem_tra', [
+            'id' => $baiLam->id,
+            'tong_so_vi_pham' => 1,
+            'trang_thai_giam_sat' => 'can_xem_xet',
+        ]);
+
+        $this->assertDatabaseHas('bai_lam_vi_pham_giam_sat', [
+            'bai_lam_bai_kiem_tra_id' => $baiLam->id,
+            'loai_su_kien' => 'tab_switch',
+            'la_vi_pham' => 1,
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->post(route('giang-vien.cham-diem.surveillance', $baiLam->id), [
+                'trang_thai_giam_sat' => 'da_xac_nhan',
+                'ghi_chu_giam_sat' => 'Da xem log va xac nhan co vi pham.',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('bai_lam_bai_kiem_tra', [
+            'id' => $baiLam->id,
+            'trang_thai_giam_sat' => 'da_xac_nhan',
+            'ghi_chu_giam_sat' => 'Da xem log va xac nhan co vi pham.',
+            'nguoi_hau_kiem_id' => $teacherUser->ma_nguoi_dung,
+        ]);
+    }
+
     public function test_admin_can_create_question_bank_question_with_answers(): void
     {
         $admin = $this->createUser('admin');
@@ -320,6 +449,90 @@ class OnlineExamFlowTest extends TestCase
         $this->actingAs($teacherUser)
             ->get('/giang-vien')
             ->assertRedirect(route('giang-vien.khoa-hoc'));
+    }
+
+    public function test_teacher_can_open_and_update_dedicated_surveillance_settings(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+
+        $this->assignTeacher($admin, $teacher, $course, $module);
+
+        $exam = BaiKiemTra::create([
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => $module->id,
+            'tieu_de' => 'De chinh giám sát',
+            'thoi_gian_lam_bai' => 30,
+            'pham_vi' => 'module',
+            'loai_bai_kiem_tra' => 'module',
+            'loai_noi_dung' => 'tu_luan',
+            'trang_thai_duyet' => 'nhap',
+            'trang_thai_phat_hanh' => 'nhap',
+            'tong_diem' => 10,
+            'so_lan_duoc_lam' => 1,
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+            'trang_thai' => true,
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->get(route('giang-vien.bai-kiem-tra.surveillance.edit', $exam->id))
+            ->assertOk();
+
+        $this->actingAs($teacherUser)
+            ->put(route('giang-vien.bai-kiem-tra.surveillance.update', $exam->id), [
+                'co_giam_sat' => 1,
+                'bat_buoc_fullscreen' => 1,
+                'bat_buoc_camera' => 1,
+                'so_lan_vi_pham_toi_da' => 2,
+                'chu_ky_snapshot_giay' => 25,
+                'tu_dong_nop_khi_vi_pham' => 1,
+                'chan_copy_paste' => 1,
+                'chan_chuot_phai' => 1,
+            ])
+            ->assertRedirect(route('giang-vien.bai-kiem-tra.surveillance.edit', $exam->id));
+
+        $this->assertDatabaseHas('bai_kiem_tra', [
+            'id' => $exam->id,
+            'co_giam_sat' => 1,
+            'bat_buoc_fullscreen' => 1,
+            'bat_buoc_camera' => 1,
+            'so_lan_vi_pham_toi_da' => 2,
+            'chu_ky_snapshot_giay' => 25,
+            'tu_dong_nop_khi_vi_pham' => 1,
+            'chan_copy_paste' => 1,
+            'chan_chuot_phai' => 1,
+        ]);
+    }
+
+    public function test_teacher_cannot_update_surveillance_settings_while_attempt_is_active(): void
+    {
+        $context = $this->buildMixedExamContext();
+
+        $student = $context['student'];
+        $teacherUser = $context['teacher_user'];
+        $exam = $context['exam'];
+
+        $this->actingAs($student)
+            ->post(route('hoc-vien.bai-kiem-tra.bat-dau', $exam->id))
+            ->assertRedirect(route('hoc-vien.bai-kiem-tra.show', $exam->id));
+
+        $this->actingAs($teacherUser)
+            ->from(route('giang-vien.bai-kiem-tra.surveillance.edit', $exam->id))
+            ->put(route('giang-vien.bai-kiem-tra.surveillance.update', $exam->id), [
+                'co_giam_sat' => 1,
+                'bat_buoc_fullscreen' => 1,
+                'so_lan_vi_pham_toi_da' => 2,
+                'chu_ky_snapshot_giay' => 20,
+            ])
+            ->assertRedirect(route('giang-vien.bai-kiem-tra.surveillance.edit', $exam->id))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('bai_kiem_tra', [
+            'id' => $exam->id,
+            'co_giam_sat' => 0,
+        ]);
     }
 
     public function test_teacher_can_open_exam_index_and_only_see_accessible_exams(): void

@@ -52,9 +52,9 @@
     </div>
 
     <!-- Main Content -->
-    <div class="row">
+    <div class="row g-4 main-content-wrapper">
         <!-- Left: Core Info & Modules -->
-        <div class="col-lg-8">
+        <div class="col-lg-8 scroll-column">
             {{-- THÔNG TIN CHI TIẾT --}}
             <div class="vip-card mb-4 shadow-sm border-0">
                 <div class="vip-card-body p-4">
@@ -192,14 +192,29 @@
                                     @php $prog = $tongBuoiReq > 0 ? min(100, ($tongLich / $tongBuoiReq) * 100) : 0; @endphp
                                     <div class="progress-bar bg-info" role="progressbar" style="width: {{ $prog }}%"></div>
                                 </div>
-                                <div class="small text-muted mt-3">
-                                    Da co <strong>{{ $assignedTeachersForPlanning->count() }}</strong> giang vien da nhan module
-                                    voi <strong>{{ $pendingLeaveRequests }}</strong> don xin nghi cho duyet lien quan den nhom giang vien nay.
+                                <div class="mt-3 p-3 bg-light rounded-3 border border-dashed">
+                                    <h6 class="smaller fw-bold text-muted text-uppercase mb-2"><i class="fas fa-robot me-1"></i> Hệ thống tự động kiểm tra:</h6>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <div class="smaller text-dark"><i class="fas fa-check-circle text-success me-1"></i> Đã phân công GV</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="smaller text-dark"><i class="fas fa-check-circle text-success me-1"></i> Khung giờ 07:30-20:45</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="smaller text-dark"><i class="fas fa-check-circle text-success me-1"></i> Đơn xin nghỉ của GV</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="smaller text-dark"><i class="fas fa-check-circle text-success me-1"></i> Xung đột lịch dạy khác</div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2 pt-2 border-top small text-muted italic">
+                                        Giúp Admin tránh sai sót khi sắp xếp hàng chục lớp học cùng lúc.
+                                    </div>
                                 </div>
-                                <div class="d-flex flex-wrap gap-2 mt-2">
-                                    <span class="badge bg-light text-dark border">Planning check: assignment + khung day chuan + don nghi + xung dot</span>
-                                    <a href="{{ route('admin.khoa-hoc.lich-hoc.index', $khoaHoc->id) }}" class="btn btn-sm btn-outline-info fw-bold">
-                                        <i class="fas fa-calendar-check me-1"></i> Mo bo sap lich
+                                <div class="mt-3">
+                                    <a href="{{ route('admin.khoa-hoc.lich-hoc.index', $khoaHoc->id) }}" class="btn btn-info w-100 fw-bold text-white shadow-sm">
+                                        <i class="fas fa-calendar-check me-2"></i> TRUY CẬP BỘ SẮP LỊCH THÔNG MINH
                                     </a>
                                 </div>
                             </div>
@@ -329,11 +344,134 @@
                     </div>
                 </div>
             </div>
+
+            {{-- LỊCH HỌC CHI TIẾT (CHỈ CHO LỚP HOẠT ĐỘNG) --}}
+            @if($khoaHoc->loai === 'hoat_dong')
+                <div class="vip-card mb-4 shadow-sm border-0">
+                    <div class="vip-card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                        <h5 class="vip-card-title small fw-bold text-uppercase mb-0">📅 Lịch học chi tiết các Module</h5>
+                        <a href="{{ route('admin.khoa-hoc.lich-hoc.index', $khoaHoc->id) }}" class="btn btn-info btn-sm px-3 fw-bold text-white shadow-xs">
+                            <i class="fas fa-calendar-alt me-1"></i> Quản lý lịch
+                        </a>
+                    </div>
+                    <div class="vip-card-body p-0">
+                        @foreach($khoaHoc->moduleHocs as $module)
+                            @if($module->lichHocs->isNotEmpty())
+                                <div class="bg-light px-4 py-2 border-bottom border-top small fw-bold text-primary">
+                                    MODULE {{ $module->thu_tu_module }}: {{ $module->ten_module }}
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="bg-white smaller">
+                                            <tr>
+                                                <th class="ps-4" width="60">Buổi</th>
+                                                <th width="140">Thời gian</th>
+                                                <th width="180">Nội dung & Tài nguyên</th>
+                                                <th>Địa điểm / Giảng viên</th>
+                                                <th class="text-center" width="120">Tiến trình</th>
+                                                <th class="text-center" width="110">Trạng thái</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($module->lichHocs as $lich)
+                                                @php
+                                                    $hasAttendance = $lich->diemDanhs->isNotEmpty();
+                                                    $lectureCount = $lich->baiGiangs->count();
+                                                    $resourceCount = $lich->taiNguyen->count();
+                                                @endphp
+                                                <tr class="{{ $lich->trang_thai === 'cho' ? '' : 'table-light' }}">
+                                                    <td class="ps-4">
+                                                        <div class="fw-bold text-dark">#{{ $lich->buoi_so }}</div>
+                                                        <div class="smaller text-muted">{{ $lich->thu_label }}</div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="fw-bold"><i class="far fa-calendar-alt me-1 text-primary"></i>{{ $lich->ngay_hoc->format('d/m/Y') }}</div>
+                                                        <div class="smaller text-muted mt-1">
+                                                            <i class="far fa-clock me-1"></i>{{ \Carbon\Carbon::parse($lich->gio_bat_dau)->format('H:i') }}-{{ \Carbon\Carbon::parse($lich->gio_ket_thuc)->format('H:i') }}
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="d-flex flex-column gap-1">
+                                                            <div class="d-flex align-items-center gap-2">
+                                                                <span class="badge {{ $lectureCount > 0 ? 'bg-info-subtle text-info border border-info-subtle' : 'bg-light text-muted border' }} px-2 py-1" style="font-size: 0.65rem;">
+                                                                    <i class="fas fa-book-open me-1"></i>{{ $lectureCount }} bài giảng
+                                                                </span>
+                                                            </div>
+                                                            <div class="d-flex align-items-center gap-2">
+                                                                <span class="badge {{ $resourceCount > 0 ? 'bg-warning-subtle text-warning border border-warning-subtle' : 'bg-light text-muted border' }} px-2 py-1" style="font-size: 0.65rem;">
+                                                                    <i class="fas fa-paperclip me-1"></i>{{ $resourceCount }} tài liệu
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="mb-1">
+                                                            @if($lich->hinh_thuc === 'online')
+                                                                <span class="text-info small fw-bold"><i class="fas fa-video me-1"></i>Online</span>
+                                                            @else
+                                                                <span class="text-success small fw-bold"><i class="fas fa-map-marker-alt me-1"></i>{{ $lich->phong_hoc ?: 'Chưa gán' }}</span>
+                                                            @endif
+                                                        </div>
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <div class="avatar-xs bg-light rounded-circle text-center border" style="width: 22px; height: 22px; line-height: 20px;">
+                                                                <i class="fas fa-user-tie text-muted" style="font-size: 0.6rem;"></i>
+                                                            </div>
+                                                            <span class="small text-dark">{{ $lich->giangVien?->nguoiDung?->ho_ten ?? 'Chưa gán' }}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        @if($hasAttendance)
+                                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 0.65rem;">
+                                                                <i class="fas fa-check-circle me-1"></i>Xong
+                                                            </span>
+                                                        @else
+                                                            <span class="badge bg-light text-muted border px-2 py-1" style="font-size: 0.65rem;">
+                                                                <i class="far fa-circle me-1"></i>Chưa
+                                                            </span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-{{ match($lich->trang_thai){'cho'=>'secondary','dang_hoc'=>'info','hoan_thanh'=>'success','huy'=>'danger',default=>'light'} }} w-100 py-1" style="font-size: 0.65rem;">
+                                                            {{ $lich->trang_thai_label }}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @endif
+                        @endforeach
+                        
+                        @if($khoaHoc->lichHocs->isEmpty())
+                            <div class="p-5 text-center text-muted">
+                                <i class="fas fa-calendar-times fa-3x mb-3 opacity-25"></i>
+                                <p class="mb-0">Khóa học này chưa được lập lịch.</p>
+                                <a href="{{ route('admin.khoa-hoc.lich-hoc.index', $khoaHoc->id) }}" class="btn btn-primary btn-sm mt-3">Lập lịch ngay</a>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @endif
         </div>
 
         <!-- Right: Lifecycle & Meta -->
-        <div class="col-lg-4">
+        <div class="col-lg-4 scroll-column">
             @if($khoaHoc->loai === 'hoat_dong')
+                @if($khoaHoc->trang_thai_van_hanh === 'san_sang')
+                    <div class="mb-4" id="kich-hoat-khoa-hoc">
+                        <form action="{{ route('admin.khoa-hoc.xac-nhan-mo-lop', $khoaHoc->id) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="btn btn-danger w-100 py-3 fw-bold shadow-sm">
+                                <i class="fas fa-play me-2"></i> KÍCH HOẠT DẠY NGAY
+                            </button>
+                            <div class="p-2 mt-2 bg-success-soft rounded border border-success-soft text-center smaller text-success fw-bold">
+                                <i class="fas fa-check-circle me-1"></i> Tất cả giảng viên đã xác nhận đồng ý
+                            </div>
+                        </form>
+                    </div>
+                @endif
+
                 {{-- CARD LỊCH TRÌNH LỚP --}}
                 <div class="vip-card mb-4 border-0 shadow-sm">
                     <div class="vip-card-header bg-primary text-white py-3">
@@ -357,17 +495,6 @@
                                 <span class="fw-bold fs-5">{{ optional($khoaHoc->ngay_ket_thuc)->format('d/m/Y') ?: '--/--/----' }}</span>
                             </div>
                         </div>
-                        
-                        @if($khoaHoc->trang_thai_van_hanh === 'san_sang')
-                            <hr class="my-4" id="kich-hoat-khoa-hoc">
-                            <form action="{{ route('admin.khoa-hoc.xac-nhan-mo-lop', $khoaHoc->id) }}" method="POST">
-                                @csrf
-                                <button type="submit" class="btn btn-primary w-100 py-3 fw-bold shadow-sm">
-                                    <i class="fas fa-play me-2"></i> KÍCH HOẠT DẠY NGAY
-                                </button>
-                                <p class="smaller text-muted text-center mt-2 italic">Tất cả giảng viên đã xác nhận đồng ý.</p>
-                            </form>
-                        @endif
                     </div>
                 </div>
 
@@ -574,6 +701,37 @@
     .avatar-mini { font-size: 14px; }
     .object-fit-cover { object-fit: cover; }
     .italic { font-style: italic; }
+
+    /* Split-Scroll Layout cho Desktop */
+    @media (min-width: 992px) {
+        body {
+            overflow: hidden; /* Ẩn thanh cuộn chính của trang */
+        }
+        .main-content-wrapper {
+            height: calc(100vh - 180px); /* Tính toán chiều cao còn lại của màn hình */
+            margin-top: 0;
+        }
+        .scroll-column {
+            height: 100%;
+            overflow-y: auto;
+            scrollbar-width: thin; /* Cho Firefox */
+            padding-bottom: 50px;
+        }
+        /* Tùy chỉnh thanh cuộn cho Chrome/Safari/Edge */
+        .scroll-column::-webkit-scrollbar {
+            width: 6px;
+        }
+        .scroll-column::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .scroll-column::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 10px;
+        }
+        .scroll-column::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+    }
 </style>
 @endsection
 

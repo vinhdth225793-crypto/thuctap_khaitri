@@ -196,7 +196,11 @@ class KhoaHocManagementController extends Controller
     {
         $khoaHoc = KhoaHoc::with([
             'nhomNganh',
-            'moduleHocs.lichHocs',
+            'moduleHocs.lichHocs' => fn($q) => $q->orderBy('ngay_hoc')->orderBy('gio_bat_dau'),
+            'moduleHocs.lichHocs.giangVien.nguoiDung',
+            'moduleHocs.lichHocs.baiGiangs',
+            'moduleHocs.lichHocs.taiNguyen',
+            'moduleHocs.lichHocs.diemDanhs',
             'moduleHocs.phanCongGiangViens.giangVien.nguoiDung',
             'moduleHocs.phanCongGiangViens.giangVien.donXinNghis',
             'khoaHocMau',

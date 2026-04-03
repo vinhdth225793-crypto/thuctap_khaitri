@@ -211,7 +211,8 @@ class PhongHocLive extends Model
 
     public function getCanModeratorStartAttribute(): bool
     {
-        return !in_array($this->timeline_trang_thai, [self::ROOM_STATE_DA_KET_THUC, self::ROOM_STATE_DA_HUY], true)
+        // Cho phép moderator bắt đầu bất cứ lúc nào miễn là chưa kết thúc hoặc hủy
+        return !in_array($this->trang_thai_phong, [self::ROOM_STATE_DA_KET_THUC, self::ROOM_STATE_DA_HUY], true)
             && $this->trang_thai_phong !== self::ROOM_STATE_DANG_DIEN_RA;
     }
 

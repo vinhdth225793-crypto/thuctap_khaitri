@@ -1,0 +1,102 @@
+@extends('layouts.app', ['title' => 'Hậu kiểm bài làm'])
+
+@section('content')
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Hậu kiểm bài làm của {{ $baiLam->hocVien->ho_ten ?? 'Học viên' }}</h2>
+            <p class="text-muted mb-0">{{ $baiLam->baiKiemTra->tieu_de }} • Lần làm {{ $baiLam->lan_lam_thu }}</p>
+        </div>
+        <a href="{{ route('admin.kiem-tra-online.phe-duyet.show', $baiLam->baiKiemTra->id) }}" class="btn btn-outline-primary">Quay lại đề thi</a>
+    </div>
+
+    <div class="card vip-card">
+        <div class="card-body">
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <div class="border rounded-3 p-3 h-100">
+                        <h5 class="fw-bold mb-3">Tổng quan</h5>
+                        <div class="small text-muted mb-2">Trạng thái giám sát</div>
+                        <div class="mb-3"><span class="badge bg-{{ $baiLam->trang_thai_giam_sat_color }}">{{ $baiLam->trang_thai_giam_sat_label }}</span></div>
+                        <div class="small text-muted mb-2">Tổng vi phạm</div>
+                        <div class="fw-bold mb-3">{{ (int) $baiLam->tong_so_vi_pham }}</div>
+                        <div class="small text-muted mb-2">Học viên</div>
+                        <div class="mb-3">{{ $baiLam->hocVien->ho_ten ?? 'N/A' }}<br><span class="text-muted">{{ $baiLam->hocVien->email ?? '' }}</span></div>
+                        <div class="small text-muted mb-2">Snapshot đã lưu</div>
+                        <div class="fw-bold">{{ $baiLam->giamSatSnapshots->where('status', 'captured')->count() }}</div>
+                    </div>
+                </div>
+                <div class="col-lg-8">
+                    @if(!$baiLam->baiKiemTra->co_giam_sat)
+                        <div class="alert alert-secondary mb-0">Bài làm này không áp dụng giám sát nâng cao.</div>
+                    @else
+                        <form action="{{ route('admin.kiem-tra-online.phe-duyet.attempt.surveillance', $baiLam->id) }}" method="POST" class="border rounded-3 p-3 mb-4 bg-light">
+                            @csrf
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-semibold">Trạng thái hậu kiểm</label>
+                                    <select name="trang_thai_giam_sat" class="form-select">
+                                        @foreach($reviewStatusOptions as $value => $label)
+                                            <option value="{{ $value }}" @selected(old('trang_thai_giam_sat', $baiLam->trang_thai_giam_sat) === $value)>{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-8">
+                                    <label class="form-label small fw-semibold">Ghi chú hậu kiểm</label>
+                                    <textarea name="ghi_chu_giam_sat" rows="3" class="form-control">{{ old('ghi_chu_giam_sat', $baiLam->ghi_chu_giam_sat) }}</textarea>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-outline-primary mt-3">Cập nhật hậu kiểm</button>
+                        </form>
+
+                        <div class="row g-4">
+                            <div class="col-lg-6">
+                                <h5 class="fw-bold mb-3">Timeline vi phạm</h5>
+                                <div class="d-flex flex-column gap-2">
+                                    @forelse($baiLam->giamSatLogs as $log)
+                                        <div class="border rounded-3 p-3 bg-white">
+                                            <div class="d-flex justify-content-between gap-3">
+                                                <div>
+                                                    <div class="fw-semibold">{{ $log->loai_su_kien_label }}</div>
+                                                    @if($log->mo_ta)
+                                                        <div class="small text-muted">{{ $log->mo_ta }}</div>
+                                                    @endif
+                                                </div>
+                                                <div class="text-end small">
+                                                    <span class="badge bg-{{ $log->badge_color }}">{{ $log->la_vi_pham ? 'Vi phạm' : 'Log' }}</span>
+                                                    <div class="text-muted mt-1">{{ $log->created_at?->format('d/m/Y H:i:s') }}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @empty
+                                        <div class="text-muted small">Chưa có log giám sát nào.</div>
+                                    @endforelse
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <h5 class="fw-bold mb-3">Snapshot</h5>
+                                <div class="row g-3">
+                                    @forelse($baiLam->giamSatSnapshots as $snapshot)
+                                        <div class="col-sm-6">
+                                            @if($snapshot->file_url)
+                                                <a href="{{ $snapshot->file_url }}" target="_blank" rel="noopener">
+                                                    <img src="{{ $snapshot->file_url }}" alt="Snapshot giám sát" class="img-fluid rounded-3 border">
+                                                </a>
+                                            @else
+                                                <div class="border rounded-3 p-4 text-center text-muted small">Snapshot lỗi</div>
+                                            @endif
+                                            <div class="small text-muted mt-2">{{ $snapshot->captured_at?->format('d/m/Y H:i:s') }}</div>
+                                        </div>
+                                    @empty
+                                        <div class="text-muted small">Chưa có snapshot nào.</div>
+                                    @endforelse
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection

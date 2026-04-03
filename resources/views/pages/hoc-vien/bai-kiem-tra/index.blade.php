@@ -69,6 +69,9 @@
                         <div class="d-flex flex-wrap gap-2 mb-3">
                             <span class="badge bg-light text-dark border">{{ $baiKiemTra->pham_vi_label }}</span>
                             <span class="badge bg-light text-dark border">{{ $baiKiemTra->thoi_gian_lam_bai }} phút</span>
+                            <span class="badge {{ $baiKiemTra->co_giam_sat ? 'bg-warning-subtle text-warning border border-warning-subtle' : 'bg-light text-dark border' }}">
+                                {{ $baiKiemTra->co_giam_sat ? 'Giám sát nâng cao' : 'Bài thường' }}
+                            </span>
                             @if($baiLam)
                                 <span class="badge bg-{{ $baiLam->trang_thai_color }}">{{ $baiLam->trang_thai_label }}</span>
                             @endif
@@ -115,6 +118,10 @@
 
                             @if($baiLam && $baiLam->is_submitted)
                                 <span class="btn btn-success disabled">Đã nộp bài</span>
+                            @elseif(!$baiLam && $baiKiemTra->co_giam_sat && $baiKiemTra->can_student_start)
+                                <a href="{{ route('hoc-vien.bai-kiem-tra.precheck', $baiKiemTra->id) }}" class="btn btn-warning">
+                                    Pre-check trước khi thi
+                                </a>
                             @elseif($baiKiemTra->can_student_start)
                                 <form action="{{ route('hoc-vien.bai-kiem-tra.bat-dau', $baiKiemTra->id) }}" method="POST">
                                     @csrf

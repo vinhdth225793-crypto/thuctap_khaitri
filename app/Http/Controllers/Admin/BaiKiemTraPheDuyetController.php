@@ -4,13 +4,16 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BaiKiemTra;
+use App\Models\BaiLamBaiKiemTra;
 use App\Services\ExamConfigurationService;
+use App\Services\ExamSurveillanceService;
 use Illuminate\Http\Request;
 
 class BaiKiemTraPheDuyetController extends Controller
 {
     public function __construct(
         private readonly ExamConfigurationService $examConfigurationService,
+        private readonly ExamSurveillanceService $surveillanceService,
     ) {
     }
 
@@ -58,9 +61,56 @@ class BaiKiemTraPheDuyetController extends Controller
             'nguoiDuyet:ma_nguoi_dung,ho_ten,email',
             'chiTietCauHois.cauHoi.dapAns',
             'baiLams.hocVien:ma_nguoi_dung,ho_ten,email',
+            'baiLams.nguoiHauKiem:ma_nguoi_dung,ho_ten,email',
         ])->findOrFail($id);
 
-        return view('pages.admin.kiem-tra-online.phe-duyet.show', compact('baiKiemTra'));
+        return view('pages.hoc-vien.bai-kiem-tra.admin-exam-review', compact('baiKiemTra'));
+    }
+
+    public function showAttempt(int $baiLamId)
+    {
+        $baiLam = BaiLamBaiKiemTra::with([
+            'hocVien:ma_nguoi_dung,ho_ten,email',
+            'baiKiemTra.khoaHoc',
+            'baiKiemTra.moduleHoc',
+            'chiTietTraLois.chiTietBaiKiemTra',
+            'chiTietTraLois.cauHoi.dapAns',
+            'chiTietTraLois.dapAn',
+            'giamSatLogs',
+            'giamSatSnapshots',
+            'nguoiHauKiem:ma_nguoi_dung,ho_ten,email',
+        ])->findOrFail($baiLamId);
+
+        $surveillanceSummary = $baiLam->baiKiemTra->co_giam_sat
+            ? $this->surveillanceService->summarizeLogs($baiLam)
+            : [];
+        $reviewStatusOptions = $this->surveillanceService->reviewStatusOptions();
+
+        return view('pages.hoc-vien.bai-kiem-tra.admin-attempt-review', compact(
+            'baiLam',
+            'surveillanceSummary',
+            'reviewStatusOptions'
+        ));
+    }
+
+    public function updateAttemptSurveillance(Request $request, int $baiLamId)
+    {
+        $baiLam = BaiLamBaiKiemTra::with('baiKiemTra')->findOrFail($baiLamId);
+
+        if (!$baiLam->baiKiemTra->co_giam_sat) {
+            return back()->with('error', 'Bài làm này không áp dụng giám sát.');
+        }
+
+        $reviewStatusOptions = array_keys($this->surveillanceService->reviewStatusOptions());
+
+        $validated = $request->validate([
+            'trang_thai_giam_sat' => 'required|string|in:' . implode(',', $reviewStatusOptions),
+            'ghi_chu_giam_sat' => 'nullable|string|max:2000',
+        ]);
+
+        $this->surveillanceService->updateReview($baiLam, $validated, auth()->id());
+
+        return back()->with('success', 'Đã cập nhật trạng thái hậu kiểm cho bài làm.');
     }
 
     public function approve(Request $request, int $id)

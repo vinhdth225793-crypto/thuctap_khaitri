@@ -164,6 +164,12 @@ class KhoaHoc extends Model
         return $this->hasMany(KetQuaHocTap::class, 'khoa_hoc_id');
     }
 
+    public function teacherAttendanceLogs(): HasMany
+    {
+        return $this->hasMany(DiemDanhGiangVien::class, 'khoa_hoc_id')
+            ->orderByDesc('created_at');
+    }
+
     /**
      * Relationship: Lấy danh sách giảng viên được phân công cho khóa học này
      */
@@ -247,9 +253,9 @@ class KhoaHoc extends Model
         return match($this->trang_thai_van_hanh) {
             'cho_mo'          => 'secondary',
             'cho_giang_vien'  => 'warning',
-            'san_sang'        => 'info',
-            'dang_day'        => 'success',
-            'ket_thuc'        => 'dark',
+            'san_sang'        => 'primary',
+            'dang_day'        => 'info',
+            'ket_thuc'        => 'success',
             default           => 'light',
         };
     }
@@ -260,9 +266,9 @@ class KhoaHoc extends Model
         $map = [
             'cho_mo'         => ['label'=>'Chờ mở',          'color'=>'secondary', 'icon'=>'fa-pause-circle'],
             'cho_giang_vien' => ['label'=>'Chờ GV xác nhận', 'color'=>'warning',   'icon'=>'fa-clock'],
-            'san_sang'       => ['label'=>'Sẵn sàng',         'color'=>'success',   'icon'=>'fa-check-circle'],
-            'dang_day'       => ['label'=>'Đang dạy',          'color'=>'primary',   'icon'=>'fa-play-circle'],
-            'ket_thuc'       => ['label'=>'Kết thúc',          'color'=>'dark',      'icon'=>'fa-flag-checkered'],
+            'san_sang'       => ['label'=>'Sẵn sàng',         'color'=>'primary',   'icon'=>'fa-check-circle'],
+            'dang_day'       => ['label'=>'Đang dạy',          'color'=>'info',      'icon'=>'fa-play-circle'],
+            'ket_thuc'       => ['label'=>'Kết thúc',          'color'=>'success',   'icon'=>'fa-flag-checkered'],
         ];
         return $map[$this->trang_thai_van_hanh]
             ?? ['label'=>'Không xác định','color'=>'secondary','icon'=>'fa-question'];
@@ -422,7 +428,7 @@ class KhoaHoc extends Model
     {
         return match ($status) {
             self::LEARNING_STATUS_CHUA_BAT_DAU => 'secondary',
-            self::LEARNING_STATUS_DANG_HOC => 'primary',
+            self::LEARNING_STATUS_DANG_HOC => 'info',
             self::LEARNING_STATUS_HOAN_THANH => 'success',
             default => 'secondary',
         };

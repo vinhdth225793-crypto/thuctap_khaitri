@@ -85,41 +85,52 @@ class BaiGiangController extends Controller
         );
 
         $lectureStatus = $this->resolveLectureApprovalStatus($validated['hanh_dong'] ?? 'luu_nhap');
+        $failureMessage = $lectureStatus === BaiGiang::STATUS_DUYET_CHO
+            ? 'Khong the luu bai giang de gui duyet luc nay. Vui long kiem tra thong tin va thu lai.'
+            : 'Khong the luu bai giang luc nay. Vui long thu lai.';
 
-        DB::transaction(function () use (
-            &$baiGiang,
-            $validated,
-            $phanCong,
-            $lichHocId,
-            $taiNguyenChinhId,
-            $taiNguyenPhuIds,
-            $lectureStatus
-        ) {
-            $baiGiang = BaiGiang::create([
-                'khoa_hoc_id' => $phanCong->khoa_hoc_id,
-                'module_hoc_id' => $phanCong->module_hoc_id,
-                'lich_hoc_id' => $lichHocId,
-                'nguoi_tao_id' => auth()->user()->ma_nguoi_dung,
-                'tieu_de' => $validated['tieu_de'],
-                'mo_ta' => $validated['mo_ta'] ?? null,
-                'loai_bai_giang' => $validated['loai_bai_giang'],
-                'tai_nguyen_chinh_id' => $taiNguyenChinhId,
-                'thu_tu_hien_thi' => $validated['thu_tu_hien_thi'] ?? 0,
-                'thoi_diem_mo' => $validated['thoi_diem_mo'] ?? null,
-                'trang_thai_duyet' => $lectureStatus,
-                'trang_thai_cong_bo' => BaiGiang::CONG_BO_AN,
-                'ngay_gui_duyet' => $lectureStatus === BaiGiang::STATUS_DUYET_CHO ? now() : null,
-            ]);
+        try {
+            DB::transaction(function () use (
+                &$baiGiang,
+                $validated,
+                $phanCong,
+                $lichHocId,
+                $taiNguyenChinhId,
+                $taiNguyenPhuIds,
+                $lectureStatus
+            ) {
+                $baiGiang = BaiGiang::create([
+                    'khoa_hoc_id' => $phanCong->khoa_hoc_id,
+                    'module_hoc_id' => $phanCong->module_hoc_id,
+                    'lich_hoc_id' => $lichHocId,
+                    'nguoi_tao_id' => auth()->user()->ma_nguoi_dung,
+                    'tieu_de' => $validated['tieu_de'],
+                    'mo_ta' => $validated['mo_ta'] ?? null,
+                    'loai_bai_giang' => $validated['loai_bai_giang'],
+                    'tai_nguyen_chinh_id' => $taiNguyenChinhId,
+                    'thu_tu_hien_thi' => $validated['thu_tu_hien_thi'] ?? 0,
+                    'thoi_diem_mo' => $validated['thoi_diem_mo'] ?? null,
+                    'trang_thai_duyet' => $lectureStatus,
+                    'trang_thai_cong_bo' => BaiGiang::CONG_BO_AN,
+                    'ngay_gui_duyet' => $lectureStatus === BaiGiang::STATUS_DUYET_CHO ? now() : null,
+                ]);
 
-            if ($taiNguyenPhuIds !== []) {
-                $baiGiang->taiNguyenPhu()->sync($taiNguyenPhuIds);
-            }
+                if ($taiNguyenPhuIds !== []) {
+                    $baiGiang->taiNguyenPhu()->sync($taiNguyenPhuIds);
+                }
 
-            $this->liveLectureService->syncLiveRoom($baiGiang, $validated, auth()->user(), false);
-        });
+                $this->liveLectureService->syncLiveRoom($baiGiang, $validated, auth()->user(), false);
+            });
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()
+                ->withInput()
+                ->with('error', $failureMessage);
+        }
 
         $message = $lectureStatus === BaiGiang::STATUS_DUYET_CHO
-            ? 'Da luu bai giang live va gui admin duyet.'
+            ? 'Da luu bai giang va gui admin duyet.'
             : 'Da luu bai giang thanh cong.';
 
         return redirect()->route('giang-vien.bai-giang.index')->with('success', $message);
@@ -174,40 +185,51 @@ class BaiGiangController extends Controller
         );
 
         $lectureStatus = $this->resolveLectureApprovalStatus($validated['hanh_dong'] ?? 'luu_nhap');
+        $failureMessage = $lectureStatus === BaiGiang::STATUS_DUYET_CHO
+            ? 'Khong the cap nhat bai giang de gui duyet luc nay. Vui long kiem tra thong tin va thu lai.'
+            : 'Khong the cap nhat bai giang luc nay. Vui long thu lai.';
 
-        DB::transaction(function () use (
-            $baiGiang,
-            $validated,
-            $phanCong,
-            $lichHocId,
-            $taiNguyenChinhId,
-            $taiNguyenPhuIds,
-            $lectureStatus
-        ) {
-            $baiGiang->update([
-                'khoa_hoc_id' => $phanCong->khoa_hoc_id,
-                'module_hoc_id' => $phanCong->module_hoc_id,
-                'lich_hoc_id' => $lichHocId,
-                'tieu_de' => $validated['tieu_de'],
-                'mo_ta' => $validated['mo_ta'] ?? null,
-                'loai_bai_giang' => $validated['loai_bai_giang'],
-                'tai_nguyen_chinh_id' => $taiNguyenChinhId,
-                'thu_tu_hien_thi' => $validated['thu_tu_hien_thi'] ?? 0,
-                'thoi_diem_mo' => $validated['thoi_diem_mo'] ?? null,
-                'trang_thai_duyet' => $lectureStatus,
-                'trang_thai_cong_bo' => $lectureStatus === BaiGiang::STATUS_DUYET_DA_DUYET
-                    ? $baiGiang->trang_thai_cong_bo
-                    : BaiGiang::CONG_BO_AN,
-                'ngay_gui_duyet' => $lectureStatus === BaiGiang::STATUS_DUYET_CHO ? now() : null,
-            ]);
+        try {
+            DB::transaction(function () use (
+                $baiGiang,
+                $validated,
+                $phanCong,
+                $lichHocId,
+                $taiNguyenChinhId,
+                $taiNguyenPhuIds,
+                $lectureStatus
+            ) {
+                $baiGiang->update([
+                    'khoa_hoc_id' => $phanCong->khoa_hoc_id,
+                    'module_hoc_id' => $phanCong->module_hoc_id,
+                    'lich_hoc_id' => $lichHocId,
+                    'tieu_de' => $validated['tieu_de'],
+                    'mo_ta' => $validated['mo_ta'] ?? null,
+                    'loai_bai_giang' => $validated['loai_bai_giang'],
+                    'tai_nguyen_chinh_id' => $taiNguyenChinhId,
+                    'thu_tu_hien_thi' => $validated['thu_tu_hien_thi'] ?? 0,
+                    'thoi_diem_mo' => $validated['thoi_diem_mo'] ?? null,
+                    'trang_thai_duyet' => $lectureStatus,
+                    'trang_thai_cong_bo' => $lectureStatus === BaiGiang::STATUS_DUYET_DA_DUYET
+                        ? $baiGiang->trang_thai_cong_bo
+                        : BaiGiang::CONG_BO_AN,
+                    'ngay_gui_duyet' => $lectureStatus === BaiGiang::STATUS_DUYET_CHO ? now() : null,
+                ]);
 
-            $baiGiang->taiNguyenPhu()->sync($taiNguyenPhuIds);
+                $baiGiang->taiNguyenPhu()->sync($taiNguyenPhuIds);
 
-            $this->liveLectureService->syncLiveRoom($baiGiang, $validated, auth()->user(), false);
-        });
+                $this->liveLectureService->syncLiveRoom($baiGiang, $validated, auth()->user(), false);
+            });
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()
+                ->withInput()
+                ->with('error', $failureMessage);
+        }
 
         $message = $lectureStatus === BaiGiang::STATUS_DUYET_CHO
-            ? 'Da cap nhat bai giang live va gui admin duyet.'
+            ? 'Da cap nhat bai giang va gui admin duyet.'
             : 'Da cap nhat bai giang.';
 
         return redirect()->route('giang-vien.bai-giang.index')->with('success', $message);

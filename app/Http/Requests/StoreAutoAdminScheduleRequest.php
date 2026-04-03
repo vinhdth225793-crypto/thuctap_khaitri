@@ -54,6 +54,10 @@ class StoreAutoAdminScheduleRequest extends FormRequest
         return [
             'module_hoc_id' => ['required', 'integer', 'exists:module_hoc,id'],
             'ngay_bat_dau' => ['required', 'date', 'after_or_equal:today'],
+            'preview_dates' => ['nullable', 'array'],
+            'preview_dates.*' => ['nullable', 'date', 'after_or_equal:today'],
+            'preview_sessions' => ['nullable', 'array'],
+            'preview_sessions.*' => ['nullable', Rule::in(array_keys(TeachingPeriodCatalog::sessions()))],
             'selected_tiets' => ['nullable', 'array', 'min:1'],
             'selected_tiets.*' => ['integer', 'between:1,12'],
             'tiet_bat_dau' => ['nullable', 'integer', 'between:1,12'],
