@@ -1,17 +1,17 @@
 @extends('layouts.app')
 
-@section('title', 'Chi tiết bài giảng: ' . $phanCong->moduleHoc->ten_module)
+@section('title', 'Phiên dạy: ' . $phanCong->moduleHoc->ten_module)
 
 @section('content')
 <div class="container-fluid">
     <!-- Breadcrumb -->
     <div class="row mb-4">
-        <div class="col-12 text-muted small">
+        <div class="col-12">
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{{ route('giang-vien.dashboard') }}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('giang-vien.khoa-hoc') }}">Lộ trình dạy</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Chi tiết bài dạy</li>
+                <ol class="breadcrumb mb-0 bg-white p-3 rounded-4 shadow-xs border">
+                    <li class="breadcrumb-item"><a href="{{ route('giang-vien.dashboard') }}" class="text-decoration-none"><i class="fas fa-home me-1"></i> Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('giang-vien.khoa-hoc') }}" class="text-decoration-none">Lộ trình dạy</a></li>
+                    <li class="breadcrumb-item active fw-bold text-dark" aria-current="page">Phiên điều hành</li>
                 </ol>
             </nav>
         </div>
@@ -21,20 +21,16 @@
     <div class="row mb-4 align-items-center">
         <div class="col-md-8">
             <div class="d-flex align-items-center">
-                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm me-3" style="width: 50px; height: 50px;">
-                    <i class="fas fa-book-open fa-lg"></i>
+                <div class="bg-primary text-white rounded-4 d-flex align-items-center justify-content-center shadow-md me-4" style="width: 64px; height: 64px; font-size: 1.5rem;">
+                    <i class="fas fa-graduation-cap"></i>
                 </div>
                 <div>
-                    <h3 class="fw-bold mb-0 text-dark">{{ $phanCong->moduleHoc->ten_module }}</h3>
-                    <div class="text-muted small mt-1">
-                        Thuộc khóa học: <span class="fw-bold text-primary">{{ $khoaHoc->ten_khoa_hoc }}</span>
-                    </div>
-                    <div class="d-flex flex-wrap gap-2 mt-2">
-                        <span class="badge bg-{{ $phanCong->moduleHoc->trang_thai_hoc_tap_badge }}-soft text-{{ $phanCong->moduleHoc->trang_thai_hoc_tap_badge }} border border-{{ $phanCong->moduleHoc->trang_thai_hoc_tap_badge }}">
+                    <h2 class="fw-extrabold mb-1 text-dark letter-spacing-tight">{{ $phanCong->moduleHoc->ten_module }}</h2>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span class="text-muted small">Khóa học: <span class="fw-bold text-primary">{{ $khoaHoc->ten_khoa_hoc }}</span></span>
+                        <span class="text-silver">|</span>
+                        <span class="badge bg-{{ $phanCong->moduleHoc->trang_thai_hoc_tap_badge }}-soft text-{{ $phanCong->moduleHoc->trang_thai_hoc_tap_badge }} border border-{{ $phanCong->moduleHoc->trang_thai_hoc_tap_badge }} rounded-pill px-3">
                             {{ $phanCong->moduleHoc->trang_thai_hoc_tap_label }}
-                        </span>
-                        <span class="badge bg-{{ $khoaHoc->trang_thai_hoc_tap_badge }}-soft text-{{ $khoaHoc->trang_thai_hoc_tap_badge }} border border-{{ $khoaHoc->trang_thai_hoc_tap_badge }}">
-                            {{ $khoaHoc->trang_thai_hoc_tap_label }}
                         </span>
                     </div>
                 </div>
@@ -45,11 +41,13 @@
                 <form action="{{ route('giang-vien.khoa-hoc.xac-nhan', $phanCong->id) }}" method="POST" class="d-inline">
                     @csrf
                     <input type="hidden" name="hanh_dong" value="da_nhan">
-                    <button type="submit" class="btn btn-success fw-bold px-4 shadow-sm">XÁC NHẬN DẠY</button>
+                    <button type="submit" class="btn btn-success fw-bold px-5 py-3 rounded-4 shadow-md transition-all">
+                        <i class="fas fa-check-double me-2"></i> XÁC NHẬN DẠY NGAY
+                    </button>
                 </form>
             @else
-                <div class="badge bg-success-soft text-success border border-success px-3 py-2 shadow-sm">
-                    <i class="fas fa-check-circle me-1"></i> Bạn đã nhận bài dạy này
+                <div class="badge bg-success-soft text-success border border-success px-4 py-3 shadow-sm rounded-4 fs-6">
+                    <i class="fas fa-shield-check me-2"></i> Bạn đã nhận bài dạy này
                 </div>
             @endif
         </div>
@@ -57,10 +55,10 @@
 
     @include('components.alert')
 
-    <div class="row">
+    <div class="row" id="main-layout-row">
         <!-- Cột trái: Lịch dạy & Nội dung -->
-        <div class="col-lg-8">
-            {{-- LỊCH DẠY CHI TIẾT (DẠNG KHỐI) --}}
+        <div class="col-lg-8" id="teaching-roadmap-column">
+            {{-- LỘ TRÌNH BUỔI HỌC --}}
             <div class="mb-4">
                 <div class="row g-3 mb-4">
                     <div class="col-md-3 col-6">
@@ -112,7 +110,10 @@
                         <span class="bg-primary text-white p-2 rounded-3 me-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
                             <i class="fas fa-calendar-check"></i>
                         </span>
-                        Lộ trình giảng dạy
+                        Lộ trình giảng dạy theo từng buổi
+                        <button class="btn btn-sm btn-outline-primary ms-3 d-none" id="btn-show-sidebar" title="Mở lại thông tin khóa học">
+                            <i class="fas fa-expand-alt me-1"></i> Xem thông tin khóa học
+                        </button>
                     </h5>
                     <div class="d-flex gap-2">
                         <div class="dropdown">
@@ -134,6 +135,13 @@
                             </ul>
                         </div>
                         <span class="badge bg-white text-primary border border-primary px-3 shadow-sm d-flex align-items-center">{{ $lichDays->count() }} buổi dạy</span>
+                    </div>
+                </div>
+
+                <div class="session-overview-banner mb-4">
+                    <div class="session-overview-banner__title">Mỗi buổi học là một phiên điều hành hoàn chỉnh</div>
+                    <div class="session-overview-banner__text">
+                        Card buổi học đã được chuẩn hóa theo 4 cụm: thông tin buổi học, điều hành lớp học, điểm danh và nội dung buổi học. Các nút cũ vẫn giữ nguyên đường dẫn để tiếp tục triển khai ở các phase sau.
                     </div>
                 </div>
 
@@ -191,7 +199,7 @@
                 @empty
                     <div class="vip-card p-5 text-center text-muted border-0 shadow-sm">
                         <i class="fas fa-calendar-times fa-3x mb-3 opacity-25"></i>
-                        <p class="mb-0">Chua co lich day cu the cho bai day nay.</p>
+                        <p class="mb-0">Chưa có lịch dạy cụ thể cho bài dạy này.</p>
                     </div>
                 @endforelse
             </div>
@@ -421,11 +429,14 @@
         </div>
 
         <!-- Cột phải: Thông tin Khóa học & Học viên -->
-        <div class="col-lg-4">
+        <div class="col-lg-4" id="course-info-column">
             {{-- CARD KHÓA HỌC --}}
-            <div class="vip-card mb-4 shadow-sm border-0 overflow-hidden">
-                <div class="vip-card-header bg-primary text-white py-3">
+            <div class="vip-card mb-4 shadow-sm border-0 overflow-hidden" id="course-info-card">
+                <div class="vip-card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
                     <h5 class="vip-card-title small fw-bold text-uppercase mb-0">Thông tin khóa học</h5>
+                    <button class="btn btn-xs btn-light fw-bold shadow-sm" id="btn-toggle-sidebar" title="Thu gọn/Mở rộng">
+                        <i class="fas fa-compress-alt"></i>
+                    </button>
                 </div>
                 <div class="vip-card-body p-4">
                     <div class="text-center mb-3">
@@ -563,7 +574,7 @@
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link fw-bold small py-3" id="tab-report-admin" data-bs-toggle="tab" data-bs-target="#report-pane" type="button" role="tab">
-                        <i class="fas fa-paper-plane me-1"></i> BÁO CÁO GỬI ADMIN
+                        <i class="fas fa-paper-plane me-1"></i> CHỐT ATTENDANCE
                     </button>
                 </li>
             </ul>
@@ -578,7 +589,11 @@
                                 <span class="small text-muted fw-bold">Ngày dạy: <span id="dd-ngay-label" class="text-dark"></span></span>
                                 <div class="d-flex gap-2">
                                     <button type="button" class="btn btn-xs btn-outline-success" onclick="checkAllAttendance('co_mat')">Tất cả Có mặt</button>
+                                    <button type="button" class="btn btn-xs btn-outline-warning" onclick="checkAllAttendance('co_phep')">Tất cả Có phép</button>
                                 </div>
+                            </div>
+                            <div class="px-3 py-2 border-bottom bg-white">
+                                <div id="attendance-summary" class="d-flex flex-wrap gap-2"></div>
                             </div>
                             <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
                                 <table class="table table-hover align-middle mb-0">
@@ -610,19 +625,19 @@
                             <div id="report-status-badge" class="mb-3 text-center"></div>
                             
                             <div class="mb-3">
-                                <label class="form-label small fw-bold">Nội dung báo cáo buổi dạy *</label>
+                                <label class="form-label small fw-bold">Nội dung chốt attendance / báo cáo buổi dạy *</label>
                                 <textarea name="bao_cao_giang_vien" id="dd-bao-cao-content" class="form-control vip-form-control" rows="8" 
                                           placeholder="Nhập nội dung báo cáo cho Admin (VD: Tình hình lớp học, các vấn đề phát sinh, nhận xét chung về buổi học...)" required></textarea>
                             </div>
                             
                             <div class="alert alert-warning border-0 small mb-0">
                                 <i class="fas fa-info-circle me-1"></i> 
-                                <b>Lưu ý:</b> Báo cáo này sẽ được gửi trực tiếp đến Ban quản lý. Vui lòng kiểm tra kỹ nội dung trước khi gửi.
+                                <b>Lưu ý:</b> Hành động này được dùng như bước chốt attendance cuối buổi và gửi báo cáo trực tiếp đến Ban quản lý.
                             </div>
                         </div>
                         <div class="modal-footer border-0 p-3 justify-content-center gap-2 bg-light">
                             <button type="button" class="btn btn-light px-4 fw-bold shadow-xs" data-bs-dismiss="modal">HỦY BỎ</button>
-                            <button type="submit" id="btn-submit-report" class="btn btn-success px-4 fw-bold shadow-sm">GỬI BÁO CÁO CHO ADMIN</button>
+                            <button type="submit" id="btn-submit-report" class="btn btn-success px-4 fw-bold shadow-sm">CHỐT ATTENDANCE VÀ GỬI BÁO CÁO</button>
                         </div>
                     </form>
                 </div>
@@ -1121,6 +1136,42 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // ==========================================
+    // SIDEBAR TOGGLE (Thu gọn thông tin khóa học)
+    // ==========================================
+    const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
+    const btnShowSidebar = document.getElementById('btn-show-sidebar');
+    const courseInfoColumn = document.getElementById('course-info-column');
+    const roadmapColumn = document.getElementById('teaching-roadmap-column');
+    
+    if (btnToggleSidebar && btnShowSidebar) {
+        btnToggleSidebar.addEventListener('click', function() {
+            courseInfoColumn.classList.add('d-none');
+            roadmapColumn.classList.replace('col-lg-8', 'col-lg-12');
+            btnShowSidebar.classList.remove('d-none');
+            
+            // Lưu trạng thái vào localStorage nếu muốn giữ khi reload
+            localStorage.setItem('giangvien_sidebar_collapsed', 'true');
+        });
+        
+        btnShowSidebar.addEventListener('click', function() {
+            courseInfoColumn.classList.remove('d-none');
+            roadmapColumn.classList.replace('col-lg-12', 'col-lg-8');
+            btnShowSidebar.classList.add('d-none');
+            
+            localStorage.setItem('giangvien_sidebar_collapsed', 'false');
+        });
+        
+        // Khôi phục trạng thái từ localStorage
+        if (localStorage.getItem('giangvien_sidebar_collapsed') === 'true') {
+            courseInfoColumn.classList.add('d-none');
+            roadmapColumn.classList.replace('col-lg-8', 'col-lg-12');
+            btnShowSidebar.classList.remove('d-none');
+        }
+    }
+
+    const focusedLichHocId = @json((int) request('focus_lich_hoc_id', 0));
+    const quickAction = @json(request('quick_action'));
     // Logic cảnh báo PDF cho Modal Thêm
     const addFileInp = document.getElementById('add-res-file');
     const addPdfRadio = document.getElementById('save_pdf');
@@ -1344,6 +1395,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const modalDD = new bootstrap.Modal(document.getElementById('modalDiemDanh'));
     const formDD = document.getElementById('formDiemDanh');
     const attendanceList = document.getElementById('attendance-list');
+    const attendanceSummary = document.getElementById('attendance-summary');
     const btnSaveDD = document.querySelector('#modalDiemDanh button[type="submit"]');
 
     document.querySelectorAll('.btn-diem-danh').forEach(btn => {
@@ -1373,17 +1425,28 @@ document.addEventListener('DOMContentLoaded', function() {
                         const baoCaoContent = document.getElementById('dd-bao-cao-content');
                         const statusBadge = document.getElementById('report-status-badge');
                         const btnSubmitReport = document.getElementById('btn-submit-report');
+                        const summary = res.summary || {};
                         
                         baoCaoContent.value = res.bao_cao || '';
                         
                         if (res.trang_thai_bao_cao === 'da_bao_cao') {
                             statusBadge.innerHTML = '<span class="badge bg-success bg-opacity-10 text-success border border-success px-3 py-2 fw-bold"><i class="fas fa-check-circle me-1"></i> ĐÃ GỬI BÁO CÁO</span>';
-                            btnSubmitReport.innerHTML = '<i class="fas fa-sync-alt me-1"></i> CẬP NHẬT BÁO CÁO';
+                            btnSubmitReport.innerHTML = '<i class="fas fa-sync-alt me-1"></i> CẬP NHẬT CHỐT ATTENDANCE';
                             btnSubmitReport.classList.replace('btn-success', 'btn-warning');
                         } else {
                             statusBadge.innerHTML = '<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary px-3 py-2 fw-bold"><i class="fas fa-clock me-1"></i> CHƯA GỬI BÁO CÁO</span>';
-                            btnSubmitReport.innerHTML = 'GỬI BÁO CÁO CHO ADMIN';
+                            btnSubmitReport.innerHTML = 'CHỐT ATTENDANCE VÀ GỬI BÁO CÁO';
                             btnSubmitReport.classList.replace('btn-warning', 'btn-success');
+                        }
+
+                        if (attendanceSummary) {
+                            attendanceSummary.innerHTML = `
+                                <span class="badge bg-light text-dark border">Đã chấm ${summary.marked_students || 0}/${summary.total_students || 0}</span>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">Có mặt ${summary.co_mat || 0}</span>
+                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Trễ ${summary.vao_tre || 0}</span>
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Vắng ${summary.vang_mat || 0}</span>
+                                <span class="badge bg-info-subtle text-info border border-info-subtle">Có phép ${summary.co_phep || 0}</span>
+                            `;
                         }
 
                         if (res.data.length > 0) {
@@ -1403,6 +1466,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                                 <option value="co_mat" ${hv.trang_thai === 'co_mat' ? 'selected' : ''}>Có mặt</option>
                                                 <option value="vang_mat" ${hv.trang_thai === 'vang_mat' ? 'selected' : ''}>Vắng</option>
                                                 <option value="vao_tre" ${hv.trang_thai === 'vao_tre' ? 'selected' : ''}>Trễ</option>
+                                                <option value="co_phep" ${hv.trang_thai === 'co_phep' ? 'selected' : ''}>Có phép</option>
                                             </select>
                                         </td>
                                         <td class="pe-4">
@@ -1470,6 +1534,44 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+
+    function consumeQuickActionParam() {
+        if (!quickAction || !window.history.replaceState) {
+            return;
+        }
+
+        const url = new URL(window.location.href);
+        url.searchParams.delete('quick_action');
+        window.history.replaceState({}, document.title, url.toString());
+    }
+
+    function openQuickActionModal() {
+        if (!focusedLichHocId || !quickAction) {
+            return;
+        }
+
+        const selectorMap = {
+            attendance: `.btn-diem-danh[data-id="${focusedLichHocId}"]`,
+            resources: `.btn-add-resource[data-id="${focusedLichHocId}"]`,
+            exams: `.btn-add-test[data-id="${focusedLichHocId}"]`,
+        };
+
+        const target = document.querySelector(selectorMap[quickAction] || '');
+
+        if (!target) {
+            return;
+        }
+
+        const sessionBlock = document.getElementById(`session-${focusedLichHocId}`);
+        sessionBlock?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        window.setTimeout(() => {
+            target.click();
+            consumeQuickActionParam();
+        }, 180);
+    }
+
+    openQuickActionModal();
 
     // ==========================================
     // XỬ LÝ PREVIEW TÀI LIỆU (PHASE 4 UPGRADE)
@@ -1559,18 +1661,34 @@ document.addEventListener('DOMContentLoaded', function() {
 @endpush
 
 <style>
-    .bg-primary-soft { background-color: rgba(13, 110, 253, 0.1); }
-    .bg-success-soft { background-color: rgba(25, 135, 84, 0.1); }
-    .bg-info-soft { background-color: rgba(13, 202, 240, 0.1); }
-    .bg-warning-soft { background-color: rgba(255, 193, 7, 0.1); }
-    .bg-secondary-soft { background-color: rgba(108, 117, 125, 0.1); }
-    .shadow-xs { box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.05) !important; }
+    :root {
+        --primary-soft: rgba(13, 110, 253, 0.08);
+        --success-soft: rgba(25, 135, 84, 0.08);
+        --info-soft: rgba(13, 202, 240, 0.08);
+        --warning-soft: rgba(255, 193, 7, 0.08);
+        --danger-soft: rgba(220, 53, 69, 0.08);
+        --secondary-soft: rgba(108, 117, 125, 0.08);
+        --border-color: #eef2f7;
+    }
+
+    .bg-primary-soft { background-color: var(--primary-soft); }
+    .bg-success-soft { background-color: var(--success-soft); }
+    .bg-info-soft { background-color: var(--info-soft); }
+    .bg-warning-soft { background-color: var(--warning-soft); }
+    .bg-danger-soft { background-color: var(--danger-soft); }
+    .bg-secondary-soft { background-color: var(--secondary-soft); }
+    
+    .shadow-xs { box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.03) !important; }
+    .shadow-sm { box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.05) !important; }
+    .shadow-md { box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.08) !important; }
+    
     .border-dashed { border-style: dashed !important; }
     .object-fit-cover { object-fit: cover; }
-    .btn-xs { padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 4px; }
+    .btn-xs { padding: 0.25rem 0.6rem; font-size: 0.75rem; border-radius: 6px; }
     .smaller { font-size: 0.75rem; }
     .italic { font-style: italic; }
-    .hover-bg-light:hover { background-color: #f8f9fa; }
+    .hover-bg-light:hover { background-color: #f8fafc; }
+    
     .btn-icon-custom {
         width: 32px;
         height: 32px;
@@ -1578,8 +1696,10 @@ document.addEventListener('DOMContentLoaded', function() {
         align-items: center;
         justify-content: center;
         padding: 0;
-        border-radius: 6px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
     }
+    
     .btn-icon-xs {
         width: 28px;
         height: 28px;
@@ -1587,207 +1707,271 @@ document.addEventListener('DOMContentLoaded', function() {
         align-items: center;
         justify-content: center;
         padding: 0;
-        border-radius: 8px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
     }
+
+    /* Session Block & Shell */
     .session-block-focused {
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.12), 0 0.5rem 1rem rgba(13, 110, 253, 0.08) !important;
-        scroll-margin-top: 90px;
+        scroll-margin-top: 100px;
     }
-    .teacher-attendance-panel {
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+    .session-block-focused .session-shell {
+        border: 2px solid #0d6efd !important;
+        box-shadow: 0 1rem 3rem rgba(13, 110, 253, 0.15) !important;
     }
-    .teacher-attendance-metric {
-        min-height: 72px;
-        padding: 0.75rem 0.85rem;
-        border-radius: 10px;
-        background: rgba(255, 255, 255, 0.75);
-        border: 1px solid rgba(13, 110, 253, 0.08);
-    }
-    .teacher-attendance-note {
-        padding: 0.75rem 0.85rem;
-        border-radius: 10px;
-        background: rgba(255, 255, 255, 0.72);
-        border: 1px dashed rgba(108, 117, 125, 0.4);
-        white-space: normal;
-    }
+
     .session-shell {
-        border-radius: 1rem;
+        border-radius: 1.25rem;
         overflow: hidden;
         background: #fff;
-        border: 1px solid rgba(0, 0, 0, 0.05);
-        transition: all 0.3s ease;
+        border: 1px solid var(--border-color);
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
     }
     .session-shell:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05) !important;
+        transform: translateY(-4px);
+        box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.08) !important;
     }
+
     .session-shell__header {
-        padding: 1.25rem 1.5rem;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-        background: #fcfcfd;
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid var(--border-color);
+        background: linear-gradient(to right, #fcfdfe, #f8fafc);
     }
+
     .session-shell__number {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
+        width: 54px;
+        height: 54px;
+        border-radius: 16px;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #f1f5f9;
-        color: #475569;
+        background: #fff;
+        color: #0d6efd;
         font-weight: 800;
-        font-size: 1.1rem;
+        font-size: 1.25rem;
         border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
+
     .session-shell__title {
-        font-size: 1.1rem;
-        font-weight: 700;
+        font-size: 1.2rem;
+        font-weight: 800;
         color: #1e293b;
-        letter-spacing: -0.01em;
+        letter-spacing: -0.02em;
     }
+
     .session-shell__body {
-        padding: 1.5rem;
+        padding: 2rem;
+        background-color: #fff;
     }
+
+    /* Cluster Cards */
     .session-cluster-card {
         height: 100%;
-        padding: 1.25rem;
-        border-radius: 12px;
+        padding: 1.5rem;
+        border-radius: 1.25rem;
         border: 1px solid #f1f5f9;
-        background: #f8fafc;
-        transition: all 0.2s ease;
+        background: #fbfcfd;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
     }
     .session-cluster-card:hover {
         background: #fff;
         border-color: #e2e8f0;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
     }
+
+    .session-cluster-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        opacity: 0.6;
+    }
+    .col-xl-4:nth-child(1) .session-cluster-card::before { background-color: #0d6efd; }
+    .col-xl-4:nth-child(2) .session-cluster-card::before { background-color: #0dcaf0; }
+    .col-xl-4:nth-child(3) .session-cluster-card::before { background-color: #ffc107; }
+    .col-12 .session-cluster-card::before { background-color: #6c757d; }
+
     .session-cluster-card__header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 0.75rem;
-        margin-bottom: 1rem;
+        margin-bottom: 1.25rem;
     }
+
     .session-cluster-card__eyebrow {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         text-transform: uppercase;
-        font-weight: 700;
-        letter-spacing: 0.05em;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        background: rgba(0,0,0,0.03);
     }
+
+    .session-card-title {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
     .session-info-list {
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
+        gap: 0.85rem;
     }
+
     .session-info-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 0.75rem;
-        font-size: 0.875rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px dashed #f1f5f9;
+        font-size: 0.9rem;
         color: #64748b;
     }
-    .session-info-row strong {
-        color: #334155;
-        font-weight: 600;
-    }
+    .session-info-row:last-child { border-bottom: none; }
+    .session-info-row strong { color: #1e293b; font-weight: 700; }
+
     .session-metric-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 0.5rem;
+        gap: 0.75rem;
+        margin-top: 1rem;
     }
+
     .session-metric {
-        padding: 0.625rem;
-        border-radius: 8px;
+        padding: 0.85rem;
+        border-radius: 12px;
         background: #fff;
         border: 1px solid #f1f5f9;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        transition: all 0.2s ease;
     }
+    .session-metric:hover { border-color: #cbd5e1; transform: translateY(-2px); }
+
     .session-metric__label {
         font-size: 0.65rem;
         text-transform: uppercase;
         color: #94a3b8;
-        margin-bottom: 0.25rem;
-        font-weight: 700;
+        margin-bottom: 0.35rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
     }
     .session-metric__value {
         color: #1e293b;
-        font-weight: 600;
-        font-size: 0.8125rem;
+        font-weight: 800;
+        font-size: 0.9rem;
     }
+
     .session-note {
-        padding: 1rem;
-        border-radius: 10px;
+        padding: 1.15rem;
+        border-radius: 14px;
         background: #fff;
-        border: 1px dashed #cbd5e1;
-        font-size: 0.8125rem;
-        color: #475569;
-        line-height: 1.5;
-    }
-    .session-detail-grid {
-        border-top: 1px solid #f1f5f9;
-        margin-top: 1.5rem;
-        padding-top: 1.5rem;
-    }
-    .session-detail-card {
-        padding: 1.25rem;
-        border-radius: 12px;
-        background: #f8fafc;
         border: 1px solid #f1f5f9;
+        font-size: 0.85rem;
+        color: #475569;
+        line-height: 1.6;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.01);
     }
-    .session-detail-card__title {
-        margin-bottom: 1.25rem;
-        font-weight: 700;
-        color: #1e293b;
-        font-size: 0.9375rem;
-        display: flex;
-        align-items: center;
+    
+    .session-note--soft {
+        background: rgba(248, 250, 252, 0.6);
+        border: 1px dashed #cbd5e1;
     }
+
     .resource-card {
-        padding: 0.75rem 1rem;
-        border-radius: 10px;
-        border: 1px solid #e2e8f0;
+        padding: 1rem;
+        border-radius: 12px;
+        border: 1px solid #f1f5f9;
         background: #fff;
-        transition: all 0.2s ease;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .resource-card:hover {
-        border-color: #cbd5e1;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        border-color: #0d6efd;
+        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.08);
+        transform: translateX(4px);
     }
+
     .resource-card__icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        font-size: 1.1rem;
+        font-size: 1.25rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
+
     .exam-pill {
-        flex: 1;
-        min-width: 240px;
-        padding: 0.75rem 1rem;
-        border-radius: 10px;
+        padding: 1rem;
+        border-radius: 14px;
         border: 1px solid #fee2e2;
-        background: #fef2f2;
+        background: linear-gradient(to right, #fef2f2, #fff);
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 1rem;
-        transition: all 0.2s ease;
+        transition: all 0.3s ease;
     }
     .exam-pill:hover {
-        border-color: #fecaca;
-        background: #fff;
+        border-color: #f87171;
+        box-shadow: 0 4px 12px rgba(220, 53, 69, 0.08);
+        transform: translateX(4px);
     }
+
+    .session-overview-banner {
+        padding: 1.5rem;
+        border-radius: 1.25rem;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border: 1px solid #e2e8f0;
+        position: relative;
+        overflow: hidden;
+    }
+    .session-overview-banner::after {
+        content: "\f133";
+        font-family: "Font Awesome 5 Free";
+        font-weight: 900;
+        position: absolute;
+        right: -10px;
+        bottom: -20px;
+        font-size: 8rem;
+        opacity: 0.03;
+        transform: rotate(-15deg);
+    }
+
+    .vip-card {
+        border-radius: 1.25rem;
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+        background: #fff;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    #teaching-roadmap-column {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    #course-info-column.d-none + #teaching-roadmap-column {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
     @media (max-width: 767.98px) {
-        .session-metric-grid {
-            grid-template-columns: 1fr;
-        }
-        .session-info-row {
-            align-items: flex-start;
-            flex-direction: column;
-        }
+        .session-shell__header { padding: 1.25rem 1.5rem; }
+        .session-shell__body { padding: 1.25rem; }
+        .session-cluster-card { padding: 1.25rem; }
+        .session-metric-grid { grid-template-columns: 1fr; }
     }
 </style>
 @endsection

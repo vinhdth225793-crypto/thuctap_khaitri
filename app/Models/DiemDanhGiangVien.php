@@ -92,8 +92,16 @@ class DiemDanhGiangVien extends Model
 
     public function getDisplayStatusAttribute(): string
     {
-        if ($this->thoi_gian_ket_thuc_day !== null) {
+        if ($this->trang_thai === self::STATUS_HOAN_THANH) {
             return self::STATUS_HOAN_THANH;
+        }
+
+        if ($this->trang_thai === self::STATUS_DA_CHECKOUT) {
+            return self::STATUS_DA_CHECKOUT;
+        }
+
+        if ($this->thoi_gian_ket_thuc_day !== null) {
+            return self::STATUS_DA_CHECKOUT;
         }
 
         if ($this->thoi_gian_bat_dau_day !== null) {
@@ -106,10 +114,10 @@ class DiemDanhGiangVien extends Model
     public function getTrangThaiLabelAttribute(): string
     {
         return match ($this->display_status) {
-            self::STATUS_DA_CHECKIN => 'Da check-in',
-            self::STATUS_DA_CHECKOUT => 'Da check-out',
-            self::STATUS_HOAN_THANH => 'Hoan thanh',
-            default => 'Chua diem danh',
+            self::STATUS_DA_CHECKIN => 'Đã check-in',
+            self::STATUS_DA_CHECKOUT => 'Đã check-out',
+            self::STATUS_HOAN_THANH => 'Hoàn thành',
+            default => 'Chưa điểm danh',
         };
     }
 
@@ -120,6 +128,16 @@ class DiemDanhGiangVien extends Model
             self::STATUS_DA_CHECKOUT => 'primary',
             self::STATUS_HOAN_THANH => 'success',
             default => 'secondary',
+        };
+    }
+
+    public function getStatusHintAttribute(): string
+    {
+        return match ($this->display_status) {
+            self::STATUS_DA_CHECKIN => 'Giảng viên đã check-in và đang trong phiên dạy.',
+            self::STATUS_DA_CHECKOUT => 'Giảng viên đã check-out, hệ thống đã ghi nhận đủ giờ vào và giờ ra.',
+            self::STATUS_HOAN_THANH => 'Attendance giảng viên của buổi học này đã hoàn tất.',
+            default => 'Giảng viên chưa thực hiện attendance cho buổi học này.',
         };
     }
 }

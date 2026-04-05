@@ -29,7 +29,7 @@ class TeacherAttendanceController extends Controller
             throw $exception;
         }
 
-        return back()->with('success', 'Da ghi nhan check-in giang vien cho buoi hoc.');
+        return back()->with('success', 'Đã ghi nhận check-in giảng viên cho buổi học.');
     }
 
     public function checkOut(int $lichHocId): RedirectResponse
@@ -46,7 +46,7 @@ class TeacherAttendanceController extends Controller
             throw $exception;
         }
 
-        return back()->with('success', 'Da ghi nhan check-out giang vien cho buoi hoc.');
+        return back()->with('success', 'Đã ghi nhận check-out giảng viên cho buổi học.');
     }
 
     public function start(int $lichHocId): RedirectResponse

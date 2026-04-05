@@ -283,6 +283,48 @@ class LichHoc extends Model
         };
     }
 
+    public function getTeachingSessionStatusAttribute(): string
+    {
+        return match ($this->trang_thai) {
+            'dang_hoc' => 'dang_dien_ra',
+            'hoan_thanh' => 'da_ket_thuc',
+            'huy' => 'da_huy',
+            default => 'chua_bat_dau',
+        };
+    }
+
+    public function getTeachingSessionStatusLabelAttribute(): string
+    {
+        return match ($this->teaching_session_status) {
+            'chua_bat_dau' => 'Chưa bắt đầu',
+            'dang_dien_ra' => 'Đang diễn ra',
+            'da_ket_thuc' => 'Đã kết thúc',
+            'da_huy' => 'Đã hủy',
+            default => '-',
+        };
+    }
+
+    public function getTeachingSessionStatusColorAttribute(): string
+    {
+        return match ($this->teaching_session_status) {
+            'chua_bat_dau' => 'secondary',
+            'dang_dien_ra' => 'primary',
+            'da_ket_thuc' => 'success',
+            'da_huy' => 'danger',
+            default => 'secondary',
+        };
+    }
+
+    public function getCanStartTeachingSessionAttribute(): bool
+    {
+        return $this->teaching_session_status === 'chua_bat_dau';
+    }
+
+    public function getCanFinishTeachingSessionAttribute(): bool
+    {
+        return $this->teaching_session_status === 'dang_dien_ra';
+    }
+
     public function getHinhThucLabelAttribute(): string
     {
         return match ($this->hinh_thuc) {

@@ -135,6 +135,139 @@ class TeacherAttendanceFlowTest extends TestCase
         $this->assertDatabaseCount('diem_danh_giang_vien', 0);
     }
 
+    public function test_teacher_cannot_check_in_same_session_twice(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        [$course, , $schedule] = $this->createAssignedOnlineSchedule($admin, $teacher);
+
+        $this->actingAs($teacherUser)
+            ->from(route('giang-vien.khoa-hoc.show', $course->id))
+            ->post(route('giang-vien.buoi-hoc.teacher-attendance.check-in', $schedule->id))
+            ->assertSessionHas('success');
+
+        $response = $this->actingAs($teacherUser)
+            ->from(route('giang-vien.khoa-hoc.show', $course->id))
+            ->post(route('giang-vien.buoi-hoc.teacher-attendance.check-in', $schedule->id));
+
+        $response
+            ->assertRedirect(route('giang-vien.khoa-hoc.show', $course->id))
+            ->assertSessionHasErrors('teacher_attendance');
+
+        $this->assertDatabaseCount('diem_danh_giang_vien', 1);
+    }
+
+    public function test_unassigned_teacher_cannot_check_in_session(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        [$otherTeacherUser] = $this->createTeacher();
+        [$course, , $schedule] = $this->createAssignedOnlineSchedule($admin, $teacher);
+
+        $response = $this->actingAs($otherTeacherUser)
+            ->from(route('giang-vien.khoa-hoc.show', $course->id))
+            ->post(route('giang-vien.buoi-hoc.teacher-attendance.check-in', $schedule->id));
+
+        $response
+            ->assertRedirect(route('giang-vien.khoa-hoc.show', $course->id))
+            ->assertSessionHasErrors('teacher_attendance');
+
+        $this->assertDatabaseCount('diem_danh_giang_vien', 0);
+    }
+
+    public function test_teacher_cannot_check_in_completed_session(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        [$course, , $schedule] = $this->createAssignedSchedule($admin, $teacher, [
+            'trang_thai' => 'hoan_thanh',
+        ]);
+
+        $response = $this->actingAs($teacherUser)
+            ->from(route('giang-vien.khoa-hoc.show', $course->id))
+            ->post(route('giang-vien.buoi-hoc.teacher-attendance.check-in', $schedule->id));
+
+        $response
+            ->assertRedirect(route('giang-vien.khoa-hoc.show', $course->id))
+            ->assertSessionHasErrors('teacher_attendance');
+
+        $this->assertDatabaseCount('diem_danh_giang_vien', 0);
+    }
+
+    public function test_teacher_can_start_teaching_session_from_course_card(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        [$course, , $schedule] = $this->createAssignedOnlineSchedule($admin, $teacher);
+
+        $response = $this
+            ->actingAs($teacherUser)
+            ->from(route('giang-vien.khoa-hoc.show', $course->id))
+            ->post(route('giang-vien.buoi-hoc.start', $schedule->id));
+
+        $response
+            ->assertRedirect(route('giang-vien.khoa-hoc.show', $course->id))
+            ->assertSessionHas('success');
+
+        $schedule->refresh();
+
+        $this->assertSame('dang_hoc', $schedule->trang_thai);
+        $this->assertDatabaseHas('diem_danh_giang_vien', [
+            'lich_hoc_id' => $schedule->id,
+            'giang_vien_id' => $teacher->id,
+            'trang_thai' => 'da_checkin',
+        ]);
+    }
+
+    public function test_teacher_can_finish_teaching_session_after_starting_it(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        [$course, , $schedule] = $this->createAssignedOnlineSchedule($admin, $teacher);
+
+        $this->actingAs($teacherUser)
+            ->from(route('giang-vien.khoa-hoc.show', $course->id))
+            ->post(route('giang-vien.buoi-hoc.start', $schedule->id))
+            ->assertSessionHas('success');
+
+        $response = $this->actingAs($teacherUser)
+            ->from(route('giang-vien.khoa-hoc.show', $course->id))
+            ->post(route('giang-vien.buoi-hoc.finish', $schedule->id));
+
+        $response
+            ->assertRedirect(route('giang-vien.khoa-hoc.show', $course->id))
+            ->assertSessionHas('success');
+
+        $schedule->refresh();
+
+        $this->assertSame('hoan_thanh', $schedule->trang_thai);
+        $this->assertDatabaseHas('diem_danh_giang_vien', [
+            'lich_hoc_id' => $schedule->id,
+            'giang_vien_id' => $teacher->id,
+            'trang_thai' => 'hoan_thanh',
+        ]);
+    }
+
+    public function test_teacher_cannot_finish_teaching_session_before_starting_it(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        [$course, , $schedule] = $this->createAssignedOnlineSchedule($admin, $teacher);
+
+        $response = $this
+            ->actingAs($teacherUser)
+            ->from(route('giang-vien.khoa-hoc.show', $course->id))
+            ->post(route('giang-vien.buoi-hoc.finish', $schedule->id));
+
+        $response
+            ->assertRedirect(route('giang-vien.khoa-hoc.show', $course->id))
+            ->assertSessionHas('error');
+
+        $schedule->refresh();
+
+        $this->assertSame('cho', $schedule->trang_thai);
+    }
+
     public function test_teacher_course_show_page_renders_new_timeline_clusters(): void
     {
         $admin = $this->createUser('admin');
@@ -146,13 +279,16 @@ class TeacherAttendanceFlowTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertSee('Check-in')
-            ->assertSee('Phong live noi bo')
-            ->assertSee('Tao phong');
+            ->assertSee('Cụm 1', escape: false)
+            ->assertSee('Phòng live nội bộ', escape: false)
+            ->assertSee('Bắt đầu buổi học', escape: false)
+            ->assertSee('Chưa bắt đầu', escape: false);
     }
 
     public function test_admin_can_view_teacher_attendance_dashboard(): void
     {
+        Carbon::setTestNow('2026-04-03 09:00:00');
+
         $admin = $this->createUser('admin');
         [$teacherUser, $teacher] = $this->createTeacher();
         [$course, $module, $schedule] = $this->createAssignedOnlineSchedule($admin, $teacher);
@@ -163,9 +299,12 @@ class TeacherAttendanceFlowTest extends TestCase
             'module_hoc_id' => $module->id,
             'giang_vien_id' => $teacher->id,
             'hinh_thuc_hoc' => 'online',
-            'thoi_gian_bat_dau_day' => now(),
-            'thoi_gian_mo_live' => now(),
-            'trang_thai' => 'da_checkin',
+            'thoi_gian_bat_dau_day' => now()->subHours(2),
+            'thoi_gian_ket_thuc_day' => now(),
+            'thoi_gian_mo_live' => now()->subHours(2),
+            'thoi_gian_tat_live' => now(),
+            'tong_thoi_luong_day_phut' => 120,
+            'trang_thai' => 'hoan_thanh',
             'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
         ]);
 
@@ -175,9 +314,114 @@ class TeacherAttendanceFlowTest extends TestCase
 
         $response
             ->assertOk()
+            ->assertSee('Quản lý theo tuần', escape: false)
+            ->assertSee('Danh sách đã điểm danh trong tuần', escape: false)
             ->assertSee($course->ten_khoa_hoc)
             ->assertSee($teacherUser->ho_ten)
-            ->assertSee('Da check-in');
+            ->assertSee('Hoàn thành', escape: false);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_admin_teacher_dashboard_prunes_history_older_than_one_month(): void
+    {
+        Carbon::setTestNow('2026-04-15 09:00:00');
+
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        [$currentCourse, $currentModule, $currentSchedule] = $this->createAssignedSchedule($admin, $teacher, [
+            'ngay_hoc' => '2026-04-14',
+            'buoi_so' => 2,
+        ]);
+        [$oldCourse, $oldModule, $oldSchedule] = $this->createAssignedSchedule($admin, $teacher, [
+            'ngay_hoc' => '2026-03-01',
+            'buoi_so' => 3,
+        ]);
+
+        $currentAttendance = DiemDanhGiangVien::create([
+            'lich_hoc_id' => $currentSchedule->id,
+            'khoa_hoc_id' => $currentCourse->id,
+            'module_hoc_id' => $currentModule->id,
+            'giang_vien_id' => $teacher->id,
+            'hinh_thuc_hoc' => 'online',
+            'thoi_gian_bat_dau_day' => now()->subHour(),
+            'thoi_gian_ket_thuc_day' => now(),
+            'trang_thai' => 'hoan_thanh',
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+        ]);
+
+        $expiredAttendance = DiemDanhGiangVien::create([
+            'lich_hoc_id' => $oldSchedule->id,
+            'khoa_hoc_id' => $oldCourse->id,
+            'module_hoc_id' => $oldModule->id,
+            'giang_vien_id' => $teacher->id,
+            'hinh_thuc_hoc' => 'online',
+            'thoi_gian_bat_dau_day' => now()->subMonthNoOverflow(),
+            'thoi_gian_ket_thuc_day' => now()->subMonthNoOverflow()->addHour(),
+            'trang_thai' => 'hoan_thanh',
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.diem-danh.index', ['tab' => 'giang-vien']))
+            ->assertOk()
+            ->assertSee($currentCourse->ten_khoa_hoc);
+
+        $this->assertDatabaseHas('diem_danh_giang_vien', [
+            'id' => $currentAttendance->id,
+        ]);
+
+        $this->assertDatabaseMissing('diem_danh_giang_vien', [
+            'id' => $expiredAttendance->id,
+        ]);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_admin_teacher_attendance_detail_keeps_weekly_filters_in_back_link(): void
+    {
+        Carbon::setTestNow('2026-04-15 09:00:00');
+
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        [$course, $module, $schedule] = $this->createAssignedSchedule($admin, $teacher, [
+            'ngay_hoc' => '2026-04-14',
+        ]);
+
+        DiemDanhGiangVien::create([
+            'lich_hoc_id' => $schedule->id,
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => $module->id,
+            'giang_vien_id' => $teacher->id,
+            'hinh_thuc_hoc' => 'online',
+            'thoi_gian_bat_dau_day' => now()->subHour(),
+            'thoi_gian_ket_thuc_day' => now(),
+            'trang_thai' => 'hoan_thanh',
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+        ]);
+
+        $backLink = route('admin.diem-danh.index', [
+            'tab' => 'giang-vien',
+            'week_start' => '2026-04-14',
+            'khoa_hoc_id' => $course->id,
+            'giang_vien_id' => $teacher->id,
+            'trang_thai' => 'da_ket_thuc',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.diem-danh.giang-vien.show', array_merge(
+                [$schedule->id, $teacher->id],
+                [
+                    'week_start' => '2026-04-14',
+                    'khoa_hoc_id' => $course->id,
+                    'giang_vien_id' => $teacher->id,
+                    'trang_thai' => 'da_ket_thuc',
+                ]
+            )))
+            ->assertOk()
+            ->assertSee($backLink);
+
+        Carbon::setTestNow();
     }
 
     public function test_admin_can_view_student_attendance_dashboard(): void
@@ -263,6 +507,37 @@ class TeacherAttendanceFlowTest extends TestCase
         ]);
 
         Carbon::setTestNow();
+    }
+
+    public function test_student_attendance_modal_payload_returns_summary_with_excused_students(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        [$course, , $schedule] = $this->createAssignedOnlineSchedule($admin, $teacher);
+        $student = $this->createStudent();
+
+        HocVienKhoaHoc::create([
+            'khoa_hoc_id' => $course->id,
+            'hoc_vien_id' => $student->ma_nguoi_dung,
+            'ngay_tham_gia' => now()->toDateString(),
+            'trang_thai' => 'dang_hoc',
+            'created_by' => $admin->ma_nguoi_dung,
+        ]);
+
+        DiemDanh::create([
+            'lich_hoc_id' => $schedule->id,
+            'hoc_vien_id' => $student->ma_nguoi_dung,
+            'trang_thai' => 'co_phep',
+            'ghi_chu' => 'Bao truoc voi giang vien',
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->getJson(route('giang-vien.buoi-hoc.diem-danh.show', $schedule->id))
+            ->assertOk()
+            ->assertJsonPath('summary.total_students', 1)
+            ->assertJsonPath('summary.marked_students', 1)
+            ->assertJsonPath('summary.co_phep', 1)
+            ->assertJsonPath('data.0.trang_thai', 'co_phep');
     }
 
     private function createUser(string $role, array $overrides = []): NguoiDung

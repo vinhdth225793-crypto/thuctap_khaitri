@@ -22,13 +22,14 @@ class AttendanceController extends Controller
             : 'giang-vien';
 
         $filterOptions = $this->attendanceReportService->filterOptions();
-        $filters = $request->only(['khoa_hoc_id', 'giang_vien_id', 'lich_hoc_id', 'ngay_hoc', 'trang_thai']);
+        $filters = $request->only(['khoa_hoc_id', 'giang_vien_id', 'lich_hoc_id', 'ngay_hoc', 'trang_thai', 'week_start']);
 
         $teacherAttendances = null;
+        $teacherWeeklyDashboard = null;
         $studentAttendances = null;
 
         if ($activeTab === 'giang-vien') {
-            $teacherAttendances = $this->attendanceReportService->teacherAttendanceReport($filters);
+            $teacherWeeklyDashboard = $this->attendanceReportService->teacherWeeklyDashboard($filters);
         } else {
             $studentAttendances = $this->attendanceReportService->studentAttendanceReport($filters);
         }
@@ -44,6 +45,7 @@ class AttendanceController extends Controller
         return view('pages.admin.diem-danh.index', [
             'activeTab' => $activeTab,
             'teacherAttendances' => $teacherAttendances,
+            'teacherWeeklyDashboard' => $teacherWeeklyDashboard,
             'studentAttendances' => $studentAttendances,
             'courses' => $filterOptions['courses'],
             'teachers' => $filterOptions['teachers'],
@@ -52,14 +54,22 @@ class AttendanceController extends Controller
         ]);
     }
 
-    public function showTeacherAttendance(LichHoc $lichHoc, GiangVien $giangVien)
+    public function showTeacherAttendance(Request $request, LichHoc $lichHoc, GiangVien $giangVien)
     {
         $schedule = $this->attendanceReportService->teacherAttendanceDetail($lichHoc, $giangVien);
+        $backLinkParams = array_filter(
+            array_merge(
+                ['tab' => 'giang-vien'],
+                $request->only(['week_start', 'khoa_hoc_id', 'giang_vien_id', 'trang_thai'])
+            ),
+            fn ($value) => filled($value)
+        );
 
         return view('pages.admin.diem-danh.teacher-show', [
             'schedule' => $schedule,
             'teacher' => $giangVien->load('nguoiDung'),
             'attendance' => $schedule->teacherAttendanceLogs->first(),
+            'backLinkParams' => $backLinkParams,
         ]);
     }
 }

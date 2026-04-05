@@ -9,9 +9,11 @@ use App\Models\PhongHocLive;
 use App\Services\LiveLectureService;
 use App\Services\LiveRoomParticipationService;
 use App\Services\TeacherAttendanceService;
+use App\Services\TeacherAssignmentResolver;
 use App\Services\TeacherScheduleLiveRoomService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class LiveRoomController extends Controller
 {
@@ -20,6 +22,7 @@ class LiveRoomController extends Controller
         private readonly LiveLectureService $liveLectureService,
         private readonly TeacherScheduleLiveRoomService $teacherScheduleLiveRoomService,
         private readonly TeacherAttendanceService $teacherAttendanceService,
+        private readonly TeacherAssignmentResolver $teacherAssignmentResolver,
     ) {
     }
 
@@ -55,11 +58,10 @@ class LiveRoomController extends Controller
             );
         }
 
+        $this->markScheduleFinished($lichHoc);
+
         return redirect()
-            ->route('giang-vien.khoa-hoc.show', [
-                'id' => $lecture->khoa_hoc_id,
-                'focus_lich_hoc_id' => $lichHoc->id,
-            ])
+            ->to($this->buildTeacherCourseSessionUrl($lichHoc))
             ->with('success', 'Da ket thuc phong live noi bo cua buoi hoc.');
     }
 
@@ -68,6 +70,7 @@ class LiveRoomController extends Controller
         [$baiGiang, $phongHocLive] = $this->resolveManagedLectureAndRoom($id);
         $user = auth()->user();
         [$playerMode, $playerUrl, $playerSupportsEmbed] = $this->resolvePlayerState($phongHocLive, true);
+        $sessionLinks = $this->buildScheduleActionLinks($baiGiang->lichHoc);
 
         return view('pages.giang-vien.live-room.show', [
             'mode' => 'teacher',
@@ -76,12 +79,10 @@ class LiveRoomController extends Controller
             'phongHocLive' => $phongHocLive,
             'canManageRoom' => $this->canManageRoom($phongHocLive, $user),
             'canJoinRoom' => filled($phongHocLive->start_url),
-            'backUrl' => $baiGiang->lich_hoc_id
-                ? route('giang-vien.khoa-hoc.show', [
-                    'id' => $baiGiang->khoa_hoc_id,
-                    'focus_lich_hoc_id' => $baiGiang->lich_hoc_id,
-                ])
-                : route('giang-vien.bai-giang.index'),
+            'backUrl' => $sessionLinks['show_course'] ?? route('giang-vien.bai-giang.index'),
+            'attendanceUrl' => $sessionLinks['attendance'] ?? null,
+            'resourceUrl' => $sessionLinks['resources'] ?? null,
+            'examUrl' => $sessionLinks['exams'] ?? null,
             'playerMode' => $playerMode,
             'playerUrl' => $playerUrl,
             'playerSupportsEmbed' => $playerSupportsEmbed,
@@ -92,12 +93,15 @@ class LiveRoomController extends Controller
     {
         [$baiGiang, $phongHocLive] = $this->resolveManagedLectureAndRoom($id);
         abort_unless($this->canManageRoom($phongHocLive, auth()->user()), 403);
+        $this->ensureScheduleRoomActionAllowed($baiGiang, 'start');
 
         $this->participationService->startRoom($phongHocLive, auth()->user());
 
         if ($baiGiang->lichHoc && auth()->user()->giangVien) {
+            $this->markScheduleInProgress($baiGiang->lichHoc);
+
             $this->teacherAttendanceService->ensureCheckInFromRoom(
-                $baiGiang->lichHoc,
+                $baiGiang->lichHoc->fresh('baiGiangs.phongHocLive.nguoiThamGia'),
                 auth()->user()->giangVien,
                 auth()->user(),
                 $phongHocLive->fresh('nguoiThamGia')
@@ -113,12 +117,15 @@ class LiveRoomController extends Controller
     {
         [$baiGiang, $phongHocLive] = $this->resolveManagedLectureAndRoom($id);
         abort_unless($this->canManageRoom($phongHocLive, auth()->user()), 403);
+        $this->ensureScheduleRoomActionAllowed($baiGiang, 'join');
 
         $this->participationService->joinRoom($phongHocLive, auth()->user());
 
         if ($baiGiang->lichHoc && auth()->user()->giangVien) {
+            $this->markScheduleInProgress($baiGiang->lichHoc);
+
             $this->teacherAttendanceService->ensureCheckInFromRoom(
-                $baiGiang->lichHoc,
+                $baiGiang->lichHoc->fresh('baiGiangs.phongHocLive.nguoiThamGia'),
                 auth()->user()->giangVien,
                 auth()->user(),
                 $phongHocLive->fresh('nguoiThamGia')
@@ -154,6 +161,8 @@ class LiveRoomController extends Controller
                 auth()->user(),
                 $phongHocLive->fresh('nguoiThamGia')
             );
+
+            $this->markScheduleFinished($baiGiang->lichHoc);
         }
 
         if ($baiGiang->trang_thai_cong_bo === BaiGiang::CONG_BO_DA_CONG_BO) {
@@ -247,6 +256,91 @@ class LiveRoomController extends Controller
             (int) $phongHocLive->tro_giang_id,
             (int) $phongHocLive->created_by,
         ], true);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function buildScheduleActionLinks(?LichHoc $lichHoc): array
+    {
+        if (!$lichHoc) {
+            return [];
+        }
+
+        return [
+            'show_course' => $this->buildTeacherCourseSessionUrl($lichHoc),
+            'attendance' => $this->buildTeacherCourseSessionUrl($lichHoc, 'attendance'),
+            'resources' => $this->buildTeacherCourseSessionUrl($lichHoc, 'resources'),
+            'exams' => $this->buildTeacherCourseSessionUrl($lichHoc, 'exams'),
+        ];
+    }
+
+    private function buildTeacherCourseSessionUrl(LichHoc $lichHoc, ?string $quickAction = null): string
+    {
+        $params = [
+            'id' => $this->resolveAssignmentIdForSchedule($lichHoc) ?? $lichHoc->khoa_hoc_id,
+            'focus_lich_hoc_id' => $lichHoc->id,
+        ];
+
+        if ($quickAction !== null) {
+            $params['quick_action'] = $quickAction;
+        }
+
+        return route('giang-vien.khoa-hoc.show', $params) . '#session-' . $lichHoc->id;
+    }
+
+    private function resolveAssignmentIdForSchedule(LichHoc $lichHoc): ?int
+    {
+        $giangVien = auth()->user()?->giangVien;
+
+        if (!$giangVien) {
+            return null;
+        }
+
+        return $this->teacherAssignmentResolver->resolveForSchedule($giangVien->id, $lichHoc);
+    }
+
+    private function ensureScheduleRoomActionAllowed(BaiGiang $baiGiang, string $action): void
+    {
+        $lichHoc = $baiGiang->lichHoc;
+
+        if (!$lichHoc) {
+            return;
+        }
+
+        if ($lichHoc->teaching_session_status === 'da_huy') {
+            throw ValidationException::withMessages([
+                'live_room' => 'Buoi hoc da bi huy, khong the tiep tuc thao tac voi phong live.',
+            ]);
+        }
+
+        if ($lichHoc->teaching_session_status === 'da_ket_thuc') {
+            throw ValidationException::withMessages([
+                'live_room' => 'Buoi hoc da ket thuc, khong the mo lai hoac tham gia phong live.',
+            ]);
+        }
+    }
+
+    private function markScheduleInProgress(LichHoc $lichHoc): void
+    {
+        if ($lichHoc->trang_thai === 'dang_hoc' || $lichHoc->trang_thai === 'hoan_thanh') {
+            return;
+        }
+
+        $lichHoc->forceFill([
+            'trang_thai' => 'dang_hoc',
+        ])->save();
+    }
+
+    private function markScheduleFinished(LichHoc $lichHoc): void
+    {
+        if (in_array($lichHoc->trang_thai, ['hoan_thanh', 'huy'], true)) {
+            return;
+        }
+
+        $lichHoc->forceFill([
+            'trang_thai' => 'hoan_thanh',
+        ])->save();
     }
 
     /**

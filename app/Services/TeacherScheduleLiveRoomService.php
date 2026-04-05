@@ -27,6 +27,14 @@ class TeacherScheduleLiveRoomService
 
         $lecture = $this->resolveInternalLecture($lichHoc);
 
+        if (
+            !$lecture
+            || !$lecture->phongHocLive
+            || $lecture->phongHocLive->nen_tang_live !== PhongHocLive::PLATFORM_INTERNAL
+        ) {
+            $this->ensureRoomCanBeProvisioned($lichHoc);
+        }
+
         if (!$lecture) {
             $lecture = BaiGiang::create([
                 'khoa_hoc_id' => $lichHoc->khoa_hoc_id,
@@ -105,6 +113,21 @@ class TeacherScheduleLiveRoomService
         throw ValidationException::withMessages([
             'live_room' => 'Chi buoi hoc online moi duoc tao phong live noi bo.',
         ]);
+    }
+
+    private function ensureRoomCanBeProvisioned(LichHoc $lichHoc): void
+    {
+        if ($lichHoc->teaching_session_status === 'da_huy') {
+            throw ValidationException::withMessages([
+                'live_room' => 'Buoi hoc da bi huy nen khong the tao moi phong live noi bo.',
+            ]);
+        }
+
+        if ($lichHoc->teaching_session_status === 'da_ket_thuc') {
+            throw ValidationException::withMessages([
+                'live_room' => 'Buoi hoc da ket thuc nen khong the tao moi phong live noi bo.',
+            ]);
+        }
     }
 
     private function buildLectureTitle(LichHoc $lichHoc): string

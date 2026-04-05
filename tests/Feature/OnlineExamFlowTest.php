@@ -74,6 +74,133 @@ class OnlineExamFlowTest extends TestCase
             ->assertDontSeeText('De nhap chua phat hanh');
     }
 
+    public function test_teacher_submit_admin_approve_publish_and_student_can_start_exam(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        $student = $this->createStudent();
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+        $lichHoc = $this->createLichHoc($course, $module);
+
+        $this->assignTeacher($admin, $teacher, $course, $module);
+        $this->enrollStudent($admin, $student, $course);
+
+        $exam = BaiKiemTra::create([
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => $module->id,
+            'lich_hoc_id' => $lichHoc->id,
+            'tieu_de' => 'De thi gui duyet end to end',
+            'mo_ta' => 'De thi cho hoc vien lam sau khi admin phat hanh.',
+            'thoi_gian_lam_bai' => 20,
+            'ngay_mo' => now()->subMinutes(5),
+            'ngay_dong' => now()->addHour(),
+            'pham_vi' => 'buoi_hoc',
+            'loai_bai_kiem_tra' => 'buoi_hoc',
+            'loai_noi_dung' => 'trac_nghiem',
+            'trang_thai_duyet' => 'nhap',
+            'trang_thai_phat_hanh' => 'nhap',
+            'tong_diem' => 10,
+            'so_lan_duoc_lam' => 1,
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+            'trang_thai' => true,
+        ]);
+
+        $question = $this->createReadyQuestion(
+            $admin,
+            $course,
+            $module,
+            'CH-E2E-001',
+            'Hoc vien co lam duoc de sau khi admin phat hanh khong?'
+        );
+
+        DapAnCauHoi::create([
+            'ngan_hang_cau_hoi_id' => $question->id,
+            'ky_hieu' => 'A',
+            'noi_dung' => 'Co',
+            'is_dap_an_dung' => true,
+            'thu_tu' => 1,
+        ]);
+
+        DapAnCauHoi::create([
+            'ngan_hang_cau_hoi_id' => $question->id,
+            'ky_hieu' => 'B',
+            'noi_dung' => 'Khong',
+            'is_dap_an_dung' => false,
+            'thu_tu' => 2,
+        ]);
+
+        $exam->chiTietCauHois()->create([
+            'ngan_hang_cau_hoi_id' => $question->id,
+            'thu_tu' => 1,
+            'diem_so' => 10,
+            'bat_buoc' => true,
+        ]);
+
+        $this->actingAs($student)
+            ->get(route('hoc-vien.bai-kiem-tra'))
+            ->assertOk()
+            ->assertDontSeeText($exam->tieu_de);
+
+        $this->actingAs($teacherUser)
+            ->from(route('giang-vien.bai-kiem-tra.edit', $exam->id))
+            ->post(route('giang-vien.bai-kiem-tra.submit', $exam->id))
+            ->assertRedirect(route('giang-vien.bai-kiem-tra.edit', $exam->id))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('bai_kiem_tra', [
+            'id' => $exam->id,
+            'trang_thai_duyet' => 'cho_duyet',
+            'trang_thai_phat_hanh' => 'nhap',
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('admin.kiem-tra-online.phe-duyet.show', $exam->id))
+            ->post(route('admin.kiem-tra-online.phe-duyet.approve', $exam->id), [
+                'ghi_chu_duyet' => 'De hop le, du dieu kien phat hanh.',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('bai_kiem_tra', [
+            'id' => $exam->id,
+            'trang_thai_duyet' => 'da_duyet',
+        ]);
+
+        $this->actingAs($student)
+            ->get(route('hoc-vien.bai-kiem-tra'))
+            ->assertOk()
+            ->assertDontSeeText($exam->tieu_de);
+
+        $this->actingAs($admin)
+            ->from(route('admin.kiem-tra-online.phe-duyet.show', $exam->id))
+            ->post(route('admin.kiem-tra-online.phe-duyet.publish', $exam->id))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('bai_kiem_tra', [
+            'id' => $exam->id,
+            'trang_thai_duyet' => 'da_duyet',
+            'trang_thai_phat_hanh' => 'phat_hanh',
+            'trang_thai' => 1,
+        ]);
+
+        $this->actingAs($student)
+            ->get(route('hoc-vien.bai-kiem-tra'))
+            ->assertOk()
+            ->assertSeeText($exam->tieu_de);
+
+        $this->actingAs($student)
+            ->post(route('hoc-vien.bai-kiem-tra.bat-dau', $exam->id))
+            ->assertRedirect(route('hoc-vien.bai-kiem-tra.show', $exam->id));
+
+        $this->assertDatabaseHas('bai_lam_bai_kiem_tra', [
+            'bai_kiem_tra_id' => $exam->id,
+            'hoc_vien_id' => $student->ma_nguoi_dung,
+            'trang_thai' => 'dang_lam',
+        ]);
+    }
+
     public function test_student_can_submit_mixed_exam_and_mcq_is_auto_graded(): void
     {
         $context = $this->buildMixedExamContext();
@@ -379,6 +506,51 @@ class OnlineExamFlowTest extends TestCase
         $response->assertOk();
         $response->assertSeeText('Laravel route helper la gi?');
         $response->assertDontSeeText('Docker compose dung de lam gi?');
+    }
+
+    public function test_teacher_exam_builder_renders_questions_tab_active_from_query_param(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+
+        $this->assignTeacher($admin, $teacher, $course, $module);
+
+        $exam = BaiKiemTra::create([
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => $module->id,
+            'tieu_de' => 'Editable exam',
+            'thoi_gian_lam_bai' => 30,
+            'pham_vi' => 'module',
+            'loai_bai_kiem_tra' => 'module',
+            'loai_noi_dung' => 'tu_luan',
+            'trang_thai_duyet' => 'nhap',
+            'trang_thai_phat_hanh' => 'nhap',
+            'tong_diem' => 10,
+            'so_lan_duoc_lam' => 1,
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+            'trang_thai' => true,
+        ]);
+
+        $question = $this->createReadyQuestion(
+            $admin,
+            $course,
+            $module,
+            'CH-TAB-001',
+            'Question visible ngay khi mo tab questions'
+        );
+
+        $response = $this->actingAs($teacherUser)->get(route('giang-vien.bai-kiem-tra.edit', [
+            'id' => $exam->id,
+            'tab' => 'questions',
+            'question_loai_cau_hoi' => 'trac_nghiem',
+        ]));
+
+        $response->assertOk();
+        $response->assertSeeText($question->noi_dung);
+        $response->assertSee('<button class="nav-link active py-3 fw-bold" id="questions-tab" data-bs-toggle="tab" data-bs-target="#questions" type="button" role="tab" aria-selected="true">', false);
+        $response->assertSee('<div class="tab-pane fade show active" id="questions" role="tabpanel">', false);
     }
 
     public function test_teacher_exam_builder_includes_course_level_questions_for_module_exam(): void

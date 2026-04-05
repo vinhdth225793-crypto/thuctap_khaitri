@@ -194,14 +194,19 @@
                                 
                                 @if($lichHocId)
                                     <div class="row g-2">
-                                        <div class="col-6">
-                                            <a href="{{ route('giang-vien.buoi-hoc.diem-danh.show', $lichHocId) }}" class="btn btn-outline-info w-100 py-2 fw-bold">
+                                        <div class="col-4">
+                                            <a href="{{ $attendanceUrl ?: $backUrl }}" class="btn btn-outline-info w-100 py-2 fw-bold">
                                                 <i class="fas fa-user-check d-block mb-1"></i> Điểm danh
                                             </a>
                                         </div>
-                                        <div class="col-6">
-                                            <a href="{{ route('giang-vien.khoa-hoc.show', ['id' => $baiGiang->khoaHoc->id, 'focus_lich_hoc_id' => $lichHocId]) }}#session-{{ $lichHocId }}" class="btn btn-outline-info w-100 py-2 fw-bold">
+                                        <div class="col-4">
+                                            <a href="{{ $resourceUrl ?: $backUrl }}" class="btn btn-outline-info w-100 py-2 fw-bold">
                                                 <i class="fas fa-folder-open d-block mb-1"></i> Tài nguyên
+                                            </a>
+                                        </div>
+                                        <div class="col-4">
+                                            <a href="{{ $examUrl ?: $backUrl }}" class="btn btn-outline-danger w-100 py-2 fw-bold">
+                                                <i class="fas fa-file-signature d-block mb-1"></i> Bài kiểm tra
                                             </a>
                                         </div>
                                     </div>

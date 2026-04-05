@@ -9,6 +9,14 @@
     $selectableQuestionIds = $selectableQuestionIds ?? [];
     $importedQuestionIds = collect(session('exam_imported_question_ids', []))->map(fn ($id) => (int) $id)->all();
     $viewErrors = $errors ?? new \Illuminate\Support\ViewErrorBag();
+    $activeExamTab = in_array($activeTab ?? null, ['info', 'scoring', 'import', 'questions'], true)
+        ? $activeTab
+        : 'info';
+    $questionFilterIsActive = filled($questionFilters['search'] ?? null)
+        || filled($questionFilters['module_hoc_id'] ?? null)
+        || filled($questionFilters['loai_cau_hoi'] ?? null)
+        || filled($questionFilters['muc_do'] ?? null)
+        || filled($questionFilters['trang_thai'] ?? null);
 @endphp
 
 <div class="container-fluid">
@@ -138,22 +146,22 @@
                 <div class="card-header bg-white p-0 border-0">
                     <ul class="nav nav-tabs nav-justified border-0 modern-tabs" id="examTabs" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active py-3 fw-bold" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab">
+                            <button class="nav-link {{ $activeExamTab === 'info' ? 'active' : '' }} py-3 fw-bold" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab" aria-selected="{{ $activeExamTab === 'info' ? 'true' : 'false' }}">
                                 <i class="fas fa-info-circle me-2"></i>Cấu hình chính
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link py-3 fw-bold" id="scoring-tab" data-bs-toggle="tab" data-bs-target="#scoring" type="button" role="tab">
+                            <button class="nav-link {{ $activeExamTab === 'scoring' ? 'active' : '' }} py-3 fw-bold" id="scoring-tab" data-bs-toggle="tab" data-bs-target="#scoring" type="button" role="tab" aria-selected="{{ $activeExamTab === 'scoring' ? 'true' : 'false' }}">
                                 <i class="fas fa-calculator me-2"></i>Thiết lập điểm
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link py-3 fw-bold" id="import-tab" data-bs-toggle="tab" data-bs-target="#import" type="button" role="tab">
+                            <button class="nav-link {{ $activeExamTab === 'import' ? 'active' : '' }} py-3 fw-bold" id="import-tab" data-bs-toggle="tab" data-bs-target="#import" type="button" role="tab" aria-selected="{{ $activeExamTab === 'import' ? 'true' : 'false' }}">
                                 <i class="fas fa-file-import me-2"></i>Import file
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link py-3 fw-bold" id="questions-tab" data-bs-toggle="tab" data-bs-target="#questions" type="button" role="tab">
+                            <button class="nav-link {{ $activeExamTab === 'questions' ? 'active' : '' }} py-3 fw-bold" id="questions-tab" data-bs-toggle="tab" data-bs-target="#questions" type="button" role="tab" aria-selected="{{ $activeExamTab === 'questions' ? 'true' : 'false' }}">
                                 <i class="fas fa-list-check me-2"></i>Ngân hàng câu hỏi
                             </button>
                         </li>
@@ -167,7 +175,7 @@
                     <div class="card-body p-4">
                         <div class="tab-content" id="examTabsContent">
                             <!-- Tab 1: Thông tin chung -->
-                            <div class="tab-pane fade show active" id="info" role="tabpanel">
+                            <div class="tab-pane fade {{ $activeExamTab === 'info' ? 'show active' : '' }}" id="info" role="tabpanel">
                                 <div class="row g-4">
                                     <div class="col-md-8">
                                         <label class="form-label fw-bold">Tiêu đề bài kiểm tra</label>
@@ -220,7 +228,7 @@
                             </div>
 
                             <!-- Tab 2: Ngân hàng câu hỏi -->
-                            <div class="tab-pane fade" id="questions" role="tabpanel">
+                            <div class="tab-pane fade {{ $activeExamTab === 'questions' ? 'show active' : '' }}" id="questions" role="tabpanel">
                                 <div class="row g-4">
                                     <div class="col-lg-9 border-end pe-lg-4">
                                         <div class="d-flex justify-content-between align-items-center mb-4 gap-3 flex-wrap">
@@ -252,7 +260,7 @@
                                             </div>
                                         </div>
 
-                                        <div class="card bg-light border-0 shadow-none mb-4 {{ empty($questionFilters['search']) && empty($questionFilters['loai_cau_hoi']) ? 'd-none' : '' }}" id="filterSection">
+                                        <div class="card bg-light border-0 shadow-none mb-4 {{ $questionFilterIsActive ? '' : 'd-none' }}" id="filterSection">
                                             <div class="card-body">
                                                 <div class="row g-3">
                                                     <div class="col-md-4">
@@ -396,7 +404,7 @@
                             </div>
 
                             <!-- Tab 3: Import -->
-                            <div class="tab-pane fade" id="import" role="tabpanel">
+                            <div class="tab-pane fade {{ $activeExamTab === 'import' ? 'show active' : '' }}" id="import" role="tabpanel">
                                 <div class="text-center py-5">
                                     <div class="icon-circle bg-soft-success text-success mx-auto mb-4" style="width: 100px; height: 100px; font-size: 3rem;">
                                         <i class="fas fa-file-excel"></i>
@@ -460,7 +468,7 @@
                             </div>
 
                             <!-- Tab 4: Thiết lập điểm -->
-                            <div class="tab-pane fade" id="scoring" role="tabpanel">
+                            <div class="tab-pane fade {{ $activeExamTab === 'scoring' ? 'show active' : '' }}" id="scoring" role="tabpanel">
                                 <div class="mb-5">
                                     <h5 class="fw-bold mb-4">Chọn chế độ tính điểm</h5>
                                     <div class="row g-3">

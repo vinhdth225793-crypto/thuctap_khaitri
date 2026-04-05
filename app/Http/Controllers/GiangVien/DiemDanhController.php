@@ -72,11 +72,22 @@ class DiemDanhController extends Controller
             ];
         });
 
+        $summary = [
+            'total_students' => $hocViens->count(),
+            'marked_students' => $diemDanhs->count(),
+            'co_mat' => $diemDanhs->where('trang_thai', 'co_mat')->count(),
+            'vang_mat' => $diemDanhs->where('trang_thai', 'vang_mat')->count(),
+            'vao_tre' => $diemDanhs->where('trang_thai', 'vao_tre')->count(),
+            'co_phep' => $diemDanhs->where('trang_thai', 'co_phep')->count(),
+            'is_finalized' => $lichHoc->trang_thai_bao_cao === 'da_bao_cao',
+        ];
+
         return response()->json([
             'success' => true,
             'ngay' => $lichHoc->ngay_hoc->format('d/m/Y'),
             'bao_cao' => $lichHoc->bao_cao_giang_vien,
             'trang_thai_bao_cao' => $lichHoc->trang_thai_bao_cao,
+            'summary' => $summary,
             'data' => $data,
         ]);
     }
@@ -107,7 +118,7 @@ class DiemDanhController extends Controller
         $request->validate([
             'attendance' => 'required|array',
             'attendance.*.hoc_vien_id' => ['required', 'integer', Rule::in($hocVienIds)],
-            'attendance.*.trang_thai' => 'required|in:co_mat,vang_mat,vao_tre',
+            'attendance.*.trang_thai' => 'required|in:co_mat,vang_mat,vao_tre,co_phep',
             'attendance.*.ghi_chu' => 'nullable|string|max:255',
         ]);
 
@@ -136,7 +147,7 @@ class DiemDanhController extends Controller
                 $this->ketQuaHocTapService->refreshForCourseStudent((int) $lichHoc->khoa_hoc_id, $hocVienId);
             }
 
-            return back()->with('success', 'Đã lưu dữ liệu điểm danh thành công.');
+            return back()->with('success', 'Đã lưu dữ liệu điểm danh học viên thành công.');
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -163,7 +174,7 @@ class DiemDanhController extends Controller
                 'trang_thai_bao_cao' => 'da_bao_cao',
             ]);
 
-            return back()->with('success', 'Đã gửi báo cáo điểm danh cho Admin thành công.');
+            return back()->with('success', 'Đã chốt attendance và gửi báo cáo cho Admin thành công.');
         } catch (\Exception $e) {
             return back()->with('error', 'Lỗi khi gửi báo cáo: ' . $e->getMessage());
         }

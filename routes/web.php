@@ -292,6 +292,8 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
     Route::get('/khoa-hoc', [PhanCongController::class, 'index'])->name('khoa-hoc');
     Route::get('/khoa-hoc/{id}', [PhanCongController::class, 'show'])->name('khoa-hoc.show');
     Route::post('/khoa-hoc/{id}/xac-nhan', [PhanCongController::class, 'xacNhan'])->name('khoa-hoc.xac-nhan');
+    Route::post('/buoi-hoc/{id}/bat-dau', [PhanCongController::class, 'startTeachingSession'])->name('buoi-hoc.start');
+    Route::post('/buoi-hoc/{id}/ket-thuc', [PhanCongController::class, 'finishTeachingSession'])->name('buoi-hoc.finish');
     Route::put('/buoi-hoc/{id}/link', [PhanCongController::class, 'updateLinkOnline'])->name('buoi-hoc.update-link');
     Route::get('/diem-danh', [DiemDanhController::class, 'redirectToSession'])->name('diem-danh.index');
     Route::get('/tai-nguyen', [TaiNguyenController::class, 'redirectToSession'])->name('tai-nguyen.index');

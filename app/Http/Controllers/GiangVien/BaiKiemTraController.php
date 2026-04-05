@@ -160,6 +160,9 @@ class BaiKiemTraController extends Controller
             'muc_do' => $request->filled('question_muc_do') ? (string) $request->string('question_muc_do') : null,
             'trang_thai' => $request->filled('question_trang_thai') ? (string) $request->string('question_trang_thai') : null,
         ];
+        $activeTab = in_array($request->query('tab'), ['info', 'scoring', 'import', 'questions'], true)
+            ? (string) $request->query('tab')
+            : 'info';
 
         $availableQuestions = $this->questionSelectionService
             ->buildDisplayQuery($baiKiemTra, $questionFilters)
@@ -201,6 +204,7 @@ class BaiKiemTraController extends Controller
             'baiKiemTra',
             'availableQuestions',
             'questionFilters',
+            'activeTab',
             'questionTypeOptions',
             'difficultyOptions',
             'statusOptions',

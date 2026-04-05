@@ -15,6 +15,40 @@ use Illuminate\Validation\ValidationException;
 
 class TeacherAttendanceService
 {
+    public function ensureCheckIn(
+        LichHoc $lichHoc,
+        GiangVien $giangVien,
+        NguoiDung $actor,
+        array $context = []
+    ): DiemDanhGiangVien {
+        $attendance = $this->findAttendance($lichHoc, $giangVien);
+
+        if ($attendance?->thoi_gian_bat_dau_day !== null) {
+            return $attendance;
+        }
+
+        return $this->checkIn($lichHoc, $giangVien, $actor, $context);
+    }
+
+    public function ensureCheckOut(
+        LichHoc $lichHoc,
+        GiangVien $giangVien,
+        NguoiDung $actor,
+        array $context = []
+    ): ?DiemDanhGiangVien {
+        $attendance = $this->findAttendance($lichHoc, $giangVien);
+
+        if (!$attendance || $attendance->thoi_gian_bat_dau_day === null) {
+            return null;
+        }
+
+        if ($attendance->thoi_gian_ket_thuc_day !== null) {
+            return $attendance;
+        }
+
+        return $this->checkOut($lichHoc, $giangVien, $actor, $context);
+    }
+
     public function checkIn(
         LichHoc $lichHoc,
         GiangVien $giangVien,
@@ -22,6 +56,7 @@ class TeacherAttendanceService
         array $context = []
     ): DiemDanhGiangVien {
         $this->ensureTeacherCanManage($lichHoc, $giangVien);
+        $this->ensureAttendanceCanCheckIn($lichHoc);
 
         return DB::transaction(function () use ($lichHoc, $giangVien, $actor, $context) {
             $attendance = DiemDanhGiangVien::query()->firstOrNew([
@@ -31,7 +66,7 @@ class TeacherAttendanceService
 
             if ($attendance->thoi_gian_bat_dau_day !== null) {
                 throw ValidationException::withMessages([
-                    'teacher_attendance' => 'Buoi hoc nay da duoc giang vien check-in truoc do.',
+                    'teacher_attendance' => 'Buổi học này đã được giảng viên check-in trước đó.',
                 ]);
             }
 
@@ -47,7 +82,7 @@ class TeacherAttendanceService
                 'trang_thai' => DiemDanhGiangVien::STATUS_DA_CHECKIN,
                 'nguoi_tao_id' => $actor->ma_nguoi_dung,
                 'ghi_chu' => $this->appendNotes($attendance->ghi_chu, [
-                    'Check-in luc ' . $checkedInAt->format('d/m/Y H:i'),
+                    'Check-in lúc ' . $checkedInAt->format('d/m/Y H:i'),
                     $liveNote,
                     $context['note'] ?? null,
                 ]),
@@ -71,6 +106,7 @@ class TeacherAttendanceService
         array $context = []
     ): DiemDanhGiangVien {
         $this->ensureTeacherCanManage($lichHoc, $giangVien);
+        $this->ensureAttendanceCanCheckOut($lichHoc);
 
         return DB::transaction(function () use ($lichHoc, $giangVien, $actor, $context) {
             $attendance = DiemDanhGiangVien::query()
@@ -80,13 +116,13 @@ class TeacherAttendanceService
 
             if (!$attendance || $attendance->thoi_gian_bat_dau_day === null) {
                 throw ValidationException::withMessages([
-                    'teacher_attendance' => 'Ban can check-in truoc khi check-out buoi hoc nay.',
+                    'teacher_attendance' => 'Bạn cần check-in trước khi check-out buổi học này.',
                 ]);
             }
 
             if ($attendance->thoi_gian_ket_thuc_day !== null) {
                 throw ValidationException::withMessages([
-                    'teacher_attendance' => 'Buoi hoc nay da duoc giang vien check-out truoc do.',
+                    'teacher_attendance' => 'Buổi học này đã được giảng viên check-out trước đó.',
                 ]);
             }
 
@@ -101,8 +137,8 @@ class TeacherAttendanceService
                 'trang_thai' => DiemDanhGiangVien::STATUS_HOAN_THANH,
                 'nguoi_tao_id' => $actor->ma_nguoi_dung,
                 'ghi_chu' => $this->appendNotes($attendance->ghi_chu, [
-                    'Check-out luc ' . $checkedOutAt->format('d/m/Y H:i'),
-                    'Tong thoi luong giang day: ' . $teachingMinutes . ' phut',
+                    'Check-out lúc ' . $checkedOutAt->format('d/m/Y H:i'),
+                    'Tổng thời lượng giảng dạy: ' . $teachingMinutes . ' phút',
                     $liveNote,
                     $context['note'] ?? null,
                 ]),
@@ -136,9 +172,9 @@ class TeacherAttendanceService
             return $attendance;
         }
 
-        return $this->checkIn($lichHoc, $giangVien, $actor, [
+        return $this->ensureCheckIn($lichHoc, $giangVien, $actor, [
             'room' => $room,
-            'note' => 'Tu dong check-in khi giang vien vao phong live noi bo.',
+            'note' => 'Tự động check-in khi giảng viên vào phòng live nội bộ.',
         ]);
     }
 
@@ -158,9 +194,9 @@ class TeacherAttendanceService
             return $attendance;
         }
 
-        return $this->checkOut($lichHoc, $giangVien, $actor, [
+        return $this->ensureCheckOut($lichHoc, $giangVien, $actor, [
             'room' => $room,
-            'note' => 'Tu dong check-out khi giang vien ket thuc phong live noi bo.',
+            'note' => 'Tự động check-out khi giảng viên kết thúc phòng live nội bộ.',
         ]);
     }
 
@@ -195,7 +231,7 @@ class TeacherAttendanceService
         }
 
         throw ValidationException::withMessages([
-            'teacher_attendance' => 'Ban khong duoc phan cong giang day buoi hoc nay.',
+            'teacher_attendance' => 'Bạn không được phân công giảng dạy buổi học này.',
         ]);
     }
 
@@ -207,6 +243,30 @@ class TeacherAttendanceService
             ->first();
     }
 
+    private function ensureAttendanceCanCheckIn(LichHoc $lichHoc): void
+    {
+        if ($lichHoc->teaching_session_status === 'da_ket_thuc') {
+            throw ValidationException::withMessages([
+                'teacher_attendance' => 'Buổi học này đã kết thúc nên không thể check-in thêm.',
+            ]);
+        }
+
+        if ($lichHoc->teaching_session_status === 'da_huy') {
+            throw ValidationException::withMessages([
+                'teacher_attendance' => 'Buổi học này đã bị hủy nên không thể thực hiện attendance.',
+            ]);
+        }
+    }
+
+    private function ensureAttendanceCanCheckOut(LichHoc $lichHoc): void
+    {
+        if ($lichHoc->teaching_session_status === 'da_huy') {
+            throw ValidationException::withMessages([
+                'teacher_attendance' => 'Buổi học này đã bị hủy nên không thể thực hiện attendance.',
+            ]);
+        }
+    }
+
     private function resolveLiveStart(
         LichHoc $lichHoc,
         GiangVien $giangVien,
@@ -214,23 +274,23 @@ class TeacherAttendanceService
         ?PhongHocLive $room = null
     ): array {
         if ($lichHoc->hinh_thuc !== 'online') {
-            return [null, 'Buoi hoc truc tiep khong su dung room live noi bo.'];
+            return [null, 'Buổi học trực tiếp không sử dụng room live nội bộ.'];
         }
 
         $room = $room ?: $this->resolveLinkedLiveRoom($lichHoc);
 
         if (!$room) {
             if (filled($lichHoc->link_online)) {
-                return [$fallbackAt, 'Su dung moc check-in lam thoi diem mo live vi buoi hoc chi co link online ben ngoai.'];
+                return [$fallbackAt, 'Dùng mốc check-in làm thời điểm mở live vì buổi học chỉ có link online bên ngoài.'];
             }
 
-            return [null, 'Buoi hoc online chua co room live noi bo, he thong chi ghi nhan gio check-in.'];
+            return [null, 'Buổi học online chưa có room live nội bộ, hệ thống chỉ ghi nhận giờ check-in.'];
         }
 
         $participant = $this->resolveTeacherParticipant($room, $giangVien);
         $startedAt = $participant?->joined_at ?? $fallbackAt;
 
-        return [$startedAt, 'Dong bo gio mo live tu phong ' . $room->platform_label . '.'];
+        return [$startedAt, 'Đồng bộ giờ mở live từ phòng ' . $room->platform_label . '.'];
     }
 
     private function resolveLiveEnd(
@@ -240,23 +300,23 @@ class TeacherAttendanceService
         ?PhongHocLive $room = null
     ): array {
         if ($lichHoc->hinh_thuc !== 'online') {
-            return [null, 'Buoi hoc truc tiep khong co room live can dong bo.'];
+            return [null, 'Buổi học trực tiếp không có room live cần đồng bộ.'];
         }
 
         $room = $room ?: $this->resolveLinkedLiveRoom($lichHoc);
 
         if (!$room) {
             if (filled($lichHoc->link_online)) {
-                return [$fallbackAt, 'Su dung moc check-out lam thoi diem tat live vi buoi hoc chi co link online ben ngoai.'];
+                return [$fallbackAt, 'Dùng mốc check-out làm thời điểm tắt live vì buổi học chỉ có link online bên ngoài.'];
             }
 
-            return [null, 'Buoi hoc online chua co room live noi bo nen he thong chi ghi nhan gio check-out.'];
+            return [null, 'Buổi học online chưa có room live nội bộ nên hệ thống chỉ ghi nhận giờ check-out.'];
         }
 
         $participant = $this->resolveTeacherParticipant($room, $giangVien);
         $endedAt = $participant?->left_at ?? $fallbackAt;
 
-        return [$endedAt, 'Dong bo gio tat live tu phong ' . $room->platform_label . '.'];
+        return [$endedAt, 'Đồng bộ giờ tắt live từ phòng ' . $room->platform_label . '.'];
     }
 
     private function resolveLinkedLiveRoom(LichHoc $lichHoc): ?PhongHocLive

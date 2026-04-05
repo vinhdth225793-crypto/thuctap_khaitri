@@ -7,7 +7,7 @@
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb small">
             <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Trang chủ</a></li>
-            <li class="breadcrumb-item"><a href="{{ route('admin.diem-danh.index', ['tab' => 'giang-vien']) }}">Điểm danh</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('admin.diem-danh.index', $backLinkParams ?? ['tab' => 'giang-vien']) }}">Điểm danh</a></li>
             <li class="breadcrumb-item active" aria-current="page">Chi tiết giảng viên</li>
         </ol>
     </nav>
@@ -21,7 +21,7 @@
                 {{ $teacher->nguoiDung?->ho_ten ?? 'N/A' }} | {{ $schedule->khoaHoc?->ten_khoa_hoc }} | Buổi #{{ $schedule->buoi_so }}
             </div>
         </div>
-        <a href="{{ route('admin.diem-danh.index', ['tab' => 'giang-vien']) }}" class="btn btn-outline-secondary">
+        <a href="{{ route('admin.diem-danh.index', $backLinkParams ?? ['tab' => 'giang-vien']) }}" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left me-1"></i>Quay lại
         </a>
     </div>

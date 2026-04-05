@@ -329,6 +329,9 @@ class LiveRoomWorkflowTest extends TestCase
             ->post(route('giang-vien.live-room.start', $lecture->id))
             ->assertRedirect(route('giang-vien.live-room.show', ['id' => $lecture->id, 'player' => 'host']));
 
+        $lichHoc->refresh();
+        $this->assertSame('dang_hoc', $lichHoc->trang_thai);
+
         $this->assertDatabaseHas('diem_danh_giang_vien', [
             'lich_hoc_id' => $lichHoc->id,
             'giang_vien_id' => $teacher->id,
@@ -346,10 +349,94 @@ class LiveRoomWorkflowTest extends TestCase
             ->where('giang_vien_id', $teacher->id)
             ->firstOrFail();
 
+        $lichHoc->refresh();
+
+        $this->assertSame('hoan_thanh', $lichHoc->trang_thai);
         $this->assertSame('hoan_thanh', $attendance->trang_thai);
         $this->assertSame('2026-04-08 10:30:00', $attendance->thoi_gian_ket_thuc_day?->format('Y-m-d H:i:s'));
 
         Carbon::setTestNow();
+    }
+
+    public function test_teacher_live_room_page_uses_assignment_context_for_session_actions(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        $this->createCourse($admin);
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+        $assignment = $this->assignTeacher($admin, $teacher, $course, $module);
+        $lichHoc = $this->createLichHoc($course, $module, [
+            'ngay_hoc' => '2026-04-09',
+            'gio_bat_dau' => '09:00:00',
+            'gio_ket_thuc' => '10:30:00',
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->post(route('giang-vien.live-room.schedule.create', $lichHoc->id))
+            ->assertSessionHas('success');
+
+        $lecture = BaiGiang::query()
+            ->where('lich_hoc_id', $lichHoc->id)
+            ->where('loai_bai_giang', BaiGiang::TYPE_LIVE)
+            ->firstOrFail();
+
+        $showCourseUrl = route('giang-vien.khoa-hoc.show', [
+            'id' => $assignment->id,
+            'focus_lich_hoc_id' => $lichHoc->id,
+        ]) . '#session-' . $lichHoc->id;
+
+        $attendanceUrl = route('giang-vien.khoa-hoc.show', [
+            'id' => $assignment->id,
+            'focus_lich_hoc_id' => $lichHoc->id,
+            'quick_action' => 'attendance',
+        ]) . '#session-' . $lichHoc->id;
+
+        $resourceUrl = route('giang-vien.khoa-hoc.show', [
+            'id' => $assignment->id,
+            'focus_lich_hoc_id' => $lichHoc->id,
+            'quick_action' => 'resources',
+        ]) . '#session-' . $lichHoc->id;
+
+        $examUrl = route('giang-vien.khoa-hoc.show', [
+            'id' => $assignment->id,
+            'focus_lich_hoc_id' => $lichHoc->id,
+            'quick_action' => 'exams',
+        ]) . '#session-' . $lichHoc->id;
+
+        $this->actingAs($teacherUser)
+            ->get(route('giang-vien.live-room.show', $lecture->id))
+            ->assertOk()
+            ->assertSee(htmlspecialchars($showCourseUrl, ENT_QUOTES, 'UTF-8'), false)
+            ->assertSee(htmlspecialchars($attendanceUrl, ENT_QUOTES, 'UTF-8'), false)
+            ->assertSee(htmlspecialchars($resourceUrl, ENT_QUOTES, 'UTF-8'), false)
+            ->assertSee(htmlspecialchars($examUrl, ENT_QUOTES, 'UTF-8'), false);
+    }
+
+    public function test_teacher_cannot_create_new_internal_room_for_completed_schedule(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+        $this->assignTeacher($admin, $teacher, $course, $module);
+        $lichHoc = $this->createLichHoc($course, $module, [
+            'ngay_hoc' => '2026-04-10',
+            'gio_bat_dau' => '09:00:00',
+            'gio_ket_thuc' => '10:30:00',
+            'trang_thai' => 'hoan_thanh',
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->from(route('giang-vien.khoa-hoc.show', $course->id))
+            ->post(route('giang-vien.live-room.schedule.create', $lichHoc->id))
+            ->assertRedirect(route('giang-vien.khoa-hoc.show', $course->id))
+            ->assertSessionHasErrors('live_room');
+
+        $this->assertDatabaseMissing('bai_giangs', [
+            'lich_hoc_id' => $lichHoc->id,
+            'loai_bai_giang' => BaiGiang::TYPE_LIVE,
+        ]);
     }
 
     public function test_teacher_live_room_page_shows_start_action_when_room_reaches_start_time(): void
