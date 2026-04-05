@@ -11,6 +11,7 @@ class PhongHocLive extends Model
 {
     use HasFactory, SoftDeletes;
 
+    public const PLATFORM_INTERNAL = 'internal';
     public const PLATFORM_ZOOM = 'zoom';
     public const PLATFORM_GOOGLE_MEET = 'google_meet';
 
@@ -245,5 +246,32 @@ class PhongHocLive extends Model
     public function isDangDienRa(): bool
     {
         return $this->trang_thai_phong === self::ROOM_STATE_DANG_DIEN_RA;
+    }
+
+    public function getTeachingTimelineStatusAttribute(): string
+    {
+        return match ($this->trang_thai_phong) {
+            self::ROOM_STATE_DANG_DIEN_RA => 'dang_dien_ra',
+            self::ROOM_STATE_DA_KET_THUC, self::ROOM_STATE_DA_HUY => 'da_ket_thuc',
+            default => 'da_tao',
+        };
+    }
+
+    public function getTeachingTimelineStatusLabelAttribute(): string
+    {
+        return match ($this->teaching_timeline_status) {
+            'dang_dien_ra' => 'Dang dien ra',
+            'da_ket_thuc' => 'Da ket thuc',
+            default => 'Da tao',
+        };
+    }
+
+    public function getTeachingTimelineStatusColorAttribute(): string
+    {
+        return match ($this->teaching_timeline_status) {
+            'dang_dien_ra' => 'success',
+            'da_ket_thuc' => 'dark',
+            default => 'info',
+        };
     }
 }

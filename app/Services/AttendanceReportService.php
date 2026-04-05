@@ -19,7 +19,6 @@ class AttendanceReportService
                 'giangVien.nguoiDung',
                 'teacherAttendanceLogs.giangVien.nguoiDung',
             ])
-            ->where('hinh_thuc', 'online')
             ->when(filled($filters['khoa_hoc_id'] ?? null), fn ($query) => $query->where('khoa_hoc_id', (int) $filters['khoa_hoc_id']))
             ->when(filled($filters['giang_vien_id'] ?? null), function ($query) use ($filters) {
                 $teacherId = (int) $filters['giang_vien_id'];
@@ -39,7 +38,14 @@ class AttendanceReportService
                     return;
                 }
 
-                $query->whereHas('teacherAttendanceLogs', fn ($attendanceQuery) => $attendanceQuery->where('trang_thai', $status));
+                $mappedStatuses = match ($status) {
+                    'da_checkin', 'dang_day' => ['da_checkin', 'dang_day'],
+                    'da_checkout' => ['da_checkout'],
+                    'hoan_thanh', 'da_ket_thuc' => ['hoan_thanh', 'da_ket_thuc'],
+                    default => [$status],
+                };
+
+                $query->whereHas('teacherAttendanceLogs', fn ($attendanceQuery) => $attendanceQuery->whereIn('trang_thai', $mappedStatuses));
             })
             ->orderByDesc('ngay_hoc')
             ->orderByDesc('gio_bat_dau')

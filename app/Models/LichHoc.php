@@ -491,9 +491,31 @@ class LichHoc extends Model
             ->first();
     }
 
+    public function getTeacherLiveLectureAttribute(): ?BaiGiang
+    {
+        if ($this->relationLoaded('baiGiangs')) {
+            return $this->baiGiangs
+                ->filter(fn (BaiGiang $baiGiang) => $baiGiang->isLive() && $baiGiang->phongHocLive)
+                ->sortByDesc('id')
+                ->first();
+        }
+
+        return $this->baiGiangs()
+            ->with('phongHocLive')
+            ->where('loai_bai_giang', BaiGiang::TYPE_LIVE)
+            ->whereHas('phongHocLive')
+            ->latest('id')
+            ->first();
+    }
+
     public function getStudentLiveRoomAttribute(): ?PhongHocLive
     {
         return $this->studentLiveLecture?->phongHocLive;
+    }
+
+    public function getTeacherLiveRoomAttribute(): ?PhongHocLive
+    {
+        return $this->teacherLiveLecture?->phongHocLive;
     }
 
     public function getTeacherAttendanceLogAttribute(): ?DiemDanhGiangVien

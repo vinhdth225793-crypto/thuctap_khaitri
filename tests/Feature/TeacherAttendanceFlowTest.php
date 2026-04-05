@@ -43,7 +43,7 @@ class TeacherAttendanceFlowTest extends TestCase
         $this->assertDatabaseHas('diem_danh_giang_vien', [
             'lich_hoc_id' => $schedule->id,
             'giang_vien_id' => $teacher->id,
-            'trang_thai' => 'dang_day',
+            'trang_thai' => 'da_checkin',
             'hinh_thuc_hoc' => 'online',
         ]);
 
@@ -76,10 +76,43 @@ class TeacherAttendanceFlowTest extends TestCase
 
         $attendance = DiemDanhGiangVien::first();
 
-        $this->assertSame('da_ket_thuc', $attendance->trang_thai);
+        $this->assertSame('hoan_thanh', $attendance->trang_thai);
         $this->assertSame('2026-04-03 10:15:00', $attendance->thoi_gian_ket_thuc_day?->format('Y-m-d H:i:s'));
         $this->assertSame('2026-04-03 10:15:00', $attendance->thoi_gian_tat_live?->format('Y-m-d H:i:s'));
         $this->assertSame(135, $attendance->tong_thoi_luong_day_phut);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_teacher_can_check_in_and_out_direct_session_without_live_timestamps(): void
+    {
+        Carbon::setTestNow('2026-04-03 13:00:00');
+
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        [, , $schedule] = $this->createAssignedSchedule($admin, $teacher, [
+            'hinh_thuc' => 'truc_tiep',
+            'phong_hoc' => 'Phong A101',
+            'link_online' => null,
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->post(route('giang-vien.buoi-hoc.teacher-attendance.check-in', $schedule->id))
+            ->assertSessionHas('success');
+
+        Carbon::setTestNow('2026-04-03 15:00:00');
+
+        $this->actingAs($teacherUser)
+            ->post(route('giang-vien.buoi-hoc.teacher-attendance.check-out', $schedule->id))
+            ->assertSessionHas('success');
+
+        $attendance = DiemDanhGiangVien::firstOrFail();
+
+        $this->assertSame('truc_tiep', $attendance->hinh_thuc_hoc);
+        $this->assertSame('hoan_thanh', $attendance->trang_thai);
+        $this->assertNull($attendance->thoi_gian_mo_live);
+        $this->assertNull($attendance->thoi_gian_tat_live);
+        $this->assertSame(120, $attendance->tong_thoi_luong_day_phut);
 
         Carbon::setTestNow();
     }
@@ -102,6 +135,22 @@ class TeacherAttendanceFlowTest extends TestCase
         $this->assertDatabaseCount('diem_danh_giang_vien', 0);
     }
 
+    public function test_teacher_course_show_page_renders_new_timeline_clusters(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        [$course] = $this->createAssignedOnlineSchedule($admin, $teacher);
+
+        $response = $this->actingAs($teacherUser)
+            ->get(route('giang-vien.khoa-hoc.show', $course->id));
+
+        $response
+            ->assertOk()
+            ->assertSee('Check-in')
+            ->assertSee('Phong live noi bo')
+            ->assertSee('Tao phong');
+    }
+
     public function test_admin_can_view_teacher_attendance_dashboard(): void
     {
         $admin = $this->createUser('admin');
@@ -116,7 +165,7 @@ class TeacherAttendanceFlowTest extends TestCase
             'hinh_thuc_hoc' => 'online',
             'thoi_gian_bat_dau_day' => now(),
             'thoi_gian_mo_live' => now(),
-            'trang_thai' => 'dang_day',
+            'trang_thai' => 'da_checkin',
             'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
         ]);
 
@@ -128,7 +177,7 @@ class TeacherAttendanceFlowTest extends TestCase
             ->assertOk()
             ->assertSee($course->ten_khoa_hoc)
             ->assertSee($teacherUser->ho_ten)
-            ->assertSee('Đang dạy');
+            ->assertSee('Da check-in');
     }
 
     public function test_admin_can_view_student_attendance_dashboard(): void
@@ -150,7 +199,7 @@ class TeacherAttendanceFlowTest extends TestCase
             'lich_hoc_id' => $schedule->id,
             'hoc_vien_id' => $student->ma_nguoi_dung,
             'trang_thai' => 'co_mat',
-            'ghi_chu' => 'Đến đúng giờ',
+            'ghi_chu' => 'Den dung gio',
         ]);
 
         $response = $this
@@ -192,7 +241,7 @@ class TeacherAttendanceFlowTest extends TestCase
                     [
                         'hoc_vien_id' => $student->ma_nguoi_dung,
                         'trang_thai' => 'co_mat',
-                        'ghi_chu' => 'Có mặt đầy đủ',
+                        'ghi_chu' => 'Co mat day du',
                     ],
                 ],
             ]);
@@ -210,7 +259,7 @@ class TeacherAttendanceFlowTest extends TestCase
         $this->assertDatabaseHas('diem_danh_giang_vien', [
             'lich_hoc_id' => $schedule->id,
             'giang_vien_id' => $teacher->id,
-            'trang_thai' => 'dang_day',
+            'trang_thai' => 'da_checkin',
         ]);
 
         Carbon::setTestNow();
@@ -286,6 +335,14 @@ class TeacherAttendanceFlowTest extends TestCase
 
     private function createAssignedOnlineSchedule(NguoiDung $admin, GiangVien $teacher): array
     {
+        return $this->createAssignedSchedule($admin, $teacher, [
+            'hinh_thuc' => 'online',
+            'link_online' => 'https://example.com/online-room',
+        ]);
+    }
+
+    private function createAssignedSchedule(NguoiDung $admin, GiangVien $teacher, array $scheduleOverrides = []): array
+    {
         $course = $this->createCourse($admin);
         $module = $this->createModule($course);
 
@@ -298,7 +355,7 @@ class TeacherAttendanceFlowTest extends TestCase
             'created_by' => $admin->ma_nguoi_dung,
         ]);
 
-        $schedule = LichHoc::create([
+        $schedule = LichHoc::create(array_merge([
             'khoa_hoc_id' => $course->id,
             'module_hoc_id' => $module->id,
             'giang_vien_id' => $teacher->id,
@@ -310,7 +367,7 @@ class TeacherAttendanceFlowTest extends TestCase
             'hinh_thuc' => 'online',
             'link_online' => 'https://example.com/online-room',
             'trang_thai' => 'cho',
-        ]);
+        ], $scheduleOverrides));
 
         return [$course, $module, $schedule];
     }

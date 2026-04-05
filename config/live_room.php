@@ -8,6 +8,12 @@ return [
     ],
 
     'platforms' => [
+        'internal' => [
+            'label' => 'Live noi bo',
+            'supports_embed' => false,
+            'web_sdk_enabled' => false,
+            'default_launch_mode' => 'internal',
+        ],
         'zoom' => [
             'label' => 'Zoom',
             'supports_embed' => (bool) env('LIVE_ROOM_ZOOM_SUPPORTS_EMBED', false),

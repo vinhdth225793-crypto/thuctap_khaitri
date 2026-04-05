@@ -26,6 +26,8 @@ class LiveRoomPlatformService
             'join_url' => $input['join_url'] ?? null,
             'start_url' => $input['start_url'] ?? null,
             'embed_url' => $input['embed_url'] ?? null,
+            'room_code' => $input['room_code'] ?? null,
+            'room_scope' => $input['room_scope'] ?? null,
             'meeting_id' => $input['meeting_id'] ?? null,
             'meeting_code' => $input['meeting_code'] ?? null,
             'passcode' => $input['passcode'] ?? null,
@@ -34,6 +36,10 @@ class LiveRoomPlatformService
             'waiting_room' => (bool) ($input['waiting_room'] ?? false),
             'security_note' => $input['security_note'] ?? null,
         ];
+
+        if ($platform === PhongHocLive::PLATFORM_INTERNAL) {
+            unset($payload['join_url'], $payload['start_url'], $payload['embed_url'], $payload['meeting_id'], $payload['meeting_code'], $payload['passcode']);
+        }
 
         if ($platform === PhongHocLive::PLATFORM_GOOGLE_MEET) {
             unset($payload['embed_url'], $payload['meeting_id']);

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\BaiGiang;
+use App\Models\DiemDanhGiangVien;
 use App\Models\GiangVien;
 use App\Models\HocVien;
 use App\Models\HocVienKhoaHoc;
@@ -97,6 +98,33 @@ class LiveRoomWorkflowTest extends TestCase
         $this->assertSame(BaiGiang::STATUS_DUYET_DA_DUYET, $lecture->trang_thai_duyet);
         $this->assertSame(PhongHocLive::APPROVAL_DA_DUYET, $room->trang_thai_duyet);
         $this->assertSame($admin->ma_nguoi_dung, $room->approved_by);
+    }
+
+    public function test_teacher_can_create_internal_live_room_from_schedule_timeline(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+        $this->assignTeacher($admin, $teacher, $course, $module);
+        $lichHoc = $this->createLichHoc($course, $module, [
+            'ngay_hoc' => '2026-04-07',
+            'gio_bat_dau' => '09:00:00',
+            'gio_ket_thuc' => '10:30:00',
+        ]);
+
+        $response = $this->actingAs($teacherUser)
+            ->post(route('giang-vien.live-room.schedule.create', $lichHoc->id));
+
+        $lecture = BaiGiang::query()->where('lich_hoc_id', $lichHoc->id)->where('loai_bai_giang', BaiGiang::TYPE_LIVE)->firstOrFail();
+        $room = $lecture->phongHocLive()->firstOrFail();
+
+        $response->assertRedirect(route('giang-vien.live-room.show', $lecture->id));
+
+        $this->assertSame(PhongHocLive::PLATFORM_INTERNAL, $room->nen_tang_live);
+        $this->assertSame($teacherUser->ma_nguoi_dung, $room->moderator_id);
+        $this->assertSame('teacher_schedule', $room->du_lieu_nen_tang_json['room_scope']);
+        $this->assertNotEmpty($room->du_lieu_nen_tang_json['room_code']);
     }
 
     public function test_student_is_redirected_to_live_room_for_live_lecture(): void
@@ -276,6 +304,54 @@ class LiveRoomWorkflowTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_starting_and_ending_internal_schedule_room_syncs_teacher_attendance(): void
+    {
+        Carbon::setTestNow('2026-04-08 09:00:00');
+
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+        $this->assignTeacher($admin, $teacher, $course, $module);
+        $lichHoc = $this->createLichHoc($course, $module, [
+            'ngay_hoc' => '2026-04-08',
+            'gio_bat_dau' => '09:00:00',
+            'gio_ket_thuc' => '10:30:00',
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->post(route('giang-vien.live-room.schedule.create', $lichHoc->id))
+            ->assertSessionHas('success');
+
+        $lecture = BaiGiang::query()->where('lich_hoc_id', $lichHoc->id)->where('loai_bai_giang', BaiGiang::TYPE_LIVE)->firstOrFail();
+
+        $this->actingAs($teacherUser)
+            ->post(route('giang-vien.live-room.start', $lecture->id))
+            ->assertRedirect(route('giang-vien.live-room.show', ['id' => $lecture->id, 'player' => 'host']));
+
+        $this->assertDatabaseHas('diem_danh_giang_vien', [
+            'lich_hoc_id' => $lichHoc->id,
+            'giang_vien_id' => $teacher->id,
+            'trang_thai' => 'da_checkin',
+        ]);
+
+        Carbon::setTestNow('2026-04-08 10:30:00');
+
+        $this->actingAs($teacherUser)
+            ->post(route('giang-vien.live-room.end', $lecture->id))
+            ->assertRedirect(route('giang-vien.live-room.show', $lecture->id));
+
+        $attendance = DiemDanhGiangVien::query()
+            ->where('lich_hoc_id', $lichHoc->id)
+            ->where('giang_vien_id', $teacher->id)
+            ->firstOrFail();
+
+        $this->assertSame('hoan_thanh', $attendance->trang_thai);
+        $this->assertSame('2026-04-08 10:30:00', $attendance->thoi_gian_ket_thuc_day?->format('Y-m-d H:i:s'));
+
+        Carbon::setTestNow();
+    }
+
     public function test_teacher_live_room_page_shows_start_action_when_room_reaches_start_time(): void
     {
         Carbon::setTestNow('2026-04-04 09:05:00');
@@ -400,6 +476,12 @@ class LiveRoomWorkflowTest extends TestCase
         $admin = $this->createUser('admin');
         $course = $this->createCourse($admin);
         $module = $this->createModule($course);
+        $teacher = GiangVien::query()
+            ->where('nguoi_dung_id', $teacherUser->ma_nguoi_dung)
+            ->firstOrFail();
+
+        $this->assignTeacher($admin, $teacher, $course, $module);
+
         $lichHoc = $this->createLichHoc($course, $module, [
             'ngay_hoc' => '2026-04-04',
             'gio_bat_dau' => '09:00:00',

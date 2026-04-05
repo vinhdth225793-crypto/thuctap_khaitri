@@ -3,21 +3,22 @@
 @section('content')
 @php
     $timelineStatus = $phongHocLive->timeline_trang_thai;
-    $showRoute = route('giang-vien.live-room.show', $phongHocLive->id);
-    $hostViewRoute = route('giang-vien.live-room.show', ['id' => $phongHocLive->id, 'player' => 'host']);
-    $startRoute = route('giang-vien.live-room.start', $phongHocLive->id);
-    $leaveRoute = route('giang-vien.live-room.leave', $phongHocLive->id);
-    $endRoute = route('giang-vien.live-room.end', $phongHocLive->id);
+    $showRoute = route('giang-vien.live-room.show', $lectureId);
+    $hostViewRoute = route('giang-vien.live-room.show', ['id' => $lectureId, 'player' => 'host']);
+    $startRoute = route('giang-vien.live-room.start', $lectureId);
+    $leaveRoute = route('giang-vien.live-room.leave', $lectureId);
+    $endRoute = route('giang-vien.live-room.end', $lectureId);
     $platformPayload = $phongHocLive->du_lieu_nen_tang_json ?? [];
     $meetingIdentifier = $platformPayload['meeting_id'] ?? $platformPayload['meeting_code'] ?? null;
     $meetingPasscode = $platformPayload['passcode'] ?? null;
     $platformLabel = $phongHocLive->nen_tang_live === 'google_meet' ? 'Google Meet' : $phongHocLive->platform_label;
+    $isInternalRoom = $phongHocLive->nen_tang_live === \App\Models\PhongHocLive::PLATFORM_INTERNAL;
     $canTeacherStart = $canManageRoom
-        && filled($phongHocLive->start_url)
+        && ($isInternalRoom || filled($phongHocLive->start_url) || filled($phongHocLive->join_url))
         && !in_array($timelineStatus, [\App\Models\PhongHocLive::ROOM_STATE_DANG_DIEN_RA, \App\Models\PhongHocLive::ROOM_STATE_DA_KET_THUC, \App\Models\PhongHocLive::ROOM_STATE_DA_HUY], true);
     $canTeacherReopen = $canManageRoom
         && $phongHocLive->isDangDienRa()
-        && filled($phongHocLive->start_url);
+        && ($isInternalRoom || filled($phongHocLive->start_url) || filled($phongHocLive->join_url));
     $isExternalLaunch = filled($playerUrl) && !$playerSupportsEmbed;
 @endphp
 
@@ -106,6 +107,52 @@
                                         referrerpolicy="strict-origin-when-cross-origin"
                                         allowfullscreen
                                         class="teacher-live-player__frame"></iframe>
+                                @elseif($playerMode === 'host' && $isInternalRoom)
+                                    <div class="teacher-live-internal">
+                                        <div class="teacher-live-internal__stage">
+                                            <div class="teacher-live-internal__badge">LIVE NOI BO</div>
+                                            <h3 class="fw-bold text-white mb-3">{{ $phongHocLive->tieu_de }}</h3>
+                                            <p class="text-white-50 mb-4">
+                                                Ban dang dieu hanh buoi hoc ngay trong he thong. Khu vuc nay duoc thiet ke de demo luong room noi bo va co the thay bang WebRTC/Jitsi sau nay.
+                                            </p>
+                                            <div class="teacher-live-internal__stats">
+                                                <div class="teacher-live-internal__stat">
+                                                    <span>Phong</span>
+                                                    <strong>{{ data_get($platformPayload, 'room_code', 'NOI-BO') }}</strong>
+                                                </div>
+                                                <div class="teacher-live-internal__stat">
+                                                    <span>Nguoi tham gia</span>
+                                                    <strong>{{ $phongHocLive->participant_count }}</strong>
+                                                </div>
+                                                <div class="teacher-live-internal__stat">
+                                                    <span>Trang thai</span>
+                                                    <strong>{{ $phongHocLive->timeline_trang_thai_label }}</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="teacher-live-internal__sidebar">
+                                            <div class="teacher-live-panel">
+                                                <div class="teacher-live-panel__title">Ghi chu nhanh</div>
+                                                <ul class="teacher-live-panel__list">
+                                                    <li>Xac nhan muc tieu cua buoi hoc va mo dau noi dung.</li>
+                                                    <li>Nhac hoc vien diem danh va dat cau hoi qua khu vuc chat.</li>
+                                                    <li>Ket thuc buoi hoc bang thao tac "Ket thuc buoi hoc" de dong bo attendance.</li>
+                                                </ul>
+                                            </div>
+                                            <div class="teacher-live-panel">
+                                                <div class="teacher-live-panel__title">Chat / thao luan</div>
+                                                <div class="teacher-live-panel__placeholder">
+                                                    Khung chat placeholder cho do an. Co the mo rong thanh realtime chat trong phase sau.
+                                                </div>
+                                            </div>
+                                            <div class="teacher-live-panel">
+                                                <div class="teacher-live-panel__title">Danh sach hoc vien</div>
+                                                <div class="teacher-live-panel__placeholder">
+                                                    Hien tai dang su dung room noi bo de demo dieu phoi lop hoc. So nguoi tham gia da ghi nhan: {{ $phongHocLive->participant_count }}.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 @elseif($playerMode === 'host' && $playerUrl)
                                     <div class="teacher-live-launcher text-center p-5">
                                         <div class="badge bg-primary mb-3">{{ strtoupper($platformLabel) }}</div>
@@ -199,8 +246,8 @@
                                     </form>
                                 @endif
 
-                                <a href="{{ route('giang-vien.bai-giang.index') }}" class="btn btn-link text-decoration-none">
-                                    Quay lai danh sach bai giang
+                                <a href="{{ $backUrl }}" class="btn btn-link text-decoration-none">
+                                    Quay lai buoi hoc
                                 </a>
                             </div>
 
@@ -247,6 +294,98 @@
         display: block;
     }
 
+    .teacher-live-internal {
+        min-height: 560px;
+        display: grid;
+        grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.85fr);
+        background:
+            radial-gradient(circle at top left, rgba(56, 189, 248, 0.22), transparent 32%),
+            linear-gradient(145deg, #020617 0%, #0f172a 45%, #111827 100%);
+    }
+
+    .teacher-live-internal__stage {
+        padding: 2rem;
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .teacher-live-internal__badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: fit-content;
+        padding: 0.4rem 0.75rem;
+        border-radius: 999px;
+        background: rgba(248, 250, 252, 0.12);
+        color: #f8fafc;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.08rem;
+        margin-bottom: 1rem;
+    }
+
+    .teacher-live-internal__stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .teacher-live-internal__stat {
+        padding: 1rem;
+        border-radius: 1rem;
+        background: rgba(15, 23, 42, 0.55);
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        color: #e2e8f0;
+    }
+
+    .teacher-live-internal__stat span {
+        display: block;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: #94a3b8;
+        margin-bottom: 0.35rem;
+    }
+
+    .teacher-live-internal__stat strong {
+        font-size: 1rem;
+    }
+
+    .teacher-live-internal__sidebar {
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .teacher-live-panel {
+        padding: 1rem;
+        border-radius: 1rem;
+        background: rgba(15, 23, 42, 0.66);
+        border: 1px solid rgba(148, 163, 184, 0.12);
+        color: #e2e8f0;
+    }
+
+    .teacher-live-panel__title {
+        font-weight: 700;
+        margin-bottom: 0.75rem;
+    }
+
+    .teacher-live-panel__list {
+        margin: 0;
+        padding-left: 1rem;
+        color: #cbd5e1;
+        font-size: 0.92rem;
+    }
+
+    .teacher-live-panel__placeholder {
+        color: #cbd5e1;
+        font-size: 0.92rem;
+        line-height: 1.6;
+    }
+
     .teacher-live-launcher,
     .teacher-live-placeholder {
         min-height: 520px;
@@ -254,6 +393,21 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
+    }
+
+    @media (max-width: 991.98px) {
+        .teacher-live-internal {
+            grid-template-columns: 1fr;
+        }
+
+        .teacher-live-internal__stage {
+            border-right: 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .teacher-live-internal__stats {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 

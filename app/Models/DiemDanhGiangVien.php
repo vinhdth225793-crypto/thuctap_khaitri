@@ -10,6 +10,13 @@ class DiemDanhGiangVien extends Model
 {
     use HasFactory;
 
+    public const STATUS_CHUA_DIEM_DANH = 'chua_diem_danh';
+    public const STATUS_DA_CHECKIN = 'da_checkin';
+    public const STATUS_DA_CHECKOUT = 'da_checkout';
+    public const STATUS_HOAN_THANH = 'hoan_thanh';
+    public const STATUS_LEGACY_DANG_DAY = 'dang_day';
+    public const STATUS_LEGACY_DA_KET_THUC = 'da_ket_thuc';
+
     protected $table = 'diem_danh_giang_vien';
 
     protected $fillable = [
@@ -63,20 +70,55 @@ class DiemDanhGiangVien extends Model
         return $this->belongsTo(NguoiDung::class, 'nguoi_tao_id', 'ma_nguoi_dung');
     }
 
+    public function getCheckInAtAttribute()
+    {
+        return $this->thoi_gian_bat_dau_day;
+    }
+
+    public function getCheckOutAtAttribute()
+    {
+        return $this->thoi_gian_ket_thuc_day;
+    }
+
+    public function getHasCheckedInAttribute(): bool
+    {
+        return $this->thoi_gian_bat_dau_day !== null;
+    }
+
+    public function getHasCheckedOutAttribute(): bool
+    {
+        return $this->thoi_gian_ket_thuc_day !== null;
+    }
+
+    public function getDisplayStatusAttribute(): string
+    {
+        if ($this->thoi_gian_ket_thuc_day !== null) {
+            return self::STATUS_HOAN_THANH;
+        }
+
+        if ($this->thoi_gian_bat_dau_day !== null) {
+            return self::STATUS_DA_CHECKIN;
+        }
+
+        return self::STATUS_CHUA_DIEM_DANH;
+    }
+
     public function getTrangThaiLabelAttribute(): string
     {
-        return match ($this->trang_thai) {
-            'dang_day' => 'Đang dạy',
-            'da_ket_thuc' => 'Đã kết thúc',
-            default => 'Chưa bắt đầu',
+        return match ($this->display_status) {
+            self::STATUS_DA_CHECKIN => 'Da check-in',
+            self::STATUS_DA_CHECKOUT => 'Da check-out',
+            self::STATUS_HOAN_THANH => 'Hoan thanh',
+            default => 'Chua diem danh',
         };
     }
 
     public function getTrangThaiColorAttribute(): string
     {
-        return match ($this->trang_thai) {
-            'dang_day' => 'warning',
-            'da_ket_thuc' => 'success',
+        return match ($this->display_status) {
+            self::STATUS_DA_CHECKIN => 'warning',
+            self::STATUS_DA_CHECKOUT => 'primary',
+            self::STATUS_HOAN_THANH => 'success',
             default => 'secondary',
         };
     }

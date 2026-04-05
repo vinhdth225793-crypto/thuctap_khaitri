@@ -332,6 +332,9 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
     });
 
     Route::prefix('live-room')->name('live-room.')->group(function () {
+        Route::post('/lich-hoc/{lichHocId}', [GiangVienLiveRoomController::class, 'createForSchedule'])->name('schedule.create');
+        Route::get('/lich-hoc/{lichHocId}', [GiangVienLiveRoomController::class, 'showScheduleRoom'])->name('schedule.show');
+        Route::post('/lich-hoc/{lichHocId}/end', [GiangVienLiveRoomController::class, 'endScheduleRoom'])->name('schedule.end');
         Route::get('/{id}', [GiangVienLiveRoomController::class, 'show'])->name('show');
         Route::post('/{id}/start', [GiangVienLiveRoomController::class, 'start'])->name('start');
         Route::post('/{id}/join', [GiangVienLiveRoomController::class, 'join'])->name('join');
@@ -345,6 +348,8 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
     Route::get('/buoi-hoc/{lichHocId}/diem-danh', [App\Http\Controllers\GiangVien\DiemDanhController::class, 'show'])->name('buoi-hoc.diem-danh.show');
     Route::post('/buoi-hoc/{lichHocId}/diem-danh', [App\Http\Controllers\GiangVien\DiemDanhController::class, 'store'])->name('buoi-hoc.diem-danh.store');
     Route::post('/buoi-hoc/{lichHocId}/bao-cao-diem-danh', [App\Http\Controllers\GiangVien\DiemDanhController::class, 'report'])->name('buoi-hoc.diem-danh.report');
+    Route::post('/buoi-hoc/{lichHocId}/diem-danh-giang-vien/check-in', [TeacherAttendanceController::class, 'checkIn'])->name('buoi-hoc.teacher-attendance.check-in');
+    Route::post('/buoi-hoc/{lichHocId}/diem-danh-giang-vien/check-out', [TeacherAttendanceController::class, 'checkOut'])->name('buoi-hoc.teacher-attendance.check-out');
     Route::post('/buoi-hoc/{lichHocId}/diem-danh-giang-vien/bat-dau', [TeacherAttendanceController::class, 'start'])->name('buoi-hoc.teacher-attendance.start');
     Route::post('/buoi-hoc/{lichHocId}/diem-danh-giang-vien/ket-thuc', [TeacherAttendanceController::class, 'finish'])->name('buoi-hoc.teacher-attendance.finish');
 

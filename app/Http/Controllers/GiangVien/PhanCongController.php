@@ -87,6 +87,7 @@ class PhanCongController extends Controller
         $lichDays = LichHoc::with([
                 'taiNguyen',
                 'baiKiemTras',
+                'baiGiangs.phongHocLive',
                 'giangVien.nguoiDung',
                 'moduleHoc.phanCongGiangViens.giangVien.nguoiDung',
                 'teacherAttendanceLogs' => function ($query) use ($giangVien) {
@@ -110,7 +111,29 @@ class PhanCongController extends Controller
             })
         );
 
-        return view('pages.giang-vien.phan-cong.show', compact('phanCong', 'khoaHoc', 'lichDays', 'lichHocIds'));
+        $timelineItems = $lichDays->map(function (LichHoc $lich) use ($phanCong) {
+            $teacherAttendance = $lich->teacher_attendance_log;
+            $teacherLiveLecture = $lich->teacher_live_lecture;
+            $teacherLiveRoom = $lich->teacher_live_room;
+
+            return [
+                'lich' => $lich,
+                'teacherAttendance' => $teacherAttendance,
+                'teacherLiveLecture' => $teacherLiveLecture,
+                'teacherLiveRoom' => $teacherLiveRoom,
+                'teachingStatus' => $this->buildTeachingStatus($lich, $teacherLiveRoom, $phanCong->trang_thai === 'da_nhan'),
+                'attendanceStatus' => [
+                    'label' => $teacherAttendance?->trang_thai_label ?? 'Chua diem danh',
+                    'color' => $teacherAttendance?->trang_thai_color ?? 'secondary',
+                    'can_check_in' => $phanCong->trang_thai === 'da_nhan' && !$teacherAttendance?->has_checked_in,
+                    'can_check_out' => $phanCong->trang_thai === 'da_nhan' && ($teacherAttendance?->has_checked_in ?? false) && !$teacherAttendance?->has_checked_out,
+                ],
+                'resourceCount' => $lich->taiNguyen->count(),
+                'examCount' => $lich->baiKiemTras->count(),
+            ];
+        });
+
+        return view('pages.giang-vien.phan-cong.show', compact('phanCong', 'khoaHoc', 'lichDays', 'lichHocIds', 'timelineItems'));
     }
 
     /**
@@ -274,5 +297,42 @@ class PhanCongController extends Controller
         abort_if(!$moduleAssignment, 404);
 
         return $moduleAssignment;
+    }
+
+    private function buildTeachingStatus(LichHoc $lichHoc, $teacherLiveRoom, bool $canManage): array
+    {
+        if ($lichHoc->hinh_thuc !== 'online') {
+            return [
+                'label' => 'Buoi hoc truc tiep',
+                'color' => 'success',
+                'room_status_label' => 'Khong ap dung',
+                'room_status_color' => 'secondary',
+                'can_create_room' => false,
+                'can_enter_room' => false,
+                'can_end_room' => false,
+            ];
+        }
+
+        if (!$teacherLiveRoom) {
+            return [
+                'label' => 'Buoi hoc online',
+                'color' => 'info',
+                'room_status_label' => 'Chua tao',
+                'room_status_color' => 'secondary',
+                'can_create_room' => $canManage,
+                'can_enter_room' => false,
+                'can_end_room' => false,
+            ];
+        }
+
+        return [
+            'label' => 'Buoi hoc online',
+            'color' => 'info',
+            'room_status_label' => $teacherLiveRoom->teaching_timeline_status_label,
+            'room_status_color' => $teacherLiveRoom->teaching_timeline_status_color,
+            'can_create_room' => false,
+            'can_enter_room' => $canManage,
+            'can_end_room' => $canManage && $teacherLiveRoom->isDangDienRa(),
+        ];
     }
 }

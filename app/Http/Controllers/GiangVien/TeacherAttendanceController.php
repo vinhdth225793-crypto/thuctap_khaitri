@@ -15,7 +15,7 @@ class TeacherAttendanceController extends Controller
     ) {
     }
 
-    public function start(int $lichHocId): RedirectResponse
+    public function checkIn(int $lichHocId): RedirectResponse
     {
         $lichHoc = LichHoc::findOrFail($lichHocId);
         $actor = auth()->user();
@@ -24,28 +24,38 @@ class TeacherAttendanceController extends Controller
         abort_if(!$actor || !$giangVien, 403);
 
         try {
-            $this->teacherAttendanceService->startTeaching($lichHoc, $giangVien, $actor);
+            $this->teacherAttendanceService->checkIn($lichHoc, $giangVien, $actor);
         } catch (ValidationException $exception) {
             throw $exception;
         }
 
-        return back()->with('success', 'Đã ghi nhận giảng viên bắt đầu buổi học online.');
+        return back()->with('success', 'Da ghi nhan check-in giang vien cho buoi hoc.');
+    }
+
+    public function checkOut(int $lichHocId): RedirectResponse
+    {
+        $lichHoc = LichHoc::findOrFail($lichHocId);
+        $actor = auth()->user();
+        $giangVien = $actor?->giangVien;
+
+        abort_if(!$actor || !$giangVien, 403);
+
+        try {
+            $this->teacherAttendanceService->checkOut($lichHoc, $giangVien, $actor);
+        } catch (ValidationException $exception) {
+            throw $exception;
+        }
+
+        return back()->with('success', 'Da ghi nhan check-out giang vien cho buoi hoc.');
+    }
+
+    public function start(int $lichHocId): RedirectResponse
+    {
+        return $this->checkIn($lichHocId);
     }
 
     public function finish(int $lichHocId): RedirectResponse
     {
-        $lichHoc = LichHoc::findOrFail($lichHocId);
-        $actor = auth()->user();
-        $giangVien = $actor?->giangVien;
-
-        abort_if(!$actor || !$giangVien, 403);
-
-        try {
-            $this->teacherAttendanceService->finishTeaching($lichHoc, $giangVien, $actor);
-        } catch (ValidationException $exception) {
-            throw $exception;
-        }
-
-        return back()->with('success', 'Đã ghi nhận giảng viên kết thúc buổi học online.');
+        return $this->checkOut($lichHocId);
     }
 }

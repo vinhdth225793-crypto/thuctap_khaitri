@@ -62,36 +62,57 @@
         <div class="col-lg-8">
             {{-- LỊCH DẠY CHI TIẾT (DẠNG KHỐI) --}}
             <div class="mb-4">
-                <div class="row g-3 mb-3">
+                <div class="row g-3 mb-4">
                     <div class="col-md-3 col-6">
-                        <div class="vip-card border-0 shadow-sm p-3 h-100">
-                            <div class="smaller text-muted text-uppercase fw-bold">Buổi hợp lệ</div>
-                            <div class="fs-4 fw-bold text-dark">{{ $phanCong->moduleHoc->so_buoi_hop_le }}</div>
+                        <div class="card border-0 shadow-sm rounded-4 p-3 h-100 overflow-hidden position-relative">
+                            <div class="position-absolute end-0 top-0 p-3 opacity-10">
+                                <i class="fas fa-calendar-alt fa-3x"></i>
+                            </div>
+                            <div class="smaller text-muted text-uppercase fw-bold mb-1">Buổi hợp lệ</div>
+                            <div class="fs-3 fw-bold text-dark">{{ $phanCong->moduleHoc->so_buoi_hop_le }}</div>
+                            <div class="smaller text-muted mt-1">Buổi trong kế hoạch</div>
                         </div>
                     </div>
                     <div class="col-md-3 col-6">
-                        <div class="vip-card border-0 shadow-sm p-3 h-100">
-                            <div class="smaller text-muted text-uppercase fw-bold">Đã hoàn thành</div>
-                            <div class="fs-4 fw-bold text-success">{{ $phanCong->moduleHoc->so_buoi_hoan_thanh }}</div>
+                        <div class="card border-0 shadow-sm rounded-4 p-3 h-100 overflow-hidden position-relative">
+                            <div class="position-absolute end-0 top-0 p-3 opacity-10">
+                                <i class="fas fa-check-circle fa-3x text-success"></i>
+                            </div>
+                            <div class="smaller text-muted text-uppercase fw-bold mb-1">Đã hoàn thành</div>
+                            <div class="fs-3 fw-bold text-success">{{ $phanCong->moduleHoc->so_buoi_hoan_thanh }}</div>
+                            <div class="smaller text-muted mt-1">Buổi đã dạy xong</div>
                         </div>
                     </div>
                     <div class="col-md-3 col-6">
-                        <div class="vip-card border-0 shadow-sm p-3 h-100">
-                            <div class="smaller text-muted text-uppercase fw-bold">Sắp tới</div>
-                            <div class="fs-4 fw-bold text-primary">{{ $phanCong->moduleHoc->learning_progress_snapshot['upcoming_schedules'] }}</div>
+                        <div class="card border-0 shadow-sm rounded-4 p-3 h-100 overflow-hidden position-relative">
+                            <div class="position-absolute end-0 top-0 p-3 opacity-10">
+                                <i class="fas fa-clock fa-3x text-primary"></i>
+                            </div>
+                            <div class="smaller text-muted text-uppercase fw-bold mb-1">Sắp tới</div>
+                            <div class="fs-3 fw-bold text-primary">{{ $phanCong->moduleHoc->learning_progress_snapshot['upcoming_schedules'] }}</div>
+                            <div class="smaller text-muted mt-1">Buổi chờ lên lớp</div>
                         </div>
                     </div>
                     <div class="col-md-3 col-6">
-                        <div class="vip-card border-0 shadow-sm p-3 h-100">
-                            <div class="smaller text-muted text-uppercase fw-bold">Tiến độ</div>
-                            <div class="fs-4 fw-bold text-info">{{ $phanCong->moduleHoc->tien_do_hoc_tap }}%</div>
+                        <div class="card border-0 shadow-sm rounded-4 p-3 h-100 overflow-hidden position-relative">
+                            <div class="position-absolute end-0 top-0 p-3 opacity-10">
+                                <i class="fas fa-chart-line fa-3x text-info"></i>
+                            </div>
+                            <div class="smaller text-muted text-uppercase fw-bold mb-1">Tiến độ</div>
+                            <div class="fs-3 fw-bold text-info">{{ $phanCong->moduleHoc->tien_do_hoc_tap }}%</div>
+                            <div class="progress mt-2" style="height: 4px;">
+                                <div class="progress-bar bg-info" style="width: {{ $phanCong->moduleHoc->tien_do_hoc_tap }}%"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="d-flex justify-content-between align-items-center mb-3 mt-4">
-                    <h5 class="small fw-bold text-uppercase mb-0 text-primary">
-                        <i class="fas fa-calendar-check me-2"></i> Lộ trình giảng dạy
+                <div class="d-flex justify-content-between align-items-center mb-4 mt-2">
+                    <h5 class="fw-bold mb-0 text-dark d-flex align-items-center">
+                        <span class="bg-primary text-white p-2 rounded-3 me-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                            <i class="fas fa-calendar-check"></i>
+                        </span>
+                        Lộ trình giảng dạy
                     </h5>
                     <div class="d-flex gap-2">
                         <div class="dropdown">
@@ -161,6 +182,21 @@
                     $focusedLichHocId = (int) request('focus_lich_hoc_id', 0);
                 @endphp
 
+                @forelse($timelineItems as $timelineItem)
+                    @include('pages.giang-vien.phan-cong.partials.timeline-session-card', [
+                        'timelineItem' => $timelineItem,
+                        'phanCong' => $phanCong,
+                        'focusedLichHocId' => $focusedLichHocId,
+                    ])
+                @empty
+                    <div class="vip-card p-5 text-center text-muted border-0 shadow-sm">
+                        <i class="fas fa-calendar-times fa-3x mb-3 opacity-25"></i>
+                        <p class="mb-0">Chua co lich day cu the cho bai day nay.</p>
+                    </div>
+                @endforelse
+            </div>
+
+                @if(false)
                 @forelse($lichDays as $index => $lich)
                     <div id="session-{{ $lich->id }}" class="session-block mb-4 shadow-sm border border-2 border-light-subtle rounded-3 overflow-hidden bg-white {{ $focusedLichHocId === (int) $lich->id ? 'session-block-focused' : '' }}" style="border-left: 5px solid #0d6efd !important;">
                         {{-- Header của buổi học --}}
@@ -365,14 +401,19 @@
            
 
             {{-- MÔ TẢ MODULE --}}
-            <div class="vip-card mb-4 border-0 shadow-sm">
-                <div class="vip-card-header bg-white border-bottom py-3">
-                    <h5 class="vip-card-title small fw-bold text-uppercase mb-0 text-dark">
-                        <i class="fas fa-info-circle me-2 text-info"></i> Mô tả nội dung bài dạy
+            @endif
+
+            <div class="card mb-4 border-0 shadow-sm rounded-4 overflow-hidden">
+                <div class="card-header bg-white py-3 border-bottom-0">
+                    <h5 class="card-title fw-bold text-dark mb-0 d-flex align-items-center">
+                        <span class="bg-info text-white p-2 rounded-3 me-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 0.9rem;">
+                            <i class="fas fa-info-circle"></i>
+                        </span>
+                        Mô tả nội dung bài dạy
                     </h5>
                 </div>
-                <div class="vip-card-body p-4">
-                    <div class="bg-light p-3 rounded border border-dashed text-dark lh-lg">
+                <div class="card-body p-4 pt-0">
+                    <div class="bg-light p-4 rounded-4 border border-dashed text-dark lh-lg shadow-inner">
                         {!! $phanCong->moduleHoc->mo_ta ? nl2br(e($phanCong->moduleHoc->mo_ta)) : '<span class="text-muted italic">Chưa có mô tả chi tiết cho bài học này.</span>' !!}
                     </div>
                 </div>
@@ -1539,6 +1580,15 @@ document.addEventListener('DOMContentLoaded', function() {
         padding: 0;
         border-radius: 6px;
     }
+    .btn-icon-xs {
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border-radius: 8px;
+    }
     .session-block-focused {
         box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.12), 0 0.5rem 1rem rgba(13, 110, 253, 0.08) !important;
         scroll-margin-top: 90px;
@@ -1559,6 +1609,185 @@ document.addEventListener('DOMContentLoaded', function() {
         background: rgba(255, 255, 255, 0.72);
         border: 1px dashed rgba(108, 117, 125, 0.4);
         white-space: normal;
+    }
+    .session-shell {
+        border-radius: 1rem;
+        overflow: hidden;
+        background: #fff;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+    }
+    .session-shell:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05) !important;
+    }
+    .session-shell__header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        background: #fcfcfd;
+    }
+    .session-shell__number {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f1f5f9;
+        color: #475569;
+        font-weight: 800;
+        font-size: 1.1rem;
+        border: 1px solid #e2e8f0;
+    }
+    .session-shell__title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1e293b;
+        letter-spacing: -0.01em;
+    }
+    .session-shell__body {
+        padding: 1.5rem;
+    }
+    .session-cluster-card {
+        height: 100%;
+        padding: 1.25rem;
+        border-radius: 12px;
+        border: 1px solid #f1f5f9;
+        background: #f8fafc;
+        transition: all 0.2s ease;
+    }
+    .session-cluster-card:hover {
+        background: #fff;
+        border-color: #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+    .session-cluster-card__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    .session-cluster-card__eyebrow {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+    }
+    .session-info-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    .session-info-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+    .session-info-row strong {
+        color: #334155;
+        font-weight: 600;
+    }
+    .session-metric-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+    .session-metric {
+        padding: 0.625rem;
+        border-radius: 8px;
+        background: #fff;
+        border: 1px solid #f1f5f9;
+    }
+    .session-metric__label {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        color: #94a3b8;
+        margin-bottom: 0.25rem;
+        font-weight: 700;
+    }
+    .session-metric__value {
+        color: #1e293b;
+        font-weight: 600;
+        font-size: 0.8125rem;
+    }
+    .session-note {
+        padding: 1rem;
+        border-radius: 10px;
+        background: #fff;
+        border: 1px dashed #cbd5e1;
+        font-size: 0.8125rem;
+        color: #475569;
+        line-height: 1.5;
+    }
+    .session-detail-grid {
+        border-top: 1px solid #f1f5f9;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+    }
+    .session-detail-card {
+        padding: 1.25rem;
+        border-radius: 12px;
+        background: #f8fafc;
+        border: 1px solid #f1f5f9;
+    }
+    .session-detail-card__title {
+        margin-bottom: 1.25rem;
+        font-weight: 700;
+        color: #1e293b;
+        font-size: 0.9375rem;
+        display: flex;
+        align-items: center;
+    }
+    .resource-card {
+        padding: 0.75rem 1rem;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        transition: all 0.2s ease;
+    }
+    .resource-card:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    .resource-card__icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 1.1rem;
+    }
+    .exam-pill {
+        flex: 1;
+        min-width: 240px;
+        padding: 0.75rem 1rem;
+        border-radius: 10px;
+        border: 1px solid #fee2e2;
+        background: #fef2f2;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        transition: all 0.2s ease;
+    }
+    .exam-pill:hover {
+        border-color: #fecaca;
+        background: #fff;
+    }
+    @media (max-width: 767.98px) {
+        .session-metric-grid {
+            grid-template-columns: 1fr;
+        }
+        .session-info-row {
+            align-items: flex-start;
+            flex-direction: column;
+        }
     }
 </style>
 @endsection

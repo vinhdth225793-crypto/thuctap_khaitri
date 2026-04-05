@@ -4,18 +4,63 @@ namespace App\Http\Controllers\GiangVien;
 
 use App\Http\Controllers\Controller;
 use App\Models\BaiGiang;
+use App\Models\LichHoc;
 use App\Models\PhongHocLive;
-use App\Models\PhongHocLiveBanGhi;
 use App\Services\LiveLectureService;
 use App\Services\LiveRoomParticipationService;
+use App\Services\TeacherAttendanceService;
+use App\Services\TeacherScheduleLiveRoomService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class LiveRoomController extends Controller
 {
     public function __construct(
         private readonly LiveRoomParticipationService $participationService,
-        private readonly LiveLectureService $liveLectureService
+        private readonly LiveLectureService $liveLectureService,
+        private readonly TeacherScheduleLiveRoomService $teacherScheduleLiveRoomService,
+        private readonly TeacherAttendanceService $teacherAttendanceService,
     ) {
+    }
+
+    public function createForSchedule(int $lichHocId): RedirectResponse
+    {
+        [, $lecture] = $this->resolveManagedScheduleRoom($lichHocId);
+
+        return redirect()
+            ->route('giang-vien.live-room.show', ['id' => $lecture->id])
+            ->with('success', 'Da tao phong live noi bo cho buoi hoc online.');
+    }
+
+    public function showScheduleRoom(int $lichHocId): RedirectResponse
+    {
+        [, $lecture] = $this->resolveManagedScheduleRoom($lichHocId);
+
+        return redirect()->route('giang-vien.live-room.show', ['id' => $lecture->id]);
+    }
+
+    public function endScheduleRoom(int $lichHocId): RedirectResponse
+    {
+        [$lichHoc, $lecture, $phongHocLive] = $this->resolveManagedScheduleRoom($lichHocId);
+        abort_unless($this->canManageRoom($phongHocLive, auth()->user()), 403);
+
+        $this->participationService->endRoom($phongHocLive, auth()->user());
+
+        if (auth()->user()->giangVien) {
+            $this->teacherAttendanceService->ensureCheckOutFromRoom(
+                $lichHoc,
+                auth()->user()->giangVien,
+                auth()->user(),
+                $phongHocLive
+            );
+        }
+
+        return redirect()
+            ->route('giang-vien.khoa-hoc.show', [
+                'id' => $lecture->khoa_hoc_id,
+                'focus_lich_hoc_id' => $lichHoc->id,
+            ])
+            ->with('success', 'Da ket thuc phong live noi bo cua buoi hoc.');
     }
 
     public function show(int $id)
@@ -26,11 +71,17 @@ class LiveRoomController extends Controller
 
         return view('pages.giang-vien.live-room.show', [
             'mode' => 'teacher',
+            'lectureId' => $baiGiang->id,
             'baiGiang' => $baiGiang,
             'phongHocLive' => $phongHocLive,
             'canManageRoom' => $this->canManageRoom($phongHocLive, $user),
             'canJoinRoom' => filled($phongHocLive->start_url),
-            'backUrl' => route('giang-vien.bai-giang.index'),
+            'backUrl' => $baiGiang->lich_hoc_id
+                ? route('giang-vien.khoa-hoc.show', [
+                    'id' => $baiGiang->khoa_hoc_id,
+                    'focus_lich_hoc_id' => $baiGiang->lich_hoc_id,
+                ])
+                : route('giang-vien.bai-giang.index'),
             'playerMode' => $playerMode,
             'playerUrl' => $playerUrl,
             'playerSupportsEmbed' => $playerSupportsEmbed,
@@ -39,10 +90,19 @@ class LiveRoomController extends Controller
 
     public function start(int $id)
     {
-        [, $phongHocLive] = $this->resolveManagedLectureAndRoom($id);
+        [$baiGiang, $phongHocLive] = $this->resolveManagedLectureAndRoom($id);
         abort_unless($this->canManageRoom($phongHocLive, auth()->user()), 403);
 
         $this->participationService->startRoom($phongHocLive, auth()->user());
+
+        if ($baiGiang->lichHoc && auth()->user()->giangVien) {
+            $this->teacherAttendanceService->ensureCheckInFromRoom(
+                $baiGiang->lichHoc,
+                auth()->user()->giangVien,
+                auth()->user(),
+                $phongHocLive->fresh('nguoiThamGia')
+            );
+        }
 
         return redirect()
             ->route('giang-vien.live-room.show', ['id' => $id, 'player' => 'host'])
@@ -51,10 +111,19 @@ class LiveRoomController extends Controller
 
     public function join(int $id)
     {
-        [, $phongHocLive] = $this->resolveManagedLectureAndRoom($id);
+        [$baiGiang, $phongHocLive] = $this->resolveManagedLectureAndRoom($id);
         abort_unless($this->canManageRoom($phongHocLive, auth()->user()), 403);
 
         $this->participationService->joinRoom($phongHocLive, auth()->user());
+
+        if ($baiGiang->lichHoc && auth()->user()->giangVien) {
+            $this->teacherAttendanceService->ensureCheckInFromRoom(
+                $baiGiang->lichHoc,
+                auth()->user()->giangVien,
+                auth()->user(),
+                $phongHocLive->fresh('nguoiThamGia')
+            );
+        }
 
         return redirect()
             ->route('giang-vien.live-room.show', ['id' => $id, 'player' => 'host'])
@@ -77,6 +146,15 @@ class LiveRoomController extends Controller
         abort_unless($this->canManageRoom($phongHocLive, auth()->user()), 403);
 
         $this->participationService->endRoom($phongHocLive, auth()->user());
+
+        if ($baiGiang->lichHoc && auth()->user()->giangVien) {
+            $this->teacherAttendanceService->ensureCheckOutFromRoom(
+                $baiGiang->lichHoc,
+                auth()->user()->giangVien,
+                auth()->user(),
+                $phongHocLive->fresh('nguoiThamGia')
+            );
+        }
 
         if ($baiGiang->trang_thai_cong_bo === BaiGiang::CONG_BO_DA_CONG_BO) {
             $phongHocLive->refresh();
@@ -115,7 +193,23 @@ class LiveRoomController extends Controller
     }
 
     /**
-     * @return array{0: BaiGiang, 1: PhongHocLive}
+     * @return array{0:LichHoc,1:BaiGiang,2:PhongHocLive}
+     */
+    private function resolveManagedScheduleRoom(int $lichHocId): array
+    {
+        $user = auth()->user();
+        $giangVien = $user?->giangVien;
+
+        abort_if(!$user || !$giangVien, 403);
+
+        $lichHoc = LichHoc::with(['khoaHoc', 'moduleHoc', 'baiGiangs.phongHocLive'])->findOrFail($lichHocId);
+        [$lecture, $room] = $this->teacherScheduleLiveRoomService->ensureInternalRoom($lichHoc, $giangVien, $user);
+
+        return [$lichHoc, $lecture, $room];
+    }
+
+    /**
+     * @return array{0:BaiGiang,1:PhongHocLive}
      */
     private function resolveManagedLectureAndRoom(int $lectureId): array
     {
@@ -156,7 +250,7 @@ class LiveRoomController extends Controller
     }
 
     /**
-     * @return array{0: string|null, 1: string|null, 2: bool}
+     * @return array{0:string|null,1:string|null,2:bool}
      */
     private function resolvePlayerState(PhongHocLive $phongHocLive, bool $isTeacherContext): array
     {
