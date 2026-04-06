@@ -545,7 +545,7 @@ class BaiKiemTraController extends Controller
 
         DB::transaction(function () use ($baiLam, $normalizedGrades, $giangVien) {
             $this->scoringService->applyManualGrades($baiLam, $normalizedGrades, $giangVien);
-            $this->ketQuaHocTapService->refreshForCourseStudent($baiLam->baiKiemTra->khoa_hoc_id, $baiLam->hoc_vien_id);
+            $this->ketQuaHocTapService->refreshAllForCourseStudent($baiLam->baiKiemTra->khoa_hoc_id, $baiLam->hoc_vien_id);
         });
 
         return redirect()

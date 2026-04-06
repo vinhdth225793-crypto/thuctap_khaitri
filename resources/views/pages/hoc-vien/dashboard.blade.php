@@ -115,7 +115,7 @@
                                         <th>Khóa học</th>
                                         <th>Nhóm ngành</th>
                                         <th>Tiến độ</th>
-                                        <th>Buổi kế tiếp</th>
+                                        <th class="text-center">Kết quả tổng quát</th>
                                         <th>Trạng thái</th>
                                     </tr>
                                 </thead>
@@ -153,21 +153,18 @@
                                                          aria-valuemax="100"></div>
                                                 </div>
                                             </td>
-                                            <td>
-                                                @if($buoiSapToiTheoKhoa)
-                                                    <div class="fw-semibold text-dark">{{ $buoiSapToiTheoKhoa->ngay_hoc->format('d/m/Y') }}</div>
-                                                    <div class="small text-muted">
-                                                        {{ $buoiSapToiTheoKhoa->gio_bat_dau ?: '--:--' }}
-                                                        @if($buoiSapToiTheoKhoa->gio_ket_thuc)
-                                                            - {{ $buoiSapToiTheoKhoa->gio_ket_thuc }}
-                                                        @endif
+                                            <td class="text-center">
+                                                @if($dong['ket_qua_hoc_tap'])
+                                                    <div class="fw-bold text-primary fs-5">{{ number_format($dong['ket_qua_hoc_tap']->diem_tong_ket ?: 0, 2) }}</div>
+                                                    <div class="smaller text-muted">
+                                                        {{ $dong['ket_qua_module_hoan_thanh'] }}/{{ $dong['ket_qua_module_count'] }} module • 
+                                                        {{ $dong['bai_thi_dat_count'] }} bài đạt
                                                     </div>
-                                                    <div class="small text-muted">{{ $buoiSapToiTheoKhoa->hinh_thuc_label }}</div>
-                                                    <a href="{{ route('hoc-vien.buoi-hoc.show', $buoiSapToiTheoKhoa->id) }}" class="btn btn-link btn-sm px-0 mt-1">
-                                                        Xem buổi học
+                                                    <a href="{{ route('hoc-vien.ket-qua') }}" class="btn btn-link btn-xs p-0 text-decoration-none">
+                                                        <i class="fas fa-search-plus me-1"></i>Chi tiết
                                                     </a>
                                                 @else
-                                                    <span class="text-muted small">Chưa có buổi học sắp tới</span>
+                                                    <span class="text-muted small italic">Chưa có kết quả</span>
                                                 @endif
                                             </td>
                                             <td>

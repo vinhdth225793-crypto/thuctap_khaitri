@@ -292,6 +292,8 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
     Route::get('/khoa-hoc', [PhanCongController::class, 'index'])->name('khoa-hoc');
     Route::get('/khoa-hoc/{id}', [PhanCongController::class, 'show'])->name('khoa-hoc.show');
     Route::post('/khoa-hoc/{id}/xac-nhan', [PhanCongController::class, 'xacNhan'])->name('khoa-hoc.xac-nhan');
+    Route::get('/khoa-hoc/{id}/ket-qua', [PhanCongController::class, 'ketQuaHocTap'])->name('khoa-hoc.ket-qua');
+    Route::post('/khoa-hoc/{id}/ket-qua/update', [PhanCongController::class, 'updateKetQua'])->name('khoa-hoc.ket-qua.update');
     Route::post('/buoi-hoc/{id}/bat-dau', [PhanCongController::class, 'startTeachingSession'])->name('buoi-hoc.start');
     Route::post('/buoi-hoc/{id}/ket-thuc', [PhanCongController::class, 'finishTeachingSession'])->name('buoi-hoc.finish');
     Route::put('/buoi-hoc/{id}/link', [PhanCongController::class, 'updateLinkOnline'])->name('buoi-hoc.update-link');
@@ -385,6 +387,7 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
 Route::prefix('hoc-vien')->name('hoc-vien.')->middleware(['auth', \App\Http\Middleware\CheckHocVien::class])->group(function () {
     Route::get('/dashboard', [HocVienController::class, 'dashboard'])->name('dashboard');
     Route::get('/hoat-dong-tien-do', [HocVienController::class, 'hoatDongVaTienDo'])->name('hoat-dong-tien-do');
+    Route::get('/ket-qua-hoc-tap', [HocVienController::class, 'ketQuaHocTap'])->name('ket-qua');
     Route::get('/bai-kiem-tra', [HocVienBaiKiemTraController::class, 'index'])->name('bai-kiem-tra');
     Route::get('/bai-kiem-tra/{id}', [HocVienBaiKiemTraController::class, 'show'])->name('bai-kiem-tra.show');
     Route::get('/bai-kiem-tra/{id}/pre-check', [HocVienBaiKiemTraController::class, 'precheck'])->name('bai-kiem-tra.precheck');

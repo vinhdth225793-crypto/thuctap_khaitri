@@ -15,6 +15,8 @@ class KetQuaHocTap extends Model
     protected $fillable = [
         'khoa_hoc_id',
         'hoc_vien_id',
+        'module_hoc_id',
+        'bai_kiem_tra_id',
         'phuong_thuc_danh_gia',
         'diem_diem_danh',
         'diem_kiem_tra',
@@ -23,11 +25,17 @@ class KetQuaHocTap extends Model
         'so_buoi_tham_du',
         'ty_le_tham_du',
         'so_bai_kiem_tra_hoan_thanh',
+        'trang_thai',
+        'nhan_xet_giang_vien',
         'chi_tiet',
         'cap_nhat_luc',
     ];
 
     protected $casts = [
+        'khoa_hoc_id' => 'integer',
+        'hoc_vien_id' => 'integer',
+        'module_hoc_id' => 'integer',
+        'bai_kiem_tra_id' => 'integer',
         'diem_diem_danh' => 'decimal:2',
         'diem_kiem_tra' => 'decimal:2',
         'diem_tong_ket' => 'decimal:2',
@@ -41,6 +49,16 @@ class KetQuaHocTap extends Model
     public function khoaHoc(): BelongsTo
     {
         return $this->belongsTo(KhoaHoc::class, 'khoa_hoc_id');
+    }
+
+    public function moduleHoc(): BelongsTo
+    {
+        return $this->belongsTo(ModuleHoc::class, 'module_hoc_id');
+    }
+
+    public function baiKiemTra(): BelongsTo
+    {
+        return $this->belongsTo(BaiKiemTra::class, 'bai_kiem_tra_id');
     }
 
     public function hocVien(): BelongsTo

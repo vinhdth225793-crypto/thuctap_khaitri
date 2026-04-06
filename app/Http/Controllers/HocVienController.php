@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\BaiGiang;
 use App\Models\HocVienKhoaHoc;
+use App\Models\KetQuaHocTap;
 use App\Models\KhoaHoc;
 use App\Models\YeuCauHocVien;
 use App\Services\StudentLearningDashboardService;
@@ -30,6 +31,44 @@ class HocVienController extends Controller
     public function hoatDongVaTienDo()
     {
         return view('pages.hoc-vien.hoat-dong-tien-do', $this->dashboardService->buildFor(auth()->user()));
+    }
+
+    public function ketQuaHocTap()
+    {
+        $user = auth()->user();
+        
+        $khoaHocThamGia = HocVienKhoaHoc::with(['khoaHoc.moduleHocs'])
+            ->where('hoc_vien_id', $user->ma_nguoi_dung)
+            ->get();
+
+        $resultsByCourse = [];
+        
+        foreach ($khoaHocThamGia as $enrollment) {
+            $khoaHoc = $enrollment->khoaHoc;
+            
+            // Lấy tất cả kết quả của học viên trong khóa học này (phân cấp)
+            $allResults = KetQuaHocTap::with(['moduleHoc', 'baiKiemTra'])
+                ->where('hoc_vien_id', $user->ma_nguoi_dung)
+                ->where('khoa_hoc_id', $khoaHoc->id)
+                ->get();
+
+            $resultsByCourse[$khoaHoc->id] = [
+                'khoa_hoc' => $khoaHoc,
+                'course_result' => $allResults->whereNull('module_hoc_id')->whereNull('bai_kiem_tra_id')->first(),
+                'module_results' => $allResults->whereNotNull('module_hoc_id')->whereNull('bai_kiem_tra_id')->values(),
+                'exam_results' => $allResults->whereNotNull('bai_kiem_tra_id')->values(),
+            ];
+        }
+
+        // Thống kê tổng quan
+        $stats = [
+            'tong_khoa_hoc' => count($resultsByCourse),
+            'khoa_hoc_dat' => collect($resultsByCourse)->filter(fn($c) => optional($c['course_result'])->trang_thai === 'dat')->count(),
+            'khoa_hoc_truot' => collect($resultsByCourse)->filter(fn($c) => optional($c['course_result'])->trang_thai === 'khong_dat')->count(),
+            'diem_trung_binh_chung' => collect($resultsByCourse)->whereNotNull('course_result')->avg('course_result.diem_tong_ket'),
+        ];
+
+        return view('pages.hoc-vien.ket-qua.index', compact('resultsByCourse', 'stats'));
     }
 
     /**

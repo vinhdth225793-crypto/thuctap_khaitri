@@ -116,6 +116,9 @@
                         </button>
                     </h5>
                     <div class="d-flex gap-2">
+                        <a href="{{ route('giang-vien.khoa-hoc.ket-qua', $phanCong->id) }}" class="btn btn-sm btn-primary shadow-sm px-3">
+                            <i class="fas fa-poll-h me-1"></i> Quản lý kết quả
+                        </a>
                         <div class="dropdown">
                             <button class="btn btn-sm btn-danger dropdown-toggle shadow-sm px-3" type="button" id="createExamDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="fas fa-plus-circle me-1"></i> Tạo bài kiểm tra

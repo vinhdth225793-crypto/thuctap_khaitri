@@ -8,8 +8,11 @@ use App\Models\KhoaHoc;
 use App\Models\LichHoc;
 use App\Models\PhanCongModuleGiangVien;
 use App\Models\YeuCauHocVien;
+use App\Models\KetQuaHocTap;
+use App\Models\HocVienKhoaHoc;
 use App\Services\TeacherAttendanceService;
 use App\Services\ThongBaoService;
+use App\Services\KetQuaHocTapService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -17,6 +20,7 @@ class PhanCongController extends Controller
 {
     public function __construct(
         private readonly TeacherAttendanceService $teacherAttendanceService,
+        private readonly KetQuaHocTapService $ketQuaHocTapService,
     ) {
     }
 
@@ -180,6 +184,72 @@ class PhanCongController extends Controller
         });
 
         return view('pages.giang-vien.phan-cong.show', compact('phanCong', 'khoaHoc', 'lichDays', 'lichHocIds', 'timelineItems'));
+    }
+
+    /**
+     * Quản lý kết quả học tập cho phân công này
+     */
+    public function ketQuaHocTap($id)
+    {
+        $giangVien = auth()->user()->giangVien;
+        $phanCong = $this->resolveTeacherAssignment($giangVien->id, (int) $id);
+        $khoaHoc = $phanCong->khoaHoc;
+
+        $hocViens = HocVienKhoaHoc::with('hocVien')
+            ->where('khoa_hoc_id', $khoaHoc->id)
+            ->where('trang_thai', 'dang_hoc')
+            ->get();
+
+        $studentResults = [];
+        foreach ($hocViens as $enrollment) {
+            $student = $enrollment->hocVien;
+            
+            // Lấy tất cả kết quả của học viên này trong khóa
+            $allResults = KetQuaHocTap::with(['moduleHoc', 'baiKiemTra'])
+                ->where('hoc_vien_id', $enrollment->hoc_vien_id)
+                ->where('khoa_hoc_id', $khoaHoc->id)
+                ->get();
+
+            $studentResults[] = [
+                'enrollment' => $enrollment,
+                'student' => $student,
+                'course_result' => $allResults->whereNull('module_hoc_id')->whereNull('bai_kiem_tra_id')->first(),
+                'module_results' => $allResults->whereNotNull('module_hoc_id')->whereNull('bai_kiem_tra_id')->values(),
+                'exam_results' => $allResults->whereNotNull('bai_kiem_tra_id')->values(),
+            ];
+        }
+
+        return view('pages.giang-vien.phan-cong.ket-qua', compact('phanCong', 'khoaHoc', 'studentResults'));
+    }
+
+    /**
+     * AJAX update trạng thái/nhận xét kết quả học tập
+     */
+    public function updateKetQua(Request $request, $id)
+    {
+        $giangVien = auth()->user()->giangVien;
+        $phanCong = $this->resolveTeacherAssignment($giangVien->id, (int) $id);
+        
+        $validated = $request->validate([
+            'result_id' => 'required|exists:ket_qua_hoc_tap,id',
+            'trang_thai' => 'nullable|string|max:50',
+            'nhan_xet' => 'nullable|string|max:2000',
+        ]);
+
+        $kq = KetQuaHocTap::where('id', $validated['result_id'])
+            ->where('khoa_hoc_id', $phanCong->khoa_hoc_id)
+            ->firstOrFail();
+
+        $kq->update([
+            'trang_thai' => $validated['trang_thai'] ?? $kq->trang_thai,
+            'nhan_xet_giang_vien' => $validated['nhan_xet'] ?? $kq->nhan_xet_giang_vien,
+        ]);
+
+        // Sau khi update thủ công, có thể cần refresh lại cấp cao hơn nếu muốn logic tự động đè lên
+        // Nhưng ở đây là giảng viên chốt, nên ta giữ nguyên hoặc chỉ refresh phần điểm số
+        $this->ketQuaHocTapService->refreshAllForCourseStudent($kq->khoa_hoc_id, $kq->hoc_vien_id);
+
+        return response()->json(['success' => true, 'message' => 'Đã cập nhật kết quả học tập.']);
     }
 
     /**

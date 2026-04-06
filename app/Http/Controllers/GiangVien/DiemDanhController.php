@@ -144,7 +144,7 @@ class DiemDanhController extends Controller
             DB::commit();
 
             foreach (array_values(array_unique($updatedHocVienIds)) as $hocVienId) {
-                $this->ketQuaHocTapService->refreshForCourseStudent((int) $lichHoc->khoa_hoc_id, $hocVienId);
+                $this->ketQuaHocTapService->refreshAllForCourseStudent((int) $lichHoc->khoa_hoc_id, $hocVienId);
             }
 
             return back()->with('success', 'Đã lưu dữ liệu điểm danh học viên thành công.');

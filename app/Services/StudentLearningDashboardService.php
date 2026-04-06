@@ -122,7 +122,7 @@ class StudentLearningDashboardService
             ->where('hoc_vien_id', $user->ma_nguoi_dung)
             ->whereIn('khoa_hoc_id', $tatCaKhoaHocIds->all())
             ->get()
-            ->keyBy('khoa_hoc_id');
+            ->groupBy('khoa_hoc_id');
 
         $baiKiemTraCanChuY = collect();
         if ($tatCaKhoaHocIds->isNotEmpty()) {
@@ -221,7 +221,10 @@ class StudentLearningDashboardService
                 ->sortBy(fn (LichHoc $lichHoc) => $lichHoc->starts_at?->getTimestamp() ?? PHP_INT_MAX)
                 ->first();
 
-            $ketQuaHocTap = $ketQuaHocTapTheoKhoaHoc->get($ghiDanh->khoa_hoc_id);
+            $allKq = $ketQuaHocTapTheoKhoaHoc->get($ghiDanh->khoa_hoc_id, collect());
+            $ketQuaHocTap = $allKq->whereNull('module_hoc_id')->whereNull('bai_kiem_tra_id')->first();
+            $moduleKq = $allKq->whereNotNull('module_hoc_id')->whereNull('bai_kiem_tra_id');
+            $examKq = $allKq->whereNotNull('bai_kiem_tra_id');
 
             return [
                 'ghi_danh' => $ghiDanh,
@@ -237,6 +240,9 @@ class StudentLearningDashboardService
                 'tong_diem_danh' => $tongDiemDanh,
                 'ty_le_tham_du' => $tyLeThamDu,
                 'ket_qua_hoc_tap' => $ketQuaHocTap,
+                'ket_qua_module_count' => $moduleKq->count(),
+                'ket_qua_module_hoan_thanh' => $moduleKq->where('trang_thai', 'hoan_thanh')->count(),
+                'bai_thi_dat_count' => $examKq->where('trang_thai', 'dat')->count(),
             ];
         });
 

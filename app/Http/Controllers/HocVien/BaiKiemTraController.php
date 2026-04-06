@@ -282,7 +282,7 @@ class BaiKiemTraController extends Controller
                 ]);
 
                 $this->surveillanceService->finalizeAttempt($baiLam->fresh());
-                $this->ketQuaHocTapService->refreshForCourseStudent($baiKiemTra->khoa_hoc_id, $baiLam->hoc_vien_id);
+                $this->ketQuaHocTapService->refreshAllForCourseStudent($baiKiemTra->khoa_hoc_id, $baiLam->hoc_vien_id);
             });
 
             return redirect()
@@ -356,7 +356,7 @@ class BaiKiemTraController extends Controller
             ]);
 
             $this->surveillanceService->finalizeAttempt($baiLam->fresh());
-            $this->ketQuaHocTapService->refreshForCourseStudent($baiKiemTra->khoa_hoc_id, $baiLam->hoc_vien_id);
+            $this->ketQuaHocTapService->refreshAllForCourseStudent($baiKiemTra->khoa_hoc_id, $baiLam->hoc_vien_id);
         });
 
         return redirect()
