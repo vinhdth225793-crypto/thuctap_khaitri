@@ -66,8 +66,8 @@ class TeacherAvailabilitySchedulingTest extends TestCase
         $this->assertSame(1, $schedule->tiet_bat_dau);
         $this->assertSame(2, $schedule->tiet_ket_thuc);
         $this->assertSame('sang', $schedule->buoi_hoc);
-        $this->assertSame('08:00', substr((string) $schedule->gio_bat_dau, 0, 5));
-        $this->assertSame('09:50', substr((string) $schedule->gio_ket_thuc, 0, 5));
+        $this->assertSame('07:30', substr((string) $schedule->gio_bat_dau, 0, 5));
+        $this->assertSame('09:20', substr((string) $schedule->gio_ket_thuc, 0, 5));
     }
 
     public function test_admin_cannot_create_schedule_outside_standard_hours(): void
@@ -99,13 +99,13 @@ class TeacherAvailabilitySchedulingTest extends TestCase
         $this->assertDatabaseCount('lich_hoc', 0);
     }
 
-    public function test_admin_cannot_create_schedule_on_weekend(): void
+    public function test_admin_can_create_schedule_on_sunday_inside_standard_window(): void
     {
         $admin = $this->createUser('admin');
         [, $teacher] = $this->createTeacher();
         $course = $this->createCourse($admin);
         $module = $this->createModule($course, 1);
-        $studyDate = $this->nextDbWeekdayDate(7);
+        $studyDate = $this->nextDbWeekdayDate(8);
 
         $this->assignTeacher($admin, $teacher, $course, $module);
 
@@ -122,9 +122,9 @@ class TeacherAvailabilitySchedulingTest extends TestCase
 
         $response
             ->assertRedirect(route('admin.khoa-hoc.lich-hoc.index', $course->id))
-            ->assertSessionHasErrors(['ngay_hoc']);
+            ->assertSessionDoesntHaveErrors();
 
-        $this->assertDatabaseCount('lich_hoc', 0);
+        $this->assertDatabaseCount('lich_hoc', 1);
     }
 
     public function test_admin_cannot_create_overlapping_schedule_for_same_teacher(): void
@@ -204,8 +204,8 @@ class TeacherAvailabilitySchedulingTest extends TestCase
         $this->actingAs($teacherUser)
             ->get(route('giang-vien.lich-giang.index'))
             ->assertOk()
-            ->assertSeeText('Thoi khoa bieu theo tuan')
-            ->assertSeeText('Danh sach lich day trong tuan')
+            ->assertSeeText('Thời khóa biểu theo tuần')
+            ->assertSeeText('Danh sách buổi dạy tuần này')
             ->assertSeeText($module->ten_module);
     }
 
@@ -315,7 +315,7 @@ class TeacherAvailabilitySchedulingTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.giang-vien.index'))
             ->assertOk()
-            ->assertSeeText('Quan ly giang vien, lich day va don xin nghi')
+            ->assertSeeText('Quản lý giảng viên, lịch dạy và đơn xin nghỉ')
             ->assertSee(route('admin.giang-vien.lich-giang.show', $teacher->id), false)
             ->assertSee(route('admin.giang-vien-don-xin-nghi.index'), false);
 
@@ -323,8 +323,8 @@ class TeacherAvailabilitySchedulingTest extends TestCase
             ->get(route('admin.giang-vien.lich-giang.show', $teacher->id))
             ->assertOk()
             ->assertSeeText($teacherUser->ho_ten)
-            ->assertSeeText('Thoi khoa bieu theo tuan')
-            ->assertSeeText('Don xin nghi gan day');
+            ->assertSeeText('Thời khóa biểu theo tuần')
+            ->assertSeeText('Đơn xin nghỉ gần đây');
     }
 
     private function createUser(string $role, array $overrides = []): NguoiDung

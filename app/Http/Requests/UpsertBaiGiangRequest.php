@@ -68,12 +68,12 @@ class UpsertBaiGiangRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'live.nen_tang_live.required_if' => 'Vui long chon nen tang cho phong hoc live.',
-            'live.moderator_id.required_if' => 'Vui long chon moderator cho phong hoc live.',
-            'live.thoi_gian_bat_dau.required_if' => 'Vui long chon thoi gian bat dau.',
-            'live.thoi_luong_phut.required_if' => 'Vui long nhap thoi luong du kien.',
-            'live.join_url.required_if' => 'Vui long nhap link tham gia hop le cho phong hoc live.',
-            'live.tro_giang_id.different' => 'Tro giang khong duoc trung voi moderator.',
+            'live.nen_tang_live.required_if' => 'Vui lòng chọn nền tảng cho phòng học trực tuyến.',
+            'live.moderator_id.required_if' => 'Vui lòng chọn người điều phối cho phòng học trực tuyến.',
+            'live.thoi_gian_bat_dau.required_if' => 'Vui lòng chọn thời gian bắt đầu.',
+            'live.thoi_luong_phut.required_if' => 'Vui lòng nhập thời lượng dự kiến.',
+            'live.join_url.required_if' => 'Vui lòng nhập liên kết tham gia hợp lệ cho phòng học trực tuyến.',
+            'live.tro_giang_id.different' => 'Trợ giảng không được trùng với người điều phối.',
         ];
     }
 }

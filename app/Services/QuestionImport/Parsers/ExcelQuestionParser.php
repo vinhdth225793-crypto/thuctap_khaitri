@@ -77,7 +77,7 @@ class ExcelQuestionParser implements QuestionFileParser
         }
 
         throw ValidationException::withMessages([
-            'file_import' => 'Dinh dang file khong duoc ho tro. Vui long dung file .xlsx, .csv, .txt, .docx hoac .pdf.',
+            'file_import' => 'Định dạng tệp không được hỗ trợ. Vui lòng dùng tệp .xlsx, .csv, .txt, .docx hoặc .pdf.',
         ]);
     }
 
@@ -106,7 +106,7 @@ class ExcelQuestionParser implements QuestionFileParser
         }
 
         throw ValidationException::withMessages([
-            'file_import' => 'Khong tim thay dong header hop le. File moi phai co 6 cot: cau_hoi, dap_an_1, dap_an_2, dap_an_3, dap_an_4, dap_an_dung. File cu co the dung mau CSV legacy.',
+            'file_import' => 'Không tìm thấy dòng header hợp lệ. Tệp mới phải có 6 cột: cau_hoi, dap_an_1, dap_an_2, dap_an_3, dap_an_4, dap_an_dung. Tệp cũ có thể dùng mẫu CSV legacy.',
         ]);
     }
 
@@ -201,13 +201,13 @@ class ExcelQuestionParser implements QuestionFileParser
 
         if ($question === '') {
             $status = 'thieu_noi_dung';
-            $note = 'Thieu noi dung cau hoi.';
+            $note = 'Thiếu nội dung câu hỏi.';
         } elseif (collect($answerTexts)->contains(fn ($value) => $value === '')) {
             $status = 'thieu_dap_an';
-            $note = 'Thieu mot trong 4 dap an.';
+            $note = 'Thiếu một trong 4 đáp án.';
         } elseif ($correctAnswerText === '') {
             $status = 'khong_xac_dinh_dap_an_dung';
-            $note = 'Khong xac dinh duoc dap an dung tu cot dap_an_dung.';
+            $note = 'Không xác định được đáp án đúng từ cột dap_an_dung.';
         } else {
             $normalizedCorrectText = NganHangCauHoi::normalizeString($correctAnswerText);
 
@@ -221,7 +221,7 @@ class ExcelQuestionParser implements QuestionFileParser
 
             if (collect($answers)->where('is_correct', true)->count() !== 1) {
                 $status = 'dap_an_dung_khong_khop';
-                $note = 'dap_an_dung khong khop voi bat ky dap an nao.';
+                $note = 'dap_an_dung không khớp với bất kỳ đáp án nào.';
             }
         }
 
@@ -259,10 +259,10 @@ class ExcelQuestionParser implements QuestionFileParser
 
         if ($question === '') {
             $status = 'thieu_noi_dung';
-            $note = 'Thieu noi dung cau hoi.';
+            $note = 'Thiếu nội dung câu hỏi.';
         } elseif (collect($answerTexts)->contains(fn ($value) => $value === '')) {
             $status = 'thieu_dap_an';
-            $note = 'Thieu mot trong 4 dap an cua mau CSV cu.';
+            $note = 'Thiếu một trong 4 đáp án của mẫu CSV cũ.';
         } else {
             foreach ($answerTexts as $index => $answerText) {
                 $answers[] = [
@@ -294,7 +294,7 @@ class ExcelQuestionParser implements QuestionFileParser
         $handle = fopen($path, 'rb');
         if ($handle === false) {
             throw ValidationException::withMessages([
-                'file_import' => 'Khong the mo file CSV de import.',
+                'file_import' => 'Không thể mở tệp CSV để import.',
             ]);
         }
 

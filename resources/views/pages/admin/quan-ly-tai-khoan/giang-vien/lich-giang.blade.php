@@ -1,13 +1,13 @@
 @extends('layouts.app')
 
-@section('title', 'Lich day giang vien')
+@section('title', 'Lịch dạy giảng viên')
 
 @section('content')
 <div class="container-fluid">
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb small">
             <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Admin</a></li>
-            <li class="breadcrumb-item"><a href="{{ route('admin.giang-vien.index') }}">Giang vien</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('admin.giang-vien.index') }}">Giảng viên</a></li>
             <li class="breadcrumb-item active">{{ $teacher->nguoiDung->ho_ten }}</li>
         </ol>
     </nav>
@@ -15,12 +15,12 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
             <div class="small text-muted text-uppercase fw-bold mb-1">Teacher Schedule</div>
-            <h4 class="fw-bold mb-1">Lich day cua {{ $teacher->nguoiDung->ho_ten }}</h4>
-            <div class="text-muted">{{ $teacher->chuyen_nganh ?: 'Chua cap nhat chuyen nganh' }} <span class="mx-2">|</span> {{ $teacher->nguoiDung->email }}</div>
+            <h4 class="fw-bold mb-1">Lịch dạy của {{ $teacher->nguoiDung->ho_ten }}</h4>
+            <div class="text-muted">{{ $teacher->chuyen_nganh ?: 'Chưa cập nhật chuyên ngành' }} <span class="mx-2">|</span> {{ $teacher->nguoiDung->email }}</div>
         </div>
         <div class="d-flex gap-2">
-            <a href="{{ route('admin.giang-vien.index') }}" class="btn btn-outline-secondary">Danh sach giang vien</a>
-            <a href="{{ route('admin.giang-vien-don-xin-nghi.index', ['giang_vien_id' => $teacher->id]) }}" class="btn btn-outline-warning fw-bold">Don xin nghi</a>
+            <a href="{{ route('admin.giang-vien.index') }}" class="btn btn-outline-secondary">Danh sách giảng viên</a>
+            <a href="{{ route('admin.giang-vien-don-xin-nghi.index', ['giang_vien_id' => $teacher->id]) }}" class="btn btn-outline-warning fw-bold">Đơn xin nghỉ</a>
         </div>
     </div>
 
@@ -31,18 +31,18 @@
     ])
 
     <div class="row g-3 mb-4">
-        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="small text-muted text-uppercase fw-bold">Module da nhan</div><div class="display-6 fw-bold text-info">{{ $stats['assigned_modules'] }}</div></div></div></div>
-        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="small text-muted text-uppercase fw-bold">Buoi sap toi</div><div class="display-6 fw-bold text-primary">{{ $stats['upcoming_schedules'] }}</div></div></div></div>
-        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="small text-muted text-uppercase fw-bold">Don cho duyet</div><div class="display-6 fw-bold text-warning">{{ $stats['leave_requests_pending'] }}</div></div></div></div>
-        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="small text-muted text-uppercase fw-bold">Don da duyet</div><div class="display-6 fw-bold text-success">{{ $stats['leave_requests_approved'] }}</div></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="small text-muted text-uppercase fw-bold">Module đã nhận</div><div class="display-6 fw-bold text-info">{{ $stats['assigned_modules'] }}</div></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="small text-muted text-uppercase fw-bold">Buổi sắp tới</div><div class="display-6 fw-bold text-primary">{{ $stats['upcoming_schedules'] }}</div></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="small text-muted text-uppercase fw-bold">Đơn chờ duyệt</div><div class="display-6 fw-bold text-warning">{{ $stats['leave_requests_pending'] }}</div></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="small text-muted text-uppercase fw-bold">Đơn đã duyệt</div><div class="display-6 fw-bold text-success">{{ $stats['leave_requests_approved'] }}</div></div></div></div>
     </div>
 
     <div class="row g-4">
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white border-0 pt-4 px-4">
-                    <h5 class="mb-1 fw-bold">Don xin nghi gan day</h5>
-                    <div class="text-muted small">Admin co the mo danh sach day du de duyet hoac xu ly tiep.</div>
+                    <h5 class="mb-1 fw-bold">Đơn xin nghỉ gần đây</h5>
+                    <div class="text-muted small">Admin có thể mở danh sách đầy đủ để duyệt hoặc xử lý tiếp.</div>
                 </div>
                 <div class="card-body pt-0">
                     @forelse($recentLeaveRequests as $item)
@@ -58,7 +58,7 @@
                             <div class="small">{{ $item->ly_do }}</div>
                         </div>
                     @empty
-                        <div class="text-muted small">Chua co don xin nghi nao.</div>
+                        <div class="text-muted small">Chưa có đơn xin nghỉ nào.</div>
                     @endforelse
                 </div>
             </div>
@@ -67,8 +67,8 @@
         <div class="col-lg-4">
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white border-0 pt-4 px-4">
-                    <h5 class="mb-1 fw-bold">Buoi hoc sap toi</h5>
-                    <div class="text-muted small">Dung de doi chieu nhanh truoc khi doi lich hoac thay giang vien.</div>
+                    <h5 class="mb-1 fw-bold">Buổi học sắp tới</h5>
+                    <div class="text-muted small">Dùng để đối chiếu nhanh trước khi đổi lịch hoặc thay giảng viên.</div>
                 </div>
                 <div class="card-body pt-0">
                     @forelse($upcomingSchedules as $schedule)
@@ -76,28 +76,28 @@
                             <div class="fw-bold text-dark">{{ $schedule->moduleHoc?->ten_module }}</div>
                             <div class="small text-muted mb-2">{{ $schedule->moduleHoc?->khoaHoc?->ten_khoa_hoc }}</div>
                             <div class="small text-muted mb-3">{{ $schedule->ngay_hoc?->format('d/m/Y') }} | {{ $schedule->schedule_range_label }}</div>
-                            <a href="{{ route('admin.khoa-hoc.lich-hoc.index', $schedule->khoa_hoc_id) }}" class="btn btn-sm btn-outline-primary">Mo planner</a>
+                            <a href="{{ route('admin.khoa-hoc.lich-hoc.index', $schedule->khoa_hoc_id) }}" class="btn btn-sm btn-outline-primary">Mở planner</a>
                         </div>
                     @empty
-                        <div class="text-muted small">Chua co buoi hoc tuong lai nao duoc gan cho giang vien nay.</div>
+                        <div class="text-muted small">Chưa có buổi học tương lai nào được gán cho giảng viên này.</div>
                     @endforelse
                 </div>
             </div>
 
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white border-0 pt-4 px-4">
-                    <h5 class="mb-1 fw-bold">Module da nhan</h5>
-                    <div class="text-muted small">Day la cac module admin co the tiep tuc sap lich.</div>
+                    <h5 class="mb-1 fw-bold">Module đã nhận</h5>
+                    <div class="text-muted small">Đây là các module admin có thể tiếp tục sắp lịch.</div>
                 </div>
                 <div class="card-body pt-0">
                     @forelse($acceptedAssignments as $assignment)
                         <div class="border rounded-3 p-3 mb-3">
                             <div class="fw-bold text-dark">{{ $assignment->moduleHoc->ten_module ?? 'N/A' }}</div>
-                            <div class="small text-muted mb-2">{{ $assignment->moduleHoc->khoaHoc->ten_khoa_hoc ?? 'Khong xac dinh' }}</div>
-                            <a href="{{ route('admin.khoa-hoc.lich-hoc.index', $assignment->khoa_hoc_id) }}" class="btn btn-sm btn-outline-success">Mo planner</a>
+                            <div class="small text-muted mb-2">{{ $assignment->moduleHoc->khoaHoc->ten_khoa_hoc ?? 'Không xác định' }}</div>
+                            <a href="{{ route('admin.khoa-hoc.lich-hoc.index', $assignment->khoa_hoc_id) }}" class="btn btn-sm btn-outline-success">Mở planner</a>
                         </div>
                     @empty
-                        <div class="text-muted small">Giang vien nay chua co module nao o trang thai da nhan.</div>
+                        <div class="text-muted small">Giảng viên này chưa có module nào ở trạng thái đã nhận.</div>
                     @endforelse
                 </div>
             </div>

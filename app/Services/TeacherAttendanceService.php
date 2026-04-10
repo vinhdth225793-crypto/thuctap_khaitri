@@ -253,7 +253,7 @@ class TeacherAttendanceService
 
         if ($lichHoc->teaching_session_status === 'da_huy') {
             throw ValidationException::withMessages([
-                'teacher_attendance' => 'Buổi học này đã bị hủy nên không thể thực hiện attendance.',
+                'teacher_attendance' => 'Buổi học này đã bị hủy nên không thể thực hiện điểm danh.',
             ]);
         }
     }
@@ -262,7 +262,7 @@ class TeacherAttendanceService
     {
         if ($lichHoc->teaching_session_status === 'da_huy') {
             throw ValidationException::withMessages([
-                'teacher_attendance' => 'Buổi học này đã bị hủy nên không thể thực hiện attendance.',
+                'teacher_attendance' => 'Buổi học này đã bị hủy nên không thể thực hiện điểm danh.',
             ]);
         }
     }

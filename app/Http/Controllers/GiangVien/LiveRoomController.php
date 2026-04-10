@@ -9,7 +9,6 @@ use App\Models\PhongHocLive;
 use App\Services\LiveLectureService;
 use App\Services\LiveRoomParticipationService;
 use App\Services\TeacherAttendanceService;
-use App\Services\TeacherAssignmentResolver;
 use App\Services\TeacherScheduleLiveRoomService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,7 +21,6 @@ class LiveRoomController extends Controller
         private readonly LiveLectureService $liveLectureService,
         private readonly TeacherScheduleLiveRoomService $teacherScheduleLiveRoomService,
         private readonly TeacherAttendanceService $teacherAttendanceService,
-        private readonly TeacherAssignmentResolver $teacherAssignmentResolver,
     ) {
     }
 
@@ -32,7 +30,7 @@ class LiveRoomController extends Controller
 
         return redirect()
             ->route('giang-vien.live-room.show', ['id' => $lecture->id])
-            ->with('success', 'Da tao phong live noi bo cho buoi hoc online.');
+            ->with('success', 'Đã tạo phòng học trực tuyến nội bộ cho buổi học online.');
     }
 
     public function showScheduleRoom(int $lichHocId): RedirectResponse
@@ -62,7 +60,7 @@ class LiveRoomController extends Controller
 
         return redirect()
             ->to($this->buildTeacherCourseSessionUrl($lichHoc))
-            ->with('success', 'Da ket thuc phong live noi bo cua buoi hoc.');
+            ->with('success', 'Đã kết thúc phòng học trực tuyến nội bộ của buổi học.');
     }
 
     public function show(int $id)
@@ -110,7 +108,7 @@ class LiveRoomController extends Controller
 
         return redirect()
             ->route('giang-vien.live-room.show', ['id' => $id, 'player' => 'host'])
-            ->with('success', 'Da bat dau buoi hoc live trong trang.');
+            ->with('success', 'Đã bắt đầu buổi học trực tuyến ngay trong trang.');
     }
 
     public function join(int $id)
@@ -134,7 +132,7 @@ class LiveRoomController extends Controller
 
         return redirect()
             ->route('giang-vien.live-room.show', ['id' => $id, 'player' => 'host'])
-            ->with('success', 'Da mo phong hoc ngay trong trang.');
+            ->with('success', 'Đã mở phòng học ngay trong trang.');
     }
 
     public function leave(int $id)
@@ -144,7 +142,7 @@ class LiveRoomController extends Controller
 
         $this->participationService->leaveRoom($phongHocLive, auth()->user());
 
-        return redirect()->route('giang-vien.live-room.show', $id)->with('success', 'Da cap nhat trang thai roi phong.');
+        return redirect()->route('giang-vien.live-room.show', $id)->with('success', 'Đã cập nhật trạng thái rời phòng.');
     }
 
     public function end(int $id)
@@ -169,7 +167,7 @@ class LiveRoomController extends Controller
             $phongHocLive->refresh();
         }
 
-        return redirect()->route('giang-vien.live-room.show', $id)->with('success', 'Da ket thuc buoi hoc live.');
+        return redirect()->route('giang-vien.live-room.show', $id)->with('success', 'Đã kết thúc buổi học trực tuyến.');
     }
 
     public function storeRecording(Request $request, int $id)
@@ -187,7 +185,7 @@ class LiveRoomController extends Controller
 
         $this->liveLectureService->addRecording($phongHocLive, $validated);
 
-        return redirect()->route('giang-vien.live-room.show', $id)->with('success', 'Da them ban ghi cho buoi hoc live.');
+        return redirect()->route('giang-vien.live-room.show', $id)->with('success', 'Đã thêm bản ghi cho buổi học trực tuyến.');
     }
 
     public function destroyRecording(int $id, int $recordingId)
@@ -198,7 +196,7 @@ class LiveRoomController extends Controller
         $recording = $phongHocLive->banGhis()->whereKey($recordingId)->firstOrFail();
         $this->liveLectureService->deleteRecording($recording);
 
-        return redirect()->route('giang-vien.live-room.show', $id)->with('success', 'Da xoa ban ghi.');
+        return redirect()->route('giang-vien.live-room.show', $id)->with('success', 'Đã xóa bản ghi.');
     }
 
     /**
@@ -222,7 +220,7 @@ class LiveRoomController extends Controller
      */
     private function resolveManagedLectureAndRoom(int $lectureId): array
     {
-        $userId = auth()->user()->ma_nguoi_dung;
+        $userId = auth()->user()->id;
 
         $baiGiang = BaiGiang::with([
             'khoaHoc',
@@ -251,7 +249,7 @@ class LiveRoomController extends Controller
 
     private function canManageRoom(PhongHocLive $phongHocLive, $user): bool
     {
-        return in_array((int) $user->ma_nguoi_dung, [
+        return in_array((int) $user->id, [
             (int) $phongHocLive->moderator_id,
             (int) $phongHocLive->tro_giang_id,
             (int) $phongHocLive->created_by,
@@ -278,7 +276,7 @@ class LiveRoomController extends Controller
     private function buildTeacherCourseSessionUrl(LichHoc $lichHoc, ?string $quickAction = null): string
     {
         $params = [
-            'id' => $this->resolveAssignmentIdForSchedule($lichHoc) ?? $lichHoc->khoa_hoc_id,
+            'id' => $lichHoc->khoa_hoc_id,
             'focus_lich_hoc_id' => $lichHoc->id,
         ];
 
@@ -288,18 +286,6 @@ class LiveRoomController extends Controller
 
         return route('giang-vien.khoa-hoc.show', $params) . '#session-' . $lichHoc->id;
     }
-
-    private function resolveAssignmentIdForSchedule(LichHoc $lichHoc): ?int
-    {
-        $giangVien = auth()->user()?->giangVien;
-
-        if (!$giangVien) {
-            return null;
-        }
-
-        return $this->teacherAssignmentResolver->resolveForSchedule($giangVien->id, $lichHoc);
-    }
-
     private function ensureScheduleRoomActionAllowed(BaiGiang $baiGiang, string $action): void
     {
         $lichHoc = $baiGiang->lichHoc;
@@ -310,13 +296,13 @@ class LiveRoomController extends Controller
 
         if ($lichHoc->teaching_session_status === 'da_huy') {
             throw ValidationException::withMessages([
-                'live_room' => 'Buoi hoc da bi huy, khong the tiep tuc thao tac voi phong live.',
+                'live_room' => 'Buổi học đã bị hủy, không thể tiếp tục thao tác với phòng học trực tuyến.',
             ]);
         }
 
         if ($lichHoc->teaching_session_status === 'da_ket_thuc') {
             throw ValidationException::withMessages([
-                'live_room' => 'Buoi hoc da ket thuc, khong the mo lai hoac tham gia phong live.',
+                'live_room' => 'Buổi học đã kết thúc, không thể mở lại hoặc tham gia phòng học trực tuyến.',
             ]);
         }
     }

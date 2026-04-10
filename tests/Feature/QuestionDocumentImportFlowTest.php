@@ -257,6 +257,54 @@ class QuestionDocumentImportFlowTest extends TestCase
         $this->assertSame('MySQL', $preview['data'][0]['dap_an_dung']);
     }
 
+    public function test_can_preview_and_confirm_docx_essay_import_with_marker_and_suggestion(): void
+    {
+        $admin = $this->createUser('admin');
+        $course = $this->createCourse($admin);
+
+        $docxPath = $this->createDocxQuestionFile([
+            ['text' => '1. [Tu luan] Trinh bay vai tro cua migration trong Laravel.'],
+            ['text' => 'Goi y: Neu hoc vien nhac den version control schema thi duoc cong diem.'],
+        ]);
+
+        $upload = new UploadedFile(
+            $docxPath,
+            'essay-docx.docx',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            null,
+            true,
+        );
+
+        $this->actingAs($admin)
+            ->post(route('admin.kiem-tra-online.cau-hoi.import'), [
+                'khoa_hoc_id' => $course->id,
+                'file_import' => $upload,
+            ])
+            ->assertRedirect(route('admin.kiem-tra-online.cau-hoi.preview'));
+
+        $preview = session('import_preview');
+
+        $this->assertSame(1, $preview['summary']['valid']);
+        $this->assertSame('tu_luan', $preview['data'][0]['loai_cau_hoi']);
+        $this->assertSame('Giảng viên chấm tay', $preview['data'][0]['dap_an_dung']);
+        $this->assertSame('Neu hoc vien nhac den version control schema thi duoc cong diem.', $preview['data'][0]['goi_y_tra_loi']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.kiem-tra-online.cau-hoi.confirm-import'))
+            ->assertRedirect(route('admin.kiem-tra-online.cau-hoi.index'));
+
+        $question = NganHangCauHoi::query()
+            ->where('khoa_hoc_id', $course->id)
+            ->where('noi_dung', 'Trinh bay vai tro cua migration trong Laravel.')
+            ->with('dapAns')
+            ->firstOrFail();
+
+        $this->assertSame('tu_luan', $question->loai_cau_hoi);
+        $this->assertNull($question->kieu_dap_an);
+        $this->assertSame('Neu hoc vien nhac den version control schema thi duoc cong diem.', $question->goi_y_tra_loi);
+        $this->assertCount(0, $question->dapAns);
+    }
+
     public function test_docx_preview_marks_question_invalid_when_answer_count_is_not_four(): void
     {
         $admin = $this->createUser('admin');

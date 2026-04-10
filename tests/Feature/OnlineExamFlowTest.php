@@ -15,8 +15,10 @@ use App\Models\NganHangCauHoi;
 use App\Models\NguoiDung;
 use App\Models\NhomNganh;
 use App\Models\PhanCongModuleGiangVien;
+use App\Services\ExamQuestionImportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithoutMiddleware;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class OnlineExamFlowTest extends TestCase
@@ -304,6 +306,96 @@ class OnlineExamFlowTest extends TestCase
             'diem_diem_danh' => 10.00,
             'diem_kiem_tra' => 10.00,
             'diem_tong_ket' => 10.00,
+        ]);
+    }
+
+    public function test_teacher_can_grade_freeform_essay_exam_and_learning_result_is_aggregated(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        $student = $this->createStudent();
+        $course = $this->createCourse($admin, [
+            'phuong_thuc_danh_gia' => 'theo_module',
+            'ty_trong_diem_danh' => 20,
+            'ty_trong_kiem_tra' => 80,
+        ]);
+        $module = $this->createModule($course);
+        $lichHoc = $this->createLichHoc($course, $module);
+
+        $this->assignTeacher($admin, $teacher, $course, $module);
+        $this->enrollStudent($admin, $student, $course);
+
+        DiemDanh::create([
+            'lich_hoc_id' => $lichHoc->id,
+            'hoc_vien_id' => $student->ma_nguoi_dung,
+            'trang_thai' => 'co_mat',
+        ]);
+
+        $exam = BaiKiemTra::create([
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => $module->id,
+            'lich_hoc_id' => $lichHoc->id,
+            'tieu_de' => 'De tu luan tu do',
+            'mo_ta' => 'Phan tich vai tro cua migration va seeder trong Laravel.',
+            'thoi_gian_lam_bai' => 30,
+            'ngay_mo' => now()->subHour(),
+            'ngay_dong' => now()->addHour(),
+            'pham_vi' => 'module',
+            'loai_bai_kiem_tra' => 'module',
+            'loai_noi_dung' => 'tu_luan',
+            'che_do_tinh_diem' => 'thu_cong',
+            'trang_thai_duyet' => 'da_duyet',
+            'trang_thai_phat_hanh' => 'phat_hanh',
+            'tong_diem' => 10,
+            'so_lan_duoc_lam' => 1,
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+            'trang_thai' => true,
+        ]);
+
+        $this->actingAs($student)
+            ->post(route('hoc-vien.bai-kiem-tra.bat-dau', $exam->id))
+            ->assertRedirect(route('hoc-vien.bai-kiem-tra.show', $exam->id));
+
+        $this->actingAs($student)
+            ->post(route('hoc-vien.bai-kiem-tra.nop', $exam->id), [
+                'noi_dung_bai_lam' => 'Hoc vien trinh bay duoc cach version control schema va nap du lieu mau.',
+            ])
+            ->assertRedirect(route('hoc-vien.bai-kiem-tra.show', $exam->id));
+
+        $baiLam = $exam->fresh()->baiLams()->where('hoc_vien_id', $student->ma_nguoi_dung)->firstOrFail();
+
+        $this->assertDatabaseHas('bai_lam_bai_kiem_tra', [
+            'id' => $baiLam->id,
+            'trang_thai' => 'cho_cham',
+            'trang_thai_cham' => 'cho_cham',
+            'noi_dung_bai_lam' => 'Hoc vien trinh bay duoc cach version control schema va nap du lieu mau.',
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->post(route('giang-vien.cham-diem.store', $baiLam->id), [
+                'overall_grade' => [
+                    'diem_tu_luan' => 8.5,
+                    'nhan_xet' => 'Bai lam dung trong tam, co nhac toi schema versioning.',
+                ],
+            ])
+            ->assertRedirect(route('giang-vien.cham-diem.show', $baiLam->id));
+
+        $this->assertDatabaseHas('bai_lam_bai_kiem_tra', [
+            'id' => $baiLam->id,
+            'trang_thai' => 'da_cham',
+            'trang_thai_cham' => 'da_cham',
+            'diem_so' => 8.50,
+            'tong_diem_tu_luan' => 8.50,
+            'nhan_xet' => 'Bai lam dung trong tam, co nhac toi schema versioning.',
+            'nguoi_cham_id' => $teacherUser->ma_nguoi_dung,
+        ]);
+
+        $this->assertDatabaseHas('ket_qua_hoc_tap', [
+            'khoa_hoc_id' => $course->id,
+            'hoc_vien_id' => $student->ma_nguoi_dung,
+            'diem_diem_danh' => 10.00,
+            'diem_kiem_tra' => 8.50,
+            'diem_tong_ket' => 8.80,
         ]);
     }
 
@@ -775,6 +867,197 @@ class OnlineExamFlowTest extends TestCase
             ->assertDontSeeText('De ngoai pham vi phan cong');
     }
 
+    public function test_teacher_can_create_exam_entrypoint_with_freeform_essay_mode_and_redirect_to_info_tab(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+
+        $this->assignTeacher($admin, $teacher, $course, $module);
+
+        $response = $this->actingAs($teacherUser)
+            ->post(route('giang-vien.bai-kiem-tra.store'), [
+                'khoa_hoc_id' => $course->id,
+                'module_hoc_id' => $module->id,
+                'tieu_de' => 'De tu luan tu do tu entrypoint',
+                'mo_ta' => 'Phan tich vai tro cua migration trong Laravel.',
+                'pham_vi' => 'module',
+                'thoi_gian_lam_bai' => 30,
+                'che_do_noi_dung' => 'tu_luan_tu_do',
+            ]);
+
+        $exam = BaiKiemTra::query()
+            ->where('tieu_de', 'De tu luan tu do tu entrypoint')
+            ->firstOrFail();
+
+        $response->assertRedirect(route('giang-vien.bai-kiem-tra.edit', [
+            'id' => $exam->id,
+            'preferred_mode' => 'tu_luan_tu_do',
+            'tab' => 'info',
+        ]));
+
+        $this->assertDatabaseHas('bai_kiem_tra', [
+            'id' => $exam->id,
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => $module->id,
+            'loai_bai_kiem_tra' => 'module',
+            'loai_noi_dung' => 'tu_luan',
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+        ]);
+
+        $this->assertSame('tu_luan_tu_do', $exam->content_mode_key);
+    }
+
+    public function test_teacher_can_create_exam_entrypoint_with_structured_essay_mode_and_redirect_to_questions_tab(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+
+        $this->assignTeacher($admin, $teacher, $course, $module);
+
+        $response = $this->actingAs($teacherUser)
+            ->post(route('giang-vien.bai-kiem-tra.store'), [
+                'khoa_hoc_id' => $course->id,
+                'module_hoc_id' => $module->id,
+                'tieu_de' => 'De tu luan theo cau tu entrypoint',
+                'mo_ta' => 'Giang vien se chon cau hoi tu luan o man cau hinh.',
+                'pham_vi' => 'module',
+                'thoi_gian_lam_bai' => 35,
+                'che_do_noi_dung' => 'tu_luan_theo_cau',
+            ]);
+
+        $exam = BaiKiemTra::query()
+            ->where('tieu_de', 'De tu luan theo cau tu entrypoint')
+            ->firstOrFail();
+
+        $response->assertRedirect(route('giang-vien.bai-kiem-tra.edit', [
+            'id' => $exam->id,
+            'preferred_mode' => 'tu_luan_theo_cau',
+            'tab' => 'questions',
+        ]));
+
+        $this->assertDatabaseHas('bai_kiem_tra', [
+            'id' => $exam->id,
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => $module->id,
+            'loai_bai_kiem_tra' => 'module',
+            'loai_noi_dung' => 'tu_luan',
+        ]);
+    }
+
+    public function test_teacher_exam_builder_renders_direct_content_mode_selector_and_prefers_requested_mode(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+
+        $this->assignTeacher($admin, $teacher, $course, $module);
+
+        $exam = BaiKiemTra::create([
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => $module->id,
+            'tieu_de' => 'Editable exam with direct mode selector',
+            'mo_ta' => 'Original description',
+            'thoi_gian_lam_bai' => 30,
+            'pham_vi' => 'module',
+            'loai_bai_kiem_tra' => 'module',
+            'loai_noi_dung' => 'tu_luan',
+            'trang_thai_duyet' => 'nhap',
+            'trang_thai_phat_hanh' => 'nhap',
+            'tong_diem' => 10,
+            'so_lan_duoc_lam' => 1,
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+            'trang_thai' => true,
+        ]);
+
+        $response = $this->actingAs($teacherUser)->get(route('giang-vien.bai-kiem-tra.edit', [
+            'id' => $exam->id,
+            'preferred_mode' => 'tu_luan_theo_cau',
+            'tab' => 'questions',
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('data-exam-content-mode-panel', false);
+        $response->assertSee('data-exam-content-mode-select', false);
+        $response->assertSee('value="tu_luan_theo_cau" selected', false);
+        $response->assertSee('const initialMode = "tu_luan_theo_cau";', false);
+    }
+
+    public function test_teacher_import_preview_returns_essay_metadata_for_builder_modal(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+
+        $this->assignTeacher($admin, $teacher, $course, $module);
+
+        $exam = BaiKiemTra::create([
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => $module->id,
+            'tieu_de' => 'Exam for import preview',
+            'thoi_gian_lam_bai' => 30,
+            'pham_vi' => 'module',
+            'loai_bai_kiem_tra' => 'module',
+            'loai_noi_dung' => 'tu_luan',
+            'trang_thai_duyet' => 'nhap',
+            'trang_thai_phat_hanh' => 'nhap',
+            'tong_diem' => 10,
+            'so_lan_duoc_lam' => 1,
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+            'trang_thai' => true,
+        ]);
+
+        $this->mock(ExamQuestionImportService::class, function ($mock) use ($exam) {
+            $mock->shouldReceive('previewForExam')
+                ->once()
+                ->withArgs(function ($file, $incomingExam) use ($exam) {
+                    return $file instanceof UploadedFile && $incomingExam->is($exam);
+                })
+                ->andReturn([
+                    'summary' => [
+                        'valid' => 1,
+                        'needs_review' => 0,
+                        'invalid' => 0,
+                    ],
+                    'original_name' => 'essay-preview.docx',
+                    'source_format' => 'docx',
+                    'data' => [[
+                        'line' => 1,
+                        'noi_dung_cau_hoi' => 'Trinh bay vai tro cua migration trong Laravel.',
+                        'loai_cau_hoi' => 'tu_luan',
+                        'loai_cau_hoi_label' => 'Tu luan',
+                        'dap_an_dung' => 'Giang vien cham tay',
+                        'goi_y_tra_loi' => 'Neu hoc vien nhac den version control schema thi duoc cong diem.',
+                        'status' => 'hop_le',
+                        'note' => 'Da nhan dien marker [Tu luan].',
+                    ]],
+                ]);
+        });
+
+        $response = $this->actingAs($teacherUser)
+            ->post(route('giang-vien.bai-kiem-tra.import-preview', $exam->id), [
+                'file' => UploadedFile::fake()->create(
+                    'essay-preview.docx',
+                    16,
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                ),
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('summary.valid', 1)
+            ->assertJsonPath('preview_rows.0.question_type', 'tu_luan')
+            ->assertJsonPath('preview_rows.0.question_type_label', 'Tu luan')
+            ->assertJsonPath('preview_rows.0.correct_answer', 'Giang vien cham tay')
+            ->assertJsonPath('preview_rows.0.goi_y_tra_loi', 'Neu hoc vien nhac den version control schema thi duoc cong diem.')
+            ->assertJsonPath('preview_rows.0.note', 'Da nhan dien marker [Tu luan].');
+    }
+
     public function test_teacher_can_remove_all_selected_questions_from_exam_configuration(): void
     {
         $admin = $this->createUser('admin');
@@ -824,6 +1107,62 @@ class OnlineExamFlowTest extends TestCase
         $this->assertSame(0, $exam->chiTietCauHois()->count());
         $this->assertSame('tu_luan', $exam->loai_noi_dung);
         $this->assertSame('10.00', (string) $exam->tong_diem);
+    }
+
+    public function test_teacher_can_switch_exam_to_explicit_freeform_essay_mode(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+
+        $this->assignTeacher($admin, $teacher, $course, $module);
+
+        $exam = BaiKiemTra::create([
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => $module->id,
+            'tieu_de' => 'Editable exam',
+            'mo_ta' => 'Original description',
+            'thoi_gian_lam_bai' => 30,
+            'pham_vi' => 'module',
+            'loai_bai_kiem_tra' => 'module',
+            'loai_noi_dung' => 'trac_nghiem',
+            'trang_thai_duyet' => 'nhap',
+            'trang_thai_phat_hanh' => 'nhap',
+            'tong_diem' => 5,
+            'che_do_tinh_diem' => 'goi_diem',
+            'so_cau_goi_diem' => 1,
+            'so_lan_duoc_lam' => 1,
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+            'trang_thai' => true,
+        ]);
+
+        $question = $this->createReadyQuestion($admin, $course, $module, 'CH-CONTENT-001', 'Question to be removed');
+        $exam->chiTietCauHois()->create([
+            'ngan_hang_cau_hoi_id' => $question->id,
+            'thu_tu' => 1,
+            'diem_so' => 5,
+            'bat_buoc' => true,
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->put(route('giang-vien.bai-kiem-tra.update', $exam->id), [
+                'tieu_de' => 'Editable exam',
+                'mo_ta' => 'Essay-only description',
+                'thoi_gian_lam_bai' => 45,
+                'so_lan_duoc_lam' => 2,
+                'che_do_noi_dung' => 'tu_luan_tu_do',
+                'che_do_tinh_diem' => 'goi_diem',
+            ])
+            ->assertRedirect();
+
+        $exam->refresh();
+
+        $this->assertSame(0, $exam->chiTietCauHois()->count());
+        $this->assertSame('tu_luan', $exam->loai_noi_dung);
+        $this->assertSame('tu_luan_tu_do', $exam->content_mode_key);
+        $this->assertSame('10.00', (string) $exam->tong_diem);
+        $this->assertSame('thu_cong', $exam->che_do_tinh_diem);
     }
 
     public function test_teacher_cannot_apply_invalid_scoring_package_below_minimum_point_threshold(): void

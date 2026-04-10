@@ -402,10 +402,10 @@ class LichHoc extends Model
     public function getOnlineEntryLabelAttribute(): string
     {
         if ($phongHocLive = $this->studentLiveRoom) {
-            return $phongHocLive->can_student_join ? 'Vao phong live' : 'Xem phong live';
+            return $phongHocLive->can_student_join ? 'Vào phòng học trực tuyến' : 'Xem phòng học trực tuyến';
         }
 
-        return 'Vao phong hoc';
+        return 'Vào phòng học';
     }
 
     public function getOnlineJoinStateLabelAttribute(): string
@@ -415,23 +415,23 @@ class LichHoc extends Model
         }
 
         if ($this->hinh_thuc !== 'online') {
-            return 'Khong ap dung';
+            return 'Không áp dụng';
         }
 
         if (blank($this->getLegacyOnlineLink())) {
-            return 'Chua co link';
+            return 'Chưa có liên kết';
         }
 
         if ($this->can_join_online) {
-            return 'Co the vao lop';
+            return 'Có thể vào lớp';
         }
 
         return match ($this->timeline_trang_thai) {
-            'dang_hoc' => 'Co the vao lop',
-            'cho' => 'Chua toi gio',
-            'hoan_thanh' => 'Da ket thuc',
-            'huy' => 'Da huy',
-            default => 'Chua the vao lop',
+            'dang_hoc' => 'Có thể vào lớp',
+            'cho' => 'Chưa tới giờ',
+            'hoan_thanh' => 'Đã kết thúc',
+            'huy' => 'Đã hủy',
+            default => 'Chưa thể vào lớp',
         };
     }
 
@@ -469,27 +469,27 @@ class LichHoc extends Model
         }
 
         if ($this->hinh_thuc !== 'online') {
-            return 'Buoi hoc nay dien ra truc tiep tai lop.';
+            return 'Buổi học này diễn ra trực tiếp tại lớp.';
         }
 
         if (blank($this->getLegacyOnlineLink())) {
-            return 'Giang vien chua cap nhat link phong hoc online cho buoi nay.';
+            return 'Giảng viên chưa cập nhật liên kết phòng học online cho buổi này.';
         }
 
         if ($this->can_join_online) {
             if ($this->starts_at && now()->lt($this->starts_at)) {
-                return 'Phong hoc online da mo som de ban chuan bi truoc buoi hoc.';
+                return 'Phòng học online đã mở sớm để bạn chuẩn bị trước buổi học.';
             }
 
-            return 'Buoi hoc online dang dien ra. Ban co the vao phong hoc ngay bay gio.';
+            return 'Buổi học online đang diễn ra. Bạn có thể vào phòng học ngay bây giờ.';
         }
 
         return match ($this->timeline_trang_thai) {
-            'dang_hoc' => 'Buoi hoc online dang dien ra nhung ban chua the vao phong hoc luc nay.',
-            'cho' => 'Phong hoc se mo truoc gio bat dau khoang ' . self::ONLINE_JOIN_EARLY_MINUTES . ' phut.',
-            'hoan_thanh' => 'Buoi hoc online nay da hoan thanh, phong hoc khong con mo cho hoc vien.',
-            'huy' => 'Buoi hoc online nay da bi huy. Vui long theo doi thong bao moi tu giang vien hoac trung tam.',
-            default => 'Hien chua du dieu kien de vao phong hoc online.',
+            'dang_hoc' => 'Buổi học online đang diễn ra nhưng bạn chưa thể vào phòng học lúc này.',
+            'cho' => 'Phòng học sẽ mở trước giờ bắt đầu khoảng ' . self::ONLINE_JOIN_EARLY_MINUTES . ' phút.',
+            'hoan_thanh' => 'Buổi học online này đã hoàn thành, phòng học không còn mở cho học viên.',
+            'huy' => 'Buổi học online này đã bị hủy. Vui lòng theo dõi thông báo mới từ giảng viên hoặc trung tâm.',
+            default => 'Hiện chưa đủ điều kiện để vào phòng học online.',
         };
     }
 

@@ -1,4 +1,4 @@
-﻿@extends('layouts.app', ['title' => 'Danh sách bài kiểm tra'])
+@extends('layouts.app', ['title' => 'Danh sách bài kiểm tra'])
 
 @section('content')
 @php
@@ -30,7 +30,7 @@
         </div>
         <div class="d-flex gap-2 flex-wrap">
             <a href="{{ route('giang-vien.khoa-hoc') }}" class="btn btn-outline-primary">
-                <i class="fas fa-plus-circle me-1"></i> Tạo đề mới
+                <i class="fas fa-plus-circle me-1"></i> Tạo đề từ lộ trình
             </a>
             <a href="{{ route('giang-vien.cham-diem.index') }}" class="btn btn-outline-secondary">
                 <i class="fas fa-marker me-1"></i> Chấm tự luận
@@ -49,7 +49,7 @@
         <div class="fw-bold mb-1">Đường vào tạo đề mới</div>
         <div class="small mb-0">
             Bạn vẫn có thể tạo đề mới từ <strong>Lộ trình giảng dạy</strong> -> <strong>Vào dạy</strong> -> <strong>Tạo bài kiểm tra</strong>.
-            Trang này dùng để quản lý và cấu hình lại các đề đã có.
+            Trang này dùng để quản lý, cấu hình lại và chấm các đề đã có.
         </div>
     </div>
 

@@ -176,7 +176,7 @@
                                         <td class="text-center">
                                             @php
                                                 $status = $pc->trang_thai_label ?? [
-                                                    'label' => 'Khong xac dinh',
+                                                    'label' => 'Không xác định',
                                                     'color' => 'secondary',
                                                     'icon' => 'fa-question-circle',
                                                 ];

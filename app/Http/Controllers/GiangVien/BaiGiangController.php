@@ -26,7 +26,7 @@ class BaiGiangController extends Controller
     {
         $giangVien = auth()->user()->giangVien;
         if (!$giangVien) {
-            return redirect()->route('home')->with('error', 'Tai khoan chua duoc lien ket voi giang vien.');
+            return redirect()->route('home')->with('error', 'Tài khoản chưa được liên kết với giảng viên.');
         }
 
         $baiGiangs = BaiGiang::with([
@@ -36,7 +36,7 @@ class BaiGiangController extends Controller
                 'taiNguyenChinh',
                 'phongHocLive.moderator',
             ])
-            ->where('nguoi_tao_id', auth()->user()->ma_nguoi_dung)
+            ->where('nguoi_tao_id', auth()->user()->id)
             ->orderByDesc('created_at')
             ->paginate(15);
 
@@ -53,7 +53,7 @@ class BaiGiangController extends Controller
             ->get();
 
         $thuVien = TaiNguyenBuoiHoc::query()
-            ->where('nguoi_tao_id', auth()->user()->ma_nguoi_dung)
+            ->where('nguoi_tao_id', auth()->user()->id)
             ->daDuyet()
             ->get();
 
@@ -65,7 +65,7 @@ class BaiGiangController extends Controller
             'thuVien' => $thuVien,
             'moderatorOptions' => $moderatorOptions,
             'assistantOptions' => $moderatorOptions,
-            'defaultModeratorId' => auth()->user()->ma_nguoi_dung,
+            'defaultModeratorId' => auth()->user()->id,
         ]);
     }
 
@@ -81,13 +81,13 @@ class BaiGiangController extends Controller
         [$taiNguyenChinhId, $taiNguyenPhuIds] = $this->resolveAuthorizedLibraryResources(
             isset($validated['tai_nguyen_chinh_id']) ? (int) $validated['tai_nguyen_chinh_id'] : null,
             $validated['tai_nguyen_phu_ids'] ?? [],
-            auth()->user()->ma_nguoi_dung
+            auth()->user()->id
         );
 
         $lectureStatus = $this->resolveLectureApprovalStatus($validated['hanh_dong'] ?? 'luu_nhap');
         $failureMessage = $lectureStatus === BaiGiang::STATUS_DUYET_CHO
-            ? 'Khong the luu bai giang de gui duyet luc nay. Vui long kiem tra thong tin va thu lai.'
-            : 'Khong the luu bai giang luc nay. Vui long thu lai.';
+            ? 'Không thể lưu bài giảng để gửi duyệt lúc này. Vui lòng kiểm tra thông tin và thử lại.'
+            : 'Không thể lưu bài giảng lúc này. Vui lòng thử lại.';
 
         try {
             DB::transaction(function () use (
@@ -103,7 +103,7 @@ class BaiGiangController extends Controller
                     'khoa_hoc_id' => $phanCong->khoa_hoc_id,
                     'module_hoc_id' => $phanCong->module_hoc_id,
                     'lich_hoc_id' => $lichHocId,
-                    'nguoi_tao_id' => auth()->user()->ma_nguoi_dung,
+                    'nguoi_tao_id' => auth()->user()->id,
                     'tieu_de' => $validated['tieu_de'],
                     'mo_ta' => $validated['mo_ta'] ?? null,
                     'loai_bai_giang' => $validated['loai_bai_giang'],
@@ -130,8 +130,8 @@ class BaiGiangController extends Controller
         }
 
         $message = $lectureStatus === BaiGiang::STATUS_DUYET_CHO
-            ? 'Da luu bai giang va gui admin duyet.'
-            : 'Da luu bai giang thanh cong.';
+            ? 'Đã lưu bài giảng và gửi admin duyệt.'
+            : 'Đã lưu bài giảng thành công.';
 
         return redirect()->route('giang-vien.bai-giang.index')->with('success', $message);
     }
@@ -139,7 +139,7 @@ class BaiGiangController extends Controller
     public function edit($id)
     {
         $baiGiang = BaiGiang::with(['taiNguyenPhu', 'phongHocLive'])
-            ->where('nguoi_tao_id', auth()->user()->ma_nguoi_dung)
+            ->where('nguoi_tao_id', auth()->user()->id)
             ->findOrFail($id);
 
         $giangVien = $this->resolveCurrentGiangVien();
@@ -149,7 +149,7 @@ class BaiGiangController extends Controller
             ->get();
 
         $thuVien = TaiNguyenBuoiHoc::query()
-            ->where('nguoi_tao_id', auth()->user()->ma_nguoi_dung)
+            ->where('nguoi_tao_id', auth()->user()->id)
             ->daDuyet()
             ->get();
 
@@ -161,14 +161,14 @@ class BaiGiangController extends Controller
             'thuVien' => $thuVien,
             'moderatorOptions' => $moderatorOptions,
             'assistantOptions' => $moderatorOptions,
-            'defaultModeratorId' => $baiGiang->phongHocLive?->moderator_id ?? auth()->user()->ma_nguoi_dung,
+            'defaultModeratorId' => $baiGiang->phongHocLive?->moderator_id ?? auth()->user()->id,
         ]);
     }
 
     public function update(UpsertBaiGiangRequest $request, $id)
     {
         $baiGiang = BaiGiang::with('phongHocLive')
-            ->where('nguoi_tao_id', auth()->user()->ma_nguoi_dung)
+            ->where('nguoi_tao_id', auth()->user()->id)
             ->findOrFail($id);
 
         $validated = $request->validated();
@@ -181,13 +181,13 @@ class BaiGiangController extends Controller
         [$taiNguyenChinhId, $taiNguyenPhuIds] = $this->resolveAuthorizedLibraryResources(
             isset($validated['tai_nguyen_chinh_id']) ? (int) $validated['tai_nguyen_chinh_id'] : null,
             $validated['tai_nguyen_phu_ids'] ?? [],
-            auth()->user()->ma_nguoi_dung
+            auth()->user()->id
         );
 
         $lectureStatus = $this->resolveLectureApprovalStatus($validated['hanh_dong'] ?? 'luu_nhap');
         $failureMessage = $lectureStatus === BaiGiang::STATUS_DUYET_CHO
-            ? 'Khong the cap nhat bai giang de gui duyet luc nay. Vui long kiem tra thong tin va thu lai.'
-            : 'Khong the cap nhat bai giang luc nay. Vui long thu lai.';
+            ? 'Không thể cập nhật bài giảng để gửi duyệt lúc này. Vui lòng kiểm tra thông tin và thử lại.'
+            : 'Không thể cập nhật bài giảng lúc này. Vui lòng thử lại.';
 
         try {
             DB::transaction(function () use (
@@ -229,8 +229,8 @@ class BaiGiangController extends Controller
         }
 
         $message = $lectureStatus === BaiGiang::STATUS_DUYET_CHO
-            ? 'Da cap nhat bai giang va gui admin duyet.'
-            : 'Da cap nhat bai giang.';
+            ? 'Đã cập nhật bài giảng và gửi admin duyệt.'
+            : 'Đã cập nhật bài giảng.';
 
         return redirect()->route('giang-vien.bai-giang.index')->with('success', $message);
     }
@@ -238,11 +238,11 @@ class BaiGiangController extends Controller
     public function guiDuyet($id)
     {
         $baiGiang = BaiGiang::with('phongHocLive')
-            ->where('nguoi_tao_id', auth()->user()->ma_nguoi_dung)
+            ->where('nguoi_tao_id', auth()->user()->id)
             ->findOrFail($id);
 
         if ($baiGiang->isLive() && !$baiGiang->phongHocLive) {
-            return back()->with('error', 'Bai giang live can co cau hinh phong hoc truoc khi gui duyet.');
+            return back()->with('error', 'Bài giảng live cần có cấu hình phòng học trước khi gửi duyệt.');
         }
 
         $baiGiang->update([
@@ -258,15 +258,15 @@ class BaiGiangController extends Controller
             ]);
         }
 
-        return back()->with('success', 'Da gui yeu cau duyet bai giang.');
+        return back()->with('success', 'Đã gửi yêu cầu duyệt bài giảng.');
     }
 
     public function destroy($id)
     {
-        $baiGiang = BaiGiang::where('nguoi_tao_id', auth()->user()->ma_nguoi_dung)->findOrFail($id);
+        $baiGiang = BaiGiang::where('nguoi_tao_id', auth()->user()->id)->findOrFail($id);
         $baiGiang->delete();
 
-        return redirect()->route('giang-vien.bai-giang.index')->with('success', 'Da xoa bai giang.');
+        return redirect()->route('giang-vien.bai-giang.index')->with('success', 'Đã xóa bài giảng.');
     }
 
     public function getLichHoc(Request $request)
@@ -282,7 +282,7 @@ class BaiGiangController extends Controller
             ->where('trang_thai', 'da_nhan')
             ->first();
 
-        abort_if(!$phanCong, 403, 'Ban khong co quyen xem lich hoc cua phan cong nay.');
+        abort_if(!$phanCong, 403, 'Bạn không có quyền xem lịch học của phân công này.');
 
         $lichHocs = LichHoc::where('khoa_hoc_id', $phanCong->khoa_hoc_id)
             ->where('module_hoc_id', $phanCong->module_hoc_id)
@@ -295,7 +295,7 @@ class BaiGiangController extends Controller
     private function resolveCurrentGiangVien(): GiangVien
     {
         $giangVien = auth()->user()?->giangVien;
-        abort_if(!$giangVien, 403, 'Tai khoan chua duoc lien ket voi giang vien.');
+        abort_if(!$giangVien, 403, 'Tài khoản chưa được liên kết với giảng viên.');
 
         return $giangVien;
     }
@@ -310,7 +310,7 @@ class BaiGiangController extends Controller
 
         if (!$phanCong) {
             throw ValidationException::withMessages([
-                'phan_cong_id' => 'Phan cong da chon khong hop le hoac khong thuoc quyen cua ban.',
+                'phan_cong_id' => 'Phân công đã chọn không hợp lệ hoặc không thuộc quyền của bạn.',
             ]);
         }
 
@@ -331,7 +331,7 @@ class BaiGiangController extends Controller
 
         if (!$isValidLichHoc) {
             throw ValidationException::withMessages([
-                'lich_hoc_id' => 'Buoi hoc da chon khong thuoc module duoc phan cong.',
+                'lich_hoc_id' => 'Buổi học đã chọn không thuộc module được phân công.',
             ]);
         }
 
@@ -377,7 +377,7 @@ class BaiGiangController extends Controller
 
         if ($taiNguyenChinhId !== null && !in_array($taiNguyenChinhId, $accessibleIds, true)) {
             throw ValidationException::withMessages([
-                'tai_nguyen_chinh_id' => 'Tai nguyen chinh da chon khong hop le hoac chua duoc duyet cho ban su dung.',
+                'tai_nguyen_chinh_id' => 'Tài nguyên chính đã chọn không hợp lệ hoặc chưa được duyệt cho bạn sử dụng.',
             ]);
         }
 
@@ -387,7 +387,7 @@ class BaiGiangController extends Controller
 
         if ($invalidPhuIds->isNotEmpty()) {
             throw ValidationException::withMessages([
-                'tai_nguyen_phu_ids' => 'Co tai nguyen phu khong hop le hoac chua duoc duyet cho ban su dung.',
+                'tai_nguyen_phu_ids' => 'Có tài nguyên phụ không hợp lệ hoặc chưa được duyệt cho bạn sử dụng.',
             ]);
         }
 
@@ -400,6 +400,6 @@ class BaiGiangController extends Controller
             ->where('trang_thai', true)
             ->whereIn('vai_tro', ['admin', 'giang_vien'])
             ->orderBy('ho_ten')
-            ->get(['ma_nguoi_dung', 'ho_ten', 'vai_tro']);
+            ->get(['id', 'ho_ten', 'vai_tro']);
     }
 }

@@ -69,7 +69,7 @@
                         <div class="col-md-5 text-center ps-4">
                             <div class="badge bg-info p-3 mb-3 shadow-sm w-100">
                                 <div class="small text-uppercase opacity-75 mb-1">Đã mở</div>
-                                <div class="fs-4 fw-bold">{{ $soLanDaMo }} lần</div>
+                                <div class="fs-4 fw-bold">{{ $soLanDaMở }} lần</div>
                             </div>
                             <div class="alert alert-success border-0 py-2 mb-0 small">
                                 Mã lớp mới dự kiến:<br>
@@ -101,7 +101,7 @@
                                     <tr>
                                         <td class="text-center text-muted fw-bold">{{ $index + 1 }}</td>
                                         <td class="fw-bold">{{ $module->ten_module }}</td>
-                                        <td class="text-center">{{ $module->thoi_luong_du_kien }}p</td>
+                                        <td class="text-center">{{ $module->thoi_luong_du_kien_label }}</td>
                                         <td class="text-muted italic small">{{ Str::limit($module->mo_ta, 50) ?: '—' }}</td>
                                     </tr>
                                 @endforeach
@@ -179,7 +179,7 @@
                         <div id="module-assignments">
                             @foreach($khoaHocMau->moduleHocs as $module)
                                 <div class="mb-3 p-2 border-start border-3 border-info bg-light rounded">
-                                    <label class="smaller fw-bold d-block mb-1">{{ $module->ten_module }} ({{ $module->thoi_luong_du_kien }}p)</label>
+                                    <label class="smaller fw-bold d-block mb-1">{{ $module->ten_module }} ({{ $module->thoi_luong_du_kien_label }})</label>
                                     <select name="giang_vien_modules[{{ $module->id }}]" class="form-select form-select-sm vip-form-control">
                                         <option value="">-- Chọn sau --</option>
                                         @foreach($giangViens as $gv)

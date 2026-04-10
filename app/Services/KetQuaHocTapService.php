@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\BaiKiemTra;
 use App\Models\BaiLamBaiKiemTra;
 use App\Models\DiemDanh;
+use App\Models\HocVienKhoaHoc;
 use App\Models\KetQuaHocTap;
 use App\Models\KhoaHoc;
 use App\Models\ModuleHoc;

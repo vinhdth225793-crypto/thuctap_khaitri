@@ -10,7 +10,7 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0">
                     <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Admin</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('admin.mon-hoc.index') }}">Nhóm ngành</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('admin.nhom-nganh.index') }}">Nhóm ngành</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Chỉnh sửa</li>
                 </ol>
             </nav>
@@ -25,7 +25,7 @@
         </div>
     </div>
 
-    <form action="{{ route('admin.mon-hoc.update', $nhomNganh->id) }}" method="POST" enctype="multipart/form-data">
+    <form action="{{ route('admin.nhom-nganh.update', $nhomNganh->id) }}" method="POST" enctype="multipart/form-data">
         @csrf
         @method('PUT')
         <div class="row">
@@ -88,7 +88,7 @@
                         <button type="submit" class="btn btn-warning py-3 fw-bold shadow text-white border-0">
                             <i class="fas fa-save me-2"></i> CẬP NHẬT THAY ĐỔI
                         </button>
-                        <a href="{{ route('admin.mon-hoc.index') }}" class="btn btn-outline-secondary py-2 fw-bold">
+                        <a href="{{ route('admin.nhom-nganh.index') }}" class="btn btn-outline-secondary py-2 fw-bold">
                             HỦY BỎ
                         </a>
                     </div>

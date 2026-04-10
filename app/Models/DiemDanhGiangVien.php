@@ -136,8 +136,8 @@ class DiemDanhGiangVien extends Model
         return match ($this->display_status) {
             self::STATUS_DA_CHECKIN => 'Giảng viên đã check-in và đang trong phiên dạy.',
             self::STATUS_DA_CHECKOUT => 'Giảng viên đã check-out, hệ thống đã ghi nhận đủ giờ vào và giờ ra.',
-            self::STATUS_HOAN_THANH => 'Attendance giảng viên của buổi học này đã hoàn tất.',
-            default => 'Giảng viên chưa thực hiện attendance cho buổi học này.',
+            self::STATUS_HOAN_THANH => 'Điểm danh giảng viên của buổi học này đã hoàn tất.',
+            default => 'Giảng viên chưa thực hiện điểm danh cho buổi học này.',
         };
     }
 }

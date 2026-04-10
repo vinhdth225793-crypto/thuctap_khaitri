@@ -73,7 +73,7 @@ class StoreTeacherLeaveRequest extends FormRequest
 
             $teacher = auth()->user()?->giangVien;
             if (!$teacher) {
-                $validator->errors()->add('lich_hoc_id', 'Khong tim thay ho so giang vien.');
+                $validator->errors()->add('lich_hoc_id', 'Không tìm thấy hồ sơ giảng viên.');
                 return;
             }
 
@@ -83,14 +83,14 @@ class StoreTeacherLeaveRequest extends FormRequest
                     ->find($this->input('lich_hoc_id'));
 
                 if (!$schedule) {
-                    $validator->errors()->add('lich_hoc_id', 'Ban chi duoc gui don cho buoi hoc cua chinh minh.');
+                    $validator->errors()->add('lich_hoc_id', 'Bạn chỉ được gửi đơn cho buổi học của chính mình.');
                 }
 
                 return;
             }
 
             if (!$this->filled('tiet_bat_dau') || !$this->filled('tiet_ket_thuc')) {
-                $validator->errors()->add('selected_tiets', 'Can chon tiet hoc hoac buoi hoc cho don xin nghi.');
+                $validator->errors()->add('selected_tiets', 'Cần chọn tiết học hoặc buổi học cho đơn xin nghỉ.');
                 return;
             }
 

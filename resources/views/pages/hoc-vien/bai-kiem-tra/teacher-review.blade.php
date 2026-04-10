@@ -10,42 +10,107 @@
         <a href="{{ route('giang-vien.cham-diem.index') }}" class="btn btn-outline-primary">Quay lại danh sách</a>
     </div>
 
-    <div class="row g-4">
+    @php
+    $reviewFlowAlertClass = match ($baiLam->baiKiemTra->content_mode_key) {
+        'tu_luan_tu_do' => 'alert-warning',
+        'tu_luan_theo_cau' => 'alert-info',
+        'hon_hop' => 'alert-primary',
+        default => 'alert-secondary',
+    };
+    $reviewFlowMessage = match ($baiLam->baiKiemTra->content_mode_key) {
+        'tu_luan_tu_do' => 'De nay duoc cham theo diem tong cua toan bai viet. Giảng viên khong can chia diem theo tung cau rieng le.',
+        'tu_luan_theo_cau' => 'De nay gom cac cau tu luan theo tung muc. Hay cham diem va nhan xet tren tung cau tra loi.',
+        'hon_hop' => 'De nay gom ca phan trac nghiem va tu luan. Phan trac nghiem da co diem tu dong, con phan tu luan can giang vien cham tay.',
+        default => 'Ban dang xem man cham bai cho de trac nghiem/tong hop hien co.',
+    };
+@endphp
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <span class="badge bg-light text-dark border">{{ $baiLam->baiKiemTra->content_mode_label }}</span>
+    <span class="badge bg-light text-dark border">Trạng thái: {{ $baiLam->trang_thai_label }}</span>
+</div>
+
+<div class="alert {{ $reviewFlowAlertClass }} mb-4">
+    <div class="fw-semibold mb-1">Flow cham bai {{ $baiLam->baiKiemTra->content_mode_label }}</div>
+    <div class="small mb-0">{{ $reviewFlowMessage }}</div>
+</div>
+
+<div class="row g-4">
         <div class="col-lg-7">
             <div class="card vip-card">
                 <div class="card-header border-0"><h5 class="mb-0 fw-semibold">Bài làm</h5></div>
                 <div class="card-body">
                     <form action="{{ route('giang-vien.cham-diem.store', $baiLam->id) }}" method="POST">
                         @csrf
-                        @foreach($baiLam->chiTietTraLois as $index => $chiTiet)
-                            <div class="border rounded-3 p-3 mb-3">
-                                <div class="d-flex justify-content-between gap-3 mb-2">
-                                    <div class="fw-semibold">Câu {{ $index + 1 }}. {!! nl2br(e($chiTiet->cauHoi->noi_dung ?? 'Không rõ nội dung')) !!}</div>
-                                    <span class="badge bg-light text-dark">{{ number_format((float) ($chiTiet->chiTietBaiKiemTra->diem_so ?? 0), 2) }} điểm</span>
+
+                        @if($baiLam->chiTietTraLois->isEmpty())
+                            @if($baiLam->baiKiemTra->mo_ta)
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Đề bài / hướng dẫn cho học viên</label>
+                                    <div class="border rounded-3 bg-light p-3">{!! nl2br(e($baiLam->baiKiemTra->mo_ta)) !!}</div>
                                 </div>
-                                @if($chiTiet->cauHoi->loai_cau_hoi === 'trac_nghiem')
-                                    <div class="small text-muted mb-2">Trả lời của học viên: {{ $chiTiet->dapAn->ky_hieu ?? 'Chưa chọn' }} - {{ $chiTiet->dapAn->noi_dung ?? 'Không có' }}</div>
-                                    <div class="small {{ $chiTiet->is_dung ? 'text-success' : 'text-danger' }}">
-                                        {{ $chiTiet->is_dung ? 'Đã đúng' : 'Sai / chưa có đáp án' }} • {{ number_format((float) ($chiTiet->diem_tu_dong ?? 0), 2) }} điểm tự động
+                            @endif
+
+                            <div class="border rounded-3 p-3 mb-3">
+                                <div class="d-flex justify-content-between gap-3 mb-3">
+                                    <div class="fw-semibold">Bài làm tổng của học viên</div>
+                                    <span class="badge bg-light text-dark">{{ number_format((float) $baiLam->baiKiemTra->tong_diem, 2) }} điểm</span>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Nội dung bài làm</label>
+                                    <div class="border rounded-3 bg-light p-3">{!! nl2br(e($baiLam->noi_dung_bai_lam ?: 'Học viên chưa có nội dung bài làm.')) !!}</div>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label small fw-semibold">Điểm tự luận</label>
+                                        <input
+                                            type="number"
+                                            step="0.25"
+                                            min="0"
+                                            max="{{ $baiLam->baiKiemTra->tong_diem }}"
+                                            name="overall_grade[diem_tu_luan]"
+                                            value="{{ old('overall_grade.diem_tu_luan', $baiLam->tong_diem_tu_luan ?? $baiLam->diem_so) }}"
+                                            class="form-control"
+                                        >
                                     </div>
-                                @else
-                                    <div class="mb-3">
-                                        <label class="form-label small fw-semibold">Câu trả lời của học viên</label>
-                                        <div class="border rounded-3 bg-light p-3">{!! nl2br(e($chiTiet->cau_tra_loi_text ?: 'Học viên chưa trả lời.')) !!}</div>
+                                    <div class="col-md-9">
+                                        <label class="form-label small fw-semibold">Nhận xét tổng</label>
+                                        <textarea name="overall_grade[nhan_xet]" rows="4" class="form-control">{{ old('overall_grade.nhan_xet', $baiLam->nhan_xet) }}</textarea>
                                     </div>
-                                    <div class="row g-3">
-                                        <div class="col-md-3">
-                                            <label class="form-label small fw-semibold">Điểm tự luận</label>
-                                            <input type="number" step="0.25" min="0" max="{{ $chiTiet->chiTietBaiKiemTra->diem_so ?? 0 }}" name="grades[{{ $chiTiet->id }}][diem_tu_luan]" value="{{ old('grades.' . $chiTiet->id . '.diem_tu_luan', $chiTiet->diem_tu_luan) }}" class="form-control">
-                                        </div>
-                                        <div class="col-md-9">
-                                            <label class="form-label small fw-semibold">Nhận xét</label>
-                                            <textarea name="grades[{{ $chiTiet->id }}][nhan_xet]" rows="3" class="form-control">{{ old('grades.' . $chiTiet->id . '.nhan_xet', $chiTiet->nhan_xet) }}</textarea>
-                                        </div>
-                                    </div>
-                                @endif
+                                </div>
                             </div>
-                        @endforeach
+                        @else
+                            @foreach($baiLam->chiTietTraLois as $index => $chiTiet)
+                                <div class="border rounded-3 p-3 mb-3">
+                                    <div class="d-flex justify-content-between gap-3 mb-2">
+                                        <div class="fw-semibold">Câu {{ $index + 1 }}. {!! nl2br(e($chiTiet->cauHoi->noi_dung ?? 'Không rõ nội dung')) !!}</div>
+                                        <span class="badge bg-light text-dark">{{ number_format((float) ($chiTiet->chiTietBaiKiemTra->diem_so ?? 0), 2) }} điểm</span>
+                                    </div>
+                                    @if($chiTiet->cauHoi->loai_cau_hoi === 'trac_nghiem')
+                                        <div class="small text-muted mb-2">Trả lời của học viên: {{ $chiTiet->dapAn->ky_hieu ?? 'Chưa chọn' }} - {{ $chiTiet->dapAn->noi_dung ?? 'Không có' }}</div>
+                                        <div class="small {{ $chiTiet->is_dung ? 'text-success' : 'text-danger' }}">
+                                            {{ $chiTiet->is_dung ? 'Đã đúng' : 'Sai / chưa có đáp án' }} • {{ number_format((float) ($chiTiet->diem_tu_dong ?? 0), 2) }} điểm tự động
+                                        </div>
+                                    @else
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-semibold">Câu trả lời của học viên</label>
+                                            <div class="border rounded-3 bg-light p-3">{!! nl2br(e($chiTiet->cau_tra_loi_text ?: 'Học viên chưa trả lời.')) !!}</div>
+                                        </div>
+                                        <div class="row g-3">
+                                            <div class="col-md-3">
+                                                <label class="form-label small fw-semibold">Điểm tự luận</label>
+                                                <input type="number" step="0.25" min="0" max="{{ $chiTiet->chiTietBaiKiemTra->diem_so ?? 0 }}" name="grades[{{ $chiTiet->id }}][diem_tu_luan]" value="{{ old('grades.' . $chiTiet->id . '.diem_tu_luan', $chiTiet->diem_tu_luan) }}" class="form-control">
+                                            </div>
+                                            <div class="col-md-9">
+                                                <label class="form-label small fw-semibold">Nhận xét</label>
+                                                <textarea name="grades[{{ $chiTiet->id }}][nhan_xet]" rows="3" class="form-control">{{ old('grades.' . $chiTiet->id . '.nhan_xet', $chiTiet->nhan_xet) }}</textarea>
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        @endif
+
                         <button type="submit" class="btn btn-primary">Lưu kết quả chấm</button>
                     </form>
                 </div>

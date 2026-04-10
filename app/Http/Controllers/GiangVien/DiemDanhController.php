@@ -8,7 +8,6 @@ use App\Models\HocVienKhoaHoc;
 use App\Models\LichHoc;
 use App\Models\PhanCongModuleGiangVien;
 use App\Services\KetQuaHocTapService;
-use App\Services\TeacherAssignmentResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -20,20 +19,15 @@ class DiemDanhController extends Controller
     ) {
     }
 
-    public function redirectToSession(Request $request, TeacherAssignmentResolver $assignmentResolver)
+    public function redirectToSession(Request $request)
     {
         $lichHoc = LichHoc::findOrFail((int) $request->query('lich_hoc_id'));
 
         $this->authorizeGiangVienForLichHoc($lichHoc);
 
-        $giangVien = auth()->user()->giangVien;
-        $assignmentId = $assignmentResolver->resolveForSchedule($giangVien->id, $lichHoc);
-
-        abort_if($assignmentId === null, 403, 'Khong tim thay phan cong phu hop cho buoi hoc nay.');
-
         return redirect()->to(
             route('giang-vien.khoa-hoc.show', [
-                'id' => $assignmentId,
+                'id' => $lichHoc->khoa_hoc_id,
                 'focus_lich_hoc_id' => $lichHoc->id,
                 'quick_action' => 'attendance',
             ]) . '#session-' . $lichHoc->id
@@ -41,7 +35,7 @@ class DiemDanhController extends Controller
     }
 
     /**
-     * Lấy danh sách học viên để hiển thị trong Modal điểm danh (Flow 4 - Phase 1)
+     * Lay danh sach hoc vien de hien thi trong modal diem danh.
      */
     public function show(Request $request, $lichHocId)
     {
@@ -65,7 +59,7 @@ class DiemDanhController extends Controller
             $existing = $diemDanhs->get($item->hoc_vien_id);
 
             return [
-                'ma_nguoi_dung' => $item->hoc_vien_id,
+                'id' => $item->hoc_vien_id,
                 'ho_ten' => $item->hocVien ? $item->hocVien->ho_ten : 'N/A (Học viên không tồn tại)',
                 'trang_thai' => $existing ? $existing->trang_thai : null,
                 'ghi_chu' => $existing ? $existing->ghi_chu : '',
@@ -93,7 +87,7 @@ class DiemDanhController extends Controller
     }
 
     /**
-     * Lưu hoặc cập nhật dữ liệu điểm danh (Flow 4 - Phase 2)
+     * Luu hoac cap nhat du lieu diem danh.
      */
     public function store(Request $request, $lichHocId)
     {
@@ -123,40 +117,39 @@ class DiemDanhController extends Controller
         ]);
 
         try {
-            DB::beginTransaction();
-            $updatedHocVienIds = [];
+            DB::transaction(function () use ($request, $lichHoc, $lichHocId): void {
+                $updatedHocVienIds = [];
 
-            foreach ($request->attendance as $item) {
-                DiemDanh::updateOrCreate(
-                    [
-                        'lich_hoc_id' => $lichHocId,
-                        'hoc_vien_id' => $item['hoc_vien_id'],
-                    ],
-                    [
-                        'trang_thai' => $item['trang_thai'],
-                        'ghi_chu' => $item['ghi_chu'] ?? null,
-                    ]
-                );
+                foreach ($request->attendance as $item) {
+                    DiemDanh::updateOrCreate(
+                        [
+                            'lich_hoc_id' => $lichHocId,
+                            'hoc_vien_id' => $item['hoc_vien_id'],
+                        ],
+                        [
+                            'trang_thai' => $item['trang_thai'],
+                            'ghi_chu' => $item['ghi_chu'] ?? null,
+                        ]
+                    );
 
-                $updatedHocVienIds[] = (int) $item['hoc_vien_id'];
-            }
+                    $updatedHocVienIds[] = (int) $item['hoc_vien_id'];
+                }
 
-            DB::commit();
-
-            foreach (array_values(array_unique($updatedHocVienIds)) as $hocVienId) {
-                $this->ketQuaHocTapService->refreshAllForCourseStudent((int) $lichHoc->khoa_hoc_id, $hocVienId);
-            }
+                foreach (array_values(array_unique($updatedHocVienIds)) as $hocVienId) {
+                    $this->ketQuaHocTapService->refreshAllForCourseStudent((int) $lichHoc->khoa_hoc_id, $hocVienId);
+                }
+            });
 
             return back()->with('success', 'Đã lưu dữ liệu điểm danh học viên thành công.');
-        } catch (\Exception $e) {
-            DB::rollBack();
+        } catch (\Throwable $exception) {
+            report($exception);
 
-            return back()->with('error', 'Lỗi khi lưu điểm danh: ' . $e->getMessage());
+            return back()->with('error', 'Không thể lưu điểm danh lúc này. Dữ liệu chưa được ghi nhận, vui lòng thử lại.');
         }
     }
 
     /**
-     * Gửi báo cáo điểm danh cho Admin
+     * Gui bao cao diem danh cho Admin.
      */
     public function report(Request $request, $lichHocId)
     {
@@ -174,9 +167,11 @@ class DiemDanhController extends Controller
                 'trang_thai_bao_cao' => 'da_bao_cao',
             ]);
 
-            return back()->with('success', 'Đã chốt attendance và gửi báo cáo cho Admin thành công.');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Lỗi khi gửi báo cáo: ' . $e->getMessage());
+            return back()->with('success', 'Đã chốt điểm danh và gửi báo cáo cho admin thành công.');
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->with('error', 'Không thể gửi báo cáo điểm danh lúc này. Vui lòng thử lại.');
         }
     }
 
@@ -204,4 +199,3 @@ class DiemDanhController extends Controller
         abort(403, 'Bạn không được phân công dạy buổi học này.');
     }
 }
-

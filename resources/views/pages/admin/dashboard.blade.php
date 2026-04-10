@@ -151,35 +151,35 @@
                                 <div class="card-body p-3">
                                     <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
                                         <div>
-                                            <p class="text-muted mb-1 small fw-bold text-uppercase">Lich giang vien</p>
-                                            <h5 class="fw-bold mb-1">Admin sap lich theo khung chuan va xu ly don xin nghi tap trung</h5>
-                                            <div class="small text-muted">Flow moi bo phan dang ky lich ranh chu dong. Admin se xem lich day, duyet don nghi va chu dong xu ly dieu chinh neu can.</div>
+                                            <p class="text-muted mb-1 small fw-bold text-uppercase">Lịch giảng viên</p>
+                                            <h5 class="fw-bold mb-1">Admin sắp lịch theo khung chuẩn và xử lý đơn xin nghỉ tập trung</h5>
+                                            <div class="small text-muted">Flow mới: bộ phận đăng ký lịch rảnh chủ động. Admin sẽ xem lịch dạy, duyệt đơn nghỉ và chủ động xử lý điều chỉnh nếu cần.</div>
                                         </div>
                                         <div class="d-flex gap-2 flex-wrap">
                                             <a href="{{ route('admin.giang-vien.index') }}" class="btn btn-outline-primary btn-sm fw-bold">
-                                                <i class="fas fa-calendar-week me-1"></i> Giang vien va lich day
+                                                <i class="fas fa-calendar-week me-1"></i> Giảng viên va lich day
                                             </a>
                                             <a href="{{ route('admin.khoa-hoc.index') }}" class="btn btn-outline-success btn-sm fw-bold">
-                                                <i class="fas fa-calendar-check me-1"></i> Di den sap lich
+                                                <i class="fas fa-calendar-check me-1"></i> Đi đến sắp lịch
                                             </a>
                                         </div>
                                     </div>
                                     <div class="row g-3 mt-1">
                                         <div class="col-md-4">
                                             <div class="bg-light rounded p-3 h-100">
-                                                <div class="small text-muted text-uppercase fw-bold">Giang vien co lich sap toi</div>
+                                                <div class="small text-muted text-uppercase fw-bold">Giảng viên co lich sap toi</div>
                                                 <div class="fs-3 fw-bold text-success">{{ $stats['giang_vien_co_lich_day_tuong_lai'] }}</div>
                                             </div>
                                         </div>
                                         <div class="col-md-4">
                                             <div class="bg-light rounded p-3 h-100">
-                                                <div class="small text-muted text-uppercase fw-bold">Don xin nghi cho duyet</div>
+                                                <div class="small text-muted text-uppercase fw-bold">Đơn xin nghỉ chờ duyệt</div>
                                                 <div class="fs-3 fw-bold text-primary">{{ $stats['don_xin_nghi_cho_duyet'] }}</div>
                                             </div>
                                         </div>
                                         <div class="col-md-4">
                                             <div class="bg-light rounded p-3 h-100">
-                                                <div class="small text-muted text-uppercase fw-bold">Giang vien can xu ly</div>
+                                                <div class="small text-muted text-uppercase fw-bold">Giảng viên can xu ly</div>
                                                 <div class="fs-3 fw-bold text-warning">{{ $stats['giang_vien_can_xu_ly_don_nghi'] }}</div>
                                             </div>
                                         </div>
@@ -190,12 +190,12 @@
                         <div class="col-lg-4">
                             <div class="card border-0 shadow-sm h-100">
                                 <div class="card-body p-3">
-                                    <p class="text-muted mb-1 small fw-bold text-uppercase">Flow moi</p>
-                                    <div class="small text-muted mb-2">1. Admin xep lich trong khung Thu 2 - Thu 6, 08:00 - 20:00.</div>
-                                    <div class="small text-muted mb-2">2. Giang vien xem thoi khoa bieu va gui don xin nghi neu ban.</div>
-                                    <div class="small text-muted mb-3">3. Admin duyet don va chu dong doi lich hoac thay giang vien neu can.</div>
+                                    <p class="text-muted mb-1 small fw-bold text-uppercase">Flow mới</p>
+                                    <div class="small text-muted mb-2">1. Admin xếp lịch trong khung Thứ 2 - Chủ nhật, 07:30 - 20:45.</div>
+                                    <div class="small text-muted mb-2">2. Giảng viên xem thoi khoa bieu va gui don xin nghi neu ban.</div>
+                                    <div class="small text-muted mb-3">3. Admin duyệt đơn và chủ động đổi lịch hoặc thay giảng viên nếu cần.</div>
                                     <a href="{{ route('admin.giang-vien-don-xin-nghi.index') }}" class="btn btn-primary btn-sm fw-bold w-100">
-                                        Mo giao dien don xin nghi
+                                        Mở giao dien don xin nghi
                                     </a>
                                 </div>
                             </div>
@@ -351,7 +351,7 @@
                                                         @elseif($user->trang_thai)
                                                             <span class="badge bg-success rounded-pill">Active</span>
                                                         @else
-                                                            <span class="badge bg-warning text-dark rounded-pill">Locked</span>
+                                                            <span class="badge bg-warning text-dark rounded-pill">Lọcked</span>
                                                         @endif
                                                     </td>
                                                     <td class="text-muted small">{{ $user->created_at->format('d/m/Y H:i') }}</td>

@@ -245,7 +245,7 @@ class TeacherContentAuthorizationTest extends TestCase
         $assignment = $this->assignTeacher($admin, $actingTeacher, $course, $module);
 
         $response = $this->actingAs($actingTeacherUser)
-            ->from(route('giang-vien.khoa-hoc.show', $assignment->id))
+            ->from(route('giang-vien.khoa-hoc.show', $course->id))
             ->post(route('giang-vien.khoa-hoc.gui-yeu-cau-hoc-vien', $course->id), [
                 'loai_yeu_cau' => 'them',
                 'ly_do' => 'Hoc vien can vao lop',
@@ -254,7 +254,7 @@ class TeacherContentAuthorizationTest extends TestCase
             ]);
 
         $response
-            ->assertRedirect(route('giang-vien.khoa-hoc.show', $assignment->id))
+            ->assertRedirect(route('giang-vien.khoa-hoc.show', $course->id))
             ->assertSessionHas('success');
 
         $yeuCau = YeuCauHocVien::query()->firstOrFail();

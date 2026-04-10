@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\GiangVien;
 
 use App\Http\Controllers\Controller;
+use App\Models\BaiKiemTra;
 use App\Models\DiemDanhGiangVien;
 use App\Models\KhoaHoc;
 use App\Models\LichHoc;
@@ -89,11 +90,37 @@ class PhanCongController extends Controller
     {
         $giangVien = auth()->user()->giangVien;
 
-        $phanCong = $this->resolveTeacherAssignment($giangVien->id, (int) $id);
+        [$khoaHoc, $courseAssignments, $legacyAssignment] = $this->resolveTeacherCourseOverviewContext($giangVien->id, (int) $id);
 
-        $khoaHoc = $phanCong->khoaHoc;
+        if ($legacyAssignment) {
+            return redirect()->route('giang-vien.khoa-hoc.show', array_merge(
+                ['id' => $khoaHoc->id],
+                request()->query()
+            ));
+        }
 
-        $lichHocIds = LichHoc::where('khoa_hoc_id', $khoaHoc->id)->pluck('id');
+        $phanCong = $courseAssignments->firstWhere('trang_thai', 'da_nhan') ?? $courseAssignments->first();
+        abort_if(!$phanCong, 404);
+
+        $focusedLichHocId = (int) request('focus_lich_hoc_id', 0);
+        $activeAssignment = $phanCong;
+
+        if ($focusedLichHocId > 0) {
+            $focusedSchedule = LichHoc::query()
+                ->select(['id', 'module_hoc_id', 'khoa_hoc_id'])
+                ->where('id', $focusedLichHocId)
+                ->where('khoa_hoc_id', $khoaHoc->id)
+                ->first();
+
+            if ($focusedSchedule) {
+                $activeAssignment = $courseAssignments
+                    ->firstWhere('module_hoc_id', $focusedSchedule->module_hoc_id)
+                    ?? $phanCong;
+            }
+        }
+
+        $assignmentByModule = $courseAssignments->keyBy(fn ($assignment) => (int) $assignment->module_hoc_id);
+        $moduleIds = $assignmentByModule->keys()->map(fn ($moduleId) => (int) $moduleId)->all();
 
         $lichDays = LichHoc::with([
                 'taiNguyen',
@@ -107,38 +134,37 @@ class PhanCongController extends Controller
                         ->with('giangVien.nguoiDung');
                 },
             ])
-            ->where('module_hoc_id', $phanCong->module_hoc_id)
+            ->where('khoa_hoc_id', $khoaHoc->id)
+            ->whereIn('module_hoc_id', $moduleIds)
             ->orderBy('ngay_hoc')
+            ->orderBy('gio_bat_dau')
             ->get();
 
-        $phanCong->moduleHoc->setRelation('lichHocs', $lichDays);
-        $khoaHoc->setRelation(
-            'moduleHocs',
-            $khoaHoc->moduleHocs->map(function ($module) use ($phanCong, $lichDays) {
-                if ($module->id === $phanCong->module_hoc_id) {
-                    $module->setRelation('lichHocs', $lichDays);
-                }
+        $lichHocIds = $lichDays->pluck('id');
 
-                return $module;
-            })
-        );
+        $timelineItems = $lichDays->map(function (LichHoc $lich) use ($assignmentByModule) {
+            $assignment = $assignmentByModule->get((int) $lich->module_hoc_id);
 
-        $timelineItems = $lichDays->map(function (LichHoc $lich) use ($phanCong) {
+            if (!$assignment) {
+                return null;
+            }
+
             $teacherAttendance = $lich->teacher_attendance_log;
             $teacherLiveLecture = $lich->teacher_live_lecture;
             $teacherLiveRoom = $lich->teacher_live_room;
             $lectures = $lich->baiGiangs->sortBy('thu_tu_hien_thi')->values();
-            $canManageSession = $phanCong->trang_thai === 'da_nhan';
+            $canManageSession = $assignment->trang_thai === 'da_nhan';
             $sessionStatus = $this->buildSessionStatus($lich, $canManageSession);
             $attendanceStatus = $this->buildTeacherAttendanceStatus($teacherAttendance, $sessionStatus, $canManageSession);
             $studentAttendanceStatus = $this->buildStudentAttendanceStatus(
                 $lich,
-                $phanCong->khoaHoc->hocVienKhoaHocs->count(),
+                $assignment->khoaHoc->hocVienKhoaHocs->count(),
                 $sessionStatus,
                 $canManageSession
             );
 
             return [
+                'assignment' => $assignment,
                 'lich' => $lich,
                 'teacherAttendance' => $teacherAttendance,
                 'teacherLiveLecture' => $teacherLiveLecture,
@@ -181,9 +207,60 @@ class PhanCongController extends Controller
                     ];
                 })->values(),
             ];
-        });
+        })
+            ->filter()
+            ->values();
 
-        return view('pages.giang-vien.phan-cong.show', compact('phanCong', 'khoaHoc', 'lichDays', 'lichHocIds', 'timelineItems'));
+        $timelineItemsByModule = $timelineItems
+            ->groupBy(fn (array $item) => (int) data_get($item, 'assignment.module_hoc_id'));
+
+        $moduleSections = $courseAssignments
+            ->map(function ($assignment) use ($timelineItemsByModule) {
+                return [
+                    'assignment' => $assignment,
+                    'module' => $assignment->moduleHoc,
+                    'timelineItems' => $timelineItemsByModule
+                        ->get((int) $assignment->module_hoc_id, collect())
+                        ->values(),
+                ];
+            })
+            ->values();
+
+        $courseExams = BaiKiemTra::query()
+            ->with('moduleHoc')
+            ->where('khoa_hoc_id', $khoaHoc->id)
+            ->where(function ($query) use ($moduleIds) {
+                $query->where('pham_vi', 'cuoi_khoa')
+                    ->orWhere(function ($moduleQuery) use ($moduleIds) {
+                        $moduleQuery->where('pham_vi', 'module')
+                            ->whereIn('module_hoc_id', $moduleIds);
+                    });
+            })
+            ->orderByRaw("CASE WHEN pham_vi = 'cuoi_khoa' THEN 0 ELSE 1 END")
+            ->orderByDesc('id')
+            ->get();
+
+        $courseStats = [
+            'assigned_modules' => $courseAssignments->count(),
+            'accepted_modules' => $courseAssignments->where('trang_thai', 'da_nhan')->count(),
+            'pending_modules' => $courseAssignments->where('trang_thai', 'cho_xac_nhan')->count(),
+            'total_sessions' => $lichDays->count(),
+            'completed_sessions' => $lichDays->where('timeline_trang_thai', 'hoan_thanh')->count(),
+        ];
+
+        return view('pages.giang-vien.phan-cong.show', compact(
+            'phanCong',
+            'activeAssignment',
+            'khoaHoc',
+            'courseAssignments',
+            'moduleSections',
+            'courseExams',
+            'courseStats',
+            'lichDays',
+            'lichHocIds',
+            'timelineItems',
+            'focusedLichHocId',
+        ));
     }
 
     /**
@@ -386,7 +463,7 @@ class PhanCongController extends Controller
             'ly_do' => 'required|string|max:1000',
             'email_hoc_vien' => 'required_if:loai_yeu_cau,them|nullable|email',
             'ten_hoc_vien' => 'required_if:loai_yeu_cau,them|nullable|string|max:255',
-            'hoc_vien_id' => 'required_if:loai_yeu_cau,xoa,sua|nullable|exists:nguoi_dung,ma_nguoi_dung',
+            'hoc_vien_id' => 'required_if:loai_yeu_cau,xoa,sua|nullable|exists:nguoi_dung,id',
         ]);
 
         $duLieu = [
@@ -448,7 +525,9 @@ class PhanCongController extends Controller
             return back()->with('success', $msg);
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Lỗi hệ thống: ' . $e->getMessage());
+            report($e);
+
+            return back()->with('error', 'Không thể cập nhật xác nhận phân công lúc này. Vui lòng thử lại.');
         }
     }
 
@@ -491,6 +570,68 @@ class PhanCongController extends Controller
         abort_if(!$moduleAssignment, 404);
 
         return $moduleAssignment;
+    }
+
+    private function resolveTeacherCourseOverviewContext(int $teacherId, int $identifier): array
+    {
+        $relations = [
+            'khoaHoc.nhomNganh',
+            'khoaHoc.moduleHocs',
+            'khoaHoc.hocVienKhoaHocs.hocVien' => function ($query) {
+                $query->with(['diemDanhs']);
+            },
+            'moduleHoc',
+        ];
+
+        $statusPriority = "CASE WHEN trang_thai = 'da_nhan' THEN 0 WHEN trang_thai = 'cho_xac_nhan' THEN 1 ELSE 2 END";
+
+        $baseQuery = PhanCongModuleGiangVien::with($relations)
+            ->where('giang_vien_id', $teacherId);
+
+        $courseAssignments = (clone $baseQuery)
+            ->where('khoa_hoc_id', $identifier)
+            ->orderByRaw($statusPriority)
+            ->orderByDesc('id')
+            ->get();
+
+        if ($courseAssignments->isNotEmpty()) {
+            $courseAssignments = $this->dedupeAndSortTeacherCourseAssignments($courseAssignments);
+
+            return [$courseAssignments->first()->khoaHoc, $courseAssignments, null];
+        }
+
+        $legacyAssignment = (clone $baseQuery)->find($identifier);
+
+        if (!$legacyAssignment) {
+            $legacyAssignment = (clone $baseQuery)
+                ->where('module_hoc_id', $identifier)
+                ->orderByRaw($statusPriority)
+                ->orderByDesc('id')
+                ->first();
+        }
+
+        abort_if(!$legacyAssignment, 404);
+
+        $courseAssignments = (clone $baseQuery)
+            ->where('khoa_hoc_id', $legacyAssignment->khoa_hoc_id)
+            ->orderByRaw($statusPriority)
+            ->orderByDesc('id')
+            ->get();
+
+        abort_if($courseAssignments->isEmpty(), 404);
+
+        $courseAssignments = $this->dedupeAndSortTeacherCourseAssignments($courseAssignments);
+
+        return [$courseAssignments->first()->khoaHoc, $courseAssignments, $legacyAssignment];
+    }
+
+    private function dedupeAndSortTeacherCourseAssignments($assignments)
+    {
+        return $assignments
+            ->groupBy(fn ($assignment) => (int) $assignment->module_hoc_id)
+            ->map(fn ($group) => $group->first())
+            ->sortBy(fn ($assignment) => $assignment->moduleHoc?->thu_tu_module ?? PHP_INT_MAX)
+            ->values();
     }
 
     private function resolveTeacherScheduleContext(int $teacherId, int $scheduleId): array
@@ -569,7 +710,7 @@ class PhanCongController extends Controller
             'status_hint' => match ($value) {
                 DiemDanhGiangVien::STATUS_DA_CHECKIN => 'Giảng viên đã check-in. Có thể check-out khi kết thúc phần giảng dạy của buổi học.',
                 DiemDanhGiangVien::STATUS_DA_CHECKOUT => 'Giờ vào và giờ ra đã được ghi nhận. Có thể tiếp tục kết thúc buổi học nếu chưa chốt phiên.',
-                DiemDanhGiangVien::STATUS_HOAN_THANH => 'Attendance giảng viên đã hoàn tất và khớp với trạng thái kết thúc của buổi học.',
+                DiemDanhGiangVien::STATUS_HOAN_THANH => 'Điểm danh giảng viên đã hoàn tất và khớp với trạng thái kết thúc của buổi học.',
                 default => 'Giảng viên chưa check-in cho buổi học này. Có thể thao tác trực tiếp ngay trên card buổi học.',
             },
             'log_hint' => $attendance?->status_hint,
@@ -591,7 +732,7 @@ class PhanCongController extends Controller
         $isFinalized = $lichHoc->trang_thai_bao_cao === 'da_bao_cao';
 
         return [
-            'label' => $isFinalized ? 'Đã chốt attendance' : 'Chưa chốt attendance',
+            'label' => $isFinalized ? 'Đã chốt điểm danh' : 'Chưa chốt điểm danh',
             'color' => $isFinalized ? 'success' : ($markedStudents > 0 ? 'warning' : 'secondary'),
             'total_students' => $totalStudents,
             'marked_students' => $markedStudents,
@@ -602,8 +743,8 @@ class PhanCongController extends Controller
             'can_manage' => $canManage && !$sessionStatus['is_cancelled'],
             'is_finalized' => $isFinalized,
             'status_hint' => $isFinalized
-                ? 'Attendance học viên đã được chốt bằng báo cáo cuối buổi. Bạn vẫn có thể mở lại modal để rà soát và cập nhật nếu cần.'
-                : 'Giảng viên có thể cập nhật attendance nhiều lần trong buổi học rồi chốt lại khi đã kiểm tra xong.',
+                ? 'Điểm danh học viên đã được chốt bằng báo cáo cuối buổi. Bạn vẫn có thể mở lại modal để rà soát và cập nhật nếu cần.'
+                : 'Giảng viên có thể cập nhật điểm danh nhiều lần trong buổi học rồi chốt lại khi đã kiểm tra xong.',
         ];
     }
 
@@ -627,7 +768,7 @@ class PhanCongController extends Controller
             return [
                 'label' => 'Buoi hoc truc tiep',
                 'color' => 'success',
-                'room_status_label' => 'Khong ap dung',
+                'room_status_label' => 'Không áp dụng',
                 'room_status_color' => 'secondary',
                 'can_create_room' => false,
                 'can_enter_room' => false,

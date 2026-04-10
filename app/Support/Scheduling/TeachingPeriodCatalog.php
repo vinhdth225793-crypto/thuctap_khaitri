@@ -22,39 +22,34 @@ class TeachingPeriodCatalog
     /**
      * Canonical center timetable used to map period-based scheduling
      * back into the existing time-based training flow.
-     * 
-     * Adjusted to match center's real hours:
-     * Sáng: 07:30 - 11:30 (4 tiêt)
-     * Chiều: 13:30 - 16:30 (3 tiết)
-     * Tối: 18:30 - 20:45 (2 tiết lớn hoặc quy đổi)
-     * 
-     * To keep 1-12 range for compatibility:
-     * 1-4: Sáng
-     * 5-8: Chiều
-     * 9-12: Tối
+     *
+     * Official rule:
+     * - Thứ 2 đến Chủ nhật
+     * - 07:30 đến 20:45
+     * - 12 tiết chuẩn
      *
      * @return array<int, array{label:string,start:string,end:string,session:string}>
      */
     public static function periods(): array
     {
         return [
-            // Sáng: 07:30 - 11:30 (4h -> 4 tiết, mỗi tiết 1h hoặc 50p+10p nghỉ)
+            // Ca sáng: 07:30 - 11:30
             1 => ['label' => 'Tiết 1', 'start' => '07:30', 'end' => '08:20', 'session' => self::SHIFT_SANG],
             2 => ['label' => 'Tiết 2', 'start' => '08:30', 'end' => '09:20', 'session' => self::SHIFT_SANG],
             3 => ['label' => 'Tiết 3', 'start' => '09:40', 'end' => '10:30', 'session' => self::SHIFT_SANG],
             4 => ['label' => 'Tiết 4', 'start' => '10:40', 'end' => '11:30', 'session' => self::SHIFT_SANG],
-            
-            // Chiều: 13:30 - 16:30 (3h -> dùng tiết 5-7, tiết 8 để trống hoặc dùng dự phòng)
+
+            // Ca chiều: 13:30 - 17:30
             5 => ['label' => 'Tiết 5', 'start' => '13:30', 'end' => '14:20', 'session' => self::SHIFT_CHIEU],
             6 => ['label' => 'Tiết 6', 'start' => '14:30', 'end' => '15:20', 'session' => self::SHIFT_CHIEU],
             7 => ['label' => 'Tiết 7', 'start' => '15:40', 'end' => '16:30', 'session' => self::SHIFT_CHIEU],
-            8 => ['label' => 'Tiết 8', 'start' => '16:30', 'end' => '17:20', 'session' => self::SHIFT_CHIEU], // Backup
-            
-            // Tối: 18:30 - 20:45 (2h15p -> dùng tiết 9-11)
-            9 => ['label' => 'Tiết 9', 'start' => '18:30', 'end' => '19:15', 'session' => self::SHIFT_TOI],
-            10 => ['label' => 'Tiết 10', 'start' => '19:15', 'end' => '20:00', 'session' => self::SHIFT_TOI],
-            11 => ['label' => 'Tiết 11', 'start' => '20:00', 'end' => '20:45', 'session' => self::SHIFT_TOI],
-            12 => ['label' => 'Tiết 12', 'start' => '20:45', 'end' => '21:30', 'session' => self::SHIFT_TOI], // Backup
+            8 => ['label' => 'Tiết 8', 'start' => '16:40', 'end' => '17:30', 'session' => self::SHIFT_CHIEU],
+
+            // Ca tối: 18:00 - 20:45
+            9 => ['label' => 'Tiết 9', 'start' => '18:00', 'end' => '18:40', 'session' => self::SHIFT_TOI],
+            10 => ['label' => 'Tiết 10', 'start' => '18:45', 'end' => '19:25', 'session' => self::SHIFT_TOI],
+            11 => ['label' => 'Tiết 11', 'start' => '19:30', 'end' => '20:10', 'session' => self::SHIFT_TOI],
+            12 => ['label' => 'Tiết 12', 'start' => '20:10', 'end' => '20:45', 'session' => self::SHIFT_TOI],
         ];
     }
 
@@ -74,15 +69,15 @@ class TeachingPeriodCatalog
             self::SHIFT_CHIEU => [
                 'label' => 'Ca chiều',
                 'start' => 5,
-                'end' => 7,
+                'end' => 8,
                 'start_time' => '13:30',
-                'end_time' => '16:30',
+                'end_time' => '17:30',
             ],
             self::SHIFT_TOI => [
                 'label' => 'Ca tối',
                 'start' => 9,
-                'end' => 11,
-                'start_time' => '18:30',
+                'end' => 12,
+                'start_time' => '18:00',
                 'end_time' => '20:45',
             ],
         ];
@@ -163,16 +158,18 @@ class TeachingPeriodCatalog
     public static function timeRangeFromPeriods(int $startPeriod, int $endPeriod): array
     {
         $periods = self::periods();
-        
-        // Safety check if period doesn't exist in our redefined list
+
         if (!isset($periods[$startPeriod]) || !isset($periods[$endPeriod])) {
-             // Fallback to session boundaries if it's a full session
-             foreach (self::sessions() as $session => $def) {
-                 if ($def['start'] === $startPeriod && $def['end'] === $endPeriod) {
-                     return ['start_time' => $def['start_time'], 'end_time' => $def['end_time']];
-                 }
-             }
-             return ['start_time' => '00:00', 'end_time' => '00:00'];
+            foreach (self::sessions() as $definition) {
+                if ($definition['start'] === $startPeriod && $definition['end'] === $endPeriod) {
+                    return [
+                        'start_time' => $definition['start_time'],
+                        'end_time' => $definition['end_time'],
+                    ];
+                }
+            }
+
+            return ['start_time' => '00:00', 'end_time' => '00:00'];
         }
 
         return [
@@ -190,19 +187,18 @@ class TeachingPeriodCatalog
             return null;
         }
 
-        $s = substr((string) $startTime, 0, 5);
-        $e = substr((string) $endTime, 0, 5);
+        $start = substr((string) $startTime, 0, 5);
+        $end = substr((string) $endTime, 0, 5);
 
-        // First check if it matches a exact session
-        foreach (self::sessions() as $session => $def) {
-            if ($def['start_time'] === $s && $def['end_time'] === $e) {
-                return ['start' => $def['start'], 'end' => $def['end'], 'session' => $session];
+        foreach (self::sessions() as $session => $definition) {
+            if ($definition['start_time'] === $start && $definition['end_time'] === $end) {
+                return ['start' => $definition['start'], 'end' => $definition['end'], 'session' => $session];
             }
         }
 
         $matches = [];
         foreach (self::periods() as $period => $definition) {
-            if ($definition['start'] < $e && $definition['end'] > $s) {
+            if ($definition['start'] < $end && $definition['end'] > $start) {
                 $matches[] = $period;
             }
         }

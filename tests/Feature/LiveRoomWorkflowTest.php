@@ -382,24 +382,24 @@ class LiveRoomWorkflowTest extends TestCase
             ->firstOrFail();
 
         $showCourseUrl = route('giang-vien.khoa-hoc.show', [
-            'id' => $assignment->id,
+            'id' => $course->id,
             'focus_lich_hoc_id' => $lichHoc->id,
         ]) . '#session-' . $lichHoc->id;
 
         $attendanceUrl = route('giang-vien.khoa-hoc.show', [
-            'id' => $assignment->id,
+            'id' => $course->id,
             'focus_lich_hoc_id' => $lichHoc->id,
             'quick_action' => 'attendance',
         ]) . '#session-' . $lichHoc->id;
 
         $resourceUrl = route('giang-vien.khoa-hoc.show', [
-            'id' => $assignment->id,
+            'id' => $course->id,
             'focus_lich_hoc_id' => $lichHoc->id,
             'quick_action' => 'resources',
         ]) . '#session-' . $lichHoc->id;
 
         $examUrl = route('giang-vien.khoa-hoc.show', [
-            'id' => $assignment->id,
+            'id' => $course->id,
             'focus_lich_hoc_id' => $lichHoc->id,
             'quick_action' => 'exams',
         ]) . '#session-' . $lichHoc->id;
@@ -455,7 +455,7 @@ class LiveRoomWorkflowTest extends TestCase
             ->get(route('giang-vien.live-room.show', $lecture->id))
             ->assertOk()
             ->assertSee(route('giang-vien.live-room.start', $lecture->id), false)
-            ->assertSee('Bat dau buoi hoc', false);
+            ->assertSee('Bắt đầu buổi học', false);
 
         Carbon::setTestNow();
     }

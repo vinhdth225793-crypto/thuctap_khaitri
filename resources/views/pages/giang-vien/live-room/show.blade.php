@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'Phong hoc live'])
+@extends('layouts.app', ['title' => 'Phòng học live'])
 
 @section('content')
 @php
@@ -27,7 +27,7 @@
         <div class="card-body p-4 p-md-5">
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
                 <div>
-                    <div class="small text-white-50 text-uppercase mb-2">Phong dieu hanh giang vien</div>
+                    <div class="small text-white-50 text-uppercase mb-2">Phòng điều hành giảng viên</div>
                     <h2 class="fw-bold mb-2 text-white">{{ $phongHocLive->tieu_de }}</h2>
                     <div class="text-white-50 mb-3">{{ $baiGiang->khoaHoc->ten_khoa_hoc }} / {{ $baiGiang->moduleHoc->ten_module }}</div>
                     <div class="d-flex flex-wrap gap-2">
@@ -37,7 +37,7 @@
                     </div>
                 </div>
                 <div class="text-md-end">
-                    <div class="small text-white-50">Bat dau luc</div>
+                    <div class="small text-white-50">Bắt đầu lúc</div>
                     <div class="fw-bold fs-5">{{ $phongHocLive->thoi_gian_bat_dau->format('d/m/Y H:i') }}</div>
                     <div
                         id="teacher-live-countdown"
@@ -60,24 +60,24 @@
                 <div class="col-lg-8">
                     <div class="card border-0 shadow-sm mb-4">
                         <div class="card-body p-4">
-                            <h5 class="fw-bold mb-3">Tong quan phong hoc</h5>
-                            <p class="text-muted mb-4">{{ $phongHocLive->mo_ta ?: ($baiGiang->mo_ta ?: 'Chua co mo ta chi tiet cho phong hoc nay.') }}</p>
+                            <h5 class="fw-bold mb-3">Tổng quan phòng học</h5>
+                            <p class="text-muted mb-4">{{ $phongHocLive->mo_ta ?: ($baiGiang->mo_ta ?: 'Chưa có mô tả chi tiết cho phòng học này.') }}</p>
 
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <div class="small text-muted text-uppercase">Moderator</div>
-                                    <div class="fw-bold">{{ $phongHocLive->moderator->ho_ten ?? 'Chua cap nhat' }}</div>
+                                    <div class="small text-muted text-uppercase">Người điều phối</div>
+                                    <div class="fw-bold">{{ $phongHocLive->moderator->ho_ten ?? 'Chưa cập nhật' }}</div>
                                 </div>
                                 <div class="col-md-6">
-                                    <div class="small text-muted text-uppercase">Tro giang</div>
-                                    <div class="fw-bold">{{ $phongHocLive->troGiang->ho_ten ?? 'Khong co' }}</div>
+                                    <div class="small text-muted text-uppercase">Trợ giảng</div>
+                                    <div class="fw-bold">{{ $phongHocLive->troGiang->ho_ten ?? 'Không có' }}</div>
                                 </div>
                                 <div class="col-md-6">
-                                    <div class="small text-muted text-uppercase">Mo phong truoc</div>
+                                    <div class="small text-muted text-uppercase">Mở phòng trước</div>
                                     <div class="fw-bold">{{ $phongHocLive->mo_phong_truoc_phut }} phut</div>
                                 </div>
                                 <div class="col-md-6">
-                                    <div class="small text-muted text-uppercase">Trang thai</div>
+                                    <div class="small text-muted text-uppercase">Trạng thái</div>
                                     <div class="fw-bold">{{ $phongHocLive->status_hint }}</div>
                                 </div>
                             </div>
@@ -88,13 +88,13 @@
                         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center gap-2">
                             <h6 class="fw-bold mb-0">Khung live room</h6>
                             @if($playerMode === 'host')
-                                <span class="badge bg-success-subtle text-success border border-success-subtle">Dang dieu hanh</span>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">Đang điều hành</span>
                             @elseif($canTeacherStart)
-                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle">San sang bat dau</span>
+                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Sẵn sàng bắt đầu</span>
                             @elseif($canTeacherReopen)
-                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Co the mo lai</span>
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Có thể mở lại</span>
                             @else
-                                <span class="badge bg-light text-dark border">Chua mo</span>
+                                <span class="badge bg-light text-dark border">Chưa mở</span>
                             @endif
                         </div>
                         <div class="card-body p-0">
@@ -110,10 +110,10 @@
                                 @elseif($playerMode === 'host' && $isInternalRoom)
                                     <div class="teacher-live-internal">
                                         <div class="teacher-live-internal__stage">
-                                            <div class="teacher-live-internal__badge">LIVE NOI BO</div>
+                                            <div class="teacher-live-internal__badge">LIVE NỘI BỘ</div>
                                             <h3 class="fw-bold text-white mb-3">{{ $phongHocLive->tieu_de }}</h3>
                                             <p class="text-white-50 mb-4">
-                                                Ban dang dieu hanh buoi hoc ngay trong he thong. Khu vuc nay duoc thiet ke de demo luong room noi bo va co the thay bang WebRTC/Jitsi sau nay.
+                                                Bạn đang điều hành buổi học ngay trong hệ thống. Khu vực này được thiết kế để demo luồng room nội bộ và có thể thay bằng WebRTC/Jitsi sau này.
                                             </p>
                                             <div class="teacher-live-internal__stats">
                                                 <div class="teacher-live-internal__stat">
@@ -121,34 +121,34 @@
                                                     <strong>{{ data_get($platformPayload, 'room_code', 'NOI-BO') }}</strong>
                                                 </div>
                                                 <div class="teacher-live-internal__stat">
-                                                    <span>Nguoi tham gia</span>
+                                                    <span>Người tham gia</span>
                                                     <strong>{{ $phongHocLive->participant_count }}</strong>
                                                 </div>
                                                 <div class="teacher-live-internal__stat">
-                                                    <span>Trang thai</span>
+                                                    <span>Trạng thái</span>
                                                     <strong>{{ $phongHocLive->timeline_trang_thai_label }}</strong>
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="teacher-live-internal__sidebar">
                                             <div class="teacher-live-panel">
-                                                <div class="teacher-live-panel__title">Ghi chu nhanh</div>
+                                                <div class="teacher-live-panel__title">Ghi chú nhanh</div>
                                                 <ul class="teacher-live-panel__list">
-                                                    <li>Xac nhan muc tieu cua buoi hoc va mo dau noi dung.</li>
-                                                    <li>Nhac hoc vien diem danh va dat cau hoi qua khu vuc chat.</li>
-                                                    <li>Ket thuc buoi hoc bang thao tac "Ket thuc buoi hoc" de dong bo attendance.</li>
+                                                    <li>Xác nhận mục tiêu của buổi học và mở đầu nội dung.</li>
+                                                    <li>Nhắc học viên điểm danh và đặt câu hỏi qua khu vực chat.</li>
+                                                    <li>Kết thúc buổi học bằng thao tác "Kết thúc buổi học" để đồng bộ điểm danh.</li>
                                                 </ul>
                                             </div>
                                             <div class="teacher-live-panel">
-                                                <div class="teacher-live-panel__title">Chat / thao luan</div>
+                                                <div class="teacher-live-panel__title">Chat / thảo luận</div>
                                                 <div class="teacher-live-panel__placeholder">
-                                                    Khung chat placeholder cho do an. Co the mo rong thanh realtime chat trong phase sau.
+                                                    Khung chat placeholder cho đồ án. Có thể mở rộng thành realtime chat trong phase sau.
                                                 </div>
                                             </div>
                                             <div class="teacher-live-panel">
-                                                <div class="teacher-live-panel__title">Danh sach hoc vien</div>
+                                                <div class="teacher-live-panel__title">Danh sách học viên</div>
                                                 <div class="teacher-live-panel__placeholder">
-                                                    Hien tai dang su dung room noi bo de demo dieu phoi lop hoc. So nguoi tham gia da ghi nhan: {{ $phongHocLive->participant_count }}.
+                                                    Hiện tại đang sử dụng room nội bộ để demo điều phối lớp học. Số người tham gia đã ghi nhận: {{ $phongHocLive->participant_count }}.
                                                 </div>
                                             </div>
                                         </div>
@@ -156,23 +156,23 @@
                                 @elseif($playerMode === 'host' && $playerUrl)
                                     <div class="teacher-live-launcher text-center p-5">
                                         <div class="badge bg-primary mb-3">{{ strtoupper($platformLabel) }}</div>
-                                        <h4 class="fw-bold mb-2">San sang mo {{ $platformLabel }}</h4>
-                                        <p class="text-muted mb-4">Nen tang nay se mo o cua so moi. Bam nut ben phai de vao phong dieu hanh.</p>
+                                        <h4 class="fw-bold mb-2">Sẵn sàng mở {{ $platformLabel }}</h4>
+                                        <p class="text-muted mb-4">Nền tảng này sẽ mở ở cửa sổ mới. Bấm nút bên phải để vào phòng điều hành.</p>
                                         <a href="{{ $playerUrl }}" target="_blank" class="btn btn-primary btn-lg px-5 fw-bold">
-                                            Mo {{ $platformLabel }}
+                                            Mở {{ $platformLabel }}
                                         </a>
                                     </div>
                                 @else
                                     <div class="teacher-live-placeholder p-5 text-center bg-light">
                                         <i class="fas fa-video-slash fa-4x text-muted opacity-25 mb-3"></i>
-                                        <h5 class="fw-bold text-dark">Phong hoc chua mo</h5>
+                                        <h5 class="fw-bold text-dark">Phòng học chưa mở</h5>
                                         <p class="text-muted mb-0">
                                             @if($canTeacherStart)
-                                                Da toi gio. Bam "Bat dau buoi hoc" de mo phong ngay.
+                                                Đã tới giờ. Bấm "Bắt đầu buổi học" để mở phòng ngay.
                                             @elseif($canTeacherReopen)
-                                                Buoi hoc dang dien ra. Bam "Mo phong dieu hanh" de quay lai phong.
+                                                Buổi học đang diễn ra. Bấm "Mở phòng điều hành" để quay lại phòng.
                                             @else
-                                                He thong dang cho den moc mo phong hoac cho moderator bat dau.
+                                                Hệ thống đang chờ đến mốc mở phòng hoặc chờ người điều phối bắt đầu.
                                             @endif
                                         </p>
                                     </div>
@@ -185,7 +185,7 @@
                 <div class="col-lg-4">
                     <div class="card border-0 shadow-sm sticky-top" style="top: 1.5rem;">
                         <div class="card-body p-4">
-                            <h5 class="fw-bold mb-4">Hanh dong</h5>
+                            <h5 class="fw-bold mb-4">Hành động</h5>
 
                             <div class="d-grid gap-3">
                                 @php
@@ -216,28 +216,28 @@
                                     <form action="{{ $startRoute }}" method="POST">
                                         @csrf
                                         <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">
-                                            <i class="fas fa-play-circle me-2"></i> Bat dau buoi hoc
+                                            <i class="fas fa-play-circle me-2"></i> Bắt đầu buổi học
                                         </button>
                                     </form>
                                 @elseif($canTeacherReopen && $playerMode !== 'host')
                                     <a href="{{ $hostViewRoute }}" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">
-                                        <i class="fas fa-video me-2"></i> Mo phong dieu hanh
+                                        <i class="fas fa-video me-2"></i> Mở phòng điều hành
                                     </a>
                                 @elseif($playerMode === 'host' && $isExternalLaunch)
                                     <a href="{{ $playerUrl }}" target="_blank" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">
-                                        <i class="fas fa-external-link-alt me-2"></i> Mo {{ $platformLabel }}
+                                        <i class="fas fa-external-link-alt me-2"></i> Mở {{ $platformLabel }}
                                     </a>
                                 @endif
 
                                 <a href="{{ $showRoute }}" class="btn btn-outline-secondary w-100 fw-bold">
-                                    <i class="fas fa-sync-alt me-2"></i> Lam moi trang phong
+                                    <i class="fas fa-sync-alt me-2"></i> Làm mới trang phòng
                                 </a>
 
                                 @if($playerMode === 'host')
                                     <form action="{{ $leaveRoute }}" method="POST">
                                         @csrf
                                         <button type="submit" class="btn btn-outline-secondary w-100 fw-bold">
-                                            <i class="fas fa-sign-out-alt me-2"></i> Roi che do dieu hanh
+                                            <i class="fas fa-sign-out-alt me-2"></i> Rời chế độ điều hành
                                         </button>
                                     </form>
                                 @endif
@@ -246,19 +246,19 @@
                                     <form action="{{ $endRoute }}" method="POST">
                                         @csrf
                                         <button type="submit" class="btn btn-outline-danger w-100 fw-bold">
-                                            <i class="fas fa-stop-circle me-2"></i> Ket thuc buoi hoc
+                                            <i class="fas fa-stop-circle me-2"></i> Kết thúc buổi học
                                         </button>
                                     </form>
                                 @endif
 
                                 <a href="{{ $backUrl }}" class="btn btn-link text-decoration-none">
-                                    Quay lai buoi hoc
+                                    Quay lại buổi học
                                 </a>
                             </div>
 
                             @if($meetingIdentifier)
                                 <div class="mt-4 p-3 bg-light rounded border">
-                                    <div class="small text-muted text-uppercase mb-2">Thong tin dang nhap nhanh</div>
+                                    <div class="small text-muted text-uppercase mb-2">Thông tin đăng nhập nhanh</div>
                                     <div class="d-flex justify-content-between mb-2">
                                         <span>Meeting ID</span>
                                         <strong>{{ $meetingIdentifier }}</strong>
@@ -448,11 +448,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const now = new Date();
 
         if (now < openAt) {
-            countdown.textContent = `Mo phong sau ${formatDuration((openAt - now) / 1000)}`;
+            countdown.textContent = `Mở phong sau ${formatDuration((openAt - now) / 1000)}`;
         } else if (now < startAt) {
-            countdown.textContent = `Den gio bat dau sau ${formatDuration((startAt - now) / 1000)}`;
+            countdown.textContent = `Đến giờ bắt đầu sau ${formatDuration((startAt - now) / 1000)}`;
         } else {
-            countdown.textContent = 'Da toi gio hoc.';
+            countdown.textContent = 'Đã tới giờ học.';
         }
 
         if (playerMode || hasReloaded) {

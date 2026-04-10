@@ -94,7 +94,7 @@ class GiangVienController extends Controller
 
         $validator = Validator::make($request->all(), [
             'ho_ten' => 'required|string|max:255',
-            'email' => 'required|email|unique:nguoi_dung,email,' . $user->ma_nguoi_dung . ',ma_nguoi_dung',
+            'email' => 'required|email|unique:nguoi_dung,email,' . $user->id . ',id',
             'so_dien_thoai' => 'nullable|string|max:15',
             'ngay_sinh' => 'nullable|date|before:today',
             'dia_chi' => 'nullable|string|max:500',
@@ -134,6 +134,6 @@ class GiangVienController extends Controller
         }
         $giang->update($request->only(['chuyen_nganh', 'hoc_vi', 'so_gio_day']));
 
-        return redirect()->route('giang-vien.profile')->with('success', 'Cap nhat thong tin thanh cong');
+        return redirect()->route('giang-vien.profile')->with('success', 'Cập nhật thông tin thành công.');
     }
 }

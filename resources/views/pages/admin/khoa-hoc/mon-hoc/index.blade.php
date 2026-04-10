@@ -4,7 +4,15 @@
 
 @section('content')
 <div class="container-fluid">
-    <!-- Header -->
+    @include('pages.admin.khoa-hoc.partials.training-breadcrumb', [
+        'icon' => 'fas fa-layer-group',
+        'current' => 'Nhóm ngành',
+        'accent' => '#0f766e',
+        'soft' => 'rgba(15, 118, 110, 0.12)',
+        'chip' => 'Danh muc dao tao',
+        'note' => 'Phan loai khoa hoc theo tung linh vuc de quan tri chuong trinh gon va ro hon.',
+    ])
+
     <div class="row mb-4 align-items-center">
         <div class="col-md-6">
             <h4 class="fw-bold mb-0">
@@ -13,34 +21,42 @@
             </h4>
         </div>
         <div class="col-md-6 text-md-end mt-3 mt-md-0">
-            <a href="{{ route('admin.mon-hoc.create') }}" class="btn btn-outline-primary fw-bold shadow-sm">
+            <a href="{{ route('admin.nhom-nganh.create') }}" class="btn btn-outline-primary fw-bold shadow-sm">
                 <i class="fas fa-plus me-1"></i> Thêm nhóm ngành mới
             </a>
         </div>
     </div>
 
-    <!-- Flash Messages -->
     @include('components.alert')
 
-    <!-- Search Bar -->
     <div class="vip-card mb-4 border-0 shadow-sm">
         <div class="vip-card-body p-3">
-            <form method="GET" action="{{ route('admin.mon-hoc.index') }}" class="row g-2 align-items-center">
-                <div class="col-md-6">
+            <form method="GET" action="{{ route('admin.nhom-nganh.index') }}" class="row g-2 align-items-center">
+                <div class="col-md-4">
                     <div class="input-group">
                         <span class="input-group-text bg-white border-end-0 text-muted"><i class="fas fa-search"></i></span>
-                        <input type="text" name="search" class="form-control border-start-0 vip-form-control" 
-                               placeholder="Tìm theo tên hoặc mã nhóm ngành..." value="{{ $search ?? '' }}">
+                        <input
+                            type="text"
+                            name="search"
+                            class="form-control border-start-0 vip-form-control"
+                            placeholder="Tìm theo tên hoặc mã nhóm ngành..."
+                            value="{{ $search ?? '' }}"
+                        >
                     </div>
+                </div>
+                <div class="col-md-4">
+                    <select name="trang_thai" class="form-select vip-form-control">
+                        <option value="">-- Tất cả trạng thái --</option>
+                        <option value="1" {{ (string) ($trangThai ?? '') === '1' ? 'selected' : '' }}>Hoạt động</option>
+                        <option value="0" {{ (string) ($trangThai ?? '') === '0' ? 'selected' : '' }}>Tạm dừng</option>
+                    </select>
                 </div>
                 <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100 fw-bold">Tìm kiếm</button>
+                    <button type="submit" class="btn btn-primary w-100 fw-bold">Lọc dữ liệu</button>
                 </div>
-                @if($search ?? false)
-                    <div class="col-md-1">
-                        <a href="{{ route('admin.mon-hoc.index') }}" class="btn btn-link text-muted small p-0 text-decoration-none">Xóa lọc</a>
-                    </div>
-                @endif
+                <div class="col-md-2">
+                    <a href="{{ route('admin.nhom-nganh.index') }}" class="btn btn-light w-100 fw-bold border">Đặt lại</a>
+                </div>
             </form>
         </div>
     </div>
@@ -100,17 +116,13 @@
                                     </td>
                                     <td class="pe-4 text-center">
                                         <div class="d-flex justify-content-center gap-1">
-                                            <a href="{{ route('admin.mon-hoc.show', $item->id) }}" 
-                                               class="btn btn-sm btn-outline-primary action-btn" 
-                                               title="Xem chi tiết">
+                                            <a href="{{ route('admin.nhom-nganh.show', $item->id) }}" class="btn btn-sm btn-outline-primary action-btn" title="Xem chi tiết">
                                                 <i class="fas fa-eye"></i>
                                             </a>
-                                            <a href="{{ route('admin.mon-hoc.edit', $item->id) }}" 
-                                               class="btn btn-sm btn-outline-warning action-btn" 
-                                               title="Chỉnh sửa">
+                                            <a href="{{ route('admin.nhom-nganh.edit', $item->id) }}" class="btn btn-sm btn-outline-warning action-btn" title="Chỉnh sửa">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <form action="{{ route('admin.mon-hoc.toggle-status', $item->id) }}" method="POST" class="d-inline">
+                                            <form action="{{ route('admin.nhom-nganh.toggle-status', $item->id) }}" method="POST" class="d-inline">
                                                 @csrf
                                                 <button type="submit" class="btn btn-sm btn-outline-secondary action-btn" title="Thay đổi trạng thái">
                                                     <i class="fas fa-power-off"></i>
@@ -127,15 +139,14 @@
                     </table>
                 </div>
 
-                <!-- Pagination -->
                 <div class="p-3 border-top d-flex justify-content-center">
-                    {{ $nhomNganhs->links('pagination::bootstrap-5') }}
+                    {{ $nhomNganhs->appends(request()->query())->links('pagination::bootstrap-5') }}
                 </div>
             @else
                 <div class="text-center py-5 text-muted">
                     <i class="fas fa-inbox fa-3x mb-3 opacity-25"></i>
                     <p>Không tìm thấy nhóm ngành nào.</p>
-                    <a href="{{ route('admin.mon-hoc.create') }}" class="btn btn-primary mt-2">
+                    <a href="{{ route('admin.nhom-nganh.create') }}" class="btn btn-primary mt-2">
                         <i class="fas fa-plus me-1"></i> Thêm nhóm ngành mới
                     </a>
                 </div>
@@ -144,7 +155,6 @@
     </div>
 </div>
 
-<!-- Delete Modal -->
 <div class="modal fade shadow" id="deleteModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0">

@@ -73,7 +73,7 @@ class TeacherScheduleLiveRoomService
                     'tat_camera_khi_vao' => true,
                     'room_code' => $this->buildRoomCode($lichHoc),
                     'room_scope' => 'teacher_schedule',
-                    'security_note' => 'Phong live noi bo danh cho buoi hoc nay. Co the nang cap sang WebRTC/Jitsi trong giai doan sau.',
+                    'security_note' => 'Phòng học trực tuyến nội bộ dành cho buổi học này. Có thể nâng cấp sang WebRTC/Jitsi trong giai đoạn sau.',
                 ],
             ], $actor);
         }
@@ -111,7 +111,7 @@ class TeacherScheduleLiveRoomService
         }
 
         throw ValidationException::withMessages([
-            'live_room' => 'Chi buoi hoc online moi duoc tao phong live noi bo.',
+            'live_room' => 'Chỉ buổi học online mới được tạo phòng học trực tuyến nội bộ.',
         ]);
     }
 
@@ -119,35 +119,35 @@ class TeacherScheduleLiveRoomService
     {
         if ($lichHoc->teaching_session_status === 'da_huy') {
             throw ValidationException::withMessages([
-                'live_room' => 'Buoi hoc da bi huy nen khong the tao moi phong live noi bo.',
+                'live_room' => 'Buổi học đã bị hủy nên không thể tạo mới phòng học trực tuyến nội bộ.',
             ]);
         }
 
         if ($lichHoc->teaching_session_status === 'da_ket_thuc') {
             throw ValidationException::withMessages([
-                'live_room' => 'Buoi hoc da ket thuc nen khong the tao moi phong live noi bo.',
+                'live_room' => 'Buổi học đã kết thúc nên không thể tạo mới phòng học trực tuyến nội bộ.',
             ]);
         }
     }
 
     private function buildLectureTitle(LichHoc $lichHoc): string
     {
-        return 'Phong live noi bo - Buoi ' . ($lichHoc->buoi_so ?? $lichHoc->id);
+        return 'Phòng học trực tuyến nội bộ - Buổi ' . ($lichHoc->buoi_so ?? $lichHoc->id);
     }
 
     private function buildLectureDescription(LichHoc $lichHoc): string
     {
-        return 'Phong live noi bo duoc tao tu dong cho buoi hoc online ngay ' . optional($lichHoc->ngay_hoc)->format('d/m/Y') . '.';
+        return 'Phòng học trực tuyến nội bộ được tạo tự động cho buổi học online ngày ' . optional($lichHoc->ngay_hoc)->format('d/m/Y') . '.';
     }
 
     private function buildRoomTitle(LichHoc $lichHoc): string
     {
-        return 'Lop hoc live buoi ' . ($lichHoc->buoi_so ?? $lichHoc->id);
+        return 'Lớp học trực tuyến buổi ' . ($lichHoc->buoi_so ?? $lichHoc->id);
     }
 
     private function buildRoomDescription(LichHoc $lichHoc): string
     {
-        return 'Phong hoc noi bo gan voi lich hoc #' . $lichHoc->id . ' de giang vien demo va dieu hanh buoi hoc ngay tren he thong.';
+        return 'Phòng học nội bộ gắn với lịch học #' . $lichHoc->id . ' để giảng viên demo và điều hành buổi học ngay trên hệ thống.';
     }
 
     private function buildRoomCode(LichHoc $lichHoc): string

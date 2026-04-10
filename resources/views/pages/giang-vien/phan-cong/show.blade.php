@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Phiên dạy: ' . $phanCong->moduleHoc->ten_module)
+@section('title', 'Tổng quan khóa: ' . $khoaHoc->ten_khoa_hoc)
 
 @section('content')
 <div class="container-fluid">
@@ -17,7 +17,7 @@
         </div>
     </div>
 
-    <!-- Header -->
+        <!-- Header -->
     <div class="row mb-4 align-items-center">
         <div class="col-md-8">
             <div class="d-flex align-items-center">
@@ -25,29 +25,28 @@
                     <i class="fas fa-graduation-cap"></i>
                 </div>
                 <div>
-                    <h2 class="fw-extrabold mb-1 text-dark letter-spacing-tight">{{ $phanCong->moduleHoc->ten_module }}</h2>
+                    <h2 class="fw-extrabold mb-1 text-dark letter-spacing-tight">{{ $khoaHoc->ten_khoa_hoc }}</h2>
                     <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <span class="text-muted small">Khóa học: <span class="fw-bold text-primary">{{ $khoaHoc->ten_khoa_hoc }}</span></span>
+                        <span class="text-muted small">Trang tổng quan khóa học của giảng viên</span>
                         <span class="text-silver">|</span>
-                        <span class="badge bg-{{ $phanCong->moduleHoc->trang_thai_hoc_tap_badge }}-soft text-{{ $phanCong->moduleHoc->trang_thai_hoc_tap_badge }} border border-{{ $phanCong->moduleHoc->trang_thai_hoc_tap_badge }} rounded-pill px-3">
-                            {{ $phanCong->moduleHoc->trang_thai_hoc_tap_label }}
+                        <span class="badge bg-{{ $khoaHoc->trang_thai_hoc_tap_badge }}-soft text-{{ $khoaHoc->trang_thai_hoc_tap_badge }} border border-{{ $khoaHoc->trang_thai_hoc_tap_badge }} rounded-pill px-3">
+                            {{ $khoaHoc->trang_thai_hoc_tap_label }}
+                        </span>
+                        <span class="badge bg-primary-soft text-primary border border-primary rounded-pill px-3">
+                            {{ $courseStats['assigned_modules'] }} module phụ trách
                         </span>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-4 text-md-end mt-3 mt-md-0">
-            @if($phanCong->trang_thai === 'cho_xac_nhan')
-                <form action="{{ route('giang-vien.khoa-hoc.xac-nhan', $phanCong->id) }}" method="POST" class="d-inline">
-                    @csrf
-                    <input type="hidden" name="hanh_dong" value="da_nhan">
-                    <button type="submit" class="btn btn-success fw-bold px-5 py-3 rounded-4 shadow-md transition-all">
-                        <i class="fas fa-check-double me-2"></i> XÁC NHẬN DẠY NGAY
-                    </button>
-                </form>
+            @if($courseStats['pending_modules'] > 0)
+                <div class="badge bg-warning-soft text-warning border border-warning px-4 py-3 shadow-sm rounded-4 fs-6">
+                    <i class="fas fa-clock me-2"></i> {{ $courseStats['pending_modules'] }} module chờ xác nhận
+                </div>
             @else
                 <div class="badge bg-success-soft text-success border border-success px-4 py-3 shadow-sm rounded-4 fs-6">
-                    <i class="fas fa-shield-check me-2"></i> Bạn đã nhận bài dạy này
+                    <i class="fas fa-shield-check me-2"></i> Tất cả module đã sẵn sàng giảng dạy
                 </div>
             @endif
         </div>
@@ -148,23 +147,13 @@
                     </div>
                 </div>
 
-                @php
-                    $otherExams = \App\Models\BaiKiemTra::where('khoa_hoc_id', $khoaHoc->id)
-                        ->where(function($q) use ($phanCong) {
-                            $q->where('pham_vi', 'cuoi_khoa')
-                              ->orWhere(function($q2) use ($phanCong) {
-                                  $q2->where('pham_vi', 'module')
-                                     ->where('module_hoc_id', $phanCong->module_hoc_id);
-                              });
-                        })
-                        ->get();
-                @endphp
+                
 
-                @if($otherExams->isNotEmpty())
+                @if($courseExams->isNotEmpty())
                     <div class="mb-4">
                         <div class="fw-bold small mb-2 text-danger text-uppercase"><i class="fas fa-file-invoice me-1"></i> Bài kiểm tra Module & Khóa học</div>
                         <div class="row g-3">
-                            @foreach($otherExams as $test)
+                            @foreach($courseExams as $test)
                                 <div class="col-md-6">
                                     <div class="p-3 rounded border border-danger border-opacity-25 bg-danger bg-opacity-10 d-flex align-items-center justify-content-between shadow-sm">
                                         <div>
@@ -189,20 +178,63 @@
                     </div>
                 @endif
 
-                @php
-                    $focusedLichHocId = (int) request('focus_lich_hoc_id', 0);
+                                @php
+                    $focusedLichHocId = $focusedLichHocId ?? (int) request('focus_lich_hoc_id', 0);
                 @endphp
 
-                @forelse($timelineItems as $timelineItem)
-                    @include('pages.giang-vien.phan-cong.partials.timeline-session-card', [
-                        'timelineItem' => $timelineItem,
-                        'phanCong' => $phanCong,
-                        'focusedLichHocId' => $focusedLichHocId,
-                    ])
+                @forelse($moduleSections as $moduleSection)
+                    @php
+                        $sectionAssignment = $moduleSection['assignment'];
+                        $sectionModule = $moduleSection['module'];
+                        $sectionTimelineItems = $moduleSection['timelineItems'];
+                    @endphp
+
+                    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+                        <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-3">
+                            <div>
+                                <div class="smaller text-muted text-uppercase fw-bold mb-1">Module {{ $sectionModule->thu_tu_module }}</div>
+                                <h5 class="fw-bold text-dark mb-1">{{ $sectionModule->ten_module }}</h5>
+                                <div class="small text-muted d-flex flex-wrap align-items-center gap-2">
+                                    <span class="badge bg-{{ $sectionModule->trang_thai_hoc_tap_badge }}-soft text-{{ $sectionModule->trang_thai_hoc_tap_badge }} border border-{{ $sectionModule->trang_thai_hoc_tap_badge }}">
+                                        {{ $sectionModule->trang_thai_hoc_tap_label }}
+                                    </span>
+                                    <span class="badge bg-light text-dark border">{{ $sectionTimelineItems->count() }} buoi day</span>
+                                    @if($sectionAssignment->trang_thai === 'cho_xac_nhan')
+                                        <span class="badge bg-warning-soft text-warning border border-warning">Chờ xác nhận giảng dạy</span>
+                                    @endif
+                                </div>
+                            </div>
+
+                            @if($sectionAssignment->trang_thai === 'cho_xac_nhan')
+                                <form action="{{ route('giang-vien.khoa-hoc.xac-nhan', $sectionAssignment->id) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    <input type="hidden" name="hanh_dong" value="da_nhan">
+                                    <button type="submit" class="btn btn-sm btn-success fw-bold px-4 shadow-sm">
+                                        <i class="fas fa-check-double me-1"></i> Xác nhận dạy module này
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
+
+                        <div class="card-body p-4">
+                            @forelse($sectionTimelineItems as $timelineItem)
+                                @include('pages.giang-vien.phan-cong.partials.timeline-session-card', [
+                                    'timelineItem' => $timelineItem,
+                                    'phanCong' => $sectionAssignment,
+                                    'focusedLichHocId' => $focusedLichHocId,
+                                ])
+                            @empty
+                                <div class="vip-card p-4 text-center text-muted border-0 shadow-none bg-light">
+                                    <i class="fas fa-calendar-times fa-2x mb-3 opacity-25"></i>
+                                    <p class="mb-0">Module này chưa có lịch dạy cụ thể.</p>
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
                 @empty
                     <div class="vip-card p-5 text-center text-muted border-0 shadow-sm">
                         <i class="fas fa-calendar-times fa-3x mb-3 opacity-25"></i>
-                        <p class="mb-0">Chưa có lịch dạy cụ thể cho bài dạy này.</p>
+                        <p class="mb-0">Chưa có lịch dạy cụ thể cho khóa học này.</p>
                     </div>
                 @endforelse
             </div>
@@ -577,7 +609,7 @@
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link fw-bold small py-3" id="tab-report-admin" data-bs-toggle="tab" data-bs-target="#report-pane" type="button" role="tab">
-                        <i class="fas fa-paper-plane me-1"></i> CHỐT ATTENDANCE
+                        <i class="fas fa-paper-plane me-1"></i> Chốt điểm danh
                     </button>
                 </li>
             </ul>
@@ -628,19 +660,19 @@
                             <div id="report-status-badge" class="mb-3 text-center"></div>
                             
                             <div class="mb-3">
-                                <label class="form-label small fw-bold">Nội dung chốt attendance / báo cáo buổi dạy *</label>
+                                <label class="form-label small fw-bold">Nội dung chốt điểm danh / báo cáo buổi dạy *</label>
                                 <textarea name="bao_cao_giang_vien" id="dd-bao-cao-content" class="form-control vip-form-control" rows="8" 
                                           placeholder="Nhập nội dung báo cáo cho Admin (VD: Tình hình lớp học, các vấn đề phát sinh, nhận xét chung về buổi học...)" required></textarea>
                             </div>
                             
                             <div class="alert alert-warning border-0 small mb-0">
                                 <i class="fas fa-info-circle me-1"></i> 
-                                <b>Lưu ý:</b> Hành động này được dùng như bước chốt attendance cuối buổi và gửi báo cáo trực tiếp đến Ban quản lý.
+                                <b>Lưu ý:</b> Hành động này được dùng như bước chốt điểm danh cuối buổi và gửi báo cáo trực tiếp đến Ban quản lý.
                             </div>
                         </div>
                         <div class="modal-footer border-0 p-3 justify-content-center gap-2 bg-light">
                             <button type="button" class="btn btn-light px-4 fw-bold shadow-xs" data-bs-dismiss="modal">HỦY BỎ</button>
-                            <button type="submit" id="btn-submit-report" class="btn btn-success px-4 fw-bold shadow-sm">CHỐT ATTENDANCE VÀ GỬI BÁO CÁO</button>
+                            <button type="submit" id="btn-submit-report" class="btn btn-success px-4 fw-bold shadow-sm">Chốt điểm danh VÀ GỬI BÁO CÁO</button>
                         </div>
                     </form>
                 </div>
@@ -773,7 +805,7 @@
                         </div>
                         <div id="pdf-warning" class="mt-2 smaller text-danger d-none italic">
                             <i class="fas fa-exclamation-triangle me-1"></i> 
-                            Hệ thống đang chạy Local, bạn nên tự chuyển file sang PDF trước khi tải lên để đảm bảo hiển thị tốt nhất.
+                            Hệ thống đang chạy Lọcal, bạn nên tự chuyển file sang PDF trước khi tải lên để đảm bảo hiển thị tốt nhất.
                         </div>
                     </div>
 
@@ -968,7 +1000,7 @@
             <form action="{{ route('giang-vien.bai-kiem-tra.store') }}" method="POST">
                 @csrf
                 <input type="hidden" name="khoa_hoc_id" value="{{ $khoaHoc->id }}">
-                <input type="hidden" name="module_hoc_id" value="{{ $phanCong->module_hoc_id }}">
+                <input type="hidden" name="module_hoc_id" id="test-module-id" value="{{ $activeAssignment->module_hoc_id }}">
                 <input type="hidden" name="lich_hoc_id" id="test-lich-id">
                 <input type="hidden" name="pham_vi" value="buoi_hoc">
 
@@ -981,9 +1013,24 @@
                         <label class="form-label small fw-bold">Thời gian làm bài (Phút) *</label>
                         <input type="number" name="thoi_gian_lam_bai" class="form-control vip-form-control" value="15" min="1" required>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Loại nội dung bài kiểm tra *</label>
+                        <select name="che_do_noi_dung" class="form-select vip-form-control" id="test-content-mode" required>
+                            <option value="tu_luan_tu_do">Tự luận tự do</option>
+                            <option value="tu_luan_theo_cau">Tự luận theo câu</option>
+                            <option value="trac_nghiem">Trắc nghiệm</option>
+                            <option value="hon_hop">Hỗn hợp</option>
+                        </select>
+                        <div class="small text-muted mt-2" id="test-content-mode-help">
+                            Flow này tạo đề tự luận tổng ngay từ đề bài / hướng dẫn, không cần chọn câu hỏi từ ngân hàng ở bước đầu.
+                        </div>
+                    </div>
                     <div class="mb-0">
                         <label class="form-label small fw-bold">Ghi chú / Mô tả</label>
                         <textarea name="mo_ta" class="form-control vip-form-control" rows="2" placeholder="Nội dung tóm tắt..."></textarea>
+                    </div>
+                    <div class="small text-muted mt-2" id="test-description-help">
+                        Sau khi tao, ban se duoc chuyen sang man cau hinh de tiep tuc bo sung cau hoi, huong dan va cach cham bai theo flow da chon.
                     </div>
                     <div class="mt-3 pt-3 border-top">
                         <label class="form-label small fw-bold d-block">Chế độ bài kiểm tra</label>
@@ -1433,12 +1480,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         baoCaoContent.value = res.bao_cao || '';
                         
                         if (res.trang_thai_bao_cao === 'da_bao_cao') {
-                            statusBadge.innerHTML = '<span class="badge bg-success bg-opacity-10 text-success border border-success px-3 py-2 fw-bold"><i class="fas fa-check-circle me-1"></i> ĐÃ GỬI BÁO CÁO</span>';
-                            btnSubmitReport.innerHTML = '<i class="fas fa-sync-alt me-1"></i> CẬP NHẬT CHỐT ATTENDANCE';
+                            statusBadge.innerHTML = '<span class="badge bg-success bg-opacity-10 text-success border border-success px-3 py-2 fw-bold"><i class="fas fa-check-circle me-1"></i> Đã gửi báo cáo</span>';
+                            btnSubmitReport.innerHTML = '<i class="fas fa-sync-alt me-1"></i> CẬP NHẬT Chốt điểm danh';
                             btnSubmitReport.classList.replace('btn-success', 'btn-warning');
                         } else {
                             statusBadge.innerHTML = '<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary px-3 py-2 fw-bold"><i class="fas fa-clock me-1"></i> CHƯA GỬI BÁO CÁO</span>';
-                            btnSubmitReport.innerHTML = 'CHỐT ATTENDANCE VÀ GỬI BÁO CÁO';
+                            btnSubmitReport.innerHTML = 'Chốt điểm danh VÀ GỬI BÁO CÁO';
                             btnSubmitReport.classList.replace('btn-warning', 'btn-success');
                         }
 
@@ -1508,31 +1555,88 @@ document.addEventListener('DOMContentLoaded', function() {
         const testLichId = document.getElementById('test-lich-id');
         const testPhamVi = document.querySelector('#modalAddTest input[name="pham_vi"]');
         const testModuleId = document.querySelector('#modalAddTest input[name="module_hoc_id"]');
+        const testContentMode = document.getElementById('test-content-mode');
+        const testContentModeHelp = document.getElementById('test-content-mode-help');
+        const testDescriptionHelp = document.getElementById('test-description-help');
 
-        document.querySelectorAll('.btn-add-test').forEach(btn => {
+        const testContentModeDescriptions = {
+            tu_luan_tu_do: {
+                mode: 'Flow này tạo đề tự luận tổng ngay từ đề bài / hướng dẫn, không cần chọn câu hỏi từ ngân hàng ở bước đầu.',
+                description: 'Nen mo ta ro de bai, yeu cau dau ra va cach nop bai cho hoc vien.',
+            },
+            tu_luan_theo_cau: {
+                mode: 'Sau khi tao khung de, ban se duoc dua sang man cau hinh de chon cac cau tu luan trong ngan hang cau hoi.',
+                description: 'Có thể nhập thêm ghi chú ngắn cho đề, rubric hoặc lưu ý chung trước khi chọn câu hỏi.',
+            },
+            trac_nghiem: {
+                mode: 'Sau khi tao khung de, ban se chon cac cau trac nghiem va thiet lap diem cho tung cau.',
+                description: 'Co the nhap mo ta ngan cho hoc vien ve pham vi on tap neu can.',
+            },
+            hon_hop: {
+                mode: 'Flow này yêu cầu đề có ít nhất 1 câu trắc nghiệm và 1 câu tự luận ở bước cấu hình tiếp theo.',
+                description: 'Nen ghi ro cach lam bai va cach cham cho phan tu luan de hoc vien de theo doi.',
+            },
+        };
+
+        function applyCreateExamContentMode() {
+            if (!testContentMode) {
+                return;
+            }
+
+            const selectedMode = testContentMode.value || 'tu_luan_tu_do';
+            const modeMeta = testContentModeDescriptions[selectedMode] || testContentModeDescriptions.tu_luan_tu_do;
+
+            if (testContentModeHelp) {
+                testContentModeHelp.textContent = modeMeta.mode;
+            }
+
+            if (testDescriptionHelp) {
+                testDescriptionHelp.textContent = modeMeta.description;
+            }
+        }
+
+        testContentMode?.addEventListener('change', applyCreateExamContentMode);
+        applyCreateExamContentMode();
+
+                document.querySelectorAll('.btn-add-test').forEach(btn => {
             btn.addEventListener('click', function() {
                 const d = this.dataset;
                 testBuoiLabel.textContent = d.buoi;
                 testLichId.value = d.id;
                 testPhamVi.value = 'buoi_hoc';
+                testModuleId.value = d.moduleId || '{{ $activeAssignment->module_hoc_id }}';
+                if (testContentMode) {
+                    testContentMode.value = 'tu_luan_tu_do';
+                    applyCreateExamContentMode();
+                }
                 modalTest.show();
             });
         });
 
         document.querySelectorAll('.btn-add-test-module').forEach(btn => {
             btn.addEventListener('click', function() {
-                testBuoiLabel.textContent = 'Cuối Module: {{ $phanCong->moduleHoc->ten_module }}';
+                testBuoiLabel.textContent = 'Cuoi Module: {{ $activeAssignment->moduleHoc->ten_module }}';
                 testLichId.value = '';
+                testModuleId.value = '{{ $activeAssignment->module_hoc_id }}';
                 testPhamVi.value = 'module';
+                if (testContentMode) {
+                    testContentMode.value = 'tu_luan_tu_do';
+                    applyCreateExamContentMode();
+                }
                 modalTest.show();
             });
         });
 
         document.querySelectorAll('.btn-add-test-course').forEach(btn => {
             btn.addEventListener('click', function() {
-                testBuoiLabel.textContent = 'Cuối Khóa: {{ $khoaHoc->ten_khoa_hoc }}';
+                testBuoiLabel.textContent = 'Cuoi Khoa: {{ $khoaHoc->ten_khoa_hoc }}';
                 testLichId.value = '';
+                testModuleId.value = '';
                 testPhamVi.value = 'cuoi_khoa';
+                if (testContentMode) {
+                    testContentMode.value = 'tu_luan_tu_do';
+                    applyCreateExamContentMode();
+                }
                 modalTest.show();
             });
         });
@@ -1587,7 +1691,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const previewFilename = document.getElementById('preview-filename');
         const previewOpenBtn = document.getElementById('preview-open-btn');
         const previewDownloadBtn = document.getElementById('preview-download-btn');
-        const loadingHtml = document.getElementById('preview-loading') ? document.getElementById('preview-loading').outerHTML : '<p>Loading...</p>';
+        const loadingHtml = document.getElementById('preview-loading') ? document.getElementById('preview-loading').outerHTML : '<p>Đang tải...</p>';
 
         document.querySelectorAll('.btn-preview-file').forEach(btn => {
             btn.addEventListener('click', function() {
@@ -1653,7 +1757,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         `;
                     }
                     else {
-                        content = `<div class="text-center p-5 bg-white rounded shadow-sm border m-3" style="max-width: 500px;"><div class="mb-4"><span class="fa-stack fa-3x"><i class="fas fa-file fa-stack-2x text-light"></i><i class="fas fa-file-download fa-stack-1x text-primary"></i></span></div><h5 class="fw-bold text-dark">Định dạng .${ext.toUpperCase()}</h5><p class="text-muted small mb-4">Trình duyệt không hỗ trợ xem trực tiếp hoặc đang chạy Local.</p><div class="d-grid gap-2"><a href="${url}" download class="btn btn-success fw-bold py-2 shadow-sm"><i class="fas fa-download me-2"></i>TẢI VỀ</a><a href="${url}" target="_blank" class="btn btn-outline-primary fw-bold py-2"><i class="fas fa-external-link-alt me-2"></i>MỞ TAB MỚI</a></div></div>`;
+                        content = `<div class="text-center p-5 bg-white rounded shadow-sm border m-3" style="max-width: 500px;"><div class="mb-4"><span class="fa-stack fa-3x"><i class="fas fa-file fa-stack-2x text-light"></i><i class="fas fa-file-download fa-stack-1x text-primary"></i></span></div><h5 class="fw-bold text-dark">Định dạng .${ext.toUpperCase()}</h5><p class="text-muted small mb-4">Trình duyệt không hỗ trợ xem trực tiếp hoặc đang chạy Lọcal.</p><div class="d-grid gap-2"><a href="${url}" download class="btn btn-success fw-bold py-2 shadow-sm"><i class="fas fa-download me-2"></i>TẢI VỀ</a><a href="${url}" target="_blank" class="btn btn-outline-primary fw-bold py-2"><i class="fas fa-external-link-alt me-2"></i>MỞ TAB MỚI</a></div></div>`;
                     }
                     previewContainer.innerHTML = content;
                 }, 500);

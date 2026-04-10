@@ -100,7 +100,7 @@
                     </div>
                     <div class="vip-card-body p-4">
                         <div id="module-container">
-                            @php $modulesOld = old('modules', [['ten_module'=>'', 'thoi_luong_du_kien'=>'', 'mo_ta'=>'']]) @endphp
+                            @php $modulesOld = old('modules', [['ten_module'=>'', 'thoi_luong_du_kien'=>90, 'mo_ta'=>'']]) @endphp
                             @foreach($modulesOld as $i => $mod)
                                 <div class="module-item border rounded p-3 mb-3 bg-white shadow-xs position-relative" data-index="{{ $i }}">
                                     <div class="d-flex gap-3 align-items-start">
@@ -204,7 +204,7 @@
                     </div>
                     <div class="col-md-5">
                         <label class="smaller fw-bold text-muted mb-1">Thời lượng (phút)</label>
-                        <input type="number" name="modules[__INDEX__][thoi_luong_du_kien]" class="form-control form-control-sm vip-form-control" placeholder="90" min="1">
+                        <input type="number" name="modules[__INDEX__][thoi_luong_du_kien]" class="form-control form-control-sm vip-form-control" value="90" placeholder="90" min="1">
                     </div>
                     <div class="col-12">
                         <label class="smaller fw-bold text-muted mb-1 mt-2">Mô tả nội dung module</label>

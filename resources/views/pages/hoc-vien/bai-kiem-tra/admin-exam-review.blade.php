@@ -21,6 +21,8 @@
                     <div class="mb-3">{{ $baiKiemTra->moduleHoc->ten_module ?? 'Dùng chung' }}</div>
                     <div class="small text-muted mb-2">Chế độ thi</div>
                     <div class="mb-3"><span class="badge {{ $baiKiemTra->co_giam_sat ? 'bg-warning-subtle text-warning border border-warning-subtle' : 'bg-light text-dark border' }}">{{ $baiKiemTra->co_giam_sat ? 'Giám sát nâng cao' : 'Bài thường' }}</span></div>
+                    <div class="small text-muted mb-2">Loại nội dung</div>
+                    <div class="mb-3">{{ $baiKiemTra->content_mode_label }}</div>
                     @if($baiKiemTra->co_giam_sat)
                         <div class="small text-muted mb-2">Quy tắc giám sát</div>
                         <div class="mb-3 small">
@@ -71,7 +73,15 @@
                             </div>
                         </div>
                     @empty
-                        <div class="text-muted">Đề thi hiện chưa có câu hỏi.</div>
+                        @if($baiKiemTra->is_free_essay && $baiKiemTra->mo_ta)
+                            <div class="border rounded-3 p-3 bg-light">
+                                <div class="fw-semibold mb-2">Đề tự luận tự do</div>
+                                <div class="text-muted small mb-3">Học viên sẽ đọc mô tả đề và nộp một bài làm tổng. Giảng viên chấm tay sau khi học viên nộp.</div>
+                                <div>{!! nl2br(e($baiKiemTra->mo_ta)) !!}</div>
+                            </div>
+                        @else
+                            <div class="text-muted">Đề thi hiện chưa có câu hỏi.</div>
+                        @endif
                     @endforelse
                 </div>
             </div>

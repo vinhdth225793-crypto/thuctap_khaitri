@@ -144,6 +144,41 @@ class BaiKiemTra extends Model
         };
     }
 
+    public function getContentModeKeyAttribute(): string
+    {
+        return match (true) {
+            $this->loai_noi_dung === 'trac_nghiem' => 'trac_nghiem',
+            $this->loai_noi_dung === 'hon_hop' => 'hon_hop',
+            $this->loai_noi_dung === 'tu_luan' && $this->question_count > 0 => 'tu_luan_theo_cau',
+            default => 'tu_luan_tu_do',
+        };
+    }
+
+    public function getContentModeLabelAttribute(): string
+    {
+        return match ($this->content_mode_key) {
+            'trac_nghiem' => 'Trắc nghiệm',
+            'tu_luan_theo_cau' => 'Tự luận theo câu',
+            'hon_hop' => 'Hỗn hợp',
+            default => 'Tự luận tự do',
+        };
+    }
+
+    public function getUsesQuestionBankAttribute(): bool
+    {
+        return $this->question_count > 0;
+    }
+
+    public function getIsFreeEssayAttribute(): bool
+    {
+        return $this->content_mode_key === 'tu_luan_tu_do';
+    }
+
+    public function getIsStructuredEssayAttribute(): bool
+    {
+        return $this->content_mode_key === 'tu_luan_theo_cau';
+    }
+
     public function getCheDoGiamSatLabelAttribute(): string
     {
         return $this->co_giam_sat

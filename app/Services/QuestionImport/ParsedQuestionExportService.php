@@ -40,25 +40,25 @@ class ParsedQuestionExportService
         $templatePath = (string) ($template['absolute_path'] ?? '');
 
         if (!is_file($templatePath)) {
-            throw new InvalidArgumentException('Khong tim thay file mau Excel de xuat preview.');
+            throw new InvalidArgumentException('Không tìm thấy tệp mẫu Excel để xuất xem trước.');
         }
 
         $filePath = tempnam(sys_get_temp_dir(), 'question-preview-export-');
         if ($filePath === false) {
-            throw new InvalidArgumentException('Khong the tao file tam de export du lieu.');
+            throw new InvalidArgumentException('Không thể tạo tệp tạm để export dữ liệu.');
         }
 
         $xlsxPath = $filePath . '.xlsx';
         if (!@rename($filePath, $xlsxPath)) {
             @unlink($filePath);
 
-            throw new InvalidArgumentException('Khong the tao file xlsx tam de xuat du lieu.');
+            throw new InvalidArgumentException('Không thể tạo tệp xlsx tạm để xuất dữ liệu.');
         }
 
         @unlink($xlsxPath);
 
         if (!@copy($templatePath, $xlsxPath)) {
-            throw new InvalidArgumentException('Khong the sao chep file mau Excel de xuat du lieu.');
+            throw new InvalidArgumentException('Không thể sao chép tệp mẫu Excel để xuất dữ liệu.');
         }
 
         $this->fillTemplateWorkbook($xlsxPath, (string) ($template['sheet'] ?? 'Mau_Import'), (int) ($template['data_starts_on_row'] ?? 7), array_map(
@@ -164,7 +164,7 @@ class ParsedQuestionExportService
     {
         $zip = new ZipArchive();
         if ($zip->open($xlsxPath) !== true) {
-            throw new RuntimeException('Khong the mo file Excel mau de xuat du lieu.');
+            throw new RuntimeException('Không thể mở tệp Excel mẫu để xuất dữ liệu.');
         }
 
         try {
@@ -173,7 +173,7 @@ class ParsedQuestionExportService
             $stylesContent = $zip->getFromName('xl/styles.xml');
 
             if ($worksheetContent === false || $stylesContent === false) {
-                throw new RuntimeException('Khong the doc sheet Mau_Import tu file mau Excel.');
+                throw new RuntimeException('Không thể đọc sheet Mau_Import từ tệp mẫu Excel.');
             }
 
             $worksheetDocument = $this->loadDocument($worksheetContent, 'worksheet');
@@ -230,7 +230,7 @@ class ParsedQuestionExportService
                 $newRow = $templateRow->cloneNode(true);
 
                 if (!$newRow instanceof DOMElement) {
-                    throw new RuntimeException('Khong the sao chep dong mau trong file Excel.');
+                    throw new RuntimeException('Không thể sao chép dòng mẫu trong tệp Excel.');
                 }
 
                 $this->fillWorksheetRow(
@@ -253,20 +253,20 @@ class ParsedQuestionExportService
             $updatedWorksheetContent = $worksheetDocument->saveXML();
             $updatedStylesContent = $stylesDocument->saveXML();
             if ($updatedWorksheetContent === false) {
-                throw new RuntimeException('Khong the luu noi dung sheet export.');
+                throw new RuntimeException('Không thể lưu nội dung sheet export.');
             }
             if ($updatedStylesContent === false) {
-                throw new RuntimeException('Khong the luu style cua file export.');
+                throw new RuntimeException('Không thể lưu style của tệp export.');
             }
 
             $zip->deleteName($worksheetPath);
             if (!$zip->addFromString($worksheetPath, $updatedWorksheetContent)) {
-                throw new RuntimeException('Khong the cap nhat du lieu vao file export.');
+                throw new RuntimeException('Không thể cập nhật dữ liệu vào tệp export.');
             }
 
             $zip->deleteName('xl/styles.xml');
             if (!$zip->addFromString('xl/styles.xml', $updatedStylesContent)) {
-                throw new RuntimeException('Khong the cap nhat style vao file export.');
+                throw new RuntimeException('Không thể cập nhật style vào tệp export.');
             }
         } finally {
             $zip->close();
@@ -409,12 +409,12 @@ class ParsedQuestionExportService
         $baseXfNode = $xpath->query('./main:xf', $cellXfsNode)->item($baseStyleId);
 
         if (!$baseXfNode instanceof DOMElement) {
-            throw new RuntimeException('Khong tim thay style co so de tao dong loi trong file export.');
+            throw new RuntimeException('Không tìm thấy style cơ sở để tạo dòng lỗi trong tệp export.');
         }
 
         $newXfNode = $baseXfNode->cloneNode(true);
         if (!$newXfNode instanceof DOMElement) {
-            throw new RuntimeException('Khong the tao style dong loi cho file export.');
+            throw new RuntimeException('Không thể tạo style dòng lỗi cho tệp export.');
         }
 
         $newStyleId = $xpath->query('./main:xf', $cellXfsNode)->length;
@@ -529,7 +529,7 @@ class ParsedQuestionExportService
             }
         }
 
-        throw new RuntimeException("Khong tim thay sheet {$sheetName} trong file Excel mau.");
+        throw new RuntimeException("Không tìm thấy sheet {$sheetName} trong tệp Excel mẫu.");
     }
 
     private function loadDocument(string $xmlContent, string $label): DOMDocument
@@ -538,7 +538,7 @@ class ParsedQuestionExportService
         $document->preserveWhiteSpace = false;
 
         if (!@$document->loadXML($xmlContent)) {
-            throw new RuntimeException("Khong the phan tich {$label} trong file Excel mau.");
+            throw new RuntimeException("Không thể phân tích {$label} trong tệp Excel mẫu.");
         }
 
         return $document;

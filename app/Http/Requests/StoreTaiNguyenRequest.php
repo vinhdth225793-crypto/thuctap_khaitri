@@ -27,10 +27,10 @@ class StoreTaiNguyenRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'file_dinh_kem.max' => 'Kich thuoc tep toi da 10MB.',
-            'file_dinh_kem.required_without' => 'Vui long tai len file hoac nhap link ngoai hop le.',
-            'link_ngoai.required_without' => 'Vui long nhap link ngoai hop le hoac tai len file.',
-            'link_ngoai.url' => 'Link ngoai phai la URL hop le.',
+            'file_dinh_kem.max' => 'Kích thước tệp tối đa là 10MB.',
+            'file_dinh_kem.required_without' => 'Vui lòng tải lên tệp hoặc nhập liên kết ngoài hợp lệ.',
+            'link_ngoai.required_without' => 'Vui lòng nhập liên kết ngoài hợp lệ hoặc tải lên tệp.',
+            'link_ngoai.url' => 'Liên kết ngoài phải là URL hợp lệ.',
         ];
     }
 }

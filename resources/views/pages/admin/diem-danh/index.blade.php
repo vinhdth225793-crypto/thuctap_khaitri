@@ -16,7 +16,7 @@
             <h4 class="fw-bold mb-1">
                 <i class="fas fa-user-check me-2 text-primary"></i>Quản lý điểm danh
             </h4>
-            <div class="text-muted">Tách riêng phần quản lý theo tuần để admin dễ kiểm tra các buổi còn thiếu attendance và tra cứu lịch sử gần đây.</div>
+            <div class="text-muted">Tách riêng phần quản lý theo tuần để admin dễ kiểm tra các buổi còn thiếu điểm danh và tra cứu lịch sử gần đây.</div>
         </div>
         <div class="d-flex gap-2">
             <a href="{{ route('admin.diem-danh.index', ['tab' => 'giang-vien']) }}" class="btn btn-outline-primary {{ $activeTab === 'giang-vien' ? 'active' : '' }}">
@@ -80,7 +80,7 @@
                     </div>
 
                     <div class="col-lg-3 col-md-6">
-                        <label class="form-label fw-semibold">Trạng thái attendance</label>
+                        <label class="form-label fw-semibold">Trạng thái điểm danh</label>
                         <select name="trang_thai" class="form-select">
                             <option value="">Tất cả trạng thái</option>
                             <option value="chua_bat_dau" @selected(($filters['trang_thai'] ?? null) === 'chua_bat_dau')>Chưa bắt đầu</option>
@@ -119,7 +119,7 @@
                     <div class="card-body">
                         <div class="small text-muted text-uppercase">Cần kiểm tra</div>
                         <div class="fw-bold fs-3 text-warning">{{ $dashboard['summary']['pending'] }}</div>
-                        <div class="small text-muted mt-1">Buổi chưa có log hoặc attendance còn dang dở</div>
+                        <div class="small text-muted mt-1">Buổi chưa có log hoặc điểm danh còn dang dở</div>
                     </div>
                 </div>
             </div>
@@ -129,7 +129,7 @@
                     <div class="card-body">
                         <div class="small text-muted text-uppercase">Đã điểm danh</div>
                         <div class="fw-bold fs-3 text-success">{{ $dashboard['summary']['completed'] }}</div>
-                        <div class="small text-muted mt-1">Buổi đã có attendance hoàn tất trong tuần</div>
+                        <div class="small text-muted mt-1">Buổi đã được điểm danh hoàn tất trong tuần</div>
                     </div>
                 </div>
             </div>
@@ -199,7 +199,7 @@
             <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center gap-2">
                 <div>
                     <h5 class="mb-1">Danh sách cần quản lý kiểm tra</h5>
-                    <div class="text-muted small">Admin nên xử lý nhóm này trước để tránh sót buổi chưa xác nhận attendance.</div>
+                    <div class="text-muted small">Admin nên xử lý nhóm này trước để tránh sót buổi chưa xác nhận điểm danh.</div>
                 </div>
                 <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-2">
                     {{ $dashboard['summary']['pending'] }} buổi
@@ -218,7 +218,7 @@
             <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center gap-2">
                 <div>
                     <h5 class="mb-1">Danh sách đã điểm danh trong tuần</h5>
-                    <div class="text-muted small">Các buổi đã có attendance hoàn tất được đẩy xuống đây để tiện đối chiếu và tra cứu.</div>
+                    <div class="text-muted small">Các buổi đã được điểm danh hoàn tất được đẩy xuống đây để tiện đối chiếu và tra cứu.</div>
                 </div>
                 <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
                     {{ $dashboard['summary']['completed'] }} buổi
@@ -227,7 +227,7 @@
             <div class="card-body">
                 @include('pages.admin.diem-danh.partials.teacher-weekly-table', [
                     'schedules' => $dashboard['completed_schedules'],
-                    'emptyMessage' => 'Chưa có buổi nào hoàn tất attendance trong tuần đang xem.',
+                    'emptyMessage' => 'Chưa có buổi nào hoàn tất điểm danh trong tuần đang xem.',
                     'queryParams' => $teacherQueryParams,
                 ])
             </div>

@@ -10,7 +10,7 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0">
                     <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Admin</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('admin.mon-hoc.index') }}">Nhóm ngành</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('admin.nhom-nganh.index') }}">Nhóm ngành</a></li>
                     <li class="breadcrumb-item active" aria-current="page">{{ $nhomNganh->ma_nhom_nganh }}</li>
                 </ol>
             </nav>
@@ -31,7 +31,7 @@
             </div>
         </div>
         <div class="col-md-4 text-md-end mt-3 mt-md-0">
-            <a href="{{ route('admin.mon-hoc.edit', $nhomNganh->id) }}" class="btn btn-warning text-white fw-bold shadow-sm px-4">
+            <a href="{{ route('admin.nhom-nganh.edit', $nhomNganh->id) }}" class="btn btn-warning text-white fw-bold shadow-sm px-4">
                 <i class="fas fa-edit me-1"></i> Chỉnh sửa
             </a>
             <button class="btn btn-outline-danger fw-bold ms-1" onclick="confirmDelete({{ $nhomNganh->id }})">

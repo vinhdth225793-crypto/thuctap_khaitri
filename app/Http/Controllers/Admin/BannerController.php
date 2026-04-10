@@ -118,9 +118,11 @@ class BannerController extends Controller
                 'message'    => $banner->trang_thai ? 'Banner đã hiển thị.' : 'Banner đã ẩn.',
             ]);
         } catch (\Exception $e) {
+            report($e);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Lỗi hệ thống: ' . $e->getMessage()
+                'message' => 'Không thể cập nhật trạng thái banner lúc này. Vui lòng thử lại.'
             ], 500);
         }
     }
@@ -142,9 +144,11 @@ class BannerController extends Controller
 
             return response()->json(['success' => true, 'message' => 'Đã cập nhật thứ tự.']);
         } catch (\Exception $e) {
+            report($e);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Lỗi hệ thống: ' . $e->getMessage()
+                'message' => 'Không thể cập nhật thứ tự banner lúc này. Vui lòng thử lại.'
             ], 500);
         }
     }

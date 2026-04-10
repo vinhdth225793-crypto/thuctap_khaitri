@@ -88,7 +88,7 @@ class HomeController extends Controller
             ->first();
 
         $featuredInstructors = GiangVien::hienThiTrangChu()
-            ->with('nguoiDung:ma_nguoi_dung,ho_ten,email,anh_dai_dien')
+            ->with('nguoiDung:id,ho_ten,email,anh_dai_dien')
             ->orderByDesc('so_gio_day')
             ->limit(4)
             ->get();

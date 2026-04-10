@@ -87,7 +87,7 @@
                                             <i class="fas fa-edit"></i>
                                         </a>
                                         @if($bg->isLive() && $bg->phongHocLive)
-                                            <a href="{{ route('giang-vien.live-room.show', $bg->id) }}" class="btn btn-sm btn-outline-dark" title="Phong hoc live">
+                                            <a href="{{ route('giang-vien.live-room.show', $bg->id) }}" class="btn btn-sm btn-outline-dark" title="Phòng học live">
                                                 <i class="fas fa-video"></i>
                                             </a>
                                         @endif

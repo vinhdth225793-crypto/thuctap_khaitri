@@ -615,6 +615,134 @@
             });
         });
     </script>
+
+    @if(request()->routeIs('giang-vien.bai-kiem-tra.edit') && isset($baiKiemTra))
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const mainForm = document.getElementById('mainExamForm');
+                const infoGrid = document.querySelector('#info .row.g-4');
+                const questionsPane = document.getElementById('questions');
+                const questionHintId = 'contentModeQuestionHint';
+                const scoringHintId = 'contentModeScoringHint';
+
+                if (!mainForm || !infoGrid || !questionsPane) {
+                    return;
+                }
+
+                const initialMode = @json(old('che_do_noi_dung', $preferredContentMode ?? $baiKiemTra->content_mode_key));
+                const modeDescriptions = {
+                    trac_nghiem: 'Đề chỉ dùng câu hỏi trắc nghiệm trong ngân hàng câu hỏi.',
+                    tu_luan_tu_do: 'Học viên làm một bài tự luận tổng theo mô tả đề, không chọn câu hỏi từ ngân hàng.',
+                    tu_luan_theo_cau: 'Đề dùng các câu hỏi tự luận trong ngân hàng để học viên trả lời theo từng câu.',
+                    hon_hop: 'Đề kết hợp cả câu hỏi trắc nghiệm và câu hỏi tự luận theo từng câu.',
+                };
+
+                let modeSelect = mainForm.querySelector('select[name="che_do_noi_dung"]');
+
+                if (!modeSelect) {
+                    return;
+                }
+
+                modeSelect.value = initialMode || 'tu_luan_tu_do';
+
+                document.querySelectorAll('.question-checkbox').forEach((checkbox) => {
+                    if (!checkbox.dataset.baseDisabled) {
+                        checkbox.dataset.baseDisabled = checkbox.disabled ? '1' : '0';
+                    }
+                });
+
+                let questionHint = document.getElementById(questionHintId);
+                if (!questionHint) {
+                    questionHint = document.createElement('div');
+                    questionHint.id = questionHintId;
+                    questionHint.className = 'alert alert-info mb-4';
+                    const questionHeading = questionsPane.querySelector('.col-lg-9 .d-flex.justify-content-between.align-items-center.mb-4');
+                    if (questionHeading) {
+                        questionHeading.insertAdjacentElement('afterend', questionHint);
+                    }
+                }
+
+                let scoringHint = document.getElementById(scoringHintId);
+                if (!scoringHint) {
+                    scoringHint = document.createElement('div');
+                    scoringHint.id = scoringHintId;
+                    scoringHint.className = 'alert alert-warning mb-4 d-none';
+                    const scoringPane = document.getElementById('scoring');
+                    const scoringTitle = scoringPane?.querySelector('.mb-5');
+                    if (scoringPane && scoringTitle) {
+                        scoringTitle.insertAdjacentElement('afterend', scoringHint);
+                    }
+                }
+
+                const descriptionTarget = document.getElementById('contentModeDescription');
+                const manualRadio = mainForm.querySelector('input[name="che_do_tinh_diem"][value="thu_cong"]');
+                const manualCard = manualRadio?.closest('.scoring-mode-option');
+                const packageRadio = mainForm.querySelector('input[name="che_do_tinh_diem"][value="goi_diem"]');
+                const packageCard = packageRadio?.closest('.scoring-mode-option');
+
+                function setCheckboxState(checkbox, shouldDisable) {
+                    const baseDisabled = checkbox.dataset.baseDisabled === '1';
+                    checkbox.disabled = baseDisabled || shouldDisable;
+                    if (checkbox.disabled && checkbox.checked) {
+                        checkbox.checked = false;
+                        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                    checkbox.closest('.question-card')?.classList.toggle('opacity-50', checkbox.disabled);
+                }
+
+                function applyContentMode() {
+                    const mode = modeSelect.value || 'tu_luan_tu_do';
+
+                    if (descriptionTarget) {
+                        descriptionTarget.textContent = modeDescriptions[mode] || '';
+                    }
+
+                    if (questionHint) {
+                        questionHint.innerHTML = ({
+                            trac_nghiem: 'Chỉ câu hỏi <strong>trắc nghiệm</strong> có thể được chọn cho đề này.',
+                            tu_luan_tu_do: 'Flow này <strong>không dùng ngân hàng câu hỏi</strong>. Học viên sẽ nộp một bài tự luận tổng theo mô tả đề.',
+                            tu_luan_theo_cau: 'Chỉ câu hỏi <strong>tự luận</strong> có thể được chọn cho đề này.',
+                            hon_hop: 'Flow hỗn hợp cần có ít nhất <strong>1 câu trắc nghiệm</strong> và <strong>1 câu tự luận</strong>.',
+                        })[mode] || '';
+                    }
+
+                    document.querySelectorAll('.question-card-wrapper').forEach((wrapper) => {
+                        const checkbox = wrapper.querySelector('.question-checkbox');
+                        if (!checkbox) {
+                            return;
+                        }
+
+                        const type = wrapper.dataset.type;
+                        const shouldDisable = mode === 'tu_luan_tu_do'
+                            || (mode === 'trac_nghiem' && type === 'tu_luan')
+                            || (mode === 'tu_luan_theo_cau' && type === 'trac_nghiem');
+
+                        setCheckboxState(checkbox, shouldDisable);
+                    });
+
+                    if (packageRadio) {
+                        const disablePackage = mode === 'tu_luan_tu_do';
+                        packageRadio.disabled = disablePackage;
+                        packageCard?.classList.toggle('opacity-50', disablePackage);
+
+                        if (disablePackage && manualRadio) {
+                            manualRadio.checked = true;
+                            window.setTimeout(() => manualCard?.click(), 0);
+                            scoringHint?.classList.remove('d-none');
+                            if (scoringHint) {
+                                scoringHint.innerHTML = 'Tự luận tự do được chấm tay theo <strong>điểm tổng của đề</strong>, nên hệ thống tự khóa chế độ <strong>Gói điểm tự động</strong>.';
+                            }
+                        } else {
+                            scoringHint?.classList.add('d-none');
+                        }
+                    }
+                }
+
+                modeSelect.addEventListener('change', applyContentMode);
+                applyContentMode();
+            });
+        </script>
+    @endif
     
     @stack('scripts')
 </body>

@@ -448,7 +448,7 @@ class AdminController extends Controller
             'email' => [
                 'required',
                 'email',
-                'unique:nguoi_dung,email,' . $id . ',ma_nguoi_dung',
+                'unique:nguoi_dung,email,' . $id . ',id',
                 'unique:tai_khoan_cho_phe_duyet,email',
             ],
             'vai_tro' => 'required|in:admin,giang_vien,hoc_vien',
@@ -496,19 +496,19 @@ class AdminController extends Controller
 
         $nguoiDung->update($data);
 
-        return redirect()->route('admin.tai-khoan.show', $nguoiDung->ma_nguoi_dung)
-            ->with('success', 'C?p nh?t th�ng tin ngu?i d�ng th�nh c�ng.');
-    }
+        return redirect()->route('admin.tai-khoan.show', $nguoiDung->id)
+            ->with('success', 'Cập nhật thông tin người dùng thành công.');
+        }
 
-    /**
-     * Kh�a/M? kh�a t�i kho?n ngu?i d�ng
-     */
-    public function toggleStatusNguoiDung($id)
-    {
+        /**
+        * Khóa/Mở khóa tài khoản người dùng
+        */
+        public function toggleStatusNguoiDung($id)
+        {
         $nguoiDung = NguoiDung::findOrFail($id);
-        
-        // Kh�ng cho kh�a ch�nh m�nh
-        if ($nguoiDung->ma_nguoi_dung == auth()->id()) {
+
+        // Không cho khóa chính mình
+        if ($nguoiDung->id == auth()->id()) {
             return response()->json([
                 'success' => false,
                 'message' => 'B?n kh�ng th? kh�a t�i kho?n c?a ch�nh m�nh.'
@@ -535,7 +535,7 @@ class AdminController extends Controller
         $nguoiDung = NguoiDung::findOrFail($id);
         
         // Kh�ng cho x�a ch�nh m�nh
-        if ($nguoiDung->ma_nguoi_dung == auth()->id()) {
+        if ($nguoiDung->id == auth()->id()) {
             return response()->json([
                 'success' => false,
                 'message' => 'B?n kh�ng th? x�a t�i kho?n c?a ch�nh m�nh.'
@@ -572,7 +572,7 @@ class AdminController extends Controller
         $nguoiDung = NguoiDung::withTrashed()->findOrFail($id);
         
         // Kh�ng cho x�a ch�nh m�nh
-        if ($nguoiDung->ma_nguoi_dung == auth()->id()) {
+        if ($nguoiDung->id == auth()->id()) {
             return response()->json([
                 'success' => false,
                 'message' => 'B?n kh�ng th? x�a t�i kho?n c?a ch�nh m�nh.'
@@ -889,7 +889,7 @@ class AdminController extends Controller
         $nguoiDung = NguoiDung::where('ho_ten', 'like', "%{$search}%")
             ->orWhere('email', 'like', "%{$search}%")
             ->limit(10)
-            ->get(['ma_nguoi_dung', 'ho_ten', 'email', 'vai_tro']);
+            ->get(['id', 'ho_ten', 'email', 'vai_tro']);
 
         return response()->json($nguoiDung);
     }

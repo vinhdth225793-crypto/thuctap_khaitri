@@ -84,16 +84,16 @@
 
         <!-- Nhóm 3: Đánh giá -->
         <div class="nav-item mb-3">
-            <a class="edu-link-parent {{ request()->routeIs('giang-vien.bai-kiem-tra*', 'giang-vien.cham-diem*', 'giang-vien.tao-bai-kiem-tra') ? '' : 'collapsed' }}" 
+            <a class="edu-link-parent {{ request()->routeIs('giang-vien.bai-kiem-tra*', 'giang-vien.cham-diem*') ? '' : 'collapsed' }}" 
                data-bs-toggle="collapse" data-bs-target="#examGroup" role="button"
-               aria-expanded="{{ request()->routeIs('giang-vien.bai-kiem-tra*', 'giang-vien.cham-diem*', 'giang-vien.tao-bai-kiem-tra') ? 'true' : 'false' }}">
+               aria-expanded="{{ request()->routeIs('giang-vien.bai-kiem-tra*', 'giang-vien.cham-diem*') ? 'true' : 'false' }}">
                 <div class="edu-icon-circle bg-soft-danger"><i class="fas fa-pen-fancy"></i></div>
                 <span class="fw-bold">Khảo thí & Điểm</span>
                 <i class="fas fa-chevron-right ms-auto arrow-toggle"></i>
             </a>
-            <div class="collapse {{ request()->routeIs('giang-vien.bai-kiem-tra*', 'giang-vien.cham-diem*', 'giang-vien.tao-bai-kiem-tra') ? 'show' : '' }}" id="examGroup">
+            <div class="collapse {{ request()->routeIs('giang-vien.bai-kiem-tra*', 'giang-vien.cham-diem*') ? 'show' : '' }}" id="examGroup">
                 <div class="edu-submenu-container">
-                    <a href="{{ route('giang-vien.bai-kiem-tra.index') }}" class="edu-submenu-item {{ request()->routeIs('giang-vien.bai-kiem-tra*', 'giang-vien.tao-bai-kiem-tra') ? 'active' : '' }}">
+                    <a href="{{ route('giang-vien.bai-kiem-tra.index') }}" class="edu-submenu-item {{ request()->routeIs('giang-vien.bai-kiem-tra*') ? 'active' : '' }}">
                         <i class="fas fa-clipboard-list me-2"></i> Thiết lập đề thi
                     </a>
                     <a href="{{ route('giang-vien.cham-diem.index') }}" class="edu-submenu-item {{ request()->routeIs('giang-vien.cham-diem*') ? 'active' : '' }}">

@@ -71,22 +71,22 @@ class PhanCongModuleGiangVien extends Model
     {
         return match ($this->trang_thai) {
             'cho_xac_nhan' => [
-                'label' => 'Cho xac nhan',
+                'label' => 'Chờ xác nhận',
                 'color' => 'warning',
                 'icon' => 'fa-hourglass-half',
             ],
             'da_nhan' => [
-                'label' => 'Da nhan',
+                'label' => 'Đã nhận',
                 'color' => 'success',
                 'icon' => 'fa-check-circle',
             ],
             'tu_choi' => [
-                'label' => 'Tu choi',
+                'label' => 'Từ chối',
                 'color' => 'danger',
                 'icon' => 'fa-times-circle',
             ],
             default => [
-                'label' => 'Khong xac dinh',
+                'label' => 'Không xác định',
                 'color' => 'secondary',
                 'icon' => 'fa-question-circle',
             ],

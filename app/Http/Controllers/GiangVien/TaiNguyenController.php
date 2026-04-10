@@ -7,7 +7,6 @@ use App\Http\Requests\StoreTaiNguyenRequest;
 use App\Models\LichHoc;
 use App\Models\PhanCongModuleGiangVien;
 use App\Models\TaiNguyenBuoiHoc;
-use App\Services\TeacherAssignmentResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -31,20 +30,15 @@ class TaiNguyenController extends Controller
         'txt',
     ];
 
-    public function redirectToSession(Request $request, TeacherAssignmentResolver $assignmentResolver): RedirectResponse
+    public function redirectToSession(Request $request): RedirectResponse
     {
         $lichHoc = LichHoc::findOrFail((int) $request->query('lich_hoc_id'));
 
         $this->authorizeGiangVienForLichHoc($lichHoc);
 
-        $giangVien = auth()->user()->giangVien;
-        $assignmentId = $assignmentResolver->resolveForSchedule($giangVien->id, $lichHoc);
-
-        abort_if($assignmentId === null, 403, 'Khong tim thay phan cong phu hop cho buoi hoc nay.');
-
         return redirect()->to(
             route('giang-vien.khoa-hoc.show', [
-                'id' => $assignmentId,
+                'id' => $lichHoc->khoa_hoc_id,
                 'focus_lich_hoc_id' => $lichHoc->id,
                 'quick_action' => 'resources',
             ]) . '#session-' . $lichHoc->id
@@ -58,7 +52,7 @@ class TaiNguyenController extends Controller
             return redirect()->route('home')->with('error', 'Tài khoản chưa được liên kết với giảng viên.');
         }
 
-        $taiNguyens = TaiNguyenBuoiHoc::where('nguoi_tao_id', auth()->user()->ma_nguoi_dung)
+        $taiNguyens = TaiNguyenBuoiHoc::where('nguoi_tao_id', auth()->user()->id)
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 
@@ -82,14 +76,14 @@ class TaiNguyenController extends Controller
 
     public function edit($id)
     {
-        $taiNguyen = TaiNguyenBuoiHoc::where('nguoi_tao_id', auth()->user()->ma_nguoi_dung)->findOrFail($id);
+        $taiNguyen = TaiNguyenBuoiHoc::where('nguoi_tao_id', auth()->user()->id)->findOrFail($id);
 
         return view('pages.giang-vien.thu-vien.edit', compact('taiNguyen'));
     }
 
     public function updateLibrary(Request $request, $id)
     {
-        $taiNguyen = TaiNguyenBuoiHoc::where('nguoi_tao_id', auth()->user()->ma_nguoi_dung)->findOrFail($id);
+        $taiNguyen = TaiNguyenBuoiHoc::where('nguoi_tao_id', auth()->user()->id)->findOrFail($id);
         $validated = $this->validateLibraryPayload($request, $taiNguyen);
         $oldFilePath = $taiNguyen->duong_dan_file;
         $data = $this->buildLibraryPayload($request, $validated, $taiNguyen);
@@ -115,7 +109,7 @@ class TaiNguyenController extends Controller
 
     public function guiDuyet($id)
     {
-        $taiNguyen = TaiNguyenBuoiHoc::where('nguoi_tao_id', auth()->user()->ma_nguoi_dung)->findOrFail($id);
+        $taiNguyen = TaiNguyenBuoiHoc::where('nguoi_tao_id', auth()->user()->id)->findOrFail($id);
 
         if ($taiNguyen->trang_thai_duyet !== TaiNguyenBuoiHoc::STATUS_DUYET_DA_DUYET) {
             $taiNguyen->update([
@@ -131,7 +125,7 @@ class TaiNguyenController extends Controller
 
     public function destroyLibrary($id)
     {
-        $taiNguyen = TaiNguyenBuoiHoc::where('nguoi_tao_id', auth()->user()->ma_nguoi_dung)->findOrFail($id);
+        $taiNguyen = TaiNguyenBuoiHoc::where('nguoi_tao_id', auth()->user()->id)->findOrFail($id);
 
         if ($taiNguyen->duong_dan_file) {
             Storage::disk('public')->delete($taiNguyen->duong_dan_file);
@@ -340,7 +334,7 @@ class TaiNguyenController extends Controller
         ];
 
         if ($existing === null) {
-            $data['nguoi_tao_id'] = auth()->user()->ma_nguoi_dung;
+            $data['nguoi_tao_id'] = auth()->user()->id;
             $data['vai_tro_nguoi_tao'] = 'giang_vien';
             $data['trang_thai_duyet'] = TaiNguyenBuoiHoc::STATUS_DUYET_NHAP;
             $data['trang_thai_xu_ly'] = TaiNguyenBuoiHoc::STATUS_XU_LY_NONE;

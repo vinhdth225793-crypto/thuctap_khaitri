@@ -46,7 +46,7 @@
                     </div>
                     <div class="info-row">
                         <span class="label">Loại nội dung</span>
-                        <strong>{{ $baiKiemTra->loai_noi_dung_label }}</strong>
+                        <strong>{{ $baiKiemTra->content_mode_label }}</strong>
                     </div>
                     <div class="info-row">
                         <span class="label">Thời gian làm bài</span>
@@ -168,6 +168,29 @@
                         </div>
                     @endif
 
+                    @php
+                        $contentModeAlertClass = match ($baiKiemTra->content_mode_key) {
+                            'tu_luan_tu_do' => 'alert-warning',
+                            'tu_luan_theo_cau' => 'alert-info',
+                            'hon_hop' => 'alert-primary',
+                            default => 'alert-secondary',
+                        };
+                        $contentModeDescription = match ($baiKiemTra->content_mode_key) {
+                            'tu_luan_tu_do' => 'Bạn sẽ làm một bài viết tổng theo đề bài và hướng dẫn bên trên. Hệ thống không yêu cầu chọn câu hỏi từ ngân hàng cho flow này.',
+                            'tu_luan_theo_cau' => 'Bạn trả lời lần lượt từng câu tự luận trong đề. Kết quả sẽ chờ giảng viên chấm tay sau khi nộp bài.',
+                            'hon_hop' => 'Đề này có cả phần trắc nghiệm và tự luận. Trắc nghiệm được chấm tự động, còn phần tự luận sẽ chờ giảng viên chấm tay.',
+                            default => 'Đề này chỉ sử dụng câu hỏi trắc nghiệm và hệ thống sẽ chấm tự động sau khi bạn nộp bài.',
+                        };
+                    @endphp
+
+                    <div class="alert {{ $contentModeAlertClass }} d-flex flex-wrap justify-content-between align-items-start gap-3">
+                        <div>
+                            <div class="fw-semibold mb-1">Chế độ {{ $baiKiemTra->content_mode_label }}</div>
+                            <div class="small mb-0">{{ $contentModeDescription }}</div>
+                        </div>
+                        <span class="badge bg-light text-dark border">{{ $baiKiemTra->content_mode_label }}</span>
+                    </div>
+
                     @if($baiLam && $baiLam->is_submitted)
                         <div class="alert alert-success">
                             Bạn đã nộp bài vào lúc {{ $baiLam->nop_luc?->format('d/m/Y H:i') }}.
@@ -232,6 +255,9 @@
                             <input type="hidden" name="tu_dong_nop" value="0" id="autoSubmitInput">
 
                             @if($cauHoiHienThi->isEmpty())
+                                <div class="alert alert-info">
+                                    Đây là bài <strong>tự luận tự do</strong>. Bạn làm bài theo đề bài và hướng dẫn bên trên, sau đó giảng viên sẽ chấm điểm tổng.
+                                </div>
                                 <div class="mb-3">
                                     <label class="form-label fw-semibold">Nội dung bài làm</label>
                                     <textarea name="noi_dung_bai_lam" rows="14" class="form-control">{{ old('noi_dung_bai_lam', $baiLam->noi_dung_bai_lam) }}</textarea>
@@ -298,6 +324,10 @@
                             <div class="submitted-box">
                                 {!! nl2br(e($baiLam->noi_dung_bai_lam ?: 'Không có nội dung bài làm.')) !!}
                             </div>
+                            <div class="small text-muted mt-3">Điểm tự luận: {{ $baiLam->diem_so !== null ? number_format((float) $baiLam->diem_so, 2) : 'Đang chờ chấm' }}</div>
+                            @if($baiLam->nhan_xet)
+                                <div class="small text-muted mt-1">Nhận xét: {{ $baiLam->nhan_xet }}</div>
+                            @endif
                         @endif
                     @endif
                 </div>

@@ -126,7 +126,9 @@ class ModuleHocController extends Controller
             return redirect()->route('admin.module-hoc.index', ['khoa_hoc_id' => $request->khoa_hoc_id])
                 ->with('success', 'Thêm module thành công!');
         } catch (\Exception $e) {
-            return back()->with('error', 'Lỗi: ' . $e->getMessage())->withInput();
+            report($e);
+
+            return back()->with('error', 'Không thể tạo module lúc này. Vui lòng thử lại.')->withInput();
         }
     }
 
@@ -182,7 +184,9 @@ class ModuleHocController extends Controller
             $moduleHoc->update($request->all());
             return redirect()->route('admin.module-hoc.show', $id)->with('success', 'Cập nhật module thành công!');
         } catch (\Exception $e) {
-            return back()->with('error', 'Lỗi: ' . $e->getMessage());
+            report($e);
+
+            return back()->with('error', 'Không thể cập nhật module lúc này. Vui lòng thử lại.');
         }
     }
 

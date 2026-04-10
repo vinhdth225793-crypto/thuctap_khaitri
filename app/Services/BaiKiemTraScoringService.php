@@ -96,6 +96,31 @@ class BaiKiemTraScoringService
         return $this->autoGrade($baiLam->fresh());
     }
 
+    public function applyManualOverallGrade(
+        BaiLamBaiKiemTra $baiLam,
+        float $score,
+        ?string $comment = null,
+        ?GiangVien $giangVien = null
+    ): BaiLamBaiKiemTra {
+        $baiLam->loadMissing('baiKiemTra');
+
+        $maxScore = (float) ($baiLam->baiKiemTra?->tong_diem ?? 0);
+        $normalizedScore = round(max(0, min($maxScore, $score)), 2);
+
+        $baiLam->forceFill([
+            'tong_diem_trac_nghiem' => 0,
+            'tong_diem_tu_luan' => $normalizedScore,
+            'diem_so' => $normalizedScore,
+            'trang_thai_cham' => 'da_cham',
+            'trang_thai' => 'da_cham',
+            'nhan_xet' => $comment,
+            'nguoi_cham_id' => $giangVien?->nguoi_dung_id,
+            'manual_graded_at' => now(),
+        ])->save();
+
+        return $baiLam->fresh(['baiKiemTra', 'chiTietTraLois.cauHoi', 'chiTietTraLois.dapAn']);
+    }
+
     private function hasEssayAnswers(BaiLamBaiKiemTra $baiLam): bool
     {
         return $baiLam->relationLoaded('chiTietTraLois')

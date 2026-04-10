@@ -14,21 +14,26 @@ class NhomNganhController extends Controller
      */
     public function index(Request $request)
     {
-        $search = $request->get('search', '');
+        $search = trim((string) $request->get('search', ''));
+        $trangThai = $request->get('trang_thai', '');
         $perPage = 10;
 
-        $nhomNganhs = NhomNganh::withCount(['khoaHocs' => function($q) {
-                            $q->where('trang_thai_van_hanh', 'dang_day');
-                         }])
-                         ->when($search, function($q) use ($search) {
-                            return $q->where('ten_nhom_nganh', 'LIKE', "%{$search}%")
-                                     ->orWhere('ma_nhom_nganh', 'LIKE', "%{$search}%");
-                         })
-                         ->paginate($perPage);
+        $nhomNganhs = NhomNganh::withCount('khoaHocs')
+            ->when($search, function ($q) use ($search) {
+                return $q->where(function ($searchQuery) use ($search) {
+                    $searchQuery->where('ten_nhom_nganh', 'LIKE', "%{$search}%")
+                        ->orWhere('ma_nhom_nganh', 'LIKE', "%{$search}%");
+                });
+            })
+            ->when($trangThai !== '', function ($q) use ($trangThai) {
+                return $q->where('trang_thai', (bool) $trangThai);
+            })
+            ->paginate($perPage);
 
         return view('pages.admin.khoa-hoc.mon-hoc.index', [
             'nhomNganhs' => $nhomNganhs,
-            'search' => $search
+            'search' => $search,
+            'trangThai' => $trangThai,
         ]);
     }
 
@@ -81,7 +86,7 @@ class NhomNganhController extends Controller
 
         $nhomNganh = NhomNganh::create($data);
 
-        return redirect()->route('admin.mon-hoc.show', $nhomNganh->id)
+        return redirect()->route('admin.nhom-nganh.show', $nhomNganh->id)
             ->with('success', 'Thêm nhóm ngành thành công! Mã: ' . $maNhomNganh);
     }
 
@@ -149,7 +154,7 @@ class NhomNganhController extends Controller
 
         $nhomNganh->update($data);
 
-        return redirect()->route('admin.mon-hoc.index')
+        return redirect()->route('admin.nhom-nganh.index')
             ->with('success', 'Cập nhật nhóm ngành thành công');
     }
 
@@ -167,7 +172,7 @@ class NhomNganhController extends Controller
 
         $nhomNganh->delete();
 
-        return redirect()->route('admin.mon-hoc.index')
+        return redirect()->route('admin.nhom-nganh.index')
             ->with('success', 'Đã xóa nhóm ngành và tất cả dữ liệu liên quan.');
     }
 

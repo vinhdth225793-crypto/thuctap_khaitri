@@ -93,7 +93,7 @@ class ScheduleSuggestionService
                     'period_end' => $endPeriod,
                     'period_label' => TeachingPeriodCatalog::rangeLabel($startPeriod, $endPeriod),
                     'session_label' => TeachingPeriodCatalog::sessionLabel(TeachingPeriodCatalog::resolveSessionFromRange($startPeriod, $endPeriod)),
-                    'source' => 'Goi y theo lich day chuan',
+                    'source' => 'Gợi ý theo lịch dạy chuẩn',
                 ];
 
                 if (count($suggestions) >= $limit) {

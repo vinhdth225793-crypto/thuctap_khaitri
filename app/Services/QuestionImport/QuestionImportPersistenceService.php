@@ -33,16 +33,22 @@ class QuestionImportPersistenceService
                     continue;
                 }
 
+                $questionType = (string) ($item['loai_cau_hoi'] ?? NganHangCauHoi::LOAI_TRAC_NGHIEM);
+                if (!in_array($questionType, [NganHangCauHoi::LOAI_TRAC_NGHIEM, NganHangCauHoi::LOAI_TU_LUAN], true)) {
+                    $questionType = NganHangCauHoi::LOAI_TRAC_NGHIEM;
+                }
+
                 $cauHoi = NganHangCauHoi::create([
                     'khoa_hoc_id' => $khoaHocId,
                     'module_hoc_id' => $moduleHocId,
                     'nguoi_tao_id' => $userId,
                     'ma_cau_hoi' => NganHangCauHoi::generateQuestionCode(),
                     'noi_dung' => $noiDungCauHoi,
-                    'loai_cau_hoi' => NganHangCauHoi::LOAI_TRAC_NGHIEM,
-                    'kieu_dap_an' => NganHangCauHoi::KIEU_MOT_DAP_AN,
+                    'loai_cau_hoi' => $questionType,
+                    'kieu_dap_an' => $questionType === NganHangCauHoi::LOAI_TU_LUAN ? null : NganHangCauHoi::KIEU_MOT_DAP_AN,
                     'muc_do' => 'trung_binh',
                     'diem_mac_dinh' => 1,
+                    'goi_y_tra_loi' => $item['goi_y_tra_loi'] ?? null,
                     'trang_thai' => NganHangCauHoi::TRANG_THAI_SAN_SANG,
                     'co_the_tai_su_dung' => true,
                 ]);
@@ -59,7 +65,7 @@ class QuestionImportPersistenceService
                     })
                     ->all();
 
-                if ($answers !== []) {
+                if ($questionType === NganHangCauHoi::LOAI_TRAC_NGHIEM && $answers !== []) {
                     $cauHoi->dapAns()->createMany($answers);
                 }
 

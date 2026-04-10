@@ -32,7 +32,7 @@
                     <i class="fas fa-chalkboard-teacher me-1"></i> Thêm bài giảng
                 </a>
                 <button type="button" class="btn btn-sm btn-danger fw-bold shadow-sm px-3 py-2 btn-add-test"
-                        data-id="{{ $lich->id }}" data-buoi="{{ $lich->buoi_so }}">
+                        data-id="{{ $lich->id }}" data-buoi="{{ $lich->buoi_so }}" data-module-id="{{ $phanCong->module_hoc_id }}">
                     <i class="fas fa-file-signature me-1"></i> Tạo kiểm tra
                 </button>
             </div>

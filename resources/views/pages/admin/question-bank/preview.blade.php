@@ -124,6 +124,7 @@
                         <tr>
                             <th width="70" class="text-center border-0">STT</th>
                             <th width="90" class="text-center border-0">Dòng</th>
+                            <th width="150" class="border-0">Loại</th>
                             <th width="180" class="border-0">Trạng thái</th>
                             <th class="border-0">Nội dung câu hỏi</th>
                             <th width="320" class="border-0">Đáp án</th>
@@ -162,10 +163,18 @@
                                 <td class="text-center">{{ $index + 1 }}</td>
                                 <td class="text-center fw-bold text-muted">{{ $row['line'] ?? '-' }}</td>
                                 <td>
+                                    <span class="badge {{ ($row['loai_cau_hoi'] ?? null) === 'tu_luan' ? 'bg-info-subtle text-info border border-info-subtle' : 'bg-primary-subtle text-primary border border-primary-subtle' }} rounded-pill px-3 py-2 w-100">
+                                        {{ $row['loai_cau_hoi_label'] ?? 'Không rõ' }}
+                                    </span>
+                                </td>
+                                <td>
                                     <span class="badge {{ $badgeClass }} rounded-pill px-3 py-2 w-100">{{ $statusLabel }}</span>
                                 </td>
                                 <td>
                                     <div class="fw-bold text-dark">{{ $row['noi_dung_cau_hoi'] ?: 'Dòng trống' }}</div>
+                                    @if(!empty($row['goi_y_tra_loi']))
+                                        <div class="small text-muted mt-2"><strong>Gợi ý:</strong> {{ $row['goi_y_tra_loi'] }}</div>
+                                    @endif
                                 </td>
                                 <td class="small">
                                     @forelse(($row['answers'] ?? []) as $answerIndex => $answer)
@@ -193,7 +202,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center py-5 text-muted">
+                                <td colspan="8" class="text-center py-5 text-muted">
                                     <i class="fas fa-inbox fa-3x mb-3 opacity-20"></i>
                                     <p class="mb-0">Không có dữ liệu xem trước.</p>
                                 </td>
@@ -207,7 +216,7 @@
                 <div class="text-muted small flex-grow-1" style="max-width: 860px;">
                     <i class="fas fa-info-circle me-1 text-primary"></i>
                     Chỉ các dòng có trạng thái <span class="badge bg-success rounded-pill px-2">Hợp lệ</span> mới được lưu vào hệ thống.
-                    Nếu parser chưa chắc đáp án đúng, dòng bị trùng, hoặc dữ liệu chưa đủ 4 đáp án, bạn có thể xuất ra file Excel chuẩn để sửa tay rồi import lại.
+                    Nếu parser chưa chắc đáp án đúng, dòng bị trùng, dữ liệu chưa đủ 4 đáp án, hoặc cần rà lại marker tự luận, bạn có thể xuất ra file Excel chuẩn để sửa tay rồi import lại.
                 </div>
                 <div class="d-flex flex-wrap gap-2">
                     <a href="{{ route('admin.kiem-tra-online.cau-hoi.export-preview', ['scope' => 'all']) }}" class="btn btn-outline-success px-4">

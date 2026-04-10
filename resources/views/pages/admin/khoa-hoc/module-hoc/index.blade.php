@@ -4,18 +4,14 @@
 
 @section('content')
 <div class="container-fluid">
-    <!-- Breadcrumb -->
-    <div class="row mb-4">
-        <div class="col-12 text-muted small">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Admin</a></li>
-                    <li class="breadcrumb-item">Quản lý đào tạo</li>
-                    <li class="breadcrumb-item active" aria-current="page">Module học</li>
-                </ol>
-            </nav>
-        </div>
-    </div>
+    @include('pages.admin.khoa-hoc.partials.training-breadcrumb', [
+        'icon' => 'fas fa-cubes',
+        'current' => 'Module học',
+        'accent' => '#7c3aed',
+        'soft' => 'rgba(124, 58, 237, 0.12)',
+        'chip' => 'Cau truc noi dung',
+        'note' => 'Theo doi module, thoi luong va lien ket voi tung khoa hoc theo mot bo cuc thong nhat.',
+    ])
 
     <!-- Header -->
     <div class="row mb-4 align-items-center">
@@ -163,7 +159,7 @@
                                                                     <td class="text-center">
                                                                         @if($module->thoi_luong_du_kien)
                                                                             <div class="badge bg-light text-dark border smaller">
-                                                                                {{ floor($module->thoi_luong_du_kien / 60) }}h {{ $module->thoi_luong_du_kien % 60 }}p
+                                                                                {{ $module->thoi_luong_du_kien_label }}
                                                                             </div>
                                                                         @else — @endif
                                                                     </td>

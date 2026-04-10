@@ -39,25 +39,25 @@ class AdminSchedulePlanningService
             'teacher' => null,
             'assignment' => [
                 'ok' => null,
-                'message' => 'Chua chon giang vien.',
+                'message' => 'Chưa chọn giảng viên.',
             ],
             'standard_window' => [
                 'ok' => null,
-                'message' => 'Chua co du lieu de kiem tra khung day chuan.',
+                'message' => 'Chưa có dữ liệu để kiểm tra khung dạy chuẩn.',
                 'rule_label' => $this->ruleService->ruleLabel(),
             ],
             'teaching_window' => [
                 'ok' => null,
-                'message' => 'Chua co du lieu de kiem tra khung day chuan va don xin nghi.',
+                'message' => 'Chưa có dữ liệu để kiểm tra khung dạy chuẩn và đơn xin nghỉ.',
             ],
             'leave_requests' => [
                 'ok' => null,
-                'message' => 'Chua chon giang vien de kiem tra don xin nghi.',
+                'message' => 'Chưa chọn giảng viên để kiểm tra đơn xin nghỉ.',
                 'items' => [],
             ],
             'conflicts' => [
                 'ok' => null,
-                'message' => 'Chua co du lieu de kiem tra xung dot.',
+                'message' => 'Chưa có dữ liệu để kiểm tra xung đột.',
                 'items' => [],
             ],
             'suggestions' => [],
@@ -66,7 +66,7 @@ class AdminSchedulePlanningService
         $module = ModuleHoc::with(['khoaHoc', 'phanCongGiangViens.giangVien.nguoiDung'])->find($moduleId);
         if (!$module || (int) $module->khoa_hoc_id !== $courseId) {
             $context['can_schedule'] = false;
-            $context['errors']['module_hoc_id'] = 'Module duoc chon khong thuoc khoa hoc hien tai.';
+            $context['errors']['module_hoc_id'] = 'Module được chọn không thuộc khóa học hiện tại.';
 
             return $context;
         }
@@ -75,7 +75,7 @@ class AdminSchedulePlanningService
 
         if (blank($dateValue) || blank($startTime) || blank($endTime)) {
             $context['can_schedule'] = false;
-            $context['errors']['ngay_hoc'] = 'Can chon ngay hoc va khung gio day de kiem tra.';
+            $context['errors']['ngay_hoc'] = 'Cần chọn ngày học và khung giờ dạy để kiểm tra.';
 
             return $context;
         }
@@ -97,12 +97,12 @@ class AdminSchedulePlanningService
         if ($teacherId === null) {
             $context['can_schedule'] = false;
             $context['assignment']['ok'] = false;
-            $context['assignment']['message'] = 'Vui long chon giang vien truoc khi luu lich hoc.';
+            $context['assignment']['message'] = 'Vui lòng chọn giảng viên trước khi lưu lịch học.';
             $context['leave_requests']['ok'] = true;
-            $context['leave_requests']['message'] = 'Chua co giang vien de doi chieu don xin nghi.';
-            $context['teaching_window']['message'] = $standardWindow['message'] . ' Vui long chon giang vien de doi chieu don xin nghi.';
+            $context['leave_requests']['message'] = 'Chưa có giảng viên để đối chiếu đơn xin nghỉ.';
+            $context['teaching_window']['message'] = $standardWindow['message'] . ' Vui lòng chọn giảng viên để đối chiếu đơn xin nghỉ.';
             $context['conflicts']['ok'] = true;
-            $context['conflicts']['message'] = 'Chua du du lieu de kiem tra xung dot cho giang vien.';
+            $context['conflicts']['message'] = 'Chưa đủ dữ liệu để kiểm tra xung đột cho giảng viên.';
             $context['errors']['giang_vien_id'] = $context['assignment']['message'];
 
             return $context;
@@ -111,7 +111,7 @@ class AdminSchedulePlanningService
         $teacher = GiangVien::with('nguoiDung')->find($teacherId);
         if (!$teacher) {
             $context['can_schedule'] = false;
-            $context['errors']['giang_vien_id'] = 'Giang vien duoc chon khong hop le.';
+            $context['errors']['giang_vien_id'] = 'Giảng viên được chọn không hợp lệ.';
 
             return $context;
         }
@@ -129,11 +129,11 @@ class AdminSchedulePlanningService
         if (!$assignment || $assignment->trang_thai !== 'da_nhan') {
             $context['can_schedule'] = false;
             $context['assignment']['ok'] = false;
-            $context['assignment']['message'] = 'Giang vien nay chua co phan cong da nhan cho module duoc chon.';
+            $context['assignment']['message'] = 'Giảng viên này chưa có phân công đã nhận cho module được chọn.';
             $context['errors']['giang_vien_id'] = $context['assignment']['message'];
         } else {
             $context['assignment']['ok'] = true;
-            $context['assignment']['message'] = 'Giang vien da duoc phan cong va da xac nhan module nay.';
+            $context['assignment']['message'] = 'Giảng viên đã được phân công và đã xác nhận module này.';
         }
 
         $blockingLeaveRequests = $this->leaveRequestService->findOverlappingRequests(
@@ -166,14 +166,14 @@ class AdminSchedulePlanningService
         if ($approvedLeaveRequests->isNotEmpty()) {
             $context['can_schedule'] = false;
             $context['leave_requests']['ok'] = false;
-            $context['leave_requests']['message'] = 'Khung day nay trung voi don xin nghi da duyet cua giang vien.';
+            $context['leave_requests']['message'] = 'Khung dạy này trùng với đơn xin nghỉ đã duyệt của giảng viên.';
             $context['errors']['gio_bat_dau'] = $context['leave_requests']['message'];
         } elseif ($pendingLeaveRequests->isNotEmpty()) {
             $context['leave_requests']['ok'] = true;
-            $context['leave_requests']['message'] = 'Giang vien dang co don xin nghi cho khung nay. Admin can xem xet truoc khi luu.';
+            $context['leave_requests']['message'] = 'Giảng viên đang có đơn xin nghỉ cho khung này. Admin cần xem xét trước khi lưu.';
         } else {
             $context['leave_requests']['ok'] = true;
-            $context['leave_requests']['message'] = 'Khong co don xin nghi nao trung voi khung day nay.';
+            $context['leave_requests']['message'] = 'Không có đơn xin nghỉ nào trùng với khung dạy này.';
         }
 
         $context['teaching_window']['ok'] = $standardWindow['ok'] && $approvedLeaveRequests->isEmpty();
@@ -211,7 +211,7 @@ class AdminSchedulePlanningService
             $context['errors']['gio_bat_dau'] = $context['conflicts']['message'];
         } else {
             $context['conflicts']['ok'] = true;
-            $context['conflicts']['message'] = 'Khong phat hien lich day nao bi giao nhau voi khung nay.';
+            $context['conflicts']['message'] = 'Không phát hiện lịch dạy nào bị giao nhau với khung này.';
         }
 
         return $context;

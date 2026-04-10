@@ -63,7 +63,7 @@ class TeacherLeaveRequestController extends Controller
 
         return redirect()
             ->route('admin.giang-vien-don-xin-nghi.show', $leaveRequest->id)
-            ->with('success', 'Da duyet don xin nghi. Buoi hoc lien quan van can admin doi lich hoac thay giang vien neu can.');
+            ->with('success', 'Đã duyệt đơn xin nghỉ. Buổi học liên quan vẫn cần admin đổi lịch hoặc thay giảng viên nếu cần.');
     }
 
     public function reject(ReviewTeacherLeaveRequest $request, int $id)
@@ -73,6 +73,6 @@ class TeacherLeaveRequestController extends Controller
 
         return redirect()
             ->route('admin.giang-vien-don-xin-nghi.show', $leaveRequest->id)
-            ->with('success', 'Da tu choi don xin nghi.');
+            ->with('success', 'Đã từ chối đơn xin nghỉ.');
     }
 }

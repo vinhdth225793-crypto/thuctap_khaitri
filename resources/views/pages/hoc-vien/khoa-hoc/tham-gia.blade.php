@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Xin vào lớp')
+@section('title', 'Tham gia khóa học')
 
 @section('content')
 <div class="container-fluid">
@@ -9,7 +9,7 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0">
                     <li class="breadcrumb-item"><a href="{{ route('hoc-vien.dashboard') }}">Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Xin vào lớp</li>
+                    <li class="breadcrumb-item active" aria-current="page">Tham gia khóa học</li>
                 </ol>
             </nav>
         </div>
@@ -36,7 +36,7 @@
             <div class="vip-card border-0 shadow-sm p-3 h-100">
                 <div class="text-muted text-uppercase smaller fw-bold">Có thể tham gia</div>
                 <div class="fs-3 fw-bold text-dark">{{ $stats['co_the_tham_gia'] }}</div>
-                <div class="small text-muted">Khóa học đang mở để xin vào lớp</div>
+                <div class="small text-muted">Khóa học đang mở để gửi yêu cầu tham gia</div>
             </div>
         </div>
         <div class="col-md-4 col-sm-6">
@@ -110,11 +110,11 @@
                                 <div class="mt-auto d-grid gap-2">
                                     @if($dangCho)
                                         <button type="button" class="btn btn-secondary fw-bold" disabled>
-                                            <i class="fas fa-clock me-2"></i>ĐÃ GỬI YÊU CẦU
+                                            <i class="fas fa-clock me-2"></i>Đã gửi yêu cầu
                                         </button>
                                     @else
                                         <button type="button" class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#modalXinThamGia{{ $khoaHoc->id }}">
-                                            <i class="fas fa-paper-plane me-2"></i>XIN VÀO LỚP
+                                            <i class="fas fa-paper-plane me-2"></i>Gửi yêu cầu tham gia
                                         </button>
                                     @endif
                                 </div>

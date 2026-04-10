@@ -226,7 +226,7 @@ class QuestionBankImportFlowTest extends TestCase
         $this->assertSame(1, $preview['summary']['error']);
         $this->assertSame('loi_du_lieu', $preview['data'][0]['status']);
         $this->assertSame(7, $preview['data'][0]['line']);
-        $this->assertStringContainsString('khop', $preview['data'][0]['note']);
+        $this->assertStringContainsString('khớp', $preview['data'][0]['note']);
     }
 
     public function test_import_rejects_file_when_header_row_is_not_supported(): void

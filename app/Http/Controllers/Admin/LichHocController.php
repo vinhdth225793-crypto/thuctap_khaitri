@@ -89,9 +89,9 @@ class LichHocController extends Controller
 
         if (blank($validated['gio_bat_dau'] ?? null) || blank($validated['gio_ket_thuc'] ?? null)) {
             return response()->json([
-                'message' => 'Can chon tiet hoc hoac khung gio de he thong phan tich.',
+                'message' => 'Cần chọn tiết học hoặc khung giờ để hệ thống phân tích.',
                 'errors' => [
-                    'selected_tiets' => ['Can chon tiet hoc hoac khung gio de he thong phan tich.'],
+                    'selected_tiets' => ['Cần chọn tiết học hoặc khung giờ để hệ thống phân tích.'],
                 ],
             ], 422);
         }
@@ -125,7 +125,7 @@ class LichHocController extends Controller
         $module = ModuleHoc::where('khoa_hoc_id', $khoaHocId)->findOrFail($moduleId);
         $module->update(['so_buoi' => $request->integer('so_buoi')]);
 
-        return back()->with('success', "Da cap nhat so buoi cho module {$module->ten_module}.");
+        return back()->with('success', "Đã cập nhật số buổi cho module {$module->ten_module}.");
     }
 
     public function store(StoreAdminScheduleRequest $request, int $khoaHocId)
@@ -146,7 +146,7 @@ class LichHocController extends Controller
 
         LichHoc::create($this->prepareSchedulePayload($validated, $khoaHocId, $date, $buoiSo));
 
-        return back()->with('success', 'Da them buoi hoc moi thanh cong.');
+        return back()->with('success', 'Đã thêm buổi học mới thành công.');
     }
 
     public function storeAuto(StoreAutoAdminScheduleRequest $request, int $khoaHocId)
@@ -167,7 +167,7 @@ class LichHocController extends Controller
                 $this->learningProgressStatusService->syncCourseStatus($khoaHocId);
                 DB::commit();
 
-                return back()->with('info', 'So buoi hien tai da du hoac vuot muc quy dinh. Khong can sinh them.');
+                return back()->with('info', 'Số buổi hiện tại đã đủ hoặc vượt mức quy định. Không cần tạo thêm.');
             }
 
             $createdCount = 0;
@@ -180,7 +180,7 @@ class LichHocController extends Controller
 
                     return back()
                         ->withInput()
-                        ->with('error', 'Ban xem truoc lai lo trinh truoc khi luu de dong bo danh sach buoi hoc.');
+                        ->with('error', 'Bạn hãy xem trước lại lộ trình trước khi lưu để đồng bộ danh sách buổi học.');
                 }
 
                 $sessionCatalog = TeachingPeriodCatalog::sessions();
@@ -194,7 +194,7 @@ class LichHocController extends Controller
 
                         return back()
                             ->withInput()
-                            ->with('error', 'Khong tim thay ca hoc hop le o dong preview thu ' . ($index + 1) . '.');
+                            ->with('error', 'Không tìm thấy ca học hợp lệ ở dòng xem trước thứ ' . ($index + 1) . '.');
                     }
 
                     $scheduleDate = Carbon::parse($previewDate);
@@ -218,7 +218,7 @@ class LichHocController extends Controller
 
                         return back()
                             ->withInput()
-                            ->with('error', 'Khong the luu buoi preview ngay ' . $scheduleDate->format('d/m/Y') . ': ' . $this->buildPlanningErrorMessage($planningContext));
+                            ->with('error', 'Không thể lưu buổi xem trước ngày ' . $scheduleDate->format('d/m/Y') . ': ' . $this->buildPlanningErrorMessage($planningContext));
                     }
 
                     LichHoc::create($this->prepareSchedulePayload(
@@ -259,7 +259,7 @@ class LichHocController extends Controller
 
                             return back()
                                 ->withInput()
-                                ->with('error', 'Khong the sinh lich vao ngay ' . $currentDate->format('d/m/Y') . ': ' . $this->buildPlanningErrorMessage($planningContext));
+                                ->with('error', 'Không thể tạo lịch vào ngày ' . $currentDate->format('d/m/Y') . ': ' . $this->buildPlanningErrorMessage($planningContext));
                         }
 
                         LichHoc::create($this->prepareSchedulePayload(
@@ -279,11 +279,13 @@ class LichHocController extends Controller
             $this->learningProgressStatusService->syncCourseStatus($khoaHocId);
             DB::commit();
 
-            return back()->with('success', "Da tu dong sinh {$createdCount} buoi hoc moi cho module.");
+            return back()->with('success', "Đã tự động tạo {$createdCount} buoi hoc moi cho module.");
         } catch (\Throwable $exception) {
             DB::rollBack();
 
-            return back()->with('error', 'Loi he thong: ' . $exception->getMessage());
+            report($exception);
+
+            return back()->with('error', 'Không thể tạo lịch học lúc này. Vui lòng thử lại.');
         }
     }
 
@@ -363,11 +365,13 @@ class LichHocController extends Controller
 
             return redirect()
                 ->route('admin.khoa-hoc.lich-hoc.index', $khoaHocId)
-                ->with('success', 'Da cap nhat lich hoc.');
+                ->with('success', 'Đã cập nhật lịch học.');
         } catch (\Throwable $exception) {
             DB::rollBack();
 
-            return back()->with('error', 'Loi: ' . $exception->getMessage());
+            report($exception);
+
+            return back()->with('error', 'Không thể cập nhật lịch học lúc này. Vui lòng thử lại.');
         }
     }
 
@@ -376,7 +380,7 @@ class LichHocController extends Controller
         $lichHoc = $this->findCourseSchedule($khoaHocId, $id);
         $lichHoc->delete();
 
-        return back()->with('success', 'Da xoa buoi hoc.');
+        return back()->with('success', 'Đã xóa buổi học.');
     }
 
     public function destroyModuleSchedules(Request $request, int $khoaHocId, int $moduleId)
@@ -390,14 +394,14 @@ class LichHocController extends Controller
             $this->learningProgressStatusService->syncCourseStatus($khoaHocId);
         }
 
-        return back()->with('success', "Da xoa {$deleted} buoi hoc cua module.");
+        return back()->with('success', "Đã xóa {$deleted} buoi hoc cua module.");
     }
 
     public function destroyBulk(Request $request, int $khoaHocId)
     {
         $ids = $request->input('ids', []);
         if (empty($ids)) {
-            return back()->with('error', 'Vui long chon it nhat mot buoi hoc de xoa.');
+            return back()->with('error', 'Vui lòng chọn ít nhất một buổi học để xóa.');
         }
 
         $deleted = LichHoc::whereIn('id', $ids)
@@ -409,7 +413,7 @@ class LichHocController extends Controller
             $this->learningProgressStatusService->syncCourseStatus($khoaHocId);
         }
 
-        return back()->with('success', "Da xoa {$deleted} buoi hoc da chon.");
+        return back()->with('success', "Đã xóa {$deleted} buoi hoc da chon.");
     }
 
     /**
@@ -500,7 +504,7 @@ class LichHocController extends Controller
             return (string) $planningContext['standard_window']['message'];
         }
 
-        return 'Khong the luu lich hoc voi du lieu hien tai.';
+        return 'Không thể lưu lịch học với dữ liệu hiện tại.';
     }
 }
 

@@ -29,7 +29,7 @@ class DocxQuestionParser implements QuestionFileParser
         $zip = new ZipArchive();
         if ($zip->open($file->getRealPath()) !== true) {
             throw ValidationException::withMessages([
-                'file_import' => 'Khong the mo file Word de phan tich.',
+                'file_import' => 'Không thể mở tệp Word để phân tích.',
             ]);
         }
 
@@ -37,14 +37,14 @@ class DocxQuestionParser implements QuestionFileParser
             $documentXml = $zip->getFromName('word/document.xml');
             if ($documentXml === false) {
                 throw ValidationException::withMessages([
-                    'file_import' => 'File .docx khong hop le hoac thieu noi dung van ban.',
+                    'file_import' => 'Tệp .docx không hợp lệ hoặc thiếu nội dung văn bản.',
                 ]);
             }
 
             $document = new DOMDocument();
             if (!@$document->loadXML($documentXml)) {
                 throw ValidationException::withMessages([
-                    'file_import' => 'Khong the doc noi dung file Word.',
+                    'file_import' => 'Không thể đọc nội dung tệp Word.',
                 ]);
             }
 
@@ -112,7 +112,7 @@ class DocxQuestionParser implements QuestionFileParser
             $questions = $this->textPatternParser->parseBlocks($blocks, 'docx');
             if ($questions === []) {
                 throw ValidationException::withMessages([
-                    'file_import' => 'Khong nhan dien duoc cau hoi trac nghiem trong file Word.',
+                    'file_import' => 'Không nhận diện được câu hỏi trắc nghiệm trong tệp Word.',
                 ]);
             }
 

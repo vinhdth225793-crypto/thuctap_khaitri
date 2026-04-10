@@ -13,10 +13,17 @@ class YeuCauHocVienController extends Controller
 {
     public function index()
     {
+        $statusOrder = [
+            'cho_duyet' => 0,
+            'da_duyet' => 1,
+            'tu_choi' => 2,
+        ];
+
         $yeuCaus = YeuCauHocVien::with(['khoaHoc', 'giangVien.nguoiDung', 'hocVienNguoiDung', 'admin'])
-            ->orderByRaw("FIELD(trang_thai, 'cho_duyet', 'da_duyet', 'tu_choi')")
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get()
+            ->sortBy(fn (YeuCauHocVien $yeuCau) => $statusOrder[$yeuCau->trang_thai] ?? 99)
+            ->values();
 
         return view('pages.admin.yeu-cau-hoc-vien.index', compact('yeuCaus'));
     }
@@ -44,7 +51,7 @@ class YeuCauHocVienController extends Controller
                 switch ($yeuCau->loai_yeu_cau) {
                     case 'them':
                         $hocVien = $yeuCau->hoc_vien_id
-                            ? NguoiDung::where('ma_nguoi_dung', $yeuCau->hoc_vien_id)->first()
+                            ? NguoiDung::where('id', $yeuCau->hoc_vien_id)->first()
                             : NguoiDung::where('email', $data['email'])->first();
 
                         if (!$hocVien) {
@@ -57,7 +64,7 @@ class YeuCauHocVienController extends Controller
                         
                         // Thêm vào khóa học
                         HocVienKhoaHoc::updateOrCreate(
-                            ['khoa_hoc_id' => $yeuCau->khoa_hoc_id, 'hoc_vien_id' => $hocVien->ma_nguoi_dung],
+                            ['khoa_hoc_id' => $yeuCau->khoa_hoc_id, 'hoc_vien_id' => $hocVien->id],
                             ['trang_thai' => 'dang_hoc', 'ngay_tham_gia' => now(), 'created_by' => auth()->id()]
                         );
                         break;
@@ -87,7 +94,9 @@ class YeuCauHocVienController extends Controller
             return back()->with('success', 'Đã xử lý yêu cầu thành công.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Lỗi: ' . $e->getMessage());
+            report($e);
+
+            return back()->with('error', 'Không thể xử lý yêu cầu học viên lúc này. Vui lòng thử lại.');
         }
     }
 }

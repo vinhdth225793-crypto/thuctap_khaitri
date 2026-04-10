@@ -285,7 +285,7 @@ class NganHangCauHoiController extends Controller
             $cauHoi = NganHangCauHoi::create([
                 'khoa_hoc_id' => $payload['khoa_hoc_id'],
                 'module_hoc_id' => $payload['module_hoc_id'],
-                'nguoi_tao_id' => $user->ma_nguoi_dung,
+                'nguoi_tao_id' => $user->id,
                 'ma_cau_hoi' => $payload['ma_cau_hoi'],
                 'noi_dung' => $payload['noi_dung'],
                 'loai_cau_hoi' => $payload['loai_cau_hoi'],
@@ -526,7 +526,7 @@ class NganHangCauHoiController extends Controller
         }
 
         $khoaHocId = (int) $preview['khoa_hoc_id'];
-        $userId = auth()->user()->ma_nguoi_dung;
+        $userId = auth()->user()->id;
         $moduleHocId = isset($preview['module_hoc_id']) ? (int) $preview['module_hoc_id'] : null;
 
         try {

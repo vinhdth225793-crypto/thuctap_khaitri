@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\NguoiDung;
+use App\Models\GiangVien;
+use App\Models\HocVien;
 use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
@@ -33,11 +35,10 @@ class DatabaseSeeder extends Seeder
         ]);
         // tạo bản ghi trong bảng giang_vien
         if ($gv) {
-            \App\Models\GiangVien::create([
-                'nguoi_dung_id' => $gv->ma_nguoi_dung,
+            GiangVien::create([
+                'nguoi_dung_id' => $gv->id,
                 'chuyen_nganh' => 'Công nghệ phần mềm',
                 'hoc_vi' => 'Thạc sĩ',
-                'so_gio_day' => '120',
             ]);
         }
 
@@ -53,10 +54,10 @@ class DatabaseSeeder extends Seeder
         ]);
         // tạo bản ghi trong bảng hoc_vien
         if ($hocvien) {
-            \App\Models\HocVien::create([
-                'nguoi_dung_id' => $hocvien->ma_nguoi_dung,
-                'lop' => 'Công nghệ thông tin',
-                'nganh' => 'Khoa học máy tính',
+            HocVien::create([
+                'nguoi_dung_id' => $hocvien->id,
+                'lop_niem_khoa' => 'Công nghệ thông tin',
+                'nganh_hoc' => 'Khoa học máy tính',
                 'diem_trung_binh' => 0.0,
             ]);
         }
@@ -73,17 +74,18 @@ class DatabaseSeeder extends Seeder
                 'trang_thai' => true,
             ]);
             if ($hv) {
-                \App\Models\HocVien::create([
-                    'nguoi_dung_id' => $hv->ma_nguoi_dung,
-                    'lop' => 'Lớp ' . $i,
-                    'nganh' => 'Ngành ' . $i,
+                HocVien::create([
+                    'nguoi_dung_id' => $hv->id,
+                    'lop_niem_khoa' => 'Lớp ' . $i,
+                    'nganh_hoc' => 'Ngành ' . $i,
                     'diem_trung_binh' => 0.0,
                 ]);
             }
         }
 
         $this->call([
-            NganHangCauHoiSeeder::class,
+            SampleTeacherSeeder::class,
+            // NganHangCauHoiSeeder::class, // Will update this next
         ]);
     }
 }

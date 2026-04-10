@@ -3,7 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\KhoaHoc;
-use App\Models\NganHangCauHoi;
+use App\Models\CauHoi;
+use App\Models\DapAnCauHoi;
 use App\Models\NguoiDung;
 use Illuminate\Database\Seeder;
 
@@ -16,62 +17,56 @@ class NganHangCauHoiSeeder extends Seeder
             return;
         }
 
-        $khoaHocs = KhoaHoc::with('moduleHocs')->get();
-        if ($khoaHocs->isEmpty()) {
-            return;
-        }
+        // Tạo một nhóm ngành và khóa học mẫu nếu chưa có để có dữ liệu seed câu hỏi
+        $nhomNganh = \App\Models\NhomNganh::firstOrCreate(['ten_nhom_nganh' => 'Công nghệ thông tin']);
+        
+        $khoaHoc = KhoaHoc::firstOrCreate(
+            ['ma_khoa_hoc' => 'PROG101'],
+            [
+                'nhom_nganh_id' => $nhomNganh->id,
+                'ten_khoa_hoc' => 'Lập trình căn bản',
+                'mo_ta_ngan' => 'Khóa học dành cho người mới bắt đầu.',
+                'trang_thai' => true,
+                'created_by' => $admin->id
+            ]
+        );
 
-        foreach ($khoaHocs as $khoaHoc) {
-            $module = $khoaHoc->moduleHocs->first();
-            $questions = [
-                [
-                    'noi_dung' => "Trong khóa học '{$khoaHoc->ten_khoa_hoc}', khái niệm cơ bản nhất là gì?",
-                    'answers' => [
-                        ['ky_hieu' => 'A', 'noi_dung' => 'Khái niệm nền tảng', 'is_dap_an_dung' => true],
-                        ['ky_hieu' => 'B', 'noi_dung' => 'Không có khái niệm nào', 'is_dap_an_dung' => false],
-                        ['ky_hieu' => 'C', 'noi_dung' => 'Khái niệm nâng cao', 'is_dap_an_dung' => false],
-                        ['ky_hieu' => 'D', 'noi_dung' => 'Khái niệm thực hành', 'is_dap_an_dung' => false],
-                    ],
+        $questions = [
+            [
+                'noi_dung' => "Laravel là một PHP Framework theo mô hình nào?",
+                'answers' => [
+                    ['noi_dung' => 'MVC', 'la_dap_an_dung' => true],
+                    ['noi_dung' => 'MVP', 'la_dap_an_dung' => false],
+                    ['noi_dung' => 'MVVM', 'la_dap_an_dung' => false],
+                    ['noi_dung' => 'Singleton', 'la_dap_an_dung' => false],
                 ],
-                [
-                    'noi_dung' => 'Laravel là một PHP Framework theo mô hình nào?',
-                    'answers' => [
-                        ['ky_hieu' => 'A', 'noi_dung' => 'MVC', 'is_dap_an_dung' => true],
-                        ['ky_hieu' => 'B', 'noi_dung' => 'MVP', 'is_dap_an_dung' => false],
-                        ['ky_hieu' => 'C', 'noi_dung' => 'MVVM', 'is_dap_an_dung' => false],
-                        ['ky_hieu' => 'D', 'noi_dung' => 'Singleton', 'is_dap_an_dung' => false],
-                    ],
+            ],
+            [
+                'noi_dung' => 'Trong Laravel, Eloquent là gì?',
+                'answers' => [
+                    ['noi_dung' => 'Một hệ quản trị CSDL', 'la_dap_an_dung' => false],
+                    ['noi_dung' => 'Một ORM (Object-Relational Mapper)', 'la_dap_an_dung' => true],
+                    ['noi_dung' => 'Một Template Engine', 'la_dap_an_dung' => false],
+                    ['noi_dung' => 'Một Router', 'la_dap_an_dung' => false],
                 ],
-            ];
+            ],
+        ];
 
-            foreach ($questions as $index => $item) {
-                if (NganHangCauHoi::isDuplicate($khoaHoc->id, $item['noi_dung'])) {
-                    continue;
-                }
+        foreach ($questions as $item) {
+            $cauHoi = CauHoi::create([
+                'khoa_hoc_id' => $khoaHoc->id,
+                'nguoi_tao_id' => $admin->id,
+                'noi_dung' => $item['noi_dung'],
+                'loai_cau_hoi' => 'trac_nghiem',
+                'muc_do' => 'de',
+            ]);
 
-                $cauHoi = NganHangCauHoi::create([
-                    'khoa_hoc_id' => $khoaHoc->id,
-                    'module_hoc_id' => $module?->id,
-                    'nguoi_tao_id' => $admin->ma_nguoi_dung,
-                    'ma_cau_hoi' => 'SEED-' . $khoaHoc->id . '-' . ($index + 1),
-                    'noi_dung' => $item['noi_dung'],
-                    'loai_cau_hoi' => 'trac_nghiem',
-                    'muc_do' => 'de',
-                    'diem_mac_dinh' => 1,
-                    'trang_thai' => 'san_sang',
-                    'co_the_tai_su_dung' => true,
+            foreach ($item['answers'] as $answer) {
+                DapAnCauHoi::create([
+                    'cau_hoi_id' => $cauHoi->id,
+                    'noi_dung_dap_an' => $answer['noi_dung'],
+                    'la_dap_an_dung' => $answer['la_dap_an_dung'],
                 ]);
-
-                $cauHoi->dapAns()->createMany(
-                    collect($item['answers'])->values()->map(function (array $answer, int $answerIndex) {
-                        return [
-                            'ky_hieu' => $answer['ky_hieu'],
-                            'noi_dung' => $answer['noi_dung'],
-                            'is_dap_an_dung' => $answer['is_dap_an_dung'],
-                            'thu_tu' => $answerIndex + 1,
-                        ];
-                    })->all()
-                );
             }
         }
     }

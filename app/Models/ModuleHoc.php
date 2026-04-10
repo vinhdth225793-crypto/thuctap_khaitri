@@ -37,6 +37,28 @@ class ModuleHoc extends Model
         'updated_at' => 'datetime',
     ];
 
+    public function getThoiLuongDuKienAttribute($value): int
+    {
+        return (int) ($value ?: 90);
+    }
+
+    public function getThoiLuongDuKienLabelAttribute(): string
+    {
+        $minutes = $this->thoi_luong_du_kien;
+        $hours = intdiv($minutes, 60);
+        $remainingMinutes = $minutes % 60;
+
+        if ($hours > 0 && $remainingMinutes > 0) {
+            return "{$hours}h {$remainingMinutes}p";
+        }
+
+        if ($hours > 0) {
+            return "{$hours}h";
+        }
+
+        return "{$minutes}p";
+    }
+
     /**
      * Relationship: Module thuộc về một khóa học
      */

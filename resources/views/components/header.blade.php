@@ -73,34 +73,25 @@
             <span class="d-none d-md-inline">Trang chủ</span>
         </a>
         <!-- Thông báo -->
-        @php
-            $soTBChuaDoc = \App\Models\ThongBao::where('nguoi_nhan_id', auth()->id())
-                ->where('da_doc', 0)
-                ->count();
-            $thongBaosGanDay = \App\Models\ThongBao::where('nguoi_nhan_id', auth()->id())
-                ->orderBy('created_at', 'desc')
-                ->take(5)
-                ->get();
-        @endphp
         <div class="dropdown">
             <button class="btn position-relative" type="button" data-bs-toggle="dropdown">
                 <i class="fas fa-bell"></i>
-                @if($soTBChuaDoc > 0)
+                @if($headerNotificationCount > 0)
                     <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                        {{ $soTBChuaDoc > 99 ? '99+' : $soTBChuaDoc }}
+                        {{ $headerNotificationCount > 99 ? '99+' : $headerNotificationCount }}
                     </span>
                 @endif
             </button>
             <div class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="width: 320px;">
                 <h6 class="dropdown-header d-flex justify-content-between align-items-center py-3">
                     <span>Thông báo</span>
-                    @if($soTBChuaDoc > 0)
-                        <span class="badge bg-danger rounded-pill">{{ $soTBChuaDoc }} mới</span>
+                    @if($headerNotificationCount > 0)
+                        <span class="badge bg-danger rounded-pill">{{ $headerNotificationCount }} mới</span>
                     @endif
                 </h6>
                 <div class="dropdown-divider m-0"></div>
                 <div style="max-height: 350px; overflow-y: auto;">
-                    @forelse($thongBaosGanDay as $tb)
+                    @forelse($headerRecentNotifications as $tb)
                         <a class="dropdown-item py-3 border-bottom {{ $tb->da_doc ? '' : 'bg-light' }}" href="{{ route('thong-bao.doc-mot', $tb->id) }}">
                             <div class="d-flex align-items-start gap-2">
                                 <div class="mt-1">

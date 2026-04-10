@@ -392,7 +392,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btnConfirmAutoSave.disabled = true;
         currentConflictDays = [];
         syncThuSelectionState();
-        renderAutoPlanningPlaceholder('Chua co du lieu kiem tra trung lich.');
+        renderAutoPlanningPlaceholder('Chưa có dữ liệu kiem tra trung lich.');
     }
 
     function buildPreviewList() {
@@ -447,10 +447,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const conflictDays = normalizeThuValues(currentConflictDays);
         const existingText = currentExistingDays.length > 0
             ? currentExistingDays.map(formatThuLabel).join(', ')
-            : 'Chua co lich co dinh';
+            : 'Chưa có lịch cố định';
         const selectedText = selectedDays.length > 0
             ? selectedDays.map(formatThuLabel).join(', ')
-            : 'Chua chon thu nao';
+            : 'Chưa chọn thu nao';
         const conflictText = conflictDays.length > 0
             ? ` Thu dang bi trung: ${conflictDays.map(formatThuLabel).join(', ')}.`
             : '';
@@ -493,11 +493,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function syncThuSelectionState() {
-        const isLocked = lockThuSelection.checked;
+        const isLọcked = lockThuSelection.checked;
         const existingSet = new Set(currentExistingDays);
         const conflictSet = new Set(currentConflictDays);
 
-        thuContainer.classList.toggle('selection-locked', isLocked);
+        thuContainer.classList.toggle('selection-locked', isLọcked);
 
         thuInputs.forEach(input => {
             const thu = parseInt(input.value, 10);
@@ -514,7 +514,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             label.classList.toggle('thu-existing', isExisting);
             label.classList.toggle('thu-selected', isSelected);
-            label.classList.toggle('thu-locked', isLocked);
+            label.classList.toggle('thu-locked', isLọcked);
             label.classList.toggle('thu-conflict', conflictSet.has(thu));
 
             if (conflictSet.has(thu) && isSelected) {
@@ -524,15 +524,15 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (isExisting) {
                 stateEl.textContent = 'Da co lich';
             } else if (isSelected) {
-                stateEl.textContent = 'Dang chon';
+                stateEl.textContent = 'Đang chọn';
             } else {
-                stateEl.textContent = 'Chua chon';
+                stateEl.textContent = 'Chưa chọn';
             }
         });
 
-        btnUseExistingDays.disabled = isLocked || currentExistingDays.length === 0;
-        btnUseDefaultDays.disabled = isLocked;
-        btnClearDays.disabled = isLocked;
+        btnUseExistingDays.disabled = isLọcked || currentExistingDays.length === 0;
+        btnUseDefaultDays.disabled = isLọcked;
+        btnClearDays.disabled = isLọcked;
 
         updateThuSummary();
         updateThuUI();
@@ -551,7 +551,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function inspectAutoPreviewItem(item) {
         if (!autoPlanningPanel) {
-            return { item, hasConflict: false, canSchedule: true, message: 'Khong co panel kiem tra.' };
+            return { item, hasConflict: false, canSchedule: true, message: 'Không có panel kiem tra.' };
         }
 
         if (!item.date || !item.session || !item.startTime || !item.endTime || item.periodStart === null || item.periodEnd === null) {
@@ -560,7 +560,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 context: null,
                 hasConflict: false,
                 canSchedule: false,
-                message: 'Buoi preview chua du thong tin ngay hoc hoac ca hoc.',
+                message: 'Buổi preview chưa đủ thông tin ngày học hoặc ca học.',
             };
         }
 
@@ -594,7 +594,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 context,
                 hasConflict: context?.conflicts?.ok === false,
                 canSchedule: context?.can_schedule !== false,
-                message: context?.conflicts?.message || context?.errors?.gio_bat_dau || 'Khong co xung dot.',
+                message: context?.conflicts?.message || context?.errors?.gio_bat_dau || 'Không có xung dot.',
             };
         } catch (error) {
             return {
@@ -602,7 +602,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 context: null,
                 hasConflict: false,
                 canSchedule: false,
-                message: 'Khong the kiem tra xung dot luc nay.',
+                message: 'Không thể kiểm tra xung đột lúc này.',
                 hasError: true,
             };
         }
@@ -620,23 +620,23 @@ document.addEventListener('DOMContentLoaded', function() {
         autoPlanningPanel.innerHTML = `
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                 <div>
-                    <div class="fw-bold text-dark">Kiem tra trung lich</div>
-                    <div class="small text-muted">Da quet ${results.length} buoi trong lo trinh xem truoc.</div>
+                    <div class="fw-bold text-dark">Kiểm tra trùng lịch</div>
+                    <div class="small text-muted">Đã quét ${results.length} buổi trong lộ trình xem trước.</div>
                 </div>
-                <span class="badge rounded-pill bg-${conflictItems.length > 0 ? 'danger' : 'success'}">${conflictItems.length > 0 ? `${conflictItems.length} buoi bi trung` : 'Khong bi trung lich'}</span>
+                <span class="badge rounded-pill bg-${conflictItems.length > 0 ? 'danger' : 'success'}">${conflictItems.length > 0 ? `${conflictItems.length} buổi bị trùng` : 'Không bị trùng lịch'}</span>
             </div>
-            <div class="small text-muted mb-2">${invalidItems.length > 0 ? `Co ${invalidItems.length} buoi can xu ly truoc khi luu.` : 'Tat ca buoi hop le de tiep tuc luu lich.'}</div>
+            <div class="small text-muted mb-2">${invalidItems.length > 0 ? `Có ${invalidItems.length} buổi cần xử lý trước khi lưu.` : 'Tất cả buoi hop le de tiep tuc luu lich.'}</div>
             ${conflictItems.length > 0 ? `
                 <div class="d-flex flex-wrap gap-2">
                     ${conflictItems.slice(0, 8).map(result => `<span class="badge bg-danger-subtle text-danger border border-danger-subtle">${result.item.date} - ${escapeHtml(formatThuLabel(result.item.thu))}</span>`).join('')}
                 </div>
             ` : ''}
-            ${errorItems.length > 0 ? `<div class="small text-warning mt-3">Co mot vai buoi chua kiem tra duoc planning context. Vui long thu lai.</div>` : ''}
+            ${errorItems.length > 0 ? `<div class="small text-warning mt-3">Có một vài buổi chưa kiểm tra được planning context. Vui lòng thử lại.</div>` : ''}
         `;
     }
 
     async function highlightAutoPreviewConflicts(previewList) {
-        renderAutoPlanningPlaceholder('<span class="spinner-border spinner-border-sm me-2"></span>Dang kiem tra trung lich...', 'muted');
+        renderAutoPlanningPlaceholder('<span class="spinner-border spinner-border-sm me-2"></span>Đang kiểm tra trùng lịch...', 'muted');
 
         const results = await Promise.all(previewList.map(inspectAutoPreviewItem));
         const rowNodes = Array.from(previewBody.querySelectorAll('tr'));
@@ -783,7 +783,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Xem trước lộ trình
     btnPreviewAuto.addEventListener('click', async function() {
-        const startTiet = document.getElementById('auto-tiet-bat-dau').value;
+        const startTiết = document.getElementById('auto-tiet-bat-dau').value;
         const previewList = buildPreviewList();
         
         if (!ngayBatDauInput.value || previewList.length === 0 || !startTiet) {

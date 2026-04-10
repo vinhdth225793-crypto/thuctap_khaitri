@@ -5,6 +5,7 @@
     $selectedQuestionIds = $baiKiemTra->chiTietCauHois->pluck('ngan_hang_cau_hoi_id')->map(fn ($id) => (int) $id)->all();
     $scoreByQuestionId = $baiKiemTra->chiTietCauHois->mapWithKeys(fn ($item) => [$item->ngan_hang_cau_hoi_id => $item->diem_so]);
     $currentScoringMode = old('che_do_tinh_diem', $baiKiemTra->che_do_tinh_diem ?? 'thu_cong');
+    $currentContentMode = old('che_do_noi_dung', $preferredContentMode ?? $baiKiemTra->content_mode_key);
     $questionFilters = $questionFilters ?? [];
     $selectableQuestionIds = $selectableQuestionIds ?? [];
     $importedQuestionIds = collect(session('exam_imported_question_ids', []))->map(fn ($id) => (int) $id)->all();
@@ -217,9 +218,28 @@
                                         </div>
                                     </div>
                                     <div class="col-12">
-                                        <label class="form-label fw-bold">Mô tả / Hướng dẫn học viên</label>
-                                        <textarea name="mo_ta" rows="5" class="form-control shadow-none rounded-3" placeholder="Nhập hướng dẫn làm bài...">{{ old('mo_ta', $baiKiemTra->mo_ta) }}</textarea>
-                                    </div>
+    <div class="border rounded-4 p-4 bg-light" data-exam-content-mode-panel>
+        <div class="row g-3 align-items-center">
+            <div class="col-lg-4">
+                <label class="form-label fw-bold mb-1" for="contentModeSelect">Loại nội dung bài kiểm tra</label>
+                <div class="small text-muted">Chọn rõ flow để hệ thống khóa đúng loại câu hỏi và cách chấm bài.</div>
+            </div>
+            <div class="col-lg-8">
+                <select name="che_do_noi_dung" id="contentModeSelect" class="form-select shadow-none rounded-3" data-exam-content-mode-select>
+                    <option value="trac_nghiem" @selected($currentContentMode === 'trac_nghiem')>Trắc nghiệm</option>
+                    <option value="tu_luan_tu_do" @selected($currentContentMode === 'tu_luan_tu_do')>Tự luận tự do</option>
+                    <option value="tu_luan_theo_cau" @selected($currentContentMode === 'tu_luan_theo_cau')>Tự luận theo câu</option>
+                    <option value="hon_hop" @selected($currentContentMode === 'hon_hop')>Hỗn hợp</option>
+                </select>
+                <div class="small text-muted mt-2" id="contentModeDescription"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="col-12">
+    <label class="form-label fw-bold">Mô tả / Hướng dẫn học viên</label>
+    <textarea name="mo_ta" rows="5" class="form-control shadow-none rounded-3" placeholder="Nhập hướng dẫn làm bài...">{{ old('mo_ta', $baiKiemTra->mo_ta) }}</textarea>
+</div>
                                 </div>
                                 
                                 <div class="mt-5 text-end">
@@ -1021,7 +1041,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.q-score-input').forEach(input => {
             total += parseFloat(input.value || 0);
         });
-        realtimeTotal.textContent = total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        realtimeTotal.textContent = total.toLọcaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
     function calculatePackagePreview() {
@@ -1213,8 +1233,9 @@ document.addEventListener('DOMContentLoaded', function() {
             btnUpload.disabled = false;
             btnUpload.innerHTML = '<i class="fas fa-upload me-1"></i> Bắt đầu xử lý file';
             importPreviewArea.classList.remove('d-none');
-            summaryText.innerHTML = `<i class="fas fa-check-circle me-2"></i> File hợp lệ! Tìm thấy <strong>${data.summary.valid}</strong> câu hỏi.`;
-            summaryMeta.innerHTML = `Định dạng: <strong>${(data.source_format || '').toUpperCase()}</strong>. Sẵn sàng để import.`;
+            summaryText.innerHTML = `<i class="fas fa-check-circle me-2"></i> Đã đọc tệp. Có <strong>${data.summary.valid}</strong> dòng hợp lệ sẵn sàng import.`;
+            const reviewCount = Number(data.summary.needs_review || 0);
+                        summaryMeta.innerHTML = `Định dạng: <strong>${(data.source_format || '').toUpperCase()}</strong>. Bản xem trước hiển thị rõ loại câu hỏi, ghi chú và gợi ý tự luận${reviewCount > 0 ? `. Có ${reviewCount} dòng cần rà soát thêm.` : '.'}`;
             hiddenPreviewId.value = data.preview_id;
             latestImportPreview = data;
         })
@@ -1227,22 +1248,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
     btnConfirm?.addEventListener('click', function() {
         if (!latestImportPreview) return;
-        const rows = (latestImportPreview.preview_rows || []).map(row => `
+        const rows = (latestImportPreview.preview_rows || []).map(row => {
+            const statusLabel = row.status === 'hop_le' ? 'Hợp lệ' : 'Cần rà soát';
+            const typeLabel = row.question_type_label || row.question_type || 'Không rõ';
+            const typeBadge = row.question_type === 'tu_luan' ? 'info' : 'primary';
+            const noteHtml = [
+                row.goi_y_tra_loi ? `<div class="small text-muted mt-1"><strong>Gợi ý:</strong> ${escapeHtml(row.goi_y_tra_loi)}</div>` : '',
+                row.note ? `<div class="small text-warning mt-1"><strong>Lưu ý:</strong> ${escapeHtml(row.note)}</div>` : '',
+            ].filter(Boolean).join('');
+
+            return `
             <tr>
                 <td class="small text-center text-muted">${row.line || '-'}</td>
+                <td><span class="badge bg-${typeBadge}-subtle text-${typeBadge} border border-${typeBadge}-subtle small">${escapeHtml(typeLabel)}</span></td>
                 <td class="small fw-bold">${escapeHtml(row.question)}</td>
-                <td class="small text-success fw-bold">${escapeHtml(row.correct_answer || 'Tự luận')}</td>
-                <td><span class="badge bg-${row.status === 'hop_le' ? 'success' : 'warning'} small">${row.status}</span></td>
+                <td class="small text-success fw-bold">${escapeHtml(row.correct_answer || 'Cần xem lại')}</td>
+                <td class="small">${noteHtml || '<span class="text-muted">Không có ghi chu them.</span>'}</td>
+                <td><span class="badge bg-${row.status === 'hop_le' ? 'success' : 'warning text-dark'} small">${statusLabel}</span></td>
             </tr>
-        `).join('');
+            `;
+        }).join('');
         
         importPreviewContent.innerHTML = `
             <div class="table-responsive">
                 <table class="table table-sm table-striped align-middle">
-                    <thead class="bg-light"><tr><th>Dòng</th><th>Câu hỏi</th><th>Đáp án đúng</th><th>TT</th></tr></thead>
+                    <thead class="bg-light"><tr><th>Dòng</th><th>Loại</th><th>Câu hỏi</th><th>Đáp án / Cách chấm</th><th>Ghi chú</th><th>TT</th></tr></thead>
                     <tbody>${rows}</tbody>
                 </table>
-                ${latestImportPreview.remaining_preview_rows > 0 ? `<div class="alert alert-light border mt-2 py-1 px-2 small text-center text-muted">... và ${latestImportPreview.remaining_preview_rows} câu hỏi khác</div>` : ''}
+                ${latestImportPreview.remaining_preview_rows > 0 ? `<div class="alert alert-light border mt-2 py-1 px-2 small text-center text-muted">... va ${latestImportPreview.remaining_preview_rows} câu hỏi khác</div>` : ''}
             </div>
         `;
         importPreviewModal.show();

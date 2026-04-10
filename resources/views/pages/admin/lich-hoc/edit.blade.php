@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Sua buoi hoc')
+@section('title', 'Sửa buổi học')
 
 @section('content')
 @php
@@ -28,11 +28,11 @@
 <div class="container-fluid">
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb small">
-            <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Trang chu</a></li>
-            <li class="breadcrumb-item"><a href="{{ route('admin.khoa-hoc.index') }}">Khoa hoc</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('admin.khoa-hoc.index') }}">Khóa học</a></li>
             <li class="breadcrumb-item"><a href="{{ route('admin.khoa-hoc.show', $lichHoc->khoa_hoc_id) }}">{{ $lichHoc->khoaHoc->ma_khoa_hoc }}</a></li>
-            <li class="breadcrumb-item"><a href="{{ route('admin.khoa-hoc.lich-hoc.index', $lichHoc->khoa_hoc_id) }}">Lich hoc</a></li>
-            <li class="breadcrumb-item active">Sua buoi {{ $lichHoc->buoi_so }}</li>
+            <li class="breadcrumb-item"><a href="{{ route('admin.khoa-hoc.lich-hoc.index', $lichHoc->khoa_hoc_id) }}">Lịch học</a></li>
+            <li class="breadcrumb-item active">Sửa buổi {{ $lichHoc->buoi_so }}</li>
         </ol>
     </nav>
 
@@ -43,7 +43,7 @@
             <div class="vip-card shadow-sm border-0">
                 <div class="vip-card-header bg-white border-bottom py-3">
                     <h5 class="vip-card-title small fw-bold text-uppercase mb-0">
-                        <i class="fas fa-edit me-2 text-warning"></i> Cap nhat thong tin buoi hoc
+                        <i class="fas fa-edit me-2 text-warning"></i> Cập nhật thông tin buổi học
                     </h5>
                 </div>
                 <div class="vip-card-body p-4">
@@ -66,7 +66,7 @@
                                     </span>
                                 @empty
                                     <span class="badge rounded-pill bg-warning text-dark">
-                                        <i class="fas fa-exclamation-triangle me-1"></i>Chua co giang vien da nhan module nay
+                                        <i class="fas fa-exclamation-triangle me-1"></i>Chưa có giảng viên đã nhận module này
                                     </span>
                                 @endforelse
                             </div>
@@ -74,40 +74,40 @@
 
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label small fw-bold">Ngay hoc *</label>
+                                <label class="form-label small fw-bold">Ngày học *</label>
                                 <input type="date" name="ngay_hoc" id="edit-date" class="form-control vip-form-control @error('ngay_hoc') is-invalid @enderror" value="{{ old('ngay_hoc', $lichHoc->ngay_hoc->format('Y-m-d')) }}" required>
                                 @error('ngay_hoc') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label small fw-bold">Khung tiet</label>
+                                <label class="form-label small fw-bold">Khung tiết</label>
                                 <input type="text" id="edit-period-preview" class="form-control vip-form-control" value="{{ $lichHoc->schedule_range_label }}" readonly>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label small fw-bold">Khung gio map tu dong</label>
+                                <label class="form-label small fw-bold">Khung giờ map tự động</label>
                                 <input type="text" id="edit-time-preview" class="form-control vip-form-control" value="{{ \Carbon\Carbon::parse($lichHoc->gio_bat_dau)->format('H:i') }} - {{ \Carbon\Carbon::parse($lichHoc->gio_ket_thuc)->format('H:i') }}" readonly>
                                 <input type="hidden" name="gio_bat_dau" id="edit-start-time" value="{{ old('gio_bat_dau', \Carbon\Carbon::parse($lichHoc->gio_bat_dau)->format('H:i')) }}">
                                 <input type="hidden" name="gio_ket_thuc" id="edit-end-time" value="{{ old('gio_ket_thuc', \Carbon\Carbon::parse($lichHoc->gio_ket_thuc)->format('H:i')) }}">
                             </div>
 
                             <div class="col-12">
-                                <label class="form-label small fw-bold d-block">Chon nhanh theo buoi</label>
+                                <label class="form-label small fw-bold d-block">Chọn nhanh theo buổi</label>
                                 <div class="d-flex flex-wrap gap-2">
                                     @foreach($sessionOptions as $session => $definition)
                                         <button type="button" class="btn btn-outline-warning edit-session-btn" data-session="{{ $session }}">
-                                            {{ $definition['label'] }} (Tiet {{ $definition['start'] }}-{{ $definition['end'] }})
+                                            {{ $definition['label'] }} (Tiết {{ $definition['start'] }}-{{ $definition['end'] }})
                                         </button>
                                     @endforeach
                                 </div>
                             </div>
 
                             <div class="col-12">
-                                <label class="form-label small fw-bold d-block">Hoac tick tung tiet</label>
+                                <label class="form-label small fw-bold d-block">Hoặc tick từng tiết</label>
                                 <div class="d-flex flex-wrap gap-2" id="edit-period-grid">
                                     @foreach($periodDefinitions as $period => $definition)
                                         <div class="form-check p-0 m-0">
                                             <input class="form-check-input d-none" type="checkbox" name="selected_tiets[]" value="{{ $period }}" id="edit_period_{{ $period }}" {{ in_array($period, $selectedPeriods, true) ? 'checked' : '' }}>
                                             <label class="period-box" for="edit_period_{{ $period }}">
-                                                <span class="fw-bold d-block">Tiet {{ $period }}</span>
+                                                <span class="fw-bold d-block">Tiết {{ $period }}</span>
                                                 <span class="small">{{ $definition['start'] }} - {{ $definition['end'] }}</span>
                                             </label>
                                         </div>
@@ -116,40 +116,40 @@
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label small fw-bold">Trang thai buoi hoc *</label>
+                                <label class="form-label small fw-bold">Trạng thái buoi hoc *</label>
                                 <select name="trang_thai" id="edit-status" class="form-select vip-form-control" required>
-                                    <option value="cho" {{ old('trang_thai', $lichHoc->trang_thai) == 'cho' ? 'selected' : '' }}>Cho</option>
-                                    <option value="dang_hoc" {{ old('trang_thai', $lichHoc->trang_thai) == 'dang_hoc' ? 'selected' : '' }}>Dang hoc</option>
-                                    <option value="hoan_thanh" {{ old('trang_thai', $lichHoc->trang_thai) == 'hoan_thanh' ? 'selected' : '' }}>Hoan thanh</option>
-                                    <option value="huy" {{ old('trang_thai', $lichHoc->trang_thai) == 'huy' ? 'selected' : '' }}>Da huy</option>
+                                    <option value="cho" {{ old('trang_thai', $lichHoc->trang_thai) == 'cho' ? 'selected' : '' }}>Chờ</option>
+                                    <option value="dang_hoc" {{ old('trang_thai', $lichHoc->trang_thai) == 'dang_hoc' ? 'selected' : '' }}>Đang học</option>
+                                    <option value="hoan_thanh" {{ old('trang_thai', $lichHoc->trang_thai) == 'hoan_thanh' ? 'selected' : '' }}>Hoàn thành</option>
+                                    <option value="huy" {{ old('trang_thai', $lichHoc->trang_thai) == 'huy' ? 'selected' : '' }}>Đã hủy</option>
                                 </select>
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label small fw-bold">Hinh thuc *</label>
+                                <label class="form-label small fw-bold">Hình thức *</label>
                                 <select name="hinh_thuc" class="form-select vip-form-control" required id="edit-hinh-thuc">
-                                    <option value="truc_tiep" {{ old('hinh_thuc', $lichHoc->hinh_thuc) == 'truc_tiep' ? 'selected' : '' }}>Truc tiep</option>
+                                    <option value="truc_tiep" {{ old('hinh_thuc', $lichHoc->hinh_thuc) == 'truc_tiep' ? 'selected' : '' }}>Trực tiếp</option>
                                     <option value="online" {{ old('hinh_thuc', $lichHoc->hinh_thuc) == 'online' ? 'selected' : '' }}>Online</option>
                                 </select>
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label small fw-bold">Phong hoc / Link hop</label>
-                                <input type="text" name="phong_hoc" class="form-control vip-form-control shadow-sm" value="{{ old('phong_hoc', $lichHoc->hinh_thuc === 'online' ? $lichHoc->link_online : $lichHoc->phong_hoc) }}" placeholder="Phong hoc hoac link hop">
+                                <label class="form-label small fw-bold">Phòng học / Link họp</label>
+                                <input type="text" name="phong_hoc" class="form-control vip-form-control shadow-sm" value="{{ old('phong_hoc', $lichHoc->hinh_thuc === 'online' ? $lichHoc->link_online : $lichHoc->phong_hoc) }}" placeholder="Phòng học hoặc link họp">
                                 <div class="mt-2" id="box-apply-all" style="display: {{ $lichHoc->hinh_thuc === 'online' ? 'block' : 'none' }};">
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" name="apply_to_all_online" value="1" id="applyAllOnline">
                                         <label class="form-check-label small text-primary fw-bold" for="applyAllOnline">
-                                            Ap dung link nay cho tat ca buoi hoc online cua khoa hoc nay
+                                            Áp dụng link này cho tất cả buổi học online của khóa học này
                                         </label>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label small fw-bold">Giang vien day buoi nay *</label>
+                                <label class="form-label small fw-bold">Giảng viên day buoi nay *</label>
                                 <select name="giang_vien_id" id="edit-teacher-id" class="form-select vip-form-control @error('giang_vien_id') is-invalid @enderror">
-                                    <option value="">-- Chon giang vien --</option>
+                                    <option value="">-- Chọn giảng viên --</option>
                                     @foreach($teacherOptions as $gv)
                                         <option value="{{ $gv->id }}" {{ old('giang_vien_id', $lichHoc->giang_vien_id) == $gv->id ? 'selected' : '' }}>
                                             {{ $gv->nguoiDung->ho_ten }} ({{ $gv->chuyen_nganh ?: 'N/A' }}) - {{ $gv->donXinNghis->where('trang_thai', 'cho_duyet')->count() }} don cho duyet
@@ -159,32 +159,32 @@
                                 @error('giang_vien_id') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                                 @if($lichHoc->giangVien && !$currentTeacherAssigned)
                                     <div class="alert alert-warning border-0 mt-3 mb-0 small">
-                                        Buoi hoc nay dang gan voi giang vien khong con o trang thai da nhan cho module.
-                                        Hay chon lai giang vien hop le truoc khi luu.
+                                        Buổi học này đang gắn với giảng viên không còn ở trạng thái đã nhận cho module.
+                                        Hãy chọn lại giảng viên hợp lệ trước khi lưu.
                                     </div>
                                 @else
-                                    <div class="small text-muted mt-2">Dropdown nay uu tien cac giang vien da nhan module. Panel ben duoi se canh bao neu assignment, khung day chuan, don nghi hoac xung dot khong hop le.</div>
+                                    <div class="small text-muted mt-2">Dropdown này ưu tiên các giảng viên đã nhận module. Panel bên dưới sẽ cảnh báo nếu assignment, khung dạy chuẩn, đơn nghỉ hoặc xung đột không hợp lệ.</div>
                                 @endif
                             </div>
 
                             <div class="col-12">
                                 <div id="edit-planning-panel" class="planning-panel border rounded-3 p-3 bg-light" data-endpoint="{{ route('admin.khoa-hoc.lich-hoc.teacher-context', $lichHoc->khoa_hoc_id) }}">
-                                    <div class="small text-muted mb-0">Dang tai planning context...</div>
+                                    <div class="small text-muted mb-0">Đang tải planning context...</div>
                                 </div>
                             </div>
 
                             <div class="col-12">
-                                <label class="form-label small fw-bold">Ghi chu cho buoi nay</label>
+                                <label class="form-label small fw-bold">Ghi chú cho buổi này</label>
                                 <textarea name="ghi_chu" class="form-control vip-form-control" rows="3">{{ old('ghi_chu', $lichHoc->ghi_chu) }}</textarea>
                             </div>
                         </div>
 
                         <div class="mt-4 pt-3 border-top d-flex gap-2">
                             <button type="submit" class="btn btn-warning px-5 fw-bold shadow-sm text-white border-0">
-                                <i class="fas fa-save me-2"></i> CAP NHAT
+                                <i class="fas fa-save me-2"></i> CẬP NHẬT
                             </button>
                             <a href="{{ route('admin.khoa-hoc.lich-hoc.index', $lichHoc->khoa_hoc_id) }}" class="btn btn-outline-secondary px-4 fw-bold">
-                                HUY BO
+                                HỦY BỎ
                             </a>
                         </div>
                     </form>
@@ -251,7 +251,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         sessionInput.value = matchedSession ? matchedSession[0] : '';
         const sessionLabel = matchedSession ? matchedSession[1].label : null;
-        periodPreview.value = sessionLabel ? `${sessionLabel} (Tiet ${start} - ${end})` : `Tiet ${start} - ${end}`;
+        periodPreview.value = sessionLabel ? `${sessionLabel} (Tiết ${start} - ${end})` : `Tiết ${start} - ${end}`;
         timePreview.value = `${hiddenStartTime.value} - ${hiddenEndTime.value}`;
     }
 
@@ -288,37 +288,37 @@ document.addEventListener('DOMContentLoaded', function () {
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
                 <div>
                     <div class="fw-bold text-dark">Planning context</div>
-                    <div class="small text-muted">Teacher: ${escapeHtml(context.teacher_name || 'Chua chon')}</div>
+                    <div class="small text-muted">Teacher: ${escapeHtml(context.teacher_name || 'Chưa chọn')}</div>
                 </div>
-                <span class="badge rounded-pill bg-${context.can_schedule ? 'success' : 'warning'}">${context.can_schedule ? 'Co the luu lich' : 'Can xu ly truoc khi luu'}</span>
+                <span class="badge rounded-pill bg-${context.can_schedule ? 'success' : 'warning'}">${context.can_schedule ? 'Có thể lưu lịch' : 'Cần xử lý trước khi lưu'}</span>
             </div>
             <div class="row g-3">
                 <div class="col-md-4">
                     <div class="border rounded-3 p-3 h-100 bg-white">
                         <div class="small text-uppercase fw-bold text-muted mb-2">Assignment</div>
-                        <span class="badge bg-${assignmentColor} mb-2">${assignment.ok === true ? 'Dat' : (assignment.ok === false ? 'Chua dat' : 'Cho chon')}</span>
-                        <div class="small text-muted">${escapeHtml(assignment.message || 'Chua co du lieu')}</div>
+                        <span class="badge bg-${assignmentColor} mb-2">${assignment.ok === true ? 'Dat' : (assignment.ok === false ? 'Chưa đạt' : 'Chờ chọn')}</span>
+                        <div class="small text-muted">${escapeHtml(assignment.message || 'Chưa có dữ liệu')}</div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="border rounded-3 p-3 h-100 bg-white">
-                        <div class="small text-uppercase fw-bold text-muted mb-2">Khung day chuan va don nghi</div>
-                        <span class="badge bg-${teachingWindowColor} mb-2">${teachingWindow.ok === true ? 'Phu hop' : (teachingWindow.ok === false ? 'Khong phu hop' : 'Cho chon')}</span>
-                        <div class="small text-muted">${escapeHtml(teachingWindow.message || 'Chua co du lieu')}</div>
+                        <div class="small text-uppercase fw-bold text-muted mb-2">Khung dạy chuẩn và đơn nghỉ</div>
+                        <span class="badge bg-${teachingWindowColor} mb-2">${teachingWindow.ok === true ? 'Phù hợp' : (teachingWindow.ok === false ? 'Không phù hợp' : 'Chờ chọn')}</span>
+                        <div class="small text-muted">${escapeHtml(teachingWindow.message || 'Chưa có dữ liệu')}</div>
                         ${matched.length ? `<div class="mt-2">${matched.map(item => `<span class="badge bg-success-subtle text-success border border-success-subtle me-1 mb-1">${escapeHtml(item.status_label || item.label)} - ${escapeHtml(item.range || item.schedule || item.time || '-')}</span>`).join('')}</div>` : ''}
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="border rounded-3 p-3 h-100 bg-white">
-                        <div class="small text-uppercase fw-bold text-muted mb-2">Xung dot</div>
-                        <span class="badge bg-${conflictColor} mb-2">${conflicts.ok === true ? 'Khong trung lich' : (conflicts.ok === false ? 'Dang trung lich' : 'Cho kiem tra')}</span>
-                        <div class="small text-muted">${escapeHtml(conflicts.message || 'Chua co du lieu')}</div>
+                        <div class="small text-uppercase fw-bold text-muted mb-2">Xung đột</div>
+                        <span class="badge bg-${conflictColor} mb-2">${conflicts.ok === true ? 'Không trùng lịch' : (conflicts.ok === false ? 'Đang trùng lịch' : 'Chờ kiểm tra')}</span>
+                        <div class="small text-muted">${escapeHtml(conflicts.message || 'Chưa có dữ liệu')}</div>
                     </div>
                 </div>
             </div>
             <div class="border rounded-3 p-3 bg-white mt-3">
-                <div class="small text-uppercase fw-bold text-muted mb-2">Goi y slot</div>
-                ${suggestions.length ? `<div class="d-flex flex-wrap gap-2">${suggestions.map(item => `<button type="button" class="btn btn-sm btn-outline-primary edit-suggestion-btn" data-date="${item.date}" data-start="${item.start_time}" data-end="${item.end_time}" data-period-start="${item.period_start || ''}" data-period-end="${item.period_end || ''}">${escapeHtml(item.date_label)} - ${escapeHtml(item.period_label || (item.start_time + ' - ' + item.end_time))}</button>`).join('')}</div>` : '<div class="small text-muted">Chua tim thay slot goi y trong 30 ngay toi.</div>'}
+                <div class="small text-uppercase fw-bold text-muted mb-2">Gợi ý slot</div>
+                ${suggestions.length ? `<div class="d-flex flex-wrap gap-2">${suggestions.map(item => `<button type="button" class="btn btn-sm btn-outline-primary edit-suggestion-btn" data-date="${item.date}" data-start="${item.start_time}" data-end="${item.end_time}" data-period-start="${item.period_start || ''}" data-period-end="${item.period_end || ''}">${escapeHtml(item.date_label)} - ${escapeHtml(item.period_label || (item.start_time + ' - ' + item.end_time))}</button>`).join('')}</div>` : '<div class="small text-muted">Chưa tìm thấy slot gợi ý trong 30 ngày tới.</div>'}
             </div>
         `;
     }
@@ -337,16 +337,16 @@ document.addEventListener('DOMContentLoaded', function () {
         };
 
         if (document.getElementById('edit-status').value === 'huy') {
-            renderPlaceholder('Buoi hoc dang o trang thai huy, he thong khong bat buoc kiem tra assignment va khung day chuan va don nghi.');
+            renderPlaceholder('Buổi học đang ở trạng thái hủy, hệ thống không bắt buộc kiểm tra assignment và khung dạy chuẩn và đơn nghỉ.');
             return;
         }
 
         if (!payload.giang_vien_id) {
-            renderPlaceholder('Chon giang vien de kiem tra planning context.');
+            renderPlaceholder('Chọn giảng viên để kiểm tra planning context.');
             return;
         }
 
-        panel.innerHTML = '<div class="small text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Dang kiem tra planning context...</div>';
+        panel.innerHTML = '<div class="small text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Đang kiểm tra planning context...</div>';
 
         try {
             const response = await fetch(`${panel.dataset.endpoint}?${new URLSearchParams(payload).toString()}`, {
@@ -362,7 +362,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             renderContext(await response.json());
         } catch (error) {
-            renderPlaceholder('Khong the tai planning context luc nay. Vui long thu lai.');
+            renderPlaceholder('Không thể tải planning context lúc này. Vui lòng thử lại.');
         }
     }
 

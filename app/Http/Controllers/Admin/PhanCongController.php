@@ -40,7 +40,7 @@ class PhanCongController extends Controller
                     'ngay_phan_cong' => now(),
                     'trang_thai'     => 'cho_xac_nhan',
                     'ghi_chu'        => $request->ghi_chu,
-                    'created_by'     => Auth::user()->ma_nguoi_dung,
+                    'created_by'     => Auth::user()->id,
                 ]
             );
 
@@ -52,7 +52,9 @@ class PhanCongController extends Controller
             return back()->with('success', 'Đã gửi yêu cầu phân công cho giảng viên.');
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->with('error', 'Lỗi: ' . $e->getMessage());
+            report($e);
+
+            return back()->with('error', 'Không thể phân công giảng viên lúc này. Vui lòng thử lại.');
         }
     }
 
@@ -99,7 +101,7 @@ class PhanCongController extends Controller
                 'ngay_phan_cong' => now(),
                 'trang_thai'     => 'cho_xac_nhan',
                 'ghi_chu'        => $request->ghi_chu,
-                'created_by'     => Auth::user()->ma_nguoi_dung,
+                'created_by'     => Auth::user()->id,
             ]);
 
             // Gửi thông báo cho GV mới
@@ -110,7 +112,9 @@ class PhanCongController extends Controller
             return back()->with('success', 'Đã thay đổi giảng viên và gửi thông báo mới.');
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->with('error', 'Lỗi: ' . $e->getMessage());
+            report($e);
+
+            return back()->with('error', 'Không thể thay đổi giảng viên lúc này. Vui lòng thử lại.');
         }
     }
 }

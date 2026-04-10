@@ -160,7 +160,7 @@
                                             <input type="checkbox" name="thu_trong_tuan[]" value="{{ $val }}" id="thu_auto_{{ $val }}" class="d-none" {{ in_array($val, [2, 4, 6]) ? 'checked' : '' }}>
                                             <label class="thu-label-box shadow-xs" for="thu_auto_{{ $val }}" data-thu="{{ $val }}" data-full-label="{{ $lbl }}" title="{{ $lbl }}">
                                                 <span class="thu-title">{{ $val === 8 ? 'CN' : 'T' . $val }}</span>
-                                                <span class="thu-state">Chua chon</span>
+                                                <span class="thu-state">Chưa chọn</span>
                                             </label>
                                         </div>
                                     @endforeach

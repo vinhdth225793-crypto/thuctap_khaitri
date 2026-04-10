@@ -51,7 +51,7 @@ class LiveRoomController extends Controller
         [, $phongHocLive] = $this->resolveAccessibleLectureAndRoom($id);
         $this->participationService->leaveRoom($phongHocLive, auth()->user());
 
-        return redirect()->route('hoc-vien.live-room.show', $id)->with('success', 'Da cap nhat trang thai roi phong.');
+        return redirect()->route('hoc-vien.live-room.show', $id)->with('success', 'Đã cập nhật trạng thái rời phòng.');
     }
 
     /**
@@ -77,11 +77,11 @@ class LiveRoomController extends Controller
 
         $enrolled = HocVienKhoaHoc::query()
             ->where('khoa_hoc_id', $baiGiang->khoa_hoc_id)
-            ->where('hoc_vien_id', auth()->user()->ma_nguoi_dung)
+            ->where('hoc_vien_id', auth()->user()->id)
             ->whereIn('trang_thai', ['dang_hoc', 'hoan_thanh'])
             ->exists();
 
-        abort_unless($enrolled, 403, 'Ban khong co quyen truy cap phong hoc live nay.');
+        abort_unless($enrolled, 403, 'Bạn không có quyền truy cập phòng học trực tuyến này.');
 
         return [$baiGiang, $baiGiang->phongHocLive];
     }

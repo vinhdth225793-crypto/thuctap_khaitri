@@ -88,7 +88,7 @@ class BaiGiangController extends Controller
                 'khoa_hoc_id' => $phanCong->khoa_hoc_id,
                 'module_hoc_id' => $phanCong->module_hoc_id,
                 'lich_hoc_id' => $lichHocId,
-                'nguoi_tao_id' => auth()->user()->ma_nguoi_dung,
+                'nguoi_tao_id' => auth()->user()->id,
                 'tieu_de' => $validated['tieu_de'],
                 'mo_ta' => $validated['mo_ta'] ?? null,
                 'loai_bai_giang' => $validated['loai_bai_giang'],
@@ -99,7 +99,7 @@ class BaiGiangController extends Controller
                 'trang_thai_cong_bo' => BaiGiang::CONG_BO_AN,
                 'ngay_gui_duyet' => in_array($lectureStatus, [BaiGiang::STATUS_DUYET_CHO, BaiGiang::STATUS_DUYET_DA_DUYET], true) ? now() : null,
                 'ngay_duyet' => $lectureStatus === BaiGiang::STATUS_DUYET_DA_DUYET ? now() : null,
-                'nguoi_duyet_id' => $lectureStatus === BaiGiang::STATUS_DUYET_DA_DUYET ? auth()->user()->ma_nguoi_dung : null,
+                'nguoi_duyet_id' => $lectureStatus === BaiGiang::STATUS_DUYET_DA_DUYET ? auth()->user()->id : null,
             ]);
 
             if ($taiNguyenPhuIds !== []) {
@@ -174,7 +174,7 @@ class BaiGiangController extends Controller
                     : BaiGiang::CONG_BO_AN,
                 'ngay_gui_duyet' => in_array($lectureStatus, [BaiGiang::STATUS_DUYET_CHO, BaiGiang::STATUS_DUYET_DA_DUYET], true) ? now() : null,
                 'ngay_duyet' => $lectureStatus === BaiGiang::STATUS_DUYET_DA_DUYET ? now() : null,
-                'nguoi_duyet_id' => $lectureStatus === BaiGiang::STATUS_DUYET_DA_DUYET ? auth()->user()->ma_nguoi_dung : null,
+                'nguoi_duyet_id' => $lectureStatus === BaiGiang::STATUS_DUYET_DA_DUYET ? auth()->user()->id : null,
             ]);
 
             $baiGiang->taiNguyenPhu()->sync($taiNguyenPhuIds);
@@ -183,8 +183,8 @@ class BaiGiangController extends Controller
         });
 
         $message = $lectureStatus === BaiGiang::STATUS_DUYET_DA_DUYET
-            ? 'Da cap nhat bai giang va duyet ngay.'
-            : 'Da cap nhat bai giang nhap.';
+            ? 'Đã cập nhật bài giảng và duyệt ngay.'
+            : 'Đã cập nhật bài giảng nháp.';
 
         return redirect()->route('admin.bai-giang.index')->with('success', $message);
     }
@@ -222,7 +222,7 @@ class BaiGiangController extends Controller
             auth()->user()
         );
 
-        return back()->with('success', 'Da cap nhat trang thai phe duyet bai giang.');
+        return back()->with('success', 'Đã cập nhật trạng thái phê duyệt bài giảng.');
     }
 
     public function congBo(Request $request, $id)
@@ -363,6 +363,6 @@ class BaiGiangController extends Controller
             ->where('trang_thai', true)
             ->whereIn('vai_tro', ['admin', 'giang_vien'])
             ->orderBy('ho_ten')
-            ->get(['ma_nguoi_dung', 'ho_ten', 'vai_tro']);
+            ->get(['id', 'ho_ten', 'vai_tro']);
     }
 }

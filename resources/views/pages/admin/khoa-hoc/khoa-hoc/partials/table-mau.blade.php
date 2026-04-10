@@ -76,5 +76,5 @@
 @endforelse
 
 <div class="p-3 border-top d-flex justify-content-center">
-    {{ $data->appends(['tab' => $tab, 'search' => $search])->links('pagination::bootstrap-5') }}
+    {{ $data->appends(request()->query())->links('pagination::bootstrap-5') }}
 </div>

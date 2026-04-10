@@ -135,15 +135,12 @@ class TeacherScheduleViewService
                     ->sortByDesc('created_at')
                     ->values();
                 $latestLeaveRequest = $matchedLeaveRequests->first();
-                $specificKey = (int) $schedule->khoa_hoc_id . ':' . ($schedule->module_hoc_id !== null ? (int) $schedule->module_hoc_id : '*');
-                $fallbackKey = (int) $schedule->khoa_hoc_id . ':*';
-
-                $assignmentId = $assignmentMap[$specificKey] ?? $assignmentMap[$fallbackKey] ?? null;
-
                 return [
                     'id' => $schedule->id,
-                    'assignment_id' => $assignmentId,
-                    'course_id' => $assignmentId ?? $schedule->khoa_hoc_id,
+                    'assignment_id' => $assignmentMap[(int) $schedule->khoa_hoc_id . ':' . ($schedule->module_hoc_id !== null ? (int) $schedule->module_hoc_id : '*')]
+                        ?? $assignmentMap[(int) $schedule->khoa_hoc_id . ':*']
+                        ?? null,
+                    'course_id' => (int) $schedule->khoa_hoc_id,
                     'khoa_hoc_id' => $schedule->khoa_hoc_id,
                     'module_id' => $schedule->module_hoc_id,
                     'date' => $schedule->ngay_hoc?->toDateString(),
@@ -170,10 +167,10 @@ class TeacherScheduleViewService
                     
                     // Quick Action Links
                     'routes' => [
-                        'show_course' => $this->buildTeacherSessionActionUrl($assignmentId, (int) $schedule->khoa_hoc_id, (int) $schedule->id),
-                        'attendance' => $this->buildTeacherSessionActionUrl($assignmentId, (int) $schedule->khoa_hoc_id, (int) $schedule->id, 'attendance'),
-                        'resources' => $this->buildTeacherSessionActionUrl($assignmentId, (int) $schedule->khoa_hoc_id, (int) $schedule->id, 'resources'),
-                        'exams' => $this->buildTeacherSessionActionUrl($assignmentId, (int) $schedule->khoa_hoc_id, (int) $schedule->id, 'exams'),
+                        'show_course' => $this->buildTeacherSessionActionUrl((int) $schedule->khoa_hoc_id, (int) $schedule->id),
+                        'attendance' => $this->buildTeacherSessionActionUrl((int) $schedule->khoa_hoc_id, (int) $schedule->id, 'attendance'),
+                        'resources' => $this->buildTeacherSessionActionUrl((int) $schedule->khoa_hoc_id, (int) $schedule->id, 'resources'),
+                        'exams' => $this->buildTeacherSessionActionUrl((int) $schedule->khoa_hoc_id, (int) $schedule->id, 'exams'),
                         'leave_request' => route('giang-vien.don-xin-nghi.create', ['lich_hoc_id' => $schedule->id]),
                     ],
                     
@@ -187,10 +184,10 @@ class TeacherScheduleViewService
             ->values();
     }
 
-    private function buildTeacherSessionActionUrl(?int $assignmentId, int $courseId, int $scheduleId, ?string $quickAction = null): string
+    private function buildTeacherSessionActionUrl(int $courseId, int $scheduleId, ?string $quickAction = null): string
     {
         $params = [
-            'id' => $assignmentId ?? $courseId,
+            'id' => $courseId,
             'focus_lich_hoc_id' => $scheduleId,
         ];
 

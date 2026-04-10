@@ -119,7 +119,7 @@
                                     <form action="{{ route('giang-vien.buoi-hoc.start', $lich->id) }}" method="POST" class="d-inline">
                                         @csrf
                                         <button type="submit" class="btn btn-xs btn-primary fw-bold shadow-sm px-3">
-                                            <i class="fas fa-play-circle me-1"></i> Bắt đầu ngay
+                                            <i class="fas fa-play-circle me-1"></i> Bắt đầu buổi học
                                         </button>
                                     </form>
                                 @elseif($sessionStatus['can_finish'])

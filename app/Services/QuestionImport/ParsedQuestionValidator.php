@@ -80,6 +80,11 @@ class ParsedQuestionValidator
     private function buildPreviewRow(array $parsedQuestion): array
     {
         $question = trim((string) ($parsedQuestion['noi_dung'] ?? ''));
+        $questionType = (string) ($parsedQuestion['loai'] ?? NganHangCauHoi::LOAI_TRAC_NGHIEM);
+        if (!in_array($questionType, [NganHangCauHoi::LOAI_TRAC_NGHIEM, NganHangCauHoi::LOAI_TU_LUAN], true)) {
+            $questionType = NganHangCauHoi::LOAI_TRAC_NGHIEM;
+        }
+
         $answers = collect($parsedQuestion['dap_an'] ?? [])
             ->map(function (array $answer, int $index) {
                 return [
@@ -94,16 +99,17 @@ class ParsedQuestionValidator
         $validationStatus = (string) ($parsedQuestion['trang_thai_parse'] ?? self::STATUS_VALID);
         $note = $parsedQuestion['ghi_chu_loi'] ?? null;
         $fallbackCorrectDisplay = $this->resolveFallbackCorrectDisplay($parsedQuestion);
+        $goiYTraLoi = trim((string) ($parsedQuestion['goi_y_tra_loi'] ?? ''));
 
         if ($validationStatus === self::STATUS_VALID) {
-            [$answers, $validationStatus, $note] = $this->resolveCorrectAnswerSignals($answers, $parsedQuestion);
+            if ($questionType === NganHangCauHoi::LOAI_TU_LUAN) {
+                [$validationStatus, $note] = $this->validateStructuredQuestion($question, $answers, $questionType);
+            } else {
+                [$answers, $validationStatus, $note] = $this->resolveCorrectAnswerSignals($answers, $parsedQuestion);
 
-            if ($validationStatus === self::STATUS_VALID) {
-                [$validationStatus, $note] = $this->validateStructuredQuestion(
-                    $question,
-                    $answers,
-                    (string) ($parsedQuestion['loai'] ?? NganHangCauHoi::LOAI_TRAC_NGHIEM)
-                );
+                if ($validationStatus === self::STATUS_VALID) {
+                    [$validationStatus, $note] = $this->validateStructuredQuestion($question, $answers, $questionType);
+                }
             }
         }
 
@@ -115,13 +121,18 @@ class ParsedQuestionValidator
         return [
             'line' => (int) ($parsedQuestion['line'] ?? $parsedQuestion['so_thu_tu'] ?? 0),
             'noi_dung_cau_hoi' => $question,
+            'loai_cau_hoi' => $questionType,
+            'loai_cau_hoi_label' => $questionType === NganHangCauHoi::LOAI_TU_LUAN ? 'Tự luận' : 'Trắc nghiệm',
             'answers' => $answers,
             'answers_display' => array_map(fn (array $answer) => $answer['noi_dung'], $answers),
-            'dap_an_dung' => $correctAnswers->count() === 1 ? $correctAnswers->first() : $fallbackCorrectDisplay,
+            'dap_an_dung' => $questionType === NganHangCauHoi::LOAI_TU_LUAN
+                ? 'Giảng viên chấm tay'
+                : ($correctAnswers->count() === 1 ? $correctAnswers->first() : $fallbackCorrectDisplay),
             'status' => $validationStatus === self::STATUS_VALID ? self::STATUS_VALID : self::STATUS_INVALID,
             'validation_status' => $validationStatus,
             'note' => $note,
-            'import_answers' => $validationStatus === self::STATUS_VALID ? $answers : [],
+            'import_answers' => $validationStatus === self::STATUS_VALID && $questionType === NganHangCauHoi::LOAI_TRAC_NGHIEM ? $answers : [],
+            'goi_y_tra_loi' => $goiYTraLoi !== '' ? $goiYTraLoi : null,
             'nguon_file' => $parsedQuestion['nguon_file'] ?? null,
         ];
     }
@@ -288,12 +299,12 @@ class ParsedQuestionValidator
      */
     private function validateStructuredQuestion(string $question, array $answers, string $questionType): array
     {
-        if ($questionType !== NganHangCauHoi::LOAI_TRAC_NGHIEM) {
-            return ['khong_ho_tro_loai_cau_hoi', 'Hệ thống hiện tại chỉ hỗ trợ import câu hỏi trắc nghiệm từ tài liệu.'];
-        }
-
         if ($question === '') {
             return ['thieu_cau_hoi', 'Thiếu nội dung câu hỏi.'];
+        }
+
+        if ($questionType === NganHangCauHoi::LOAI_TU_LUAN) {
+            return [self::STATUS_VALID, null];
         }
 
         if ($answers === []) {

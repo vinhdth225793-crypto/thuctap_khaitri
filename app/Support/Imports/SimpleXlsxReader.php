@@ -20,12 +20,12 @@ class SimpleXlsxReader
     public function readSheetRows(string $filePath, string $sheetName): array
     {
         if (!is_file($filePath)) {
-            throw new RuntimeException('Khong tim thay file import Excel.');
+            throw new RuntimeException('Không tìm thấy tệp import Excel.');
         }
 
         $zip = new ZipArchive();
         if ($zip->open($filePath) !== true) {
-            throw new RuntimeException('Khong the mo file Excel de doc du lieu.');
+            throw new RuntimeException('Không thể mở tệp Excel để đọc dữ liệu.');
         }
 
         try {
@@ -115,7 +115,7 @@ class SimpleXlsxReader
             return $worksheetPath;
         }
 
-        throw new RuntimeException("Khong tim thay sheet {$sheetName} trong file Excel.");
+        throw new RuntimeException("Không tìm thấy sheet {$sheetName} trong tệp Excel.");
     }
 
     /**
@@ -126,7 +126,7 @@ class SimpleXlsxReader
     {
         $content = $zip->getFromName($worksheetPath);
         if ($content === false) {
-            throw new RuntimeException('Khong the doc du lieu sheet trong file Excel.');
+            throw new RuntimeException('Không thể đọc dữ liệu sheet trong tệp Excel.');
         }
 
         $document = $this->loadDocument($content, 'worksheet');
@@ -215,7 +215,7 @@ class SimpleXlsxReader
         $document->preserveWhiteSpace = false;
 
         if (!@$document->loadXML($xmlContent)) {
-            throw new RuntimeException("Khong the phan tich {$label} trong file Excel.");
+            throw new RuntimeException("Không thể phân tích {$label} trong tệp Excel.");
         }
 
         return $document;

@@ -257,7 +257,7 @@
                                             <div class="fw-bold text-dark">{{ $module->ten_module }}</div>
                                             <div class="smaller text-muted italic">{{ Str::limit($module->mo_ta, 60) }}</div>
                                         </td>
-                                        <td class="text-center">{{ $module->thoi_luong_du_kien }}p</td>
+                                        <td class="text-center">{{ $module->thoi_luong_du_kien_label }}</td>
                                         <td class="text-center">
                                             <div class="d-flex flex-column align-items-center gap-1">
                                                 <span class="badge bg-{{ $module->trang_thai_hoc_tap_badge }}-soft text-{{ $module->trang_thai_hoc_tap_badge }} border border-{{ $module->trang_thai_hoc_tap_badge }}">

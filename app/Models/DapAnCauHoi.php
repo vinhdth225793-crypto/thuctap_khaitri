@@ -13,22 +13,18 @@ class DapAnCauHoi extends Model
     protected $table = 'dap_an_cau_hoi';
 
     protected $fillable = [
-        'ngan_hang_cau_hoi_id',
-        'ky_hieu',
-        'noi_dung',
-        'is_dap_an_dung',
-        'thu_tu',
+        'cau_hoi_id',
+        'noi_dung_dap_an',
+        'la_dap_an_dung',
+        'giai_thich',
     ];
 
     protected $casts = [
-        'is_dap_an_dung' => 'boolean',
-        'thu_tu' => 'integer',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'la_dap_an_dung' => 'boolean',
     ];
 
     public function cauHoi(): BelongsTo
     {
-        return $this->belongsTo(NganHangCauHoi::class, 'ngan_hang_cau_hoi_id');
+        return $this->belongsTo(CauHoi::class, 'cau_hoi_id');
     }
 }

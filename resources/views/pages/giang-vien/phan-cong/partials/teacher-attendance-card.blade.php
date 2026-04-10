@@ -12,12 +12,12 @@
             'duration_minutes' => $teacherAttendance?->tong_thoi_luong_day_phut,
             'can_check_in' => !$teacherAttendance?->has_checked_in,
             'can_check_out' => ($teacherAttendance?->has_checked_in ?? false) && !$teacherAttendance?->has_checked_out,
-            'status_hint' => $teacherAttendance?->status_hint ?? 'Giảng viên chưa thực hiện attendance cho buổi học này.',
+            'status_hint' => $teacherAttendance?->status_hint ?? 'Giảng viên chưa thực hiện điểm danh cho buổi học này.',
             'log_hint' => null,
             'is_completed' => (bool) ($teacherAttendance?->has_checked_out ?? false),
         ];
     $studentAttendanceStatus = $timelineItem['studentAttendanceStatus'] ?? [
-        'label' => 'Chưa chốt attendance',
+        'label' => 'Chưa chốt điểm danh',
         'color' => 'secondary',
         'total_students' => $phanCong->khoaHoc->hocVienKhoaHocs->count(),
         'marked_students' => $lich->diemDanhs->count(),
@@ -27,7 +27,7 @@
         'excused_count' => $lich->diemDanhs->where('trang_thai', 'co_phep')->count(),
         'can_manage' => true,
         'is_finalized' => false,
-        'status_hint' => 'Giảng viên có thể cập nhật attendance nhiều lần trong buổi học rồi chốt lại khi hoàn tất.',
+        'status_hint' => 'Giảng viên có thể cập nhật điểm danh nhiều lần trong buổi học rồi chốt lại khi hoàn tất.',
     ];
     $assignedTeacher = $lich->assigned_teacher;
     $studentCount = $phanCong->khoaHoc->hocVienKhoaHocs->count();
@@ -80,7 +80,7 @@
 
         <div class="session-note mt-3 p-3">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
-                <span class="fw-bold text-dark smaller">Attendance giảng viên</span>
+                <span class="fw-bold text-dark smaller">Điểm danh giảng viên</span>
                 <span class="badge bg-{{ $attendanceStatus['color'] }}-soft text-{{ $attendanceStatus['color'] }} border-0 fw-bold">
                     {{ $attendanceStatus['label'] }}
                 </span>

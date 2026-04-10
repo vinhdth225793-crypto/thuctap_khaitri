@@ -66,7 +66,7 @@ class TeacherScheduleConflictService
             return null;
         }
 
-        $teacherName = $firstConflict->giangVien?->nguoiDung?->ho_ten ?? 'Giang vien duoc chon';
+        $teacherName = $firstConflict->giangVien?->nguoiDung?->ho_ten ?? 'Giảng viên được chọn';
         $courseCode = $firstConflict->khoaHoc?->ma_khoa_hoc ?? 'N/A';
         $moduleName = $firstConflict->moduleHoc?->ten_module ?? 'N/A';
         $date = $firstConflict->ngay_hoc?->format('d/m/Y') ?? 'N/A';
@@ -74,6 +74,6 @@ class TeacherScheduleConflictService
         $startTime = substr((string) $firstConflict->gio_bat_dau, 0, 5);
         $endTime = substr((string) $firstConflict->gio_ket_thuc, 0, 5);
 
-        return "Giang vien {$teacherName} da co lich day o khoa hoc {$courseCode} / module {$moduleName} vao ngay {$date}, {$periodLabel} ({$startTime} - {$endTime}).";
+        return "Giảng viên {$teacherName} đã có lịch dạy ở khóa học {$courseCode} / module {$moduleName} vào ngày {$date}, {$periodLabel} ({$startTime} - {$endTime}).";
     }
 }

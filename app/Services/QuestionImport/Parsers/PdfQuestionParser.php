@@ -23,14 +23,14 @@ class PdfQuestionParser implements QuestionFileParser
         $content = @file_get_contents($file->getRealPath());
         if ($content === false || trim($content) === '') {
             throw ValidationException::withMessages([
-                'file_import' => 'Khong the doc file PDF da tai len.',
+                'file_import' => 'Không thể đọc tệp PDF đã tải lên.',
             ]);
         }
 
         $text = $this->extractTextFromPdf($content);
         if (trim($text) === '') {
             throw ValidationException::withMessages([
-                'file_import' => 'PDF hien chi ho tro file text-based. File nay co the la PDF scan/image-only hoac khong trich xuat duoc text.',
+                'file_import' => 'PDF hiện chỉ hỗ trợ tệp text-based. Tệp này có thể là PDF scan/image-only hoặc không trích xuất được văn bản.',
             ]);
         }
 
@@ -52,7 +52,7 @@ class PdfQuestionParser implements QuestionFileParser
         $questions = $this->textPatternParser->parseBlocks($blocks, 'pdf');
         if ($questions === []) {
             throw ValidationException::withMessages([
-                'file_import' => 'Khong nhan dien duoc cau hoi trac nghiem tu PDF text. PDF scan/image-only hien chua duoc ho tro OCR.',
+                'file_import' => 'Không nhận diện được câu hỏi trắc nghiệm từ PDF text. PDF scan/image-only hiện chưa được hỗ trợ OCR.',
             ]);
         }
 

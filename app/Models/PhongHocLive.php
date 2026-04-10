@@ -182,13 +182,13 @@ class PhongHocLive extends Model
     public function getTimelineTrangThaiLabelAttribute(): string
     {
         return match ($this->timeline_trang_thai) {
-            'chua_den_gio' => 'Chua den gio',
-            'sap_bat_dau' => 'Sap bat dau',
-            'cho_moderator' => 'Cho moderator bat dau',
-            self::ROOM_STATE_DANG_DIEN_RA => 'Dang dien ra',
-            self::ROOM_STATE_DA_KET_THUC => 'Da ket thuc',
-            self::ROOM_STATE_DA_HUY => 'Da huy',
-            default => 'Chua xac dinh',
+            'chua_den_gio' => 'Chưa đến giờ',
+            'sap_bat_dau' => 'Sắp bắt đầu',
+            'cho_moderator' => 'Chờ người điều phối bắt đầu',
+            self::ROOM_STATE_DANG_DIEN_RA => 'Đang diễn ra',
+            self::ROOM_STATE_DA_KET_THUC => 'Đã kết thúc',
+            self::ROOM_STATE_DA_HUY => 'Đã hủy',
+            default => 'Chưa xác định',
         };
     }
 
@@ -233,13 +233,13 @@ class PhongHocLive extends Model
     public function getStatusHintAttribute(): string
     {
         return match ($this->timeline_trang_thai) {
-            'chua_den_gio' => 'Phong hoc live chua mo. Ban co the vao som truoc gio bat dau theo cau hinh.',
-            'sap_bat_dau' => 'Phong hoc sap mo. Ban co the chuan bi tham gia.',
-            'cho_moderator' => 'Moderator chua bat dau buoi hoc. Vui long doi.',
-            self::ROOM_STATE_DANG_DIEN_RA => 'Buoi hoc dang dien ra. Ban co the vao phong ngay bay gio.',
-            self::ROOM_STATE_DA_KET_THUC => 'Buoi hoc da ket thuc. Xem ban ghi neu co.',
-            self::ROOM_STATE_DA_HUY => 'Buoi hoc da bi huy.',
-            default => 'Thong tin phong hoc dang duoc cap nhat.',
+            'chua_den_gio' => 'Phòng học trực tuyến chưa mở. Bạn có thể vào sớm trước giờ bắt đầu theo cấu hình.',
+            'sap_bat_dau' => 'Phòng học sắp mở. Bạn có thể chuẩn bị tham gia.',
+            'cho_moderator' => 'Người điều phối chưa bắt đầu buổi học. Vui lòng chờ.',
+            self::ROOM_STATE_DANG_DIEN_RA => 'Buổi học đang diễn ra. Bạn có thể vào phòng ngay bây giờ.',
+            self::ROOM_STATE_DA_KET_THUC => 'Buổi học đã kết thúc. Xem bản ghi nếu có.',
+            self::ROOM_STATE_DA_HUY => 'Buổi học đã bị hủy.',
+            default => 'Thông tin phòng học đang được cập nhật.',
         };
     }
 
@@ -260,9 +260,9 @@ class PhongHocLive extends Model
     public function getTeachingTimelineStatusLabelAttribute(): string
     {
         return match ($this->teaching_timeline_status) {
-            'dang_dien_ra' => 'Dang dien ra',
-            'da_ket_thuc' => 'Da ket thuc',
-            default => 'Da tao',
+            'dang_dien_ra' => 'Đang diễn ra',
+            'da_ket_thuc' => 'Đã kết thúc',
+            default => 'Đã tạo',
         };
     }
 

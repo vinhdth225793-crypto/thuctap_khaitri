@@ -44,7 +44,7 @@ class ThuVienController extends Controller
             'trang_thai_duyet' => $validated['trang_thai_duyet'],
             'ghi_chu_admin' => $validated['ghi_chu_admin'],
             'ngay_duyet' => now(),
-            'nguoi_duyet_id' => auth()->user()->ma_nguoi_dung,
+            'nguoi_duyet_id' => auth()->user()->id,
         ]);
 
         return back()->with('success', 'Đã cập nhật trạng thái phê duyệt tài nguyên.');
