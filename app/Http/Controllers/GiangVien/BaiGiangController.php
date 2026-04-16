@@ -133,6 +133,16 @@ class BaiGiangController extends Controller
             ? 'Đã lưu bài giảng và gửi admin duyệt.'
             : 'Đã lưu bài giảng thành công.';
 
+        if ($phanCong && $lichHocId) {
+            return redirect()
+                ->route('giang-vien.khoa-hoc.show', [
+                    'id' => $phanCong->khoa_hoc_id,
+                    'focus_lich_hoc_id' => $lichHocId,
+                    'quick_action' => 'lecture',
+                ])
+                ->with('success', $message);
+        }
+
         return redirect()->route('giang-vien.bai-giang.index')->with('success', $message);
     }
 
@@ -232,6 +242,16 @@ class BaiGiangController extends Controller
             ? 'Đã cập nhật bài giảng và gửi admin duyệt.'
             : 'Đã cập nhật bài giảng.';
 
+        if ($phanCong && $lichHocId) {
+            return redirect()
+                ->route('giang-vien.khoa-hoc.show', [
+                    'id' => $phanCong->khoa_hoc_id,
+                    'focus_lich_hoc_id' => $lichHocId,
+                    'quick_action' => 'lecture',
+                ])
+                ->with('success', $message);
+        }
+
         return redirect()->route('giang-vien.bai-giang.index')->with('success', $message);
     }
 
@@ -261,10 +281,23 @@ class BaiGiangController extends Controller
         return back()->with('success', 'Đã gửi yêu cầu duyệt bài giảng.');
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $baiGiang = BaiGiang::where('nguoi_tao_id', auth()->user()->id)->findOrFail($id);
+        $khoaHocId = $baiGiang->khoa_hoc_id;
+        $lichHocId = $baiGiang->lich_hoc_id;
+
         $baiGiang->delete();
+
+        if ($request->query('redirect_to_session') === '1' && $khoaHocId && $lichHocId) {
+            return redirect()
+                ->route('giang-vien.khoa-hoc.show', [
+                    'id' => $khoaHocId,
+                    'focus_lich_hoc_id' => $lichHocId,
+                    'quick_action' => 'lecture',
+                ])
+                ->with('success', 'Đã xóa bài giảng.');
+        }
 
         return redirect()->route('giang-vien.bai-giang.index')->with('success', 'Đã xóa bài giảng.');
     }
@@ -400,6 +433,6 @@ class BaiGiangController extends Controller
             ->where('trang_thai', true)
             ->whereIn('vai_tro', ['admin', 'giang_vien'])
             ->orderBy('ho_ten')
-            ->get(['id', 'ho_ten', 'vai_tro']);
+            ->get(['ma_nguoi_dung as id', 'ho_ten', 'vai_tro']);
     }
 }

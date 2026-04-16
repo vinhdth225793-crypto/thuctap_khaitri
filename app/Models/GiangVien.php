@@ -17,6 +17,7 @@ class GiangVien extends Model
         'nguoi_dung_id',
         'chuyen_nganh',
         'hoc_vi',
+        'so_gio_day',
         'mo_ta_ngan',
         'avatar_url',
         'hien_thi_trang_chu',
@@ -28,16 +29,31 @@ class GiangVien extends Model
 
     public function nguoiDung(): BelongsTo
     {
-        return $this->belongsTo(NguoiDung::class, 'nguoi_dung_id');
+        return $this->belongsTo(NguoiDung::class, 'nguoi_dung_id', 'ma_nguoi_dung');
     }
 
     public function phanCongs(): HasMany
     {
-        return $this->hasMany(PhanCongGiangVien::class, 'giang_vien_id');
+        return $this->phanCongModules();
+    }
+
+    public function phanCongModules(): HasMany
+    {
+        return $this->hasMany(PhanCongModuleGiangVien::class, 'giang_vien_id');
+    }
+
+    public function donXinNghis(): HasMany
+    {
+        return $this->hasMany(GiangVienDonXinNghi::class, 'giang_vien_id');
     }
 
     public function lichHocs(): HasMany
     {
         return $this->hasMany(LichHoc::class, 'giang_vien_id');
+    }
+
+    public function scopeHienThiTrangChu($query)
+    {
+        return $query->where('hien_thi_trang_chu', true);
     }
 }

@@ -129,7 +129,7 @@
 @push('styles')
 <style>
     :root {
-        --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --gradient-primary: linear-gradient(135deg, #4361ee 0%, #2f46c9 100%);
     }
 
     .bg-gradient-primary {

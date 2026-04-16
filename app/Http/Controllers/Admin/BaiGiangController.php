@@ -363,6 +363,6 @@ class BaiGiangController extends Controller
             ->where('trang_thai', true)
             ->whereIn('vai_tro', ['admin', 'giang_vien'])
             ->orderBy('ho_ten')
-            ->get(['id', 'ho_ten', 'vai_tro']);
+            ->get(['ma_nguoi_dung as id', 'ho_ten', 'vai_tro']);
     }
 }

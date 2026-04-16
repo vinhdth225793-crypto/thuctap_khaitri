@@ -285,7 +285,7 @@ class LichHocController extends Controller
 
             report($exception);
 
-            return back()->with('error', 'Không thể tạo lịch học lúc này. Vui lòng thử lại.');
+            return back()->with('error', 'Lỗi: ' . $exception->getMessage());
         }
     }
 

@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use App\Models\BaiGiang;
 use App\Models\BaiKiemTra;
@@ -49,24 +50,42 @@ class AppServiceProvider extends ServiceProvider
 
             if (auth()->check() && auth()->user()->isAdmin()) {
                 $pendingApprovalCounts = [
-                    'tai_khoan' => TaiKhoanChoPheDuyet::query()
-                        ->where('trang_thai', 'cho_phe_duyet')
-                        ->count(),
-                    'tai_nguyen' => TaiNguyenBuoiHoc::query()
-                        ->where('trang_thai_duyet', TaiNguyenBuoiHoc::STATUS_DUYET_CHO)
-                        ->count(),
-                    'bai_giang' => BaiGiang::query()
-                        ->where('trang_thai_duyet', BaiGiang::STATUS_DUYET_CHO)
-                        ->count(),
-                    'de_thi' => BaiKiemTra::query()
-                        ->where('trang_thai_duyet', 'cho_duyet')
-                        ->count(),
-                    'don_nghi' => GiangVienDonXinNghi::query()
-                        ->where('trang_thai', GiangVienDonXinNghi::TRANG_THAI_CHO_DUYET)
-                        ->count(),
-                    'yeu_cau_hoc_vien' => YeuCauHocVien::query()
-                        ->where('trang_thai', 'cho_duyet')
-                        ->count(),
+                    'tai_khoan' => $this->countWhereIfTableReady(
+                        TaiKhoanChoPheDuyet::class,
+                        'tai_khoan_cho_phe_duyet',
+                        'trang_thai',
+                        'cho_phe_duyet'
+                    ),
+                    'tai_nguyen' => $this->countWhereIfTableReady(
+                        TaiNguyenBuoiHoc::class,
+                        'tai_nguyen_buoi_hoc',
+                        'trang_thai_duyet',
+                        TaiNguyenBuoiHoc::STATUS_DUYET_CHO
+                    ),
+                    'bai_giang' => $this->countWhereIfTableReady(
+                        BaiGiang::class,
+                        'bai_giangs',
+                        'trang_thai_duyet',
+                        BaiGiang::STATUS_DUYET_CHO
+                    ),
+                    'de_thi' => $this->countWhereIfTableReady(
+                        BaiKiemTra::class,
+                        'bai_kiem_tra',
+                        'trang_thai_duyet',
+                        'cho_duyet'
+                    ),
+                    'don_nghi' => $this->countWhereIfTableReady(
+                        GiangVienDonXinNghi::class,
+                        'giang_vien_don_xin_nghi',
+                        'trang_thai',
+                        GiangVienDonXinNghi::TRANG_THAI_CHO_DUYET
+                    ),
+                    'yeu_cau_hoc_vien' => $this->countWhereIfTableReady(
+                        YeuCauHocVien::class,
+                        'yeu_cau_hoc_vien',
+                        'trang_thai',
+                        'cho_duyet'
+                    ),
                 ];
             }
 
@@ -88,6 +107,14 @@ class AppServiceProvider extends ServiceProvider
             }
 
             $userId = auth()->id();
+            if (! Schema::hasTable('thong_bao') || ! Schema::hasColumn('thong_bao', 'nguoi_nhan_id')) {
+                $view->with([
+                    'headerNotificationCount' => 0,
+                    'headerRecentNotifications' => collect(),
+                ]);
+
+                return;
+            }
 
             $view->with([
                 'headerNotificationCount' => ThongBao::query()
@@ -101,5 +128,16 @@ class AppServiceProvider extends ServiceProvider
                     ->get(),
             ]);
         });
+    }
+
+    private function countWhereIfTableReady(string $modelClass, string $table, string $column, mixed $value): int
+    {
+        if (! Schema::hasTable($table) || ! Schema::hasColumn($table, $column)) {
+            return 0;
+        }
+
+        return $modelClass::query()
+            ->where($column, $value)
+            ->count();
     }
 }

@@ -53,24 +53,15 @@ class TeacherScheduleLiveRoomService
 
         $room = $lecture->phongHocLive;
 
-        if (!$room || $room->nen_tang_live !== PhongHocLive::PLATFORM_INTERNAL) {
+        if (!$room || $room->nen_tang !== PhongHocLive::PLATFORM_INTERNAL) {
             $room = $this->liveLectureService->syncLiveRoom($lecture, [
                 'loai_bai_giang' => BaiGiang::TYPE_LIVE,
                 'hanh_dong' => 'luu_nhap',
                 'live' => [
                     'nen_tang_live' => PhongHocLive::PLATFORM_INTERNAL,
-                    'loai_live' => PhongHocLive::TYPE_CLASS,
                     'tieu_de' => $this->buildRoomTitle($lichHoc),
-                    'mo_ta' => $this->buildRoomDescription($lichHoc),
-                    'moderator_id' => $giangVien->nguoi_dung_id,
                     'thoi_gian_bat_dau' => $lichHoc->starts_at ?? now(),
                     'thoi_luong_phut' => $this->resolveRoomDuration($lichHoc),
-                    'mo_phong_truoc_phut' => config('live_room.defaults.open_before_minutes', 15),
-                    'nhac_truoc_phut' => config('live_room.defaults.reminder_minutes', 10),
-                    'cho_phep_chat' => true,
-                    'cho_phep_thao_luan' => true,
-                    'tat_mic_khi_vao' => true,
-                    'tat_camera_khi_vao' => true,
                     'room_code' => $this->buildRoomCode($lichHoc),
                     'room_scope' => 'teacher_schedule',
                     'security_note' => 'Phòng học trực tuyến nội bộ dành cho buổi học này. Có thể nâng cấp sang WebRTC/Jitsi trong giai đoạn sau.',
@@ -88,7 +79,7 @@ class TeacherScheduleLiveRoomService
                 ->filter(function (BaiGiang $lecture) {
                     return $lecture->isLive()
                         && $lecture->phongHocLive
-                        && $lecture->phongHocLive->nen_tang_live === PhongHocLive::PLATFORM_INTERNAL;
+                        && $lecture->phongHocLive->nen_tang === PhongHocLive::PLATFORM_INTERNAL;
                 })
                 ->sortByDesc('id')
                 ->first();
@@ -98,7 +89,7 @@ class TeacherScheduleLiveRoomService
             ->with('phongHocLive')
             ->where('loai_bai_giang', BaiGiang::TYPE_LIVE)
             ->whereHas('phongHocLive', function ($query) {
-                $query->where('nen_tang_live', PhongHocLive::PLATFORM_INTERNAL);
+                $query->where('nen_tang', PhongHocLive::PLATFORM_INTERNAL);
             })
             ->latest('id')
             ->first();

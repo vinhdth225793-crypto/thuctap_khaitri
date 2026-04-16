@@ -9,7 +9,7 @@ class DiemDanh extends Model
 {
     use HasFactory;
 
-    protected $table = 'diem_danh';
+    protected $table = 'diem_danh_hoc_vien';
 
     protected $fillable = [
         'lich_hoc_id',
@@ -25,6 +25,11 @@ class DiemDanh extends Model
 
     public function hocVien()
     {
-        return $this->belongsTo(NguoiDung::class, 'hoc_vien_id', 'ma_nguoi_dung');
+        return $this->belongsTo(HocVien::class, 'hoc_vien_id');
+    }
+
+    public function getHoTenAttribute()
+    {
+        return $this->hocVien?->nguoiDung?->ho_ten;
     }
 }

@@ -36,11 +36,11 @@ class HocVienKhoaHoc extends Model
     }
 
     /**
-     * Relationship: Là một người dùng (học viên)
+     * Relationship: Là một học viên
      */
     public function hocVien(): BelongsTo
     {
-        return $this->belongsTo(NguoiDung::class, 'hoc_vien_id', 'ma_nguoi_dung');
+        return $this->belongsTo(HocVien::class, 'hoc_vien_id');
     }
 
     /**

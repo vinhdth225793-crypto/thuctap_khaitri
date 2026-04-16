@@ -14,6 +14,14 @@ use Illuminate\Support\Facades\DB;
 class PhanCongController extends Controller
 {
     /**
+     * Trang theo dõi phân công giảng viên.
+     */
+    public function index()
+    {
+        return redirect()->route('admin.module-hoc.index');
+    }
+
+    /**
      * Phân công giảng viên cho module
      */
     public function assign(Request $request, $moduleId)

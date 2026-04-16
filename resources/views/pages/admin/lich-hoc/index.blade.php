@@ -720,6 +720,15 @@ document.addEventListener('DOMContentLoaded', function() {
             ngayBatDauInput.min = this.dataset.minDate;
             
             populateTeachers('auto-teacher-id', JSON.parse(this.dataset.teachers));
+
+            // Set default session (toi)
+            const def = SESSIONS['toi'];
+            document.getElementById('auto-tiet-bat-dau').value = def.start;
+            document.getElementById('auto-tiet-ket-thuc').value = def.end;
+            document.getElementById('auto-buoi-hoc').value = 'toi';
+            document.getElementById('auto-time-preview').value = `${def.label} | Tiết ${def.start}-${def.end}`;
+            document.getElementById('auto-start-time').value = def.start_time || '';
+            document.getElementById('auto-end-time').value = def.end_time || '';
             
             // Đánh dấu các Thứ đã có lịch học
             currentExistingDays = normalizeThuValues(JSON.parse(this.dataset.existingDays || '[]'));
@@ -777,6 +786,14 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('single-date').value = this.dataset.minDate;
             document.getElementById('single-date').min = this.dataset.minDate;
             populateTeachers('single-teacher-id', JSON.parse(this.dataset.teachers));
+
+            // Set default session (toi)
+            const def = SESSIONS['toi'];
+            document.getElementById('single-tiet-bat-dau').value = def.start;
+            document.getElementById('single-tiet-ket-thuc').value = def.end;
+            document.getElementById('single-buoi-hoc').value = 'toi';
+            document.getElementById('single-time-preview').value = `${def.label} | Tiết ${def.start}-${def.end}`;
+
             modalSingle.show();
         });
     });
@@ -786,7 +803,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const startTiết = document.getElementById('auto-tiet-bat-dau').value;
         const previewList = buildPreviewList();
         
-        if (!ngayBatDauInput.value || previewList.length === 0 || !startTiet) {
+        if (!ngayBatDauInput.value || previewList.length === 0 || !startTiết) {
             alert('Vui lòng chọn Ngày bắt đầu, Giảng viên, ít nhất 1 Thứ và Ca học!');
             return;
         }
@@ -797,7 +814,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td class="text-center small">${item.thu === 8 ? 'Chủ nhật' : 'Thứ ' + item.thu}</td>
                 <td>
                     <select name="preview_sessions[]" class="form-select form-select-sm border-0 bg-light select-preview-session">
-                        ${Object.entries(SESSIONS).map(([k, v]) => `<option value="${k}" ${parseInt(startTiet, 10) === v.start ? 'selected' : ''}>${v.label} (T${v.start}-${v.end})</option>`).join('')}
+                        ${Object.entries(SESSIONS).map(([k, v]) => `<option value="${k}" ${parseInt(startTiết, 10) === v.start ? 'selected' : ''}>${v.label} (T${v.start}-${v.end})</option>`).join('')}
                     </select>
                     <div class="preview-conflict-note small mt-1 d-none"></div>
                 </td>

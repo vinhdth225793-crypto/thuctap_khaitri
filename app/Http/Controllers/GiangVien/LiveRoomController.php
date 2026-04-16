@@ -10,8 +10,10 @@ use App\Services\LiveLectureService;
 use App\Services\LiveRoomParticipationService;
 use App\Services\TeacherAttendanceService;
 use App\Services\TeacherScheduleLiveRoomService;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class LiveRoomController extends Controller
@@ -99,10 +101,10 @@ class LiveRoomController extends Controller
             $this->markScheduleInProgress($baiGiang->lichHoc);
 
             $this->teacherAttendanceService->ensureCheckInFromRoom(
-                $baiGiang->lichHoc->fresh('baiGiangs.phongHocLive.nguoiThamGia'),
+                $this->freshScheduleWithOptionalParticipants($baiGiang->lichHoc),
                 auth()->user()->giangVien,
                 auth()->user(),
-                $phongHocLive->fresh('nguoiThamGia')
+                $this->freshRoomWithOptionalParticipants($phongHocLive)
             );
         }
 
@@ -123,10 +125,10 @@ class LiveRoomController extends Controller
             $this->markScheduleInProgress($baiGiang->lichHoc);
 
             $this->teacherAttendanceService->ensureCheckInFromRoom(
-                $baiGiang->lichHoc->fresh('baiGiangs.phongHocLive.nguoiThamGia'),
+                $this->freshScheduleWithOptionalParticipants($baiGiang->lichHoc),
                 auth()->user()->giangVien,
                 auth()->user(),
-                $phongHocLive->fresh('nguoiThamGia')
+                $this->freshRoomWithOptionalParticipants($phongHocLive)
             );
         }
 
@@ -157,7 +159,7 @@ class LiveRoomController extends Controller
                 $baiGiang->lichHoc,
                 auth()->user()->giangVien,
                 auth()->user(),
-                $phongHocLive->fresh('nguoiThamGia')
+                $this->freshRoomWithOptionalParticipants($phongHocLive)
             );
 
             $this->markScheduleFinished($baiGiang->lichHoc);
@@ -220,9 +222,14 @@ class LiveRoomController extends Controller
      */
     private function resolveManagedLectureAndRoom(int $lectureId): array
     {
-        $userId = auth()->user()->id;
+        $user = auth()->user();
+        $userId = (int) $user->ma_nguoi_dung;
+        $giangVienId = (int) ($user->giangVien?->id ?? 0);
+        $hasRoomTeacherColumn = Schema::hasColumn('phong_hoc_live', 'giang_vien_id');
+        $hasRoomModeratorColumn = Schema::hasColumn('phong_hoc_live', 'moderator_id');
+        $hasRoomAssistantColumn = Schema::hasColumn('phong_hoc_live', 'tro_giang_id');
 
-        $baiGiang = BaiGiang::with([
+        $relations = [
             'khoaHoc',
             'moduleHoc',
             'lichHoc',
@@ -230,26 +237,110 @@ class LiveRoomController extends Controller
             'taiNguyenPhu',
             'phongHocLive.moderator',
             'phongHocLive.troGiang',
-            'phongHocLive.banGhis',
-            'phongHocLive.nguoiThamGia.nguoiDung',
-        ])
-            ->where(function ($query) use ($userId) {
+        ];
+
+        if (Schema::hasTable('phong_hoc_live_ban_ghi')) {
+            $relations[] = 'phongHocLive.banGhis';
+        }
+
+        if (Schema::hasTable('phong_hoc_live_nguoi_tham_gia')) {
+            $relations[] = 'phongHocLive.nguoiThamGia.nguoiDung';
+        }
+
+        $baiGiang = BaiGiang::with($relations)
+            ->where(function ($query) use ($userId, $giangVienId, $hasRoomTeacherColumn, $hasRoomModeratorColumn, $hasRoomAssistantColumn) {
                 $query->where('nguoi_tao_id', $userId)
-                    ->orWhereHas('phongHocLive', function ($roomQuery) use ($userId) {
-                        $roomQuery->where('moderator_id', $userId)
-                            ->orWhere('tro_giang_id', $userId);
+                    ->orWhereHas('phongHocLive', function ($roomQuery) use ($userId, $giangVienId, $hasRoomTeacherColumn, $hasRoomModeratorColumn, $hasRoomAssistantColumn) {
+                        $roomQuery->where(function ($managerQuery) use ($userId, $giangVienId, $hasRoomTeacherColumn, $hasRoomModeratorColumn, $hasRoomAssistantColumn) {
+                            $hasCondition = false;
+
+                            if ($hasRoomTeacherColumn && $giangVienId > 0) {
+                                $managerQuery->where('giang_vien_id', $giangVienId);
+                                $hasCondition = true;
+                            }
+
+                            if ($hasRoomModeratorColumn) {
+                                $hasCondition
+                                    ? $managerQuery->orWhere('moderator_id', $userId)
+                                    : $managerQuery->where('moderator_id', $userId);
+                                $hasCondition = true;
+                            }
+
+                            if ($hasRoomAssistantColumn) {
+                                $hasCondition
+                                    ? $managerQuery->orWhere('tro_giang_id', $userId)
+                                    : $managerQuery->where('tro_giang_id', $userId);
+                                $hasCondition = true;
+                            }
+
+                            if (! $hasCondition) {
+                                $managerQuery->whereRaw('0 = 1');
+                            }
+                        });
                     });
             })
             ->findOrFail($lectureId);
 
         abort_unless($baiGiang->isLive() && $baiGiang->phongHocLive, 404);
+        $this->ensureOptionalRoomRelations($baiGiang->phongHocLive);
 
         return [$baiGiang, $baiGiang->phongHocLive];
     }
 
+    private function ensureOptionalRoomRelations(PhongHocLive $phongHocLive): void
+    {
+        if (! Schema::hasTable('phong_hoc_live_ban_ghi') && ! $phongHocLive->relationLoaded('banGhis')) {
+            $phongHocLive->setRelation('banGhis', new EloquentCollection());
+        }
+
+        if (! Schema::hasTable('phong_hoc_live_nguoi_tham_gia') && ! $phongHocLive->relationLoaded('nguoiThamGia')) {
+            $phongHocLive->setRelation('nguoiThamGia', new EloquentCollection());
+        }
+    }
+
+    private function freshScheduleWithOptionalParticipants(LichHoc $lichHoc): LichHoc
+    {
+        if (Schema::hasTable('phong_hoc_live_nguoi_tham_gia')) {
+            return $lichHoc->fresh('baiGiangs.phongHocLive.nguoiThamGia') ?? $lichHoc;
+        }
+
+        $freshSchedule = $lichHoc->fresh('baiGiangs.phongHocLive') ?? $lichHoc;
+
+        $freshSchedule->baiGiangs?->each(function (BaiGiang $lecture): void {
+            if ($lecture->phongHocLive) {
+                $lecture->phongHocLive->setRelation('nguoiThamGia', new EloquentCollection());
+            }
+        });
+
+        return $freshSchedule;
+    }
+
+    private function freshRoomWithOptionalParticipants(PhongHocLive $phongHocLive): PhongHocLive
+    {
+        if (Schema::hasTable('phong_hoc_live_nguoi_tham_gia')) {
+            return $phongHocLive->fresh('nguoiThamGia') ?? $phongHocLive;
+        }
+
+        $freshRoom = $phongHocLive->fresh() ?? $phongHocLive;
+        $freshRoom->setRelation('nguoiThamGia', new EloquentCollection());
+
+        return $freshRoom;
+    }
+
     private function canManageRoom(PhongHocLive $phongHocLive, $user): bool
     {
-        return in_array((int) $user->id, [
+        $userId = (int) $user->ma_nguoi_dung;
+        $giangVienId = (int) ($user->giangVien?->id ?? 0);
+
+        if ($giangVienId > 0 && (int) $phongHocLive->giang_vien_id === $giangVienId) {
+            return true;
+        }
+
+        if ($giangVienId > 0 && (int) ($phongHocLive->lichHoc?->giang_vien_id ?? 0) === $giangVienId) {
+            return true;
+        }
+
+        return in_array($userId, [
             (int) $phongHocLive->moderator_id,
             (int) $phongHocLive->tro_giang_id,
             (int) $phongHocLive->created_by,

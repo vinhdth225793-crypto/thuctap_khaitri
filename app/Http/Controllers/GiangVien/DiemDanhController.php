@@ -60,6 +60,7 @@ class DiemDanhController extends Controller
 
             return [
                 'id' => $item->hoc_vien_id,
+                'ma_nguoi_dung' => $item->hoc_vien_id,
                 'ho_ten' => $item->hocVien ? $item->hocVien->ho_ten : 'N/A (Học viên không tồn tại)',
                 'trang_thai' => $existing ? $existing->trang_thai : null,
                 'ghi_chu' => $existing ? $existing->ghi_chu : '',

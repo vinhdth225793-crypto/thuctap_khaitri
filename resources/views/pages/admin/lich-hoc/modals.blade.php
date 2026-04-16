@@ -15,9 +15,9 @@
             <form action="{{ route('admin.khoa-hoc.lich-hoc.store', $khoaHoc->id) }}" method="POST" id="single-schedule-form">
                 @csrf
                 <input type="hidden" name="module_hoc_id" id="single-module-id">
-                <input type="hidden" name="tiet_bat_dau" id="single-tiet-bat-dau">
-                <input type="hidden" name="tiet_ket_thuc" id="single-tiet-ket-thuc">
-                <input type="hidden" name="buoi_hoc" id="single-buoi-hoc">
+                <input type="hidden" name="tiet_bat_dau" id="single-tiet-bat-dau" value="9">
+                <input type="hidden" name="tiet_ket_thuc" id="single-tiet-ket-thuc" value="12">
+                <input type="hidden" name="buoi_hoc" id="single-buoi-hoc" value="toi">
                 <div class="modal-body p-4">
                     <div class="mb-3">
                         <label class="small text-muted text-uppercase fw-bold d-block mb-1">Module xử lý</label>
@@ -43,7 +43,7 @@
                                     </button>
                                 @endforeach
                             </div>
-                            <input type="text" id="single-time-preview" class="form-control form-control-sm border-0 bg-light italic" readonly placeholder="Thông tin ca học...">
+                            <input type="text" id="single-time-preview" class="form-control form-control-sm border-0 bg-light italic" readonly value="Ca tối | Tiết 9-12" placeholder="Thông tin ca học...">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">Hình thức</label>
@@ -84,9 +84,9 @@
             <form action="{{ route('admin.khoa-hoc.lich-hoc.store-auto', $khoaHoc->id) }}" method="POST" id="auto-schedule-form">
                 @csrf
                 <input type="hidden" name="module_hoc_id" id="auto-module-id">
-                <input type="hidden" name="tiet_bat_dau" id="auto-tiet-bat-dau">
-                <input type="hidden" name="tiet_ket_thuc" id="auto-tiet-ket-thuc">
-                <input type="hidden" name="buoi_hoc" id="auto-buoi-hoc">
+                <input type="hidden" name="tiet_bat_dau" id="auto-tiet-bat-dau" value="9">
+                <input type="hidden" name="tiet_ket_thuc" id="auto-tiet-ket-thuc" value="12">
+                <input type="hidden" name="buoi_hoc" id="auto-buoi-hoc" value="toi">
                 <div class="modal-body p-0">
                     <div class="row g-0">
                         <!-- Cột trái: Cấu hình (Có cuộn riêng) -->
@@ -183,9 +183,9 @@
                                         </button>
                                     @endforeach
                                 </div>
-                                <input type="text" id="auto-time-preview" class="form-control form-control-sm border-0 bg-white shadow-xs fw-bold text-success mb-2" readonly placeholder="Chọn ca học...">
-                                <input type="hidden" name="gio_bat_dau" id="auto-start-time">
-                                <input type="hidden" name="gio_ket_thuc" id="auto-end-time">
+                                <input type="text" id="auto-time-preview" class="form-control form-control-sm border-0 bg-white shadow-xs fw-bold text-success mb-2" readonly value="Ca tối | Tiết 9-12" placeholder="Chọn ca học...">
+                                <input type="hidden" name="gio_bat_dau" id="auto-start-time" value="18:00">
+                                <input type="hidden" name="gio_ket_thuc" id="auto-end-time" value="20:45">
                             </div>
 
                             <button type="button" class="btn btn-dark w-100 py-3 fw-bold shadow mt-2" id="btnPreviewAuto">

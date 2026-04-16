@@ -4,12 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 class PhongHocLive extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     public const PLATFORM_INTERNAL = 'internal';
     public const PLATFORM_ZOOM = 'zoom';
@@ -37,77 +37,67 @@ class PhongHocLive extends Model
     protected $table = 'phong_hoc_live';
 
     protected $fillable = [
-        'bai_giang_id',
-        'nen_tang_live',
-        'loai_live',
+        'lop_hoc_id',
+        'lich_hoc_id',
+        'giang_vien_id',
         'tieu_de',
-        'mo_ta',
-        'moderator_id',
-        'tro_giang_id',
+        'nen_tang',
+        'nen_tang_live',
+        'phong_id',
+        'mat_khau',
+        'bat_dau_du_kien',
+        'ket_thuc_du_kien',
         'thoi_gian_bat_dau',
         'thoi_luong_phut',
-        'mo_phong_truoc_phut',
-        'nhac_truoc_phut',
-        'suc_chua_toi_da',
-        'cho_phep_chat',
-        'cho_phep_thao_luan',
-        'cho_phep_chia_se_man_hinh',
-        'tat_mic_khi_vao',
-        'tat_camera_khi_vao',
-        'cho_phep_ghi_hinh',
-        'chi_admin_duoc_ghi_hinh',
-        'tu_dong_gan_ban_ghi',
-        'khoa_copy_noi_dung_mo_ta',
-        'trang_thai_duyet',
-        'trang_thai_cong_bo',
+        'bat_dau_thuc_te',
+        'ket_thuc_thuc_te',
+        'trang_thai',
         'trang_thai_phong',
+        'du_lieu_nen_tang',
         'du_lieu_nen_tang_json',
-        'created_by',
-        'approved_by',
-        'approved_at',
     ];
 
     protected $casts = [
-        'thoi_gian_bat_dau' => 'datetime',
-        'cho_phep_chat' => 'boolean',
-        'cho_phep_thao_luan' => 'boolean',
-        'cho_phep_chia_se_man_hinh' => 'boolean',
-        'tat_mic_khi_vao' => 'boolean',
-        'tat_camera_khi_vao' => 'boolean',
-        'cho_phep_ghi_hinh' => 'boolean',
-        'chi_admin_duoc_ghi_hinh' => 'boolean',
-        'tu_dong_gan_ban_ghi' => 'boolean',
-        'khoa_copy_noi_dung_mo_ta' => 'boolean',
-        'du_lieu_nen_tang_json' => 'array',
-        'approved_at' => 'datetime',
+        'bat_dau_du_kien' => 'datetime',
+        'ket_thuc_du_kien' => 'datetime',
+        'bat_dau_thuc_te' => 'datetime',
+        'ket_thuc_thuc_te' => 'datetime',
+        'du_lieu_nen_tang' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
 
-    public function baiGiang()
+    public function lopHoc()
     {
-        return $this->belongsTo(BaiGiang::class, 'bai_giang_id');
+        return $this->belongsTo(LopHoc::class, 'lop_hoc_id');
+    }
+
+    public function lichHoc()
+    {
+        return $this->belongsTo(LichHoc::class, 'lich_hoc_id');
+    }
+
+    public function giangVien()
+    {
+        return $this->belongsTo(GiangVien::class, 'giang_vien_id');
     }
 
     public function moderator()
     {
-        return $this->belongsTo(NguoiDung::class, 'moderator_id', 'ma_nguoi_dung');
+        return $this->hasOneThrough(
+            NguoiDung::class,
+            GiangVien::class,
+            'id',
+            'ma_nguoi_dung',
+            'giang_vien_id',
+            'nguoi_dung_id'
+        );
     }
 
     public function troGiang()
     {
         return $this->belongsTo(NguoiDung::class, 'tro_giang_id', 'ma_nguoi_dung');
-    }
-
-    public function creator()
-    {
-        return $this->belongsTo(NguoiDung::class, 'created_by', 'ma_nguoi_dung');
-    }
-
-    public function approver()
-    {
-        return $this->belongsTo(NguoiDung::class, 'approved_by', 'ma_nguoi_dung');
     }
 
     public function nguoiThamGia()
@@ -122,7 +112,107 @@ class PhongHocLive extends Model
 
     public function getPlatformLabelAttribute(): string
     {
-        return app(\App\Services\LiveRoomPlatformService::class)->platformLabel($this->nen_tang_live);
+        return app(\App\Services\LiveRoomPlatformService::class)->platformLabel($this->nen_tang);
+    }
+
+    public function getNenTangLiveAttribute($value): ?string
+    {
+        return $value ?? ($this->attributes['nen_tang'] ?? null);
+    }
+
+    public function setNenTangLiveAttribute($value): void
+    {
+        $this->attributes['nen_tang'] = $value;
+    }
+
+    public function getThoiGianBatDauAttribute($value): ?Carbon
+    {
+        $value = $value ?? ($this->attributes['bat_dau_du_kien'] ?? null);
+
+        return $value ? Carbon::parse($value) : null;
+    }
+
+    public function setThoiGianBatDauAttribute($value): void
+    {
+        $this->attributes['bat_dau_du_kien'] = $value;
+    }
+
+    public function getThoiLuongPhutAttribute($value): int
+    {
+        if ($value !== null) {
+            return (int) $value;
+        }
+
+        if ($this->bat_dau_du_kien && $this->ket_thuc_du_kien) {
+            return max(1, $this->bat_dau_du_kien->diffInMinutes($this->ket_thuc_du_kien));
+        }
+
+        return 90;
+    }
+
+    public function setThoiLuongPhutAttribute($value): void
+    {
+        $start = $this->bat_dau_du_kien ?? now();
+        $this->attributes['ket_thuc_du_kien'] = $start->copy()->addMinutes((int) $value);
+    }
+
+    public function getDuLieuNenTangJsonAttribute($value): array
+    {
+        if (is_string($value)) {
+            return json_decode($value, true) ?: [];
+        }
+
+        return $value ?? ($this->du_lieu_nen_tang ?? []);
+    }
+
+    public function setDuLieuNenTangJsonAttribute($value): void
+    {
+        $this->attributes['du_lieu_nen_tang'] = is_array($value) ? json_encode($value) : $value;
+    }
+
+    public function getTrangThaiPhongAttribute($value): ?string
+    {
+        if ($value !== null) {
+            return $value;
+        }
+
+        return match ($this->trang_thai) {
+            'cho' => self::ROOM_STATE_CHUA_MO,
+            'huy' => self::ROOM_STATE_DA_HUY,
+            default => $this->trang_thai,
+        };
+    }
+
+    public function setTrangThaiPhongAttribute($value): void
+    {
+        $this->attributes['trang_thai'] = match ($value) {
+            self::ROOM_STATE_CHUA_MO, self::ROOM_STATE_SAP_DIEN_RA => 'cho',
+            self::ROOM_STATE_DA_HUY => 'huy',
+            default => $value,
+        };
+    }
+
+    public function getModeratorIdAttribute($value): ?int
+    {
+        if ($value !== null) {
+            return (int) $value;
+        }
+
+        return $this->giangVien?->nguoi_dung_id;
+    }
+
+    public function getTroGiangIdAttribute($value): ?int
+    {
+        return $value !== null ? (int) $value : null;
+    }
+
+    public function getCreatedByAttribute($value): ?int
+    {
+        if ($value !== null) {
+            return (int) $value;
+        }
+
+        return $this->giangVien?->nguoi_dung_id;
     }
 
     public function getJoinUrlAttribute(): ?string
@@ -142,22 +232,25 @@ class PhongHocLive extends Model
 
     public function getJoinOpensAtAttribute(): Carbon
     {
-        return $this->thoi_gian_bat_dau->copy()->subMinutes($this->mo_phong_truoc_phut);
+        // Fallback if null
+        $start = $this->bat_dau_du_kien ?? $this->created_at ?? now();
+        return $start->copy()->subMinutes(15);
     }
 
     public function getEndsAtAttribute(): Carbon
     {
-        return $this->thoi_gian_bat_dau->copy()->addMinutes($this->thoi_luong_phut);
+        $start = $this->bat_dau_du_kien ?? $this->created_at ?? now();
+        return $start->copy()->addMinutes(90);
     }
 
     public function getTimelineTrangThaiAttribute(): string
     {
-        if ($this->trang_thai_phong === self::ROOM_STATE_DA_HUY) {
-            return self::ROOM_STATE_DA_HUY;
+        if ($this->trang_thai === 'huy') {
+            return 'da_huy';
         }
 
-        if ($this->trang_thai_phong === self::ROOM_STATE_DA_KET_THUC) {
-            return self::ROOM_STATE_DA_KET_THUC;
+        if ($this->trang_thai === 'da_ket_thuc') {
+            return 'da_ket_thuc';
         }
 
         $now = now();
@@ -166,17 +259,17 @@ class PhongHocLive extends Model
             return 'chua_den_gio';
         }
 
-        if ($now->betweenIncluded($this->join_opens_at, $this->thoi_gian_bat_dau)) {
+        if ($now->betweenIncluded($this->join_opens_at, $this->bat_dau_du_kien ?? $now)) {
             return 'sap_bat_dau';
         }
 
-        if ($now->betweenIncluded($this->thoi_gian_bat_dau, $this->ends_at)) {
-            return $this->trang_thai_phong === self::ROOM_STATE_DANG_DIEN_RA
-                ? self::ROOM_STATE_DANG_DIEN_RA
+        if ($now->betweenIncluded($this->bat_dau_du_kien ?? $now, $this->ends_at)) {
+            return $this->trang_thai === 'dang_dien_ra'
+                ? 'dang_dien_ra'
                 : 'cho_moderator';
         }
 
-        return self::ROOM_STATE_DA_KET_THUC;
+        return 'da_ket_thuc';
     }
 
     public function getTimelineTrangThaiLabelAttribute(): string
@@ -185,9 +278,9 @@ class PhongHocLive extends Model
             'chua_den_gio' => 'Chưa đến giờ',
             'sap_bat_dau' => 'Sắp bắt đầu',
             'cho_moderator' => 'Chờ người điều phối bắt đầu',
-            self::ROOM_STATE_DANG_DIEN_RA => 'Đang diễn ra',
-            self::ROOM_STATE_DA_KET_THUC => 'Đã kết thúc',
-            self::ROOM_STATE_DA_HUY => 'Đã hủy',
+            'dang_dien_ra' => 'Đang diễn ra',
+            'da_ket_thuc' => 'Đã kết thúc',
+            'da_huy' => 'Đã hủy',
             default => 'Chưa xác định',
         };
     }
@@ -198,61 +291,60 @@ class PhongHocLive extends Model
             'chua_den_gio' => 'secondary',
             'sap_bat_dau' => 'warning',
             'cho_moderator' => 'info',
-            self::ROOM_STATE_DANG_DIEN_RA => 'success',
-            self::ROOM_STATE_DA_KET_THUC => 'dark',
-            self::ROOM_STATE_DA_HUY => 'danger',
+            'dang_dien_ra' => 'success',
+            'da_ket_thuc' => 'dark',
+            'da_huy' => 'danger',
             default => 'secondary',
         };
     }
 
     public function getParticipantCountAttribute(): int
     {
+        if (! Schema::hasTable('phong_hoc_live_nguoi_tham_gia')) {
+            return $this->relationLoaded('nguoiThamGia') ? $this->nguoiThamGia->count() : 0;
+        }
+
         return $this->nguoiThamGia()->count();
     }
 
     public function getCanModeratorStartAttribute(): bool
     {
-        // Cho phép moderator bắt đầu bất cứ lúc nào miễn là chưa kết thúc hoặc hủy
-        return !in_array($this->trang_thai_phong, [self::ROOM_STATE_DA_KET_THUC, self::ROOM_STATE_DA_HUY], true)
-            && $this->trang_thai_phong !== self::ROOM_STATE_DANG_DIEN_RA;
+        return !in_array($this->trang_thai, ['da_ket_thuc', 'huy'], true)
+            && $this->trang_thai !== 'dang_dien_ra';
     }
 
     public function getCanStudentJoinAttribute(): bool
     {
-        if ($this->trang_thai_duyet !== self::APPROVAL_DA_DUYET || $this->trang_thai_cong_bo !== self::PUBLISH_DA_CONG_BO) {
-            return false;
-        }
-
         if (config('live_room.defaults.student_join_requires_moderator_started', true)) {
-            return $this->timeline_trang_thai === self::ROOM_STATE_DANG_DIEN_RA && filled($this->join_url);
+            return $this->timeline_trang_thai === 'dang_dien_ra' && filled($this->join_url);
         }
 
-        return in_array($this->timeline_trang_thai, ['sap_bat_dau', self::ROOM_STATE_DANG_DIEN_RA], true) && filled($this->join_url);
+        return in_array($this->timeline_trang_thai, ['sap_bat_dau', 'dang_dien_ra'], true) && filled($this->join_url);
     }
 
     public function getStatusHintAttribute(): string
     {
         return match ($this->timeline_trang_thai) {
-            'chua_den_gio' => 'Phòng học trực tuyến chưa mở. Bạn có thể vào sớm trước giờ bắt đầu theo cấu hình.',
-            'sap_bat_dau' => 'Phòng học sắp mở. Bạn có thể chuẩn bị tham gia.',
-            'cho_moderator' => 'Người điều phối chưa bắt đầu buổi học. Vui lòng chờ.',
-            self::ROOM_STATE_DANG_DIEN_RA => 'Buổi học đang diễn ra. Bạn có thể vào phòng ngay bây giờ.',
-            self::ROOM_STATE_DA_KET_THUC => 'Buổi học đã kết thúc. Xem bản ghi nếu có.',
-            self::ROOM_STATE_DA_HUY => 'Buổi học đã bị hủy.',
+            'chua_den_gio' => 'Phòng học trực tuyến chưa mở.',
+            'sap_bat_dau' => 'Phòng học sắp mở.',
+            'cho_moderator' => 'Người điều phối chưa bắt đầu buổi học.',
+            'dang_dien_ra' => 'Buổi học đang diễn ra.',
+            'da_ket_thuc' => 'Buổi học đã kết thúc.',
+            'da_huy' => 'Buổi học đã bị hủy.',
             default => 'Thông tin phòng học đang được cập nhật.',
         };
     }
 
     public function isDangDienRa(): bool
     {
-        return $this->trang_thai_phong === self::ROOM_STATE_DANG_DIEN_RA;
+        return $this->trang_thai === 'dang_dien_ra';
     }
 
     public function getTeachingTimelineStatusAttribute(): string
     {
-        return match ($this->trang_thai_phong) {
-            self::ROOM_STATE_DANG_DIEN_RA => 'dang_dien_ra',
-            self::ROOM_STATE_DA_KET_THUC, self::ROOM_STATE_DA_HUY => 'da_ket_thuc',
+        return match ($this->trang_thai) {
+            'dang_dien_ra' => 'dang_dien_ra',
+            'da_ket_thuc', 'huy' => 'da_ket_thuc',
             default => 'da_tao',
         };
     }

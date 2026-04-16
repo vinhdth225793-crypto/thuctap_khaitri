@@ -32,7 +32,7 @@ class BaiKiemTraController extends Controller
     public function index()
     {
         $user = auth()->user();
-        $hocVienId = $user->hocVien->id;
+        $hocVienId = $user->ma_nguoi_dung;
 
         $baiKiemTras = $this->queryBaiKiemTraHocVien($hocVienId)
             ->get()
@@ -63,7 +63,7 @@ class BaiKiemTraController extends Controller
 
     public function show(int $id)
     {
-        $hocVienId = auth()->user()->hocVien->id;
+        $hocVienId = auth()->id();
         $baiKiemTra = $this->findBaiKiemTraHocVien($id, $hocVienId);
         $baiLam = $baiKiemTra->baiLams->sortByDesc('lan_lam_thu')->first();
 
@@ -117,7 +117,7 @@ class BaiKiemTraController extends Controller
 
     public function precheck(int $id)
     {
-        $hocVienId = auth()->user()->hocVien->id;
+        $hocVienId = auth()->id();
         $baiKiemTra = $this->findBaiKiemTraHocVien($id, $hocVienId);
 
         if (!$baiKiemTra->co_giam_sat) {
@@ -151,7 +151,7 @@ class BaiKiemTraController extends Controller
 
     public function submitPrecheck(Request $request, int $id)
     {
-        $hocVienId = auth()->user()->hocVien->id;
+        $hocVienId = auth()->id();
         $baiKiemTra = $this->findBaiKiemTraHocVien($id, $hocVienId);
 
         if (!$baiKiemTra->co_giam_sat) {
@@ -204,7 +204,7 @@ class BaiKiemTraController extends Controller
 
         $precheckState = null;
         if ($baiKiemTra->co_giam_sat) {
-            $precheckState = $this->precheckService->consumePassedPrecheck($baiKiemTra, $user->hocVien->id);
+            $precheckState = $this->precheckService->consumePassedPrecheck($baiKiemTra, $user->ma_nguoi_dung);
 
             if (!$precheckState) {
                 return redirect()
@@ -222,7 +222,7 @@ class BaiKiemTraController extends Controller
 
             $baiLam = BaiLamBaiKiemTra::create([
                 'bai_kiem_tra_id' => $baiKiemTra->id,
-                'hoc_vien_id' => $user->hocVien->id,
+                'hoc_vien_id' => $user->ma_nguoi_dung,
                 'lan_lam_thu' => (int) $baiKiemTra->baiLams->max('lan_lam_thu') + 1,
                 'trang_thai' => 'dang_lam',
                 'trang_thai_cham' => 'chua_cham',
@@ -367,7 +367,7 @@ class BaiKiemTraController extends Controller
 
     public function logSurveillance(Request $request, int $baiLamId)
     {
-        $baiLam = $this->findAttemptHocVien($baiLamId, auth()->user()->hocVien->id);
+        $baiLam = $this->findAttemptHocVien($baiLamId, auth()->id());
 
         if (!$baiLam->can_resume || !$baiLam->baiKiemTra?->co_giam_sat) {
             return response()->json([
@@ -409,7 +409,7 @@ class BaiKiemTraController extends Controller
 
     public function captureSnapshot(Request $request, int $baiLamId)
     {
-        $baiLam = $this->findAttemptHocVien($baiLamId, auth()->user()->hocVien->id);
+        $baiLam = $this->findAttemptHocVien($baiLamId, auth()->id());
 
         if (!$baiLam->can_resume || !$baiLam->baiKiemTra?->co_giam_sat) {
             return response()->json([

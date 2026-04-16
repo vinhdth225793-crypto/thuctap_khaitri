@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\NguoiDung;
 use App\Models\PhongHocLive;
 use App\Models\PhongHocLiveNguoiThamGia;
+use Illuminate\Support\Facades\Schema;
 
 class LiveRoomParticipationService
 {
@@ -24,6 +25,10 @@ class LiveRoomParticipationService
 
     public function leaveRoom(PhongHocLive $phongHocLive, NguoiDung $user): void
     {
+        if (! Schema::hasTable('phong_hoc_live_nguoi_tham_gia')) {
+            return;
+        }
+
         PhongHocLiveNguoiThamGia::query()
             ->where('phong_hoc_live_id', $phongHocLive->id)
             ->where('nguoi_dung_id', $user->ma_nguoi_dung)
@@ -62,6 +67,16 @@ class LiveRoomParticipationService
 
     private function logParticipation(PhongHocLive $phongHocLive, NguoiDung $user, string $role): PhongHocLiveNguoiThamGia
     {
+        if (! Schema::hasTable('phong_hoc_live_nguoi_tham_gia')) {
+            return new PhongHocLiveNguoiThamGia([
+                'phong_hoc_live_id' => $phongHocLive->id,
+                'nguoi_dung_id' => $user->ma_nguoi_dung,
+                'vai_tro' => $role,
+                'joined_at' => now(),
+                'trang_thai' => 'dang_tham_gia',
+            ]);
+        }
+
         $participant = PhongHocLiveNguoiThamGia::query()
             ->firstOrNew([
                 'phong_hoc_live_id' => $phongHocLive->id,

@@ -225,7 +225,7 @@ class TaiNguyenController extends Controller
         return back()->with('success', 'Đã cập nhật tài nguyên buổi học thành công.');
     }
 
-    public function toggleHienThi(int $id): RedirectResponse
+    public function toggleHienThi(int $id): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $taiNguyen = TaiNguyenBuoiHoc::with('lichHoc')->findOrFail($id);
 
@@ -236,9 +236,18 @@ class TaiNguyenController extends Controller
             : 'hien';
         $taiNguyen->save();
 
-        $message = $taiNguyen->trang_thai_hien_thi === 'hien'
+        $isHien = $taiNguyen->trang_thai_hien_thi === 'hien';
+        $message = $isHien
             ? 'Đã hiển thị tài nguyên cho học viên.'
             : 'Đã ẩn tài nguyên với học viên.';
+
+        if (request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'is_hien' => $isHien,
+            ]);
+        }
 
         return back()->with('success', $message);
     }

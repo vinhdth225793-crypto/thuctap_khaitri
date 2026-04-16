@@ -96,6 +96,11 @@ class KhoaHoc extends Model
         return $this->hasMany(KhoaHoc::class, 'khoa_hoc_mau_id');
     }
 
+    public function lopHocs(): HasMany
+    {
+        return $this->hasMany(LopHoc::class, 'khoa_hoc_id')->orderBy('id');
+    }
+
     /**
      * Relationship: Một khóa học có nhiều phân công giảng viên
      */
@@ -215,7 +220,7 @@ class KhoaHoc extends Model
     public function scopeDangHoatDong($query)
     {
         return $query->where('loai', 'hoat_dong')
-                     ->whereIn('trang_thai_van_hanh', ['dang_day', 'san_sang', 'cho_giang_vien']);
+            ->whereIn('trang_thai_van_hanh', ['dang_day', 'san_sang', 'cho_giang_vien']);
     }
 
     public function scopeDangDay($query)

@@ -69,7 +69,7 @@
                         <div class="col-md-5 text-center ps-4">
                             <div class="badge bg-info p-3 mb-3 shadow-sm w-100">
                                 <div class="small text-uppercase opacity-75 mb-1">Đã mở</div>
-                                <div class="fs-4 fw-bold">{{ $soLanDaMở }} lần</div>
+                                <div class="fs-4 fw-bold">{{ $soLanDaMo }} lần</div>
                             </div>
                             <div class="alert alert-success border-0 py-2 mb-0 small">
                                 Mã lớp mới dự kiến:<br>

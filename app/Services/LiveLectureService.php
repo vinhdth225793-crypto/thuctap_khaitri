@@ -3,10 +3,12 @@
 namespace App\Services;
 
 use App\Models\BaiGiang;
+use App\Models\LopHoc;
 use App\Models\NguoiDung;
 use App\Models\PhongHocLive;
 use App\Models\PhongHocLiveBanGhi;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 class LiveLectureService
@@ -33,40 +35,22 @@ class LiveLectureService
             : BaiGiang::CONG_BO_AN;
 
         $roomData = [
-            'nen_tang_live' => $liveInput['nen_tang_live'] ?? PhongHocLive::PLATFORM_ZOOM,
-            'loai_live' => $liveInput['loai_live'] ?? PhongHocLive::TYPE_CLASS,
+            'lop_hoc_id' => $this->resolveClassId($baiGiang),
+            'lich_hoc_id' => $baiGiang->lich_hoc_id,
+            'giang_vien_id' => $actor->giangVien?->id ?? 0,
             'tieu_de' => $liveInput['tieu_de'] ?? $baiGiang->tieu_de,
-            'mo_ta' => $liveInput['mo_ta'] ?? $baiGiang->mo_ta,
-            'moderator_id' => $liveInput['moderator_id'] ?? $baiGiang->nguoi_tao_id,
-            'tro_giang_id' => $liveInput['tro_giang_id'] ?? null,
-            'thoi_gian_bat_dau' => $liveInput['thoi_gian_bat_dau'] ?? ($baiGiang->thoi_diem_mo ?? now()),
-            'thoi_luong_phut' => $liveInput['thoi_luong_phut'] ?? 90,
-            'mo_phong_truoc_phut' => $liveInput['mo_phong_truoc_phut'] ?? config('live_room.defaults.open_before_minutes', 15),
-            'nhac_truoc_phut' => $liveInput['nhac_truoc_phut'] ?? config('live_room.defaults.reminder_minutes', 10),
-            'suc_chua_toi_da' => $liveInput['suc_chua_toi_da'] ?? null,
-            'cho_phep_chat' => (bool) ($liveInput['cho_phep_chat'] ?? true),
-            'cho_phep_thao_luan' => (bool) ($liveInput['cho_phep_thao_luan'] ?? true),
-            'cho_phep_chia_se_man_hinh' => (bool) ($liveInput['cho_phep_chia_se_man_hinh'] ?? false),
-            'tat_mic_khi_vao' => (bool) ($liveInput['tat_mic_khi_vao'] ?? true),
-            'tat_camera_khi_vao' => (bool) ($liveInput['tat_camera_khi_vao'] ?? true),
-            'cho_phep_ghi_hinh' => (bool) ($liveInput['cho_phep_ghi_hinh'] ?? false),
-            'chi_admin_duoc_ghi_hinh' => (bool) ($liveInput['chi_admin_duoc_ghi_hinh'] ?? false),
-            'tu_dong_gan_ban_ghi' => (bool) ($liveInput['tu_dong_gan_ban_ghi'] ?? false),
-            'khoa_copy_noi_dung_mo_ta' => (bool) ($liveInput['khoa_copy_noi_dung_mo_ta'] ?? false),
-            'trang_thai_duyet' => $approvalStatus,
-            'trang_thai_cong_bo' => $publishStatus,
-            'trang_thai_phong' => $baiGiang->phongHocLive?->trang_thai_phong ?? PhongHocLive::ROOM_STATE_CHUA_MO,
-            'du_lieu_nen_tang_json' => $this->platformService->buildPlatformPayload(
+            'nen_tang' => $liveInput['nen_tang_live'] ?? PhongHocLive::PLATFORM_ZOOM,
+            'bat_dau_du_kien' => $liveInput['thoi_gian_bat_dau'] ?? ($baiGiang->thoi_diem_mo ?? now()),
+            'ket_thuc_du_kien' => \Carbon\Carbon::parse($liveInput['thoi_gian_bat_dau'] ?? ($baiGiang->thoi_diem_mo ?? now()))->addMinutes($liveInput['thoi_luong_phut'] ?? 90),
+            'trang_thai' => $this->normalizeRoomState($baiGiang->phongHocLive?->trang_thai),
+            'du_lieu_nen_tang' => $this->platformService->buildPlatformPayload(
                 $liveInput['nen_tang_live'] ?? PhongHocLive::PLATFORM_ZOOM,
                 $liveInput
             ),
-            'created_by' => $baiGiang->phongHocLive?->created_by ?? $actor->ma_nguoi_dung,
-            'approved_by' => $approvalStatus === BaiGiang::STATUS_DUYET_DA_DUYET ? $actor->ma_nguoi_dung : null,
-            'approved_at' => $approvalStatus === BaiGiang::STATUS_DUYET_DA_DUYET ? now() : null,
         ];
 
         return $baiGiang->phongHocLive()->updateOrCreate(
-            ['bai_giang_id' => $baiGiang->id],
+            ['lich_hoc_id' => $baiGiang->lich_hoc_id],
             $roomData
         );
     }
@@ -110,6 +94,50 @@ class LiveLectureService
         }
 
         return $trangThaiMoi;
+    }
+
+    private function normalizeRoomState(?string $state): string
+    {
+        return in_array($state, ['cho', 'dang_dien_ra', 'da_ket_thuc', 'huy'], true)
+            ? $state
+            : 'cho';
+    }
+
+    private function resolveClassId(BaiGiang $baiGiang): int
+    {
+        $lichHoc = $baiGiang->relationLoaded('lichHoc')
+            ? $baiGiang->lichHoc
+            : $baiGiang->lichHoc()->first();
+
+        if ($lichHoc?->lop_hoc_id) {
+            return (int) $lichHoc->lop_hoc_id;
+        }
+
+        if (! $baiGiang->khoa_hoc_id || ! Schema::hasTable('lop_hoc')) {
+            return 0;
+        }
+
+        $lopHoc = LopHoc::query()
+            ->where('khoa_hoc_id', $baiGiang->khoa_hoc_id)
+            ->orderBy('id')
+            ->first();
+
+        if (! $lopHoc) {
+            $lopHoc = LopHoc::create([
+                'khoa_hoc_id' => $baiGiang->khoa_hoc_id,
+                'ma_lop_hoc' => 'AUTO-KH-' . $baiGiang->khoa_hoc_id,
+                'ngay_khai_giang' => $lichHoc?->ngay_hoc,
+                'trang_thai_van_hanh' => 'dang_day',
+                'ghi_chu' => 'Tu dong tao khi tao phong hoc live cho khoa hoc chua co lop.',
+                'created_by' => $baiGiang->nguoi_tao_id,
+            ]);
+        }
+
+        if ($lichHoc && ! $lichHoc->lop_hoc_id) {
+            $lichHoc->forceFill(['lop_hoc_id' => $lopHoc->id])->save();
+        }
+
+        return (int) $lopHoc->id;
     }
 
     public function addRecording(PhongHocLive $phongHocLive, array $validated): PhongHocLiveBanGhi

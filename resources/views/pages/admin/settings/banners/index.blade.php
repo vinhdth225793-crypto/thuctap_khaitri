@@ -2,6 +2,34 @@
 
 @section('title', 'Quản lý Banner')
 
+@push('styles')
+<style>
+    .banner-sort-row {
+        transition: background-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    }
+
+    .banner-sort-row.is-dragging {
+        opacity: 0.45;
+    }
+
+    .banner-sort-row.drag-over {
+        background: #f8fbff;
+        box-shadow: inset 4px 0 0 #0d6efd;
+    }
+
+    .drag-handle {
+        border-radius: 8px;
+        cursor: grab;
+        padding: 0.35rem 0.55rem;
+        user-select: none;
+    }
+
+    .drag-handle:active {
+        cursor: grabbing;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="container-fluid py-4">
     @if (session('success'))
@@ -28,6 +56,16 @@
                     </div>
                 </div>
                 <div class="card-body p-0">
+                    <div class="alert alert-info border-0 rounded-0 mb-0 px-4 py-3">
+                        <div class="fw-bold mb-1"><i class="fas fa-info-circle me-2"></i>Quy ước hiển thị banner trang chủ</div>
+                        <div class="small mb-0">
+                            Thứ tự <strong>0</strong> là ảnh thẻ đầu tiên ở đầu trang chủ. Thứ tự từ <strong>1 trở đi</strong> là banner hiển thị dạng slide ngay bên dưới thẻ đầu.
+                        </div>
+                        <div class="small mt-2 fw-semibold text-primary">
+                            <i class="fas fa-grip-vertical me-2"></i>Kéo biểu tượng ở cột thứ tự để đổi vị trí banner, hệ thống sẽ tự lưu ngay.
+                        </div>
+                    </div>
+
                     @if($banners->where('trang_thai', true)->count() > 0)
                     <!-- LIVE PREVIEW SECTION (Nhỏ gọn hơn) -->
                     <div class="bg-light border-bottom p-3">
@@ -51,11 +89,17 @@
                     @endif
 
                     <!-- BANNER TABLE LIST -->
+                    <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom bg-white">
+                        <div class="small text-muted">
+                            <i class="fas fa-arrows-alt-v me-2"></i>Kéo thả các dòng banner để sắp xếp nhanh.
+                        </div>
+                        <div id="banner-order-status" class="small fw-bold text-muted"></div>
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="bg-light border-bottom text-muted">
                                 <tr>
-                                    <th class="ps-4" width="60">#</th>
+                                    <th class="ps-4" width="110">Thứ tự</th>
                                     <th width="150">Hình ảnh</th>
                                     <th>Thông tin Banner</th>
                                     <th class="text-center">Trạng thái</th>
@@ -64,9 +108,12 @@
                             </thead>
                             <tbody id="banners-list">
                                 @forelse($banners as $banner)
-                                <tr data-id="{{ $banner->id }}">
-                                    <td class="ps-4 text-muted handle" style="cursor: move;">
-                                        <i class="fas fa-grip-vertical me-2 opacity-50"></i>{{ $banner->thu_tu }}
+                                <tr data-id="{{ $banner->id }}" class="banner-sort-row">
+                                    <td class="ps-4 text-muted handle">
+                                        <span class="drag-handle d-inline-flex align-items-center gap-2" title="Kéo để đổi thứ tự" draggable="true">
+                                            <i class="fas fa-grip-vertical opacity-50"></i>
+                                            <span class="order-number">{{ $banner->thu_tu }}</span>
+                                        </span>
                                     </td>
                                     <td>
                                         <div class="rounded-3 overflow-hidden shadow-sm border" style="width: 120px; height: 60px; cursor: pointer;" onclick="viewImage('{{ asset($banner->duong_dan_anh) }}')">
@@ -75,6 +122,13 @@
                                     </td>
                                     <td>
                                         <div class="fw-bold text-dark">{{ $banner->tieu_de }}</div>
+                                        <div class="mt-1">
+                                            @if((int) $banner->thu_tu === 0)
+                                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle banner-position-badge">Ảnh thẻ đầu trang</span>
+                                            @else
+                                                <span class="badge bg-info-subtle text-info border border-info-subtle banner-position-badge">Slide banner #{{ $banner->thu_tu }}</span>
+                                            @endif
+                                        </div>
                                         <div class="small text-muted text-truncate" style="max-width: 350px;">{!! strip_tags($banner->mo_ta) !!}</div>
                                         @if($banner->link)
                                             <div class="small"><a href="{{ $banner->link }}" target="_blank" class="text-primary"><i class="fas fa-link me-1"></i>Link</a></div>
@@ -135,7 +189,6 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
     // View image modal
     function viewImage(url) {
@@ -165,7 +218,6 @@
                 .then(res => res.json())
                 .then(data => {
                     if(data.success) {
-                        console.log(data.message);
                         // Tùy chọn: hiển thị thông báo toast nếu có
                     } else {
                         e.target.checked = !isChecked;
@@ -202,7 +254,10 @@
                         if(data.success) {
                             row.style.transition = 'all 0.3s ease';
                             row.style.opacity = '0';
-                            setTimeout(() => row.remove(), 300);
+                            setTimeout(() => {
+                                row.remove();
+                                persistBannerOrder();
+                            }, 300);
                         } else {
                             alert('Không thể xóa: ' + data.message);
                         }
@@ -216,43 +271,154 @@
         });
     }
 
-    // Drag & Drop Sorting
-    const el = document.getElementById('banners-list');
-    if(el && el.querySelectorAll('tr[data-id]').length > 0) {
-        Sortable.create(el, {
-            handle: '.handle',
-            animation: 200,
-            ghostClass: 'bg-light',
-            onEnd: function() {
-                const order = Array.from(el.querySelectorAll('tr[data-id]')).map(tr => tr.dataset.id);
-                
-                fetch(`{{ route('admin.settings.banners.update-order') }}`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ order: order })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if(data.success) {
-                        // Cập nhật lại số thứ tự hiển thị trên giao diện (cột #)
-                        el.querySelectorAll('tr[data-id]').forEach((tr, index) => {
-                            const handleCell = tr.querySelector('.handle');
-                            if (handleCell) {
-                                handleCell.innerHTML = `<i class="fas fa-grip-vertical me-2 opacity-50"></i>${index + 1}`;
-                            }
-                        });
-                    } else {
-                        alert('Lỗi cập nhật thứ tự: ' + data.message);
-                    }
-                })
-                .catch(err => {
-                    console.error('Sort error:', err);
-                });
+    // Drag & Drop Sorting - dùng HTML5 Drag and Drop để không phụ thuộc CDN.
+    const orderStatus = document.getElementById('banner-order-status');
+    const sortableRows = () => Array.from(bannersList?.querySelectorAll('tr[data-id]') || []);
+    let draggingRow = null;
+    let savedOrder = sortableRows().map(row => row.dataset.id).join(',');
+
+    function setOrderStatus(message, className = 'text-muted') {
+        if (!orderStatus) return;
+
+        orderStatus.className = `small fw-bold ${className}`;
+        orderStatus.textContent = message;
+    }
+
+    function updateOrderLabels() {
+        sortableRows().forEach((row, index) => {
+            const number = row.querySelector('.order-number');
+            const badge = row.querySelector('.banner-position-badge');
+
+            if (number) {
+                number.textContent = index;
             }
+
+            if (!badge) {
+                return;
+            }
+
+            if (index === 0) {
+                badge.className = 'badge bg-primary-subtle text-primary border border-primary-subtle banner-position-badge';
+                badge.textContent = 'Ảnh thẻ đầu trang';
+            } else {
+                badge.className = 'badge bg-info-subtle text-info border border-info-subtle banner-position-badge';
+                badge.textContent = `Slide banner #${index}`;
+            }
+        });
+    }
+
+    function rowAfterPointer(container, y) {
+        return sortableRows()
+            .filter(row => row !== draggingRow)
+            .reduce((closest, row) => {
+                const box = row.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset, element: row };
+                }
+
+                return closest;
+            }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+    }
+
+    function restoreSavedOrder() {
+        const rowsById = new Map(sortableRows().map(row => [row.dataset.id, row]));
+
+        savedOrder.split(',')
+            .map(id => rowsById.get(id))
+            .filter(Boolean)
+            .forEach(row => bannersList.appendChild(row));
+
+        updateOrderLabels();
+    }
+
+    function persistBannerOrder() {
+        const order = sortableRows().map(row => row.dataset.id);
+        const nextOrder = order.join(',');
+
+        updateOrderLabels();
+
+        if (!order.length || nextOrder === savedOrder) {
+            return;
+        }
+
+        setOrderStatus('Đang lưu thứ tự...', 'text-primary');
+
+        fetch(`{{ route('admin.settings.banners.update-order') }}`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ order })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) {
+                throw new Error(data.message || 'Không thể cập nhật thứ tự');
+            }
+
+            savedOrder = nextOrder;
+            setOrderStatus('Đã lưu thứ tự', 'text-success');
+            setTimeout(() => {
+                if (orderStatus?.textContent === 'Đã lưu thứ tự') {
+                    setOrderStatus('');
+                }
+            }, 1800);
+        })
+        .catch(err => {
+            console.error('Sort error:', err);
+            restoreSavedOrder();
+            setOrderStatus('Lưu thứ tự thất bại', 'text-danger');
+            alert('Lỗi cập nhật thứ tự: ' + err.message);
+        });
+    }
+
+    if (bannersList && sortableRows().length > 0) {
+        bannersList.addEventListener('dragstart', function(e) {
+            const handle = e.target.closest('.drag-handle');
+            const row = e.target.closest('tr[data-id]');
+
+            if (!handle || !row) {
+                e.preventDefault();
+                return;
+            }
+
+            draggingRow = row;
+            row.classList.add('is-dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', row.dataset.id);
+        });
+
+        bannersList.addEventListener('dragover', function(e) {
+            if (!draggingRow) {
+                return;
+            }
+
+            e.preventDefault();
+            const afterRow = rowAfterPointer(bannersList, e.clientY);
+
+            sortableRows().forEach(row => row.classList.remove('drag-over'));
+
+            if (afterRow) {
+                afterRow.classList.add('drag-over');
+                bannersList.insertBefore(draggingRow, afterRow);
+            } else {
+                bannersList.appendChild(draggingRow);
+            }
+        });
+
+        bannersList.addEventListener('dragend', function() {
+            if (!draggingRow) {
+                return;
+            }
+
+            draggingRow.classList.remove('is-dragging');
+            sortableRows().forEach(row => row.classList.remove('drag-over'));
+            draggingRow = null;
+            persistBannerOrder();
         });
     }
 </script>

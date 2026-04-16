@@ -1,12 +1,13 @@
 @php
     $liveRoom = $baiGiang?->phongHocLive;
-    $selectedPhanCongId = old('phan_cong_id');
+    $selectedPhanCongId = old('phan_cong_id', request('phan_cong_id'));
     if (!$selectedPhanCongId && $baiGiang) {
         $selectedPhanCongId = optional($phanCongs->first(function ($phanCong) use ($baiGiang) {
             return (int) $phanCong->khoa_hoc_id === (int) $baiGiang->khoa_hoc_id
                 && (int) $phanCong->module_hoc_id === (int) $baiGiang->module_hoc_id;
         }))->id;
     }
+    $selectedLichHocId = old('lich_hoc_id', $baiGiang->lich_hoc_id ?? request('lich_hoc_id'));
     $selectedLoai = old('loai_bai_giang', $baiGiang->loai_bai_giang ?? 'hon_hop');
     $selectedMainResource = old('tai_nguyen_chinh_id', $baiGiang->tai_nguyen_chinh_id ?? null);
     $selectedExtraResources = collect(old('tai_nguyen_phu_ids', $baiGiang?->taiNguyenPhu?->pluck('id')->all() ?? []))->map(fn ($id) => (int) $id)->all();
@@ -281,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const loaiBaiGiangSelect = document.getElementById('loai_bai_giang');
     const liveConfigCard = document.getElementById('live-config-card');
     const moderatorSelect = document.getElementById('live_moderator_id');
-    const initialLichHocId = @json(old('lich_hoc_id', $baiGiang->lich_hoc_id ?? null));
+    const initialLichHocId = @json($selectedLichHocId);
     let moderatorTouched = false;
 
     if (moderatorSelect) {

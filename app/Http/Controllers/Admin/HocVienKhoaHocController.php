@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\HocVienKhoaHoc;
+use App\Models\HocVien;
 use App\Models\KhoaHoc;
 use App\Models\NguoiDung;
 use Illuminate\Http\Request;
@@ -16,7 +17,7 @@ class HocVienKhoaHocController extends Controller
     {
         $khoaHoc = KhoaHoc::with(['nhomNganh'])->findOrFail($khoaHocId);
 
-        $hocViens = HocVienKhoaHoc::with(['hocVien'])
+        $hocViens = HocVienKhoaHoc::with(['hocVien.nguoiDung'])
             ->where('khoa_hoc_id', $khoaHocId)
             ->orderBy('created_at', 'desc')
             ->paginate(20);
@@ -63,7 +64,7 @@ class HocVienKhoaHocController extends Controller
                     ->orWhereRaw('LOWER(COALESCE(so_dien_thoai, \'\')) LIKE ?', [$contains]);
 
                 if (is_numeric($keyword)) {
-                    $query->orWhere('id', (int) $keyword);
+                    $query->orWhere('ma_nguoi_dung', (int) $keyword);
                 }
             })
             ->orderByRaw(
@@ -80,7 +81,7 @@ class HocVienKhoaHocController extends Controller
             ->orderBy('ho_ten')
             ->limit($limit)
             ->get([
-                'id',
+                'ma_nguoi_dung',
                 'ho_ten',
                 'email',
                 'so_dien_thoai',
@@ -106,7 +107,7 @@ class HocVienKhoaHocController extends Controller
     {
         $request->validate([
             'hoc_vien_ids' => 'required|array|min:1',
-            'hoc_vien_ids.*' => 'exists:nguoi_dung,id',
+            'hoc_vien_ids.*' => 'exists:nguoi_dung,ma_nguoi_dung',
             'ngay_tham_gia' => 'nullable|date',
             'ghi_chu' => 'nullable|string|max:500',
         ]);
@@ -118,7 +119,13 @@ class HocVienKhoaHocController extends Controller
         try {
             $count = 0;
 
-            foreach ($request->hoc_vien_ids as $hvId) {
+            foreach ($request->hoc_vien_ids as $hvNguoiDungId) {
+                // Phải lấy hoc_vien.id vì bảng hoc_vien_khoa_hoc tham chiếu tới hoc_vien.id (không phải nguoi_dung.ma_nguoi_dung)
+                $hocVien = HocVien::where('nguoi_dung_id', $hvNguoiDungId)->first();
+                if (!$hocVien) continue;
+
+                $hvId = $hocVien->id;
+
                 $exists = HocVienKhoaHoc::where('khoa_hoc_id', $khoaHocId)
                     ->where('hoc_vien_id', $hvId)
                     ->exists();
@@ -130,7 +137,7 @@ class HocVienKhoaHocController extends Controller
                         'ngay_tham_gia' => $request->ngay_tham_gia ?? now(),
                         'trang_thai' => 'dang_hoc',
                         'ghi_chu' => $request->ghi_chu,
-                        'created_by' => Auth::user()->id,
+                        'created_by' => Auth::user()->ma_nguoi_dung,
                     ]);
 
                     $count++;

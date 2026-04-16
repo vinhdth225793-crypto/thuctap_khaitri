@@ -51,7 +51,7 @@ class YeuCauHocVienController extends Controller
                 switch ($yeuCau->loai_yeu_cau) {
                     case 'them':
                         $hocVien = $yeuCau->hoc_vien_id
-                            ? NguoiDung::where('id', $yeuCau->hoc_vien_id)->first()
+                            ? NguoiDung::where('ma_nguoi_dung', $yeuCau->hoc_vien_id)->first()
                             : NguoiDung::where('email', $data['email'])->first();
 
                         if (!$hocVien) {
@@ -64,7 +64,7 @@ class YeuCauHocVienController extends Controller
                         
                         // Thêm vào khóa học
                         HocVienKhoaHoc::updateOrCreate(
-                            ['khoa_hoc_id' => $yeuCau->khoa_hoc_id, 'hoc_vien_id' => $hocVien->id],
+                            ['khoa_hoc_id' => $yeuCau->khoa_hoc_id, 'hoc_vien_id' => $hocVien->ma_nguoi_dung],
                             ['trang_thai' => 'dang_hoc', 'ngay_tham_gia' => now(), 'created_by' => auth()->id()]
                         );
                         break;

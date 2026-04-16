@@ -39,6 +39,7 @@ use App\Http\Controllers\ThongBaoController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/search', [HomeController::class, 'search'])->name('home.search');
+Route::get('/tim-giang-vien', [HomeController::class, 'searchGiangVien'])->name('tim-giang-vien');
 
 // =========== ROUTE XÁC THỰC ===========
 Route::middleware('guest')->group(function () {
@@ -166,6 +167,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     });
 
     // Thao tác phân công dùng chung
+    Route::get('/phan-cong', [AdminPhanCongController::class, 'index'])->name('phan-cong.index');
     Route::post('/phan-cong/{id}/huy', [AdminPhanCongController::class, 'huy'])->name('phan-cong.huy');
     Route::post('/phan-cong/{id}/replace', [AdminPhanCongController::class, 'replace'])->name('phan-cong.replace');
 
@@ -238,7 +240,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
         Route::get('/', [AdminController::class, 'showSettings'])->name('settings');
         Route::post('/', [AdminController::class, 'saveSettings'])->name('settings.save');
         Route::get('/contact', [AdminController::class, 'showContactSettings'])->name('settings.contact');
+        Route::post('/contact', [AdminController::class, 'saveSettings'])->name('settings.contact.save');
         Route::get('/social', [AdminController::class, 'showSocialSettings'])->name('settings.social');
+        Route::post('/social', [AdminController::class, 'saveSettings'])->name('settings.social.save');
         Route::get('/instructors', [AdminController::class, 'showInstructorSettings'])->name('settings.instructors');
         Route::post('/instructors', [AdminController::class, 'saveInstructorSettings'])->name('settings.instructors.save');
 

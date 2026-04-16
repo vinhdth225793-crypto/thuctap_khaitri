@@ -21,6 +21,7 @@ class LichHoc extends Model
 
     protected $fillable = [
         'khoa_hoc_id',
+        'lop_hoc_id',
         'module_hoc_id',
         'giang_vien_id',
         'ngay_hoc',
@@ -147,6 +148,11 @@ class LichHoc extends Model
             ->orderByDesc('created_at');
     }
 
+    public function phanCongGiangViens(): HasMany
+    {
+        return $this->hasMany(PhanCongModuleGiangVien::class, 'module_hoc_id', 'module_hoc_id');
+    }
+
     public function phongHocLives(): HasManyThrough
     {
         return $this->hasManyThrough(
@@ -162,6 +168,11 @@ class LichHoc extends Model
     public function khoaHoc(): BelongsTo
     {
         return $this->belongsTo(KhoaHoc::class, 'khoa_hoc_id');
+    }
+
+    public function lopHoc(): BelongsTo
+    {
+        return $this->belongsTo(LopHoc::class, 'lop_hoc_id');
     }
 
     public function moduleHoc(): BelongsTo

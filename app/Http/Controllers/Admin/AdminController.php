@@ -12,6 +12,11 @@ use App\Models\NhomNganh;
 use App\Models\KhoaHoc;
 use App\Models\ModuleHoc;
 use App\Models\PhanCongModuleGiangVien;
+use App\Models\BaiGiang;
+use App\Models\BaiKiemTra;
+use App\Models\LichHoc;
+use App\Models\TaiNguyenBuoiHoc;
+use App\Models\YeuCauHocVien;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -26,6 +31,8 @@ class AdminController extends Controller
      */
     public function dashboard()
     {
+        $today = now()->toDateString();
+
         // 1. Th?ng k� t?ng quan ngu?i d�ng
         $userStats = [
             'tongNguoiDung' => NguoiDung::count(),
@@ -44,11 +51,24 @@ class AdminController extends Controller
             'nhom_nganh_hoat_dong'   => NhomNganh::active()->count(),
             'tong_khoa_hoc'       => KhoaHoc::count(),
             'khoa_hoc_hoat_dong'  => KhoaHoc::active()->count(),
+            'khoa_hoc_cho_gv'      => KhoaHoc::where('trang_thai_van_hanh', 'cho_giang_vien')->count(),
+            'khoa_hoc_dang_hoc'    => KhoaHoc::where('trang_thai_van_hanh', 'dang_day')->count(),
             'tong_module'         => ModuleHoc::count(),
             'module_chua_co_gv'   => ModuleHoc::whereDoesntHave('phanCongGiangViens', function($q) {
                                         $q->whereIn('trang_thai', ['da_nhan', 'cho_xac_nhan']);
                                      })->count(),
             'phan_cong_cho_xn'    => PhanCongModuleGiangVien::where('trang_thai', 'cho_xac_nhan')->count(),
+            'tai_khoan_cho_duyet'  => TaiKhoanChoPheDuyet::where('trang_thai', 'cho_phe_duyet')->count(),
+            'yeu_cau_hoc_vien_cho_duyet' => YeuCauHocVien::where('trang_thai', 'cho_duyet')->count(),
+            'bai_giang_cho_duyet'  => BaiGiang::where('trang_thai_duyet', BaiGiang::STATUS_DUYET_CHO)->count(),
+            'tai_nguyen_cho_duyet' => TaiNguyenBuoiHoc::where('trang_thai_duyet', TaiNguyenBuoiHoc::STATUS_DUYET_CHO)->count(),
+            'bai_kiem_tra_cho_duyet' => BaiKiemTra::where('trang_thai_duyet', 'cho_duyet')->count(),
+            'lich_hoc_hom_nay'     => LichHoc::whereDate('ngay_hoc', $today)
+                ->where('trang_thai', '!=', 'huy')
+                ->count(),
+            'lich_hoc_sap_toi'     => LichHoc::whereDate('ngay_hoc', '>', $today)
+                ->where('trang_thai', '!=', 'huy')
+                ->count(),
             'giang_vien_co_lich_day_tuong_lai' => GiangVien::whereHas('lichHocs', function ($query) {
                 $query->whereDate('ngay_hoc', '>=', now()->toDateString())
                     ->where('trang_thai', '!=', 'huy');
@@ -80,10 +100,101 @@ class AdminController extends Controller
         // D? li?u cho chart
         $chartData = $this->getChartData();
 
+        $taskStats = [
+            [
+                'key' => 'tai_khoan',
+                'title' => 'Tài khoản chờ duyệt',
+                'description' => 'Học viên/giảng viên vừa gửi đăng ký.',
+                'count' => $trainingStats['tai_khoan_cho_duyet'],
+                'route' => route('admin.phe-duyet-tai-khoan.index'),
+                'icon' => 'fas fa-user-check',
+                'tone' => 'primary',
+            ],
+            [
+                'key' => 'yeu_cau_hoc_vien',
+                'title' => 'Yêu cầu học viên',
+                'description' => 'Yêu cầu vào lớp hoặc cập nhật học viên.',
+                'count' => $trainingStats['yeu_cau_hoc_vien_cho_duyet'],
+                'route' => route('admin.yeu-cau-hoc-vien.index'),
+                'icon' => 'fas fa-user-plus',
+                'tone' => 'info',
+            ],
+            [
+                'key' => 'don_nghi',
+                'title' => 'Đơn xin nghỉ',
+                'description' => 'Đơn nghỉ giảng viên cần phản hồi.',
+                'count' => $trainingStats['don_xin_nghi_cho_duyet'],
+                'route' => route('admin.giang-vien-don-xin-nghi.index'),
+                'icon' => 'fas fa-calendar-xmark',
+                'tone' => 'warning',
+            ],
+            [
+                'key' => 'bai_giang',
+                'title' => 'Bài giảng chờ duyệt',
+                'description' => 'Nội dung giảng viên gửi lên hệ thống.',
+                'count' => $trainingStats['bai_giang_cho_duyet'],
+                'route' => route('admin.bai-giang.index'),
+                'icon' => 'fas fa-book-open',
+                'tone' => 'success',
+            ],
+            [
+                'key' => 'thu_vien',
+                'title' => 'Tài nguyên chờ duyệt',
+                'description' => 'Tài liệu trong thư viện cần kiểm tra.',
+                'count' => $trainingStats['tai_nguyen_cho_duyet'],
+                'route' => route('admin.thu-vien.index'),
+                'icon' => 'fas fa-folder-open',
+                'tone' => 'secondary',
+            ],
+            [
+                'key' => 'kiem_tra',
+                'title' => 'Bài kiểm tra chờ duyệt',
+                'description' => 'Đề kiểm tra cần duyệt hoặc phát hành.',
+                'count' => $trainingStats['bai_kiem_tra_cho_duyet'],
+                'route' => route('admin.kiem-tra-online.phe-duyet.index'),
+                'icon' => 'fas fa-clipboard-check',
+                'tone' => 'danger',
+            ],
+        ];
+
+        $urgentTotal = collect($taskStats)->sum('count')
+            + $trainingStats['module_chua_co_gv']
+            + $trainingStats['phan_cong_cho_xn'];
+
+        $pendingAccounts = TaiKhoanChoPheDuyet::where('trang_thai', 'cho_phe_duyet')
+            ->latest()
+            ->take(5)
+            ->get();
+
+        $pendingLeaveRequests = GiangVienDonXinNghi::with(['giangVien.nguoiDung', 'khoaHoc', 'moduleHoc'])
+            ->where('trang_thai', GiangVienDonXinNghi::TRANG_THAI_CHO_DUYET)
+            ->latest()
+            ->take(5)
+            ->get();
+
+        $pendingStudentRequests = YeuCauHocVien::with(['khoaHoc', 'giangVien.nguoiDung', 'hocVienNguoiDung'])
+            ->where('trang_thai', 'cho_duyet')
+            ->latest()
+            ->take(5)
+            ->get();
+
+        $todaysSchedules = LichHoc::with(['khoaHoc', 'moduleHoc', 'giangVien.nguoiDung'])
+            ->whereDate('ngay_hoc', $today)
+            ->where('trang_thai', '!=', 'huy')
+            ->orderBy('gio_bat_dau')
+            ->take(7)
+            ->get();
+
         return view('pages.admin.dashboard', array_merge($userStats, [
             'stats' => $trainingStats,
             'phanCongMoiNhat' => $phanCongMoiNhat,
-            'moduleChuaCoGv' => $moduleChuaCoGv
+            'moduleChuaCoGv' => $moduleChuaCoGv,
+            'taskStats' => $taskStats,
+            'urgentTotal' => $urgentTotal,
+            'pendingAccounts' => $pendingAccounts,
+            'pendingLeaveRequests' => $pendingLeaveRequests,
+            'pendingStudentRequests' => $pendingStudentRequests,
+            'todaysSchedules' => $todaysSchedules,
         ], $chartData));
     }
 
@@ -448,7 +559,7 @@ class AdminController extends Controller
             'email' => [
                 'required',
                 'email',
-                'unique:nguoi_dung,email,' . $id . ',id',
+                'unique:nguoi_dung,email,' . $id . ',ma_nguoi_dung',
                 'unique:tai_khoan_cho_phe_duyet,email',
             ],
             'vai_tro' => 'required|in:admin,giang_vien,hoc_vien',
@@ -889,7 +1000,7 @@ class AdminController extends Controller
         $nguoiDung = NguoiDung::where('ho_ten', 'like', "%{$search}%")
             ->orWhere('email', 'like', "%{$search}%")
             ->limit(10)
-            ->get(['id', 'ho_ten', 'email', 'vai_tro']);
+            ->get(['ma_nguoi_dung as id', 'ho_ten', 'email', 'vai_tro']);
 
         return response()->json($nguoiDung);
     }
@@ -1024,6 +1135,12 @@ class AdminController extends Controller
             'trang_thai' => true,
         ]);
 
+        if ($nguoiDung->vai_tro === 'hoc_vien') {
+            $nguoiDung->hocVien()->create([]);
+        } elseif ($nguoiDung->vai_tro === 'giang_vien') {
+            $nguoiDung->giangVien()->create([]);
+        }
+
         $taiKhoan->update(['trang_thai' => 'da_phe_duyet']);
 
         $redirectUrl = $taiKhoan->vai_tro === 'giang_vien' 
@@ -1120,8 +1237,12 @@ class AdminController extends Controller
         }
 
         foreach ($validated as $key => $value) {
-            if ($value !== null) {
-                SystemSetting::set($key, $value);
+            if ($key === 'site_logo' && ! $request->hasFile('site_logo')) {
+                continue;
+            }
+
+            if ($request->exists($key) || $request->hasFile($key)) {
+                SystemSetting::set($key, $value ?? '');
             }
         }
 
@@ -1129,13 +1250,13 @@ class AdminController extends Controller
 
         if (str_contains($currentRoute, 'contact')) {
             return redirect()->route('admin.settings.contact')
-                ->with('success', 'Th�ng tin li�n h? d� du?c c?p nh?t th�nh c�ng!');
+                ->with('success', 'Thông tin liên hệ đã được cập nhật thành công!');
         } elseif (str_contains($currentRoute, 'social')) {
             return redirect()->route('admin.settings.social')
-                ->with('success', 'M?ng x� h?i d� du?c c?p nh?t th�nh c�ng!');
+                ->with('success', 'Mạng xã hội đã được cập nhật thành công!');
         } else {
             return redirect()->route('admin.settings')
-                ->with('success', 'C�i d?t h? th?ng d� du?c c?p nh?t th�nh c�ng!');
+                ->with('success', 'Cài đặt hệ thống đã được cập nhật thành công!');
         }
     }
 
@@ -1153,7 +1274,7 @@ class AdminController extends Controller
         }
 
         return redirect()->route('admin.settings.instructors')
-            ->with('success', 'Ch?n gi?ng vi�n hi?n th? tr�n trang ch? d� du?c c?p nh?t th�nh c�ng!');
+            ->with('success', 'Chọn giảng viên hiển thị trên trang chủ đã được cập nhật thành công!');
     }
 
     /**

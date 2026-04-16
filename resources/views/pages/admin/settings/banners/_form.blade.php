@@ -62,10 +62,13 @@
                     <div class="mb-3">
                         <label for="thu_tu" class="form-label fw-bold">Thứ tự hiển thị</label>
                         <input type="number" name="thu_tu" id="thu_tu" class="form-control @error('thu_tu') is-invalid @enderror" 
-                               value="{{ old('thu_tu', $banner ? $banner->thu_tu : 0) }}" min="0">
+                               value="{{ old('thu_tu', $banner ? $banner->thu_tu : ($suggestedOrder ?? 0)) }}" min="0">
                         @error('thu_tu')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
+                        <small class="text-muted d-block mt-2">
+                            Nhập <strong>0</strong> để dùng làm ảnh thẻ đầu trang chủ. Nhập <strong>1 trở đi</strong> để đưa vào banner slide bên dưới.
+                        </small>
                     </div>
                 </div>
                 <div class="col-md-6">

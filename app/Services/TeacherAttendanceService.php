@@ -9,8 +9,10 @@ use App\Models\LichHoc;
 use App\Models\NguoiDung;
 use App\Models\PhanCongModuleGiangVien;
 use App\Models\PhongHocLive;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class TeacherAttendanceService
@@ -336,15 +338,29 @@ class TeacherAttendanceService
 
         $lecture = $lichHoc->baiGiangs()
             ->where('loai_bai_giang', BaiGiang::TYPE_LIVE)
-            ->with(['phongHocLive.nguoiThamGia'])
+            ->with($this->hasLiveParticipantsTable()
+                ? ['phongHocLive.nguoiThamGia']
+                : ['phongHocLive'])
             ->latest('id')
             ->first();
+
+        if (! $this->hasLiveParticipantsTable() && $lecture?->phongHocLive) {
+            $lecture->phongHocLive->setRelation('nguoiThamGia', new EloquentCollection());
+        }
 
         return $lecture?->phongHocLive;
     }
 
     private function resolveTeacherParticipant(PhongHocLive $room, GiangVien $giangVien)
     {
+        if (! $this->hasLiveParticipantsTable()) {
+            if (! $room->relationLoaded('nguoiThamGia')) {
+                $room->setRelation('nguoiThamGia', new EloquentCollection());
+            }
+
+            return null;
+        }
+
         $room->loadMissing('nguoiThamGia');
 
         return $room->nguoiThamGia
@@ -353,6 +369,11 @@ class TeacherAttendanceService
                 return $participant->joined_at?->timestamp ?? $participant->created_at?->timestamp ?? 0;
             })
             ->first();
+    }
+
+    private function hasLiveParticipantsTable(): bool
+    {
+        return Schema::hasTable('phong_hoc_live_nguoi_tham_gia');
     }
 
     private function appendNotes(?string $existingNotes, array $lines): string

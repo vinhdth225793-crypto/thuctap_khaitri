@@ -38,7 +38,7 @@ class HocVienController extends Controller
         $user = auth()->user();
         
         $khoaHocThamGia = HocVienKhoaHoc::with(['khoaHoc.moduleHocs'])
-            ->where('hoc_vien_id', $user->hocVien->id)
+            ->where('hoc_vien_id', $user->ma_nguoi_dung)
             ->get();
 
         $resultsByCourse = [];
@@ -48,7 +48,7 @@ class HocVienController extends Controller
             
             // Lấy tất cả kết quả của học viên trong khóa học này (phân cấp)
             $allResults = KetQuaHocTap::with(['moduleHoc', 'baiKiemTra'])
-                ->where('hoc_vien_id', $user->hocVien->id)
+                ->where('hoc_vien_id', $user->ma_nguoi_dung)
                 ->where('khoa_hoc_id', $khoaHoc->id)
                 ->get();
 
@@ -79,7 +79,7 @@ class HocVienController extends Controller
         $user = auth()->user();
 
         $baseQuery = HocVienKhoaHoc::query()
-            ->where('hoc_vien_id', $user->hocVien->id)
+            ->where('hoc_vien_id', $user->ma_nguoi_dung)
             ->whereHas('khoaHoc');
 
         $stats = [
@@ -113,11 +113,11 @@ class HocVienController extends Controller
         $user = auth()->user();
 
         $daThamGiaIds = HocVienKhoaHoc::query()
-            ->where('hoc_vien_id', $user->hocVien->id)
+            ->where('hoc_vien_id', $user->ma_nguoi_dung)
             ->pluck('khoa_hoc_id');
 
         $dangChoDuyetIds = YeuCauHocVien::query()
-            ->where('hoc_vien_id', $user->hocVien->id)
+            ->where('hoc_vien_id', $user->ma_nguoi_dung)
             ->where('loai_yeu_cau', 'them')
             ->where('trang_thai', 'cho_duyet')
             ->pluck('khoa_hoc_id');
@@ -127,25 +127,17 @@ class HocVienController extends Controller
             ->hoatDong()
             ->whereIn('trang_thai_van_hanh', ['cho_giang_vien', 'san_sang', 'dang_day'])
             ->whereNotIn('id', $daThamGiaIds)
-            ->with(['nhomNganh'])
+            ->with('nhomNganh')
             ->withCount([
                 'moduleHocs',
                 'hocVienKhoaHocs as hoc_vien_dang_hoc_count' => fn ($query) => $query->where('trang_thai', 'dang_hoc'),
             ])
-            ->orderByRaw("
-                CASE trang_thai_van_hanh
-                    WHEN 'san_sang' THEN 1
-                    WHEN 'dang_day' THEN 2
-                    WHEN 'cho_giang_vien' THEN 3
-                    ELSE 4
-                END
-            ")
             ->orderBy('ngay_khai_giang')
             ->paginate(9);
 
         $yeuCauDaGui = YeuCauHocVien::query()
             ->with(['khoaHoc.nhomNganh', 'admin'])
-            ->where('hoc_vien_id', $user->hocVien->id)
+            ->where('hoc_vien_id', $user->ma_nguoi_dung)
             ->where('loai_yeu_cau', 'them')
             ->orderByRaw("
                 CASE trang_thai
@@ -182,13 +174,11 @@ class HocVienController extends Controller
 
         $khoaHoc = KhoaHoc::query()
             ->active()
-            ->hoatDong()
-            ->whereIn('trang_thai_van_hanh', ['cho_giang_vien', 'san_sang', 'dang_day'])
             ->findOrFail($khoaHocId);
 
         $daThamGia = HocVienKhoaHoc::query()
             ->where('khoa_hoc_id', $khoaHoc->id)
-            ->where('hoc_vien_id', $user->hocVien->id)
+            ->where('hoc_vien_id', $user->ma_nguoi_dung)
             ->exists();
 
         if ($daThamGia) {
@@ -197,7 +187,7 @@ class HocVienController extends Controller
 
         $dangChoDuyet = YeuCauHocVien::query()
             ->where('khoa_hoc_id', $khoaHoc->id)
-            ->where('hoc_vien_id', $user->hocVien->id)
+            ->where('hoc_vien_id', $user->ma_nguoi_dung)
             ->where('loai_yeu_cau', 'them')
             ->where('trang_thai', 'cho_duyet')
             ->exists();
@@ -209,7 +199,7 @@ class HocVienController extends Controller
         YeuCauHocVien::create([
             'khoa_hoc_id' => $khoaHoc->id,
             'giang_vien_id' => null,
-            'hoc_vien_id' => $user->hocVien->id,
+            'hoc_vien_id' => $user->ma_nguoi_dung,
             'loai_yeu_cau' => 'them',
             'du_lieu_yeu_cau' => [
                 'id' => $user->id,
@@ -264,7 +254,7 @@ class HocVienController extends Controller
             ->findOrFail($id);
 
         $daGhiDanh = HocVienKhoaHoc::where('khoa_hoc_id', $baiGiang->khoa_hoc_id)
-            ->where('hoc_vien_id', auth()->user()->hocVien->id)
+            ->where('hoc_vien_id', auth()->id())
             ->whereIn('trang_thai', ['dang_hoc', 'hoan_thanh'])
             ->exists();
 
@@ -297,7 +287,7 @@ class HocVienController extends Controller
 
         $validator = Validator::make($request->all(), [
             'ho_ten' => 'required|string|max:255',
-            'email' => 'required|email|unique:nguoi_dung,email,' . $user->id . ',id',
+            'email' => 'required|email|unique:nguoi_dung,email,' . $user->id . ',ma_nguoi_dung',
             'so_dien_thoai' => 'nullable|string|max:15',
             'ngay_sinh' => 'nullable|date|before:today',
             'dia_chi' => 'nullable|string|max:500',

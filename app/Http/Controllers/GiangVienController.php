@@ -94,7 +94,7 @@ class GiangVienController extends Controller
 
         $validator = Validator::make($request->all(), [
             'ho_ten' => 'required|string|max:255',
-            'email' => 'required|email|unique:nguoi_dung,email,' . $user->id . ',id',
+            'email' => 'required|email|unique:nguoi_dung,email,' . $user->id . ',ma_nguoi_dung',
             'so_dien_thoai' => 'nullable|string|max:15',
             'ngay_sinh' => 'nullable|date|before:today',
             'dia_chi' => 'nullable|string|max:500',

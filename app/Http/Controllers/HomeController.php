@@ -10,11 +10,36 @@ use App\Models\NhomNganh;
 use App\Models\SystemSetting;
 use Illuminate\Http\Request;
 
+use App\Models\PhanCongModuleGiangVien;
+use App\Models\LichHoc;
+use App\Models\TaiKhoanChoPheDuyet;
+use App\Models\NguoiDung;
+use App\Services\StudentLearningDashboardService;
+
 class HomeController extends Controller
 {
+    protected $studentDashboardService;
+
+    public function __construct(StudentLearningDashboardService $studentDashboardService)
+    {
+        $this->studentDashboardService = $studentDashboardService;
+    }
+
     public function index(Request $request)
     {
         $settings = $this->buildSettings();
+        $user = auth()->user();
+        $dashboardData = [];
+
+        if ($user) {
+            if ($user->vai_tro === 'hoc_vien') {
+                $dashboardData = $this->studentDashboardService->buildFor($user);
+            } elseif ($user->vai_tro === 'giang_vien') {
+                $dashboardData = $this->buildTeacherDashboard($user);
+            } elseif ($user->vai_tro === 'admin') {
+                $dashboardData = $this->buildAdminDashboard();
+            }
+        }
 
         $publicCourseBase = KhoaHoc::query()
             ->active()
@@ -88,19 +113,22 @@ class HomeController extends Controller
             ->first();
 
         $featuredInstructors = GiangVien::hienThiTrangChu()
-            ->with('nguoiDung:id,ho_ten,email,anh_dai_dien')
-            ->orderByDesc('so_gio_day')
+            ->with('nguoiDung:ma_nguoi_dung,ho_ten,email,anh_dai_dien')
+            ->orderByRaw('CAST(COALESCE(so_gio_day, 0) AS UNSIGNED) DESC')
             ->limit(4)
             ->get();
 
         $categories = NhomNganh::query()
             ->active()
-            ->withCount([
-                'khoaHocs as public_course_count' => fn ($query) => $query
-                    ->active()
-                    ->hoatDong()
-                    ->whereIn('trang_thai_van_hanh', ['cho_giang_vien', 'san_sang', 'dang_day']),
-            ])
+            ->select('nhom_nganh.*')
+            ->selectSub(function ($query) {
+                $query->from('khoa_hoc')
+                    ->selectRaw('count(*)')
+                    ->whereColumn('khoa_hoc.nhom_nganh_id', 'nhom_nganh.id')
+                    ->where('khoa_hoc.trang_thai', 1)
+                    ->where('khoa_hoc.loai', 'hoat_dong')
+                    ->whereIn('khoa_hoc.trang_thai_van_hanh', ['cho_giang_vien', 'san_sang', 'dang_day']);
+            }, 'public_course_count')
             ->having('public_course_count', '>', 0)
             ->orderByDesc('public_course_count')
             ->orderBy('ten_nhom_nganh')
@@ -113,29 +141,86 @@ class HomeController extends Controller
                 ->whereIn('khoa_hoc_id', (clone $publicCourseBase)->select('id'))
                 ->where('trang_thai', 'dang_hoc')
                 ->count(),
-            'tong_module' => (clone $publicCourseBase)->sum('tong_so_module'),
+            'tong_module' => (clone $publicCourseBase)
+                ->withCount('moduleHocs')
+                ->get()
+                ->sum('module_hocs_count'),
             'tong_giang_vien_noi_bat' => GiangVien::hienThiTrangChu()->count(),
             'sap_khai_giang' => (clone $publicCourseBase)
                 ->whereDate('ngay_khai_giang', '>=', today())
                 ->count(),
         ];
 
-        $banners = Banner::hienThi()->limit(5)->get();
+        $heroBanner = Banner::hienThi()
+            ->where('thu_tu', 0)
+            ->orderByDesc('created_at')
+            ->first();
+
+        $sliderBanners = Banner::hienThi()
+            ->where('thu_tu', '>=', 1)
+            ->limit(8)
+            ->get();
 
         return view('pages.home.index', [
             'settings' => $settings,
-            'banners' => $banners,
+            'heroBanner' => $heroBanner,
+            'sliderBanners' => $sliderBanners,
+            'banners' => $sliderBanners,
             'courses' => $courses,
             'featuredCourse' => $featuredCourse,
             'featuredInstructors' => $featuredInstructors,
             'categories' => $categories,
             'stats' => $stats,
+            'dashboardData' => $dashboardData,
             'filters' => [
                 'q' => $keyword,
                 'level' => $level,
                 'category' => $category,
             ],
         ]);
+    }
+
+    private function buildTeacherDashboard(NguoiDung $user): array
+    {
+        $giangVien = $user->giangVien;
+        if (!$giangVien) return [];
+
+        $today = now()->toDateString();
+        
+        $lichDayHomNay = LichHoc::query()
+            ->whereHas('phanCongGiangViens', function ($q) use ($giangVien) {
+                $q->where('giang_vien_id', $giangVien->id)
+                  ->where('trang_thai', 'da_nhan');
+            })
+            ->whereDate('ngay_hoc', $today)
+            ->with([
+                'khoaHoc',
+                'moduleHoc',
+                'teacherAttendanceLogs' => fn ($query) => $query->where('giang_vien_id', $giangVien->id),
+            ])
+            ->orderBy('gio_bat_dau')
+            ->get();
+
+        $phanCongChoXN = PhanCongModuleGiangVien::where('giang_vien_id', $giangVien->id)
+            ->where('trang_thai', 'cho_xac_nhan')
+            ->count();
+
+        return [
+            'lichDayHomNay' => $lichDayHomNay,
+            'phanCongChoXN' => $phanCongChoXN,
+            'giangVien' => $giangVien,
+        ];
+    }
+
+    private function buildAdminDashboard(): array
+    {
+        return [
+            'taiKhoanChoDuyet' => TaiKhoanChoPheDuyet::count(),
+            'hocVienMoiHomNay' => NguoiDung::where('vai_tro', 'hoc_vien')
+                ->whereDate('created_at', today())
+                ->count(),
+            'phanCongChoXN' => PhanCongModuleGiangVien::where('trang_thai', 'cho_xac_nhan')->count(),
+        ];
     }
 
     public function search(Request $request)

@@ -463,7 +463,7 @@ class PhanCongController extends Controller
             'ly_do' => 'required|string|max:1000',
             'email_hoc_vien' => 'required_if:loai_yeu_cau,them|nullable|email',
             'ten_hoc_vien' => 'required_if:loai_yeu_cau,them|nullable|string|max:255',
-            'hoc_vien_id' => 'required_if:loai_yeu_cau,xoa,sua|nullable|exists:nguoi_dung,id',
+            'hoc_vien_id' => 'required_if:loai_yeu_cau,xoa,sua|nullable|exists:nguoi_dung,ma_nguoi_dung',
         ]);
 
         $duLieu = [

@@ -187,48 +187,65 @@
                         $sectionAssignment = $moduleSection['assignment'];
                         $sectionModule = $moduleSection['module'];
                         $sectionTimelineItems = $moduleSection['timelineItems'];
+                        // Mở module đầu tiên hoặc module có focus
+                        $isExpanded = ($focusedLichHocId > 0 && $sectionTimelineItems->contains('id', $focusedLichHocId)) 
+                                      || ($focusedLichHocId == 0 && $loop->first);
                     @endphp
 
                     <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
-                        <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-3">
-                            <div>
-                                <div class="smaller text-muted text-uppercase fw-bold mb-1">Module {{ $sectionModule->thu_tu_module }}</div>
-                                <h5 class="fw-bold text-dark mb-1">{{ $sectionModule->ten_module }}</h5>
-                                <div class="small text-muted d-flex flex-wrap align-items-center gap-2">
-                                    <span class="badge bg-{{ $sectionModule->trang_thai_hoc_tap_badge }}-soft text-{{ $sectionModule->trang_thai_hoc_tap_badge }} border border-{{ $sectionModule->trang_thai_hoc_tap_badge }}">
-                                        {{ $sectionModule->trang_thai_hoc_tap_label }}
-                                    </span>
-                                    <span class="badge bg-light text-dark border">{{ $sectionTimelineItems->count() }} buoi day</span>
-                                    @if($sectionAssignment->trang_thai === 'cho_xac_nhan')
-                                        <span class="badge bg-warning-soft text-warning border border-warning">Chờ xác nhận giảng dạy</span>
-                                    @endif
+                        <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-3 module-header-toggle" 
+                             style="cursor: pointer;"
+                             data-bs-toggle="collapse" 
+                             data-bs-target="#collapse-module-{{ $sectionModule->id }}"
+                             aria-expanded="{{ $isExpanded ? 'true' : 'false' }}">
+                            
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="bg-primary-soft text-primary rounded-3 d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+                                    <i class="fas fa-cubes"></i>
+                                </div>
+                                <div>
+                                    <div class="smaller text-muted text-uppercase fw-bold mb-0">Module {{ $sectionModule->thu_tu_module }}</div>
+                                    <h5 class="fw-bold text-dark mb-0">{{ $sectionModule->ten_module }}</h5>
                                 </div>
                             </div>
 
-                            @if($sectionAssignment->trang_thai === 'cho_xac_nhan')
-                                <form action="{{ route('giang-vien.khoa-hoc.xac-nhan', $sectionAssignment->id) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    <input type="hidden" name="hanh_dong" value="da_nhan">
-                                    <button type="submit" class="btn btn-sm btn-success fw-bold px-4 shadow-sm">
-                                        <i class="fas fa-check-double me-1"></i> Xác nhận dạy module này
-                                    </button>
-                                </form>
-                            @endif
+                            <div class="d-flex align-items-center gap-3 ms-auto">
+                                <div class="small text-muted d-none d-sm-flex flex-wrap align-items-center gap-2">
+                                    <span class="badge bg-{{ $sectionModule->trang_thai_hoc_tap_badge }}-soft text-{{ $sectionModule->trang_thai_hoc_tap_badge }} border border-{{ $sectionModule->trang_thai_hoc_tap_badge }}">
+                                        {{ $sectionModule->trang_thai_hoc_tap_label }}
+                                    </span>
+                                    <span class="badge bg-light text-dark border">{{ $sectionTimelineItems->count() }} buổi dạy</span>
+                                </div>
+
+                                @if($sectionAssignment->trang_thai === 'cho_xac_nhan')
+                                    <form action="{{ route('giang-vien.khoa-hoc.xac-nhan', $sectionAssignment->id) }}" method="POST" class="d-inline" onclick="event.stopPropagation();">
+                                        @csrf
+                                        <input type="hidden" name="hanh_dong" value="da_nhan">
+                                        <button type="submit" class="btn btn-sm btn-success fw-bold px-3 shadow-sm">
+                                            <i class="fas fa-check me-1"></i> Xác nhận dạy
+                                        </button>
+                                    </form>
+                                @endif
+                                
+                                <i class="fas fa-chevron-down text-muted collapse-icon"></i>
+                            </div>
                         </div>
 
-                        <div class="card-body p-4">
-                            @forelse($sectionTimelineItems as $timelineItem)
-                                @include('pages.giang-vien.phan-cong.partials.timeline-session-card', [
-                                    'timelineItem' => $timelineItem,
-                                    'phanCong' => $sectionAssignment,
-                                    'focusedLichHocId' => $focusedLichHocId,
-                                ])
-                            @empty
-                                <div class="vip-card p-4 text-center text-muted border-0 shadow-none bg-light">
-                                    <i class="fas fa-calendar-times fa-2x mb-3 opacity-25"></i>
-                                    <p class="mb-0">Module này chưa có lịch dạy cụ thể.</p>
-                                </div>
-                            @endforelse
+                        <div id="collapse-module-{{ $sectionModule->id }}" class="collapse {{ $isExpanded ? 'show' : '' }}">
+                            <div class="card-body p-4">
+                                @forelse($sectionTimelineItems as $timelineItem)
+                                    @include('pages.giang-vien.phan-cong.partials.timeline-session-card', [
+                                        'timelineItem' => $timelineItem,
+                                        'phanCong' => $sectionAssignment,
+                                        'focusedLichHocId' => $focusedLichHocId,
+                                    ])
+                                @empty
+                                    <div class="vip-card p-4 text-center text-muted border-0 shadow-none bg-light">
+                                        <i class="fas fa-calendar-times fa-2x mb-3 opacity-25"></i>
+                                        <p class="mb-0">Module này chưa có lịch dạy cụ thể.</p>
+                                    </div>
+                                @endforelse
+                            </div>
                         </div>
                     </div>
                 @empty
@@ -239,212 +256,7 @@
                 @endforelse
             </div>
 
-                @if(false)
-                @forelse($lichDays as $index => $lich)
-                    <div id="session-{{ $lich->id }}" class="session-block mb-4 shadow-sm border border-2 border-light-subtle rounded-3 overflow-hidden bg-white {{ $focusedLichHocId === (int) $lich->id ? 'session-block-focused' : '' }}" style="border-left: 5px solid #0d6efd !important;">
-                        {{-- Header của buổi học --}}
-                        <div class="session-header p-3 d-flex flex-wrap align-items-center justify-content-between bg-light border-bottom border-primary border-3 border-top-0 border-end-0 border-start-0">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="session-number bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 45px; height: 45px;">
-                                    <span class="fw-bold fs-5">#{{ $lich->buoi_so }}</span>
-                                </div>
-                                <div>
-                                    <div class="fw-bold text-dark fs-6">{{ $lich->ngay_hoc->format('d/m/Y') }} ({{ $lich->thu_label }})</div>
-                                    <div class="smaller text-muted">
-                                        <i class="far fa-clock me-1"></i>
-                                        <span class="text-primary fw-bold">{{ \Carbon\Carbon::parse($lich->gio_bat_dau)->format('H:i') }} - {{ \Carbon\Carbon::parse($lich->gio_ket_thuc)->format('H:i') }}</span>
-                                        <span class="mx-2 text-silver">|</span>
-                                        <span class="badge bg-{{ $lich->trang_thai_color }}-soft text-dark border-0">
-                                            {{ $lich->trang_thai_label }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="d-flex gap-1 mt-2 mt-md-0">
-                                <button type="button" class="btn btn-sm btn-outline-warning btn-icon-custom btn-edit-lich" 
-                                        data-id="{{ $lich->id }}" data-buoi="{{ $lich->buoi_so }}"
-                                        data-hinhthuc="{{ $lich->hinh_thuc }}" data-nentang="{{ $lich->nen_tang }}"
-                                        data-link="{{ $lich->link_online }}" data-meetingid="{{ $lich->meeting_id }}"
-                                        data-pass="{{ $lich->mat_khau_cuoc_hop }}" data-phong="{{ $lich->phong_hoc }}"
-                                        title="Cập nhật Link/Phòng">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                
-                                <button type="button" class="btn btn-sm btn-outline-success btn-icon-custom btn-add-resource"
-                                        data-id="{{ $lich->id }}" data-buoi="{{ $lich->buoi_so }}"
-                                        title="Đăng tài liệu">
-                                    <i class="fas fa-cloud-upload-alt"></i>
-                                </button>
 
-                                <button type="button" class="btn btn-sm btn-outline-primary btn-icon-custom btn-diem-danh"
-                                        data-id="{{ $lich->id }}" data-buoi="{{ $lich->buoi_so }}"
-                                        title="Điểm danh">
-                                    <i class="fas fa-user-check"></i>
-                                </button>
-
-                                <button type="button" class="btn btn-sm btn-outline-danger btn-icon-custom btn-add-test"
-                                        data-id="{{ $lich->id }}" data-buoi="{{ $lich->buoi_so }}"
-                                        title="Tạo bài kiểm tra">
-                                    <i class="fas fa-file-signature"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        {{-- Body của buổi học --}}
-                        <div class="session-body p-3">
-                            <div class="row g-3">
-                                {{-- Cột trái: Thông tin địa điểm --}}
-                                <div class="col-md-12">
-                                    <div class="p-2 rounded bg-light border-start border-4 border-info">
-                                        @if($lich->hinh_thuc === 'online')
-                                            <div class="d-flex align-items-center justify-content-between">
-                                                <div class="d-flex align-items-center gap-2">
-                                                    <span class="badge bg-info fw-bold">ONLINE</span>
-                                                    @if($lich->link_online)
-                                                        <a href="{{ $lich->link_online }}" target="_blank" class="text-info fw-bold text-decoration-none small text-truncate d-block" style="max-width: 300px;">
-                                                            <i class="fas fa-video me-1"></i> {{ $lich->link_online }}
-                                                        </a>
-                                                    @else
-                                                        <span class="text-muted italic small">Chưa cập nhật link họp</span>
-                                                    @endif
-                                                </div>
-                                                @if($lich->link_online)
-                                                    <button type="button" class="btn btn-xs btn-white border shadow-xs btn-copy-link" data-link="{{ $lich->link_online }}">
-                                                        <i class="far fa-copy me-1"></i> Sao chép link
-                                                    </button>
-                                                @endif
-                                            </div>
-                                        @else
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span class="badge bg-dark fw-bold">TRỰC TIẾP</span>
-                                                <span class="text-dark fw-bold small"><i class="fas fa-door-open me-1 text-muted"></i>Phòng: {{ $lich->phong_hoc ?: 'Chưa gán phòng' }}</span>
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
-
-                                {{-- Khu vực Bài kiểm tra --}}
-                                @include('pages.giang-vien.phan-cong.partials.teacher-attendance-card', ['lich' => $lich, 'phanCong' => $phanCong])
-
-                                @if($lich->baiKiemTras->count() > 0)
-                                    <div class="col-12 mt-3">
-                                        <div class="fw-bold small mb-2 text-danger text-uppercase"><i class="fas fa-file-alt me-1"></i> Bài kiểm tra</div>
-                                        <div class="d-flex flex-wrap gap-2">
-                                            @foreach($lich->baiKiemTras as $test)
-                                                <div class="p-2 rounded border border-danger border-opacity-25 bg-danger bg-opacity-10 d-flex align-items-center justify-content-between" style="min-width: 250px;">
-                                                    <div class="me-3">
-                                                        <div class="fw-bold smaller text-danger">{{ $test->tieu_de }}</div>
-                                                        <div class="smaller text-muted">{{ $test->thoi_gian_lam_bai }} phút</div>
-                                                    </div>
-                                                    <div class="d-flex gap-1">
-                                                        <a href="{{ route('giang-vien.bai-kiem-tra.edit', $test->id) }}" class="btn btn-xs btn-outline-danger p-1" title="Cấu hình đề"><i class="fas fa-tasks"></i></a>
-                                                        <a href="{{ route('giang-vien.bai-kiem-tra.surveillance.edit', $test->id) }}" class="btn btn-xs btn-outline-warning p-1" title="Cấu hình giám sát"><i class="fas fa-shield-alt"></i></a>
-                                                        <form action="{{ route('giang-vien.bai-kiem-tra.destroy', $test->id) }}" method="POST" onsubmit="return confirm('Xóa bài kiểm tra này?')">
-                                                            @csrf @method('DELETE')
-                                                            <button type="submit" class="btn btn-xs btn-link p-1 text-danger"><i class="fas fa-trash-alt"></i></button>
-                                                        </form>
-                                                    </div>
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                @endif
-
-                                {{-- Khu vực Tài liệu --}}
-                                <div class="col-12 mt-3">
-                                    <div class="fw-bold small mb-2 text-primary text-uppercase border-top pt-3"><i class="fas fa-folder-open me-1"></i> Tài liệu học tập ({{ $lich->taiNguyen->count() }})</div>
-                                    @if($lich->taiNguyen->count() > 0)
-                                        <div class="row g-2">
-                                            @foreach($lich->taiNguyen->sortBy('thu_tu_hien_thi') as $tn)
-                                                <div class="col-md-6">
-                                                    @php
-                                                        $taiNguyenUrl = $tn->link_ngoai ?: asset('storage/' . ltrim((string) $tn->duong_dan_file, '/'));
-                                                    @endphp
-                                                    <div class="resource-card p-2 rounded border bg-white shadow-xs d-flex align-items-center hover-bg-light transition-all h-100">
-                                                        {{-- Icon loại tài liệu --}}
-                                                        <div class="bg-{{ $tn->loai_color }}-soft text-{{ $tn->loai_color }} rounded d-flex align-items-center justify-content-center me-3 shadow-xs" style="width: 40px; height: 40px; flex-shrink: 0;">
-                                                            <i class="fas {{ $tn->loai_icon }} fa-lg"></i>
-                                                        </div>
-
-                                                        {{-- Nội dung tiêu đề --}}
-                                                        <div class="flex-grow-1 min-w-0 me-2">
-                                                            <div class="fw-bold smaller text-dark text-truncate" title="{{ $tn->tieu_de }}">
-                                                                {{ $tn->tieu_de }}
-                                                            </div>
-                                                            <div class="smaller d-flex align-items-center gap-2 mt-1">
-                                                                @if($tn->trang_thai_hien_thi === 'an')
-                                                                    <span class="badge bg-secondary-soft text-secondary border-0 px-2" style="font-size: 0.6rem;">
-                                                                        <i class="fas fa-eye-slash me-1"></i> Ẩn
-                                                                    </span>
-                                                                @else
-                                                                    <span class="badge bg-success-soft text-success border-0 px-2" style="font-size: 0.6rem;">
-                                                                        <i class="fas fa-eye me-1"></i> Hiện
-                                                                    </span>
-                                                                @endif
-                                                                <span class="text-muted" style="font-size: 0.6rem;">
-                                                                    <i class="fas fa-sort-numeric-down me-1"></i> STT: {{ $tn->thu_tu_hien_thi }}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-
-                                                        {{-- Nhóm nút chức năng --}}
-                                                        <div class="d-flex gap-1 align-items-center flex-shrink-0 border-start ps-2">
-                                                            <a href="{{ $taiNguyenUrl }}" target="_blank" class="btn btn-icon-xs text-primary" title="Xem file">
-                                                                <i class="fas fa-link"></i>
-                                                            </a>
-
-                                                            {{-- Toggle Status --}}
-                                                            <form action="{{ route('giang-vien.buoi-hoc.tai-nguyen.toggle', $tn->id) }}" method="POST" class="d-inline">
-                                                                @csrf @method('PATCH')
-                                                                <button type="submit" class="btn btn-icon-xs {{ $tn->trang_thai_hien_thi === 'hien' ? 'text-success' : 'text-secondary' }}" 
-                                                                        title="{{ $tn->trang_thai_hien_thi === 'hien' ? 'Ẩn' : 'Hiện' }}">
-                                                                    <i class="fas {{ $tn->trang_thai_hien_thi === 'hien' ? 'fa-toggle-on' : 'fa-toggle-off' }} fa-lg"></i>
-                                                                </button>
-                                                            </form>
-
-                                                            <button type="button" class="btn btn-icon-xs text-primary btn-preview-file" 
-                                                                    data-url="{{ $taiNguyenUrl }}" data-title="{{ $tn->tieu_de }}" title="Xem">
-                                                                <i class="fas fa-eye"></i>
-                                                            </button>
-                                                            
-                                                            <button type="button" class="btn btn-icon-xs text-warning btn-edit-resource"
-                                                                    data-id="{{ $tn->id }}" data-type="{{ $tn->loai_tai_nguyen }}"
-                                                                    data-title="{{ $tn->tieu_de }}" data-desc="{{ $tn->mo_ta }}"
-                                                                    data-link="{{ $tn->link_ngoai }}" data-status="{{ $tn->trang_thai_hien_thi }}"
-                                                                    data-order="{{ $tn->thu_tu_hien_thi }}" title="Sửa">
-                                                                <i class="fas fa-edit"></i>
-                                                            </button>
-
-                                                            <form action="{{ route('giang-vien.buoi-hoc.tai-nguyen.destroy', $tn->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa tài liệu này?')">
-                                                                @csrf @method('DELETE')
-                                                                <button type="submit" class="btn btn-icon-xs text-danger" title="Xóa">
-                                                                    <i class="fas fa-trash-alt"></i>
-                                                                </button>
-                                                            </form>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    @else
-                                        <div class="text-muted italic smaller py-2 ps-2 border-start border-3 ms-1">Chưa có tài liệu cho buổi học này.</div>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @empty
-                    <div class="vip-card p-5 text-center text-muted border-0 shadow-sm">
-                        <i class="fas fa-calendar-times fa-3x mb-3 opacity-25"></i>
-                        <p class="mb-0">Chưa có lịch dạy cụ thể cho bài dạy này.</p>
-                    </div>
-                @endforelse
-            </div>
-
-           
-
-            {{-- MÔ TẢ MODULE --}}
-            @endif
 
             <div class="card mb-4 border-0 shadow-sm rounded-4 overflow-hidden">
                 <div class="card-header bg-white py-3 border-bottom-0">
@@ -1703,8 +1515,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     ext = url.split('.').pop().split(/\#|\?/)[0].toLowerCase();
                 }
 
-                console.log('Previewing File:', { title, url, ext });
-
                 previewTitle.textContent = title;
                 previewFilename.textContent = url.split('/').pop();
                 previewOpenBtn.href = url;
@@ -1764,6 +1574,56 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+
+    // ==========================================
+    // AJAX TOGGLE HIỂN THỊ TÀI LIỆU
+    // ==========================================
+    document.querySelectorAll('.btn-toggle-resource-hien-thi').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const card = document.getElementById(`resource-item-${id}`);
+            const icon = this.querySelector('i');
+            
+            // Hiệu ứng loading tạm thời
+            this.disabled = true;
+            icon.className = 'fas fa-spinner fa-spin';
+
+            fetch("{{ route('giang-vien.buoi-hoc.tai-nguyen.toggle', ':id') }}".replace(':id', id), {
+                method: 'PATCH',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.success) {
+                    if (res.is_hien) {
+                        this.className = 'btn btn-icon-xs btn-toggle-resource-hien-thi text-success';
+                        icon.className = 'fas fa-eye';
+                        this.title = 'Đang hiện - Bấm để ẩn';
+                        if (card) card.classList.remove('opacity-75', 'bg-light');
+                    } else {
+                        this.className = 'btn btn-icon-xs btn-toggle-resource-hien-thi text-secondary';
+                        icon.className = 'fas fa-eye-slash';
+                        this.title = 'Đang ẩn - Bấm để hiện';
+                        if (card) card.classList.add('opacity-75', 'bg-light');
+                    }
+                } else {
+                    alert(res.message || 'Có lỗi xảy ra');
+                    icon.className = res.is_hien ? 'fas fa-eye' : 'fas fa-eye-slash';
+                }
+            })
+            .catch(err => {
+                console.error('Toggle Error:', err);
+                alert('Không thể kết nối máy chủ');
+            })
+            .finally(() => {
+                this.disabled = false;
+            });
+        });
+    });
 });</script>
 @endpush
 
@@ -1795,8 +1655,17 @@ document.addEventListener('DOMContentLoaded', function() {
     .smaller { font-size: 0.75rem; }
     .italic { font-style: italic; }
     .hover-bg-light:hover { background-color: #f8fafc; }
-    
+
+    .collapse-icon {
+        transition: transform 0.3s ease;
+    }
+
+    .module-header-toggle[aria-expanded="true"] .collapse-icon {
+        transform: rotate(180deg);
+    }
+
     .btn-icon-custom {
+
         width: 32px;
         height: 32px;
         display: flex;

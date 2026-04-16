@@ -16,7 +16,8 @@
             @include('pages.admin.settings.banners._form', [
                 'banner' => null, 
                 'action' => route('admin.settings.banners.store'), 
-                'method' => 'POST'
+                'method' => 'POST',
+                'suggestedOrder' => $suggestedOrder
             ])
         </div>
     </div>

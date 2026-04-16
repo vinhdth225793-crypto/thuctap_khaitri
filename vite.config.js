@@ -20,6 +20,14 @@ export default defineConfig({
             refresh: true,
         }),
     ],
+
+    css: {
+        preprocessorOptions: {
+            scss: {
+                quietDeps: true,
+            },
+        },
+    },
     
     // Thêm cấu hình build để xử lý CSS
     build: {
