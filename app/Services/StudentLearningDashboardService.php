@@ -70,6 +70,7 @@ class StudentLearningDashboardService
                     'id',
                     'khoa_hoc_id',
                     'module_hoc_id',
+                    'buoi_so',
                     'ngay_hoc',
                     'gio_bat_dau',
                     'gio_ket_thuc',
@@ -173,6 +174,21 @@ class StudentLearningDashboardService
         $tongBuoiHoanThanh = $tatCaLichHoc
             ->filter(fn (LichHoc $lichHoc) => $lichHoc->is_ended)
             ->count();
+        $tongBuoiDangHoc = $lichHocCuaKhoaDangHoc->count();
+        $tongBuoiHoanThanhDangHoc = $lichHocCuaKhoaDangHoc
+            ->filter(fn (LichHoc $lichHoc) => $lichHoc->is_ended)
+            ->count();
+        $buoiHocHienTaiIds = $lichHocCuaKhoaDangHoc
+            ->reject(fn (LichHoc $lichHoc) => $lichHoc->is_ended)
+            ->groupBy('khoa_hoc_id')
+            ->map(fn (Collection $cacBuoiHoc) => $cacBuoiHoc
+                ->sortBy(fn (LichHoc $lichHoc) => $lichHoc->starts_at?->getTimestamp() ?? PHP_INT_MAX)
+                ->first())
+            ->filter()
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->values();
+        $tongBuoiDangHocHienTai = $buoiHocHienTaiIds->count();
         $tienDoTongQuan = $tongBuoiHoc > 0
             ? (int) round(($tongBuoiHoanThanh / $tongBuoiHoc) * 100)
             : 0;
@@ -191,6 +207,11 @@ class StudentLearningDashboardService
             'tien_do_tong_quan' => $tienDoTongQuan,
             'tong_buoi_hoc' => $tongBuoiHoc,
             'tong_buoi_hoan_thanh' => $tongBuoiHoanThanh,
+            'tong_buoi_dang_hoc' => $tongBuoiDangHoc,
+            'tong_buoi_hoan_thanh_dang_hoc' => $tongBuoiHoanThanhDangHoc,
+            'tong_buoi_dang_hoc_hien_tai' => $tongBuoiDangHocHienTai,
+            'buoi_hoc_hien_tai_ids' => $buoiHocHienTaiIds->all(),
+            'tong_buoi_con_lai_dang_hoc' => max($tongBuoiDangHoc - $tongBuoiHoanThanhDangHoc - $tongBuoiDangHocHienTai, 0),
             'yeu_cau_dang_cho_duyet' => $yeuCauThamGiaDangChoDuyet,
             'tong_lan_diem_danh' => $tongLanDiemDanh,
             'ty_le_chuyen_can' => $tyLeChuyenCan,
@@ -247,6 +268,9 @@ class StudentLearningDashboardService
         });
 
         $buoiSapToi = $cacBuoiSapToi->take(5)->values();
+        $dongThoiGianBuoiHoc = $lichHocCuaKhoaDangHoc
+            ->sortBy(fn (LichHoc $lichHoc) => $lichHoc->starts_at?->getTimestamp() ?? PHP_INT_MAX)
+            ->values();
 
         $taiLieuMoi = (clone $taiLieuCongKhaiQuery)
             ->with([
@@ -277,6 +301,7 @@ class StudentLearningDashboardService
             'dashboardStats' => $dashboardStats,
             'tienDoKhoaHoc' => $tienDoKhoaHoc,
             'buoiSapToi' => $buoiSapToi,
+            'dongThoiGianBuoiHoc' => $dongThoiGianBuoiHoc,
             'taiLieuMoi' => $taiLieuMoi,
             'baiKiemTraCanChuY' => $baiKiemTraCanChuY->take(5)->values(),
             'diemDanhGanDay' => $diemDanhGanDay->take(6)->values(),

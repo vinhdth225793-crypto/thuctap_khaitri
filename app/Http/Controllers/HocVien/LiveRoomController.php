@@ -92,7 +92,7 @@ class LiveRoomController extends Controller
     private function resolvePlayerState($phongHocLive): array
     {
         $playerMode = request()->query('player');
-        if ($playerMode !== 'participant') {
+        if ($playerMode !== 'participant' || ! $phongHocLive->can_student_join) {
             return [null, null, false];
         }
 

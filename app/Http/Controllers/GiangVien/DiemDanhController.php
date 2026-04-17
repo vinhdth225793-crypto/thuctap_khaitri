@@ -45,27 +45,31 @@ class DiemDanhController extends Controller
             return $response;
         }
 
-        $hocViens = HocVienKhoaHoc::with('hocVien')
+        // Lấy danh sách học viên trong khóa học (bao gồm cả những người đã hoàn thành)
+        $hocViens = HocVienKhoaHoc::with(['hocVien.nguoiDung'])
             ->where('khoa_hoc_id', $lichHoc->khoa_hoc_id)
-            ->where('trang_thai', 'dang_hoc')
-            ->orderBy('created_at')
-            ->get();
+            ->whereIn('trang_thai', ['dang_hoc', 'hoan_thanh'])
+            ->get()
+            ->sortBy(fn($item) => $item->hocVien?->nguoiDung?->ho_ten ?? '');
 
+        // Lấy dữ liệu điểm danh đã có của buổi học này
         $diemDanhs = DiemDanh::where('lich_hoc_id', $lichHocId)
             ->get()
             ->keyBy('hoc_vien_id');
 
+        // Ánh xạ dữ liệu trả về cho modal
         $data = $hocViens->map(function ($item) use ($diemDanhs) {
             $existing = $diemDanhs->get($item->hoc_vien_id);
+            $user = $item->hocVien?->nguoiDung;
 
             return [
                 'id' => $item->hoc_vien_id,
                 'ma_nguoi_dung' => $item->hoc_vien_id,
-                'ho_ten' => $item->hocVien ? $item->hocVien->ho_ten : 'N/A (Học viên không tồn tại)',
+                'ho_ten' => $user ? $user->ho_ten : 'N/A (Học viên không tồn tại)',
                 'trang_thai' => $existing ? $existing->trang_thai : null,
                 'ghi_chu' => $existing ? $existing->ghi_chu : '',
             ];
-        });
+        })->values();
 
         $summary = [
             'total_students' => $hocViens->count(),
@@ -97,7 +101,7 @@ class DiemDanhController extends Controller
 
         $hocVienIds = HocVienKhoaHoc::query()
             ->where('khoa_hoc_id', $lichHoc->khoa_hoc_id)
-            ->where('trang_thai', 'dang_hoc')
+            ->whereIn('trang_thai', ['dang_hoc', 'hoan_thanh'])
             ->pluck('hoc_vien_id')
             ->map(fn ($id) => (int) $id)
             ->all();
@@ -162,13 +166,25 @@ class DiemDanhController extends Controller
         ]);
 
         try {
+            $now = now();
+            $trangThai = 'da_bao_cao';
+            
+            // Phase 9: Kiểm tra nộp muộn
+            if ($lichHoc->attendance_deadline_at && $now->gt($lichHoc->attendance_deadline_at)) {
+                $trangThai = 'da_bao_cao_muon';
+            }
+
             $lichHoc->update([
                 'bao_cao_giang_vien' => $request->bao_cao_giang_vien,
-                'thoi_gian_bao_cao' => now(),
-                'trang_thai_bao_cao' => 'da_bao_cao',
+                'thoi_gian_bao_cao' => $now,
+                'trang_thai_bao_cao' => $trangThai,
             ]);
 
-            return back()->with('success', 'Đã chốt điểm danh và gửi báo cáo cho admin thành công.');
+            $msg = $trangThai === 'da_bao_cao_muon' 
+                ? 'Đã chốt điểm danh (Ghi nhận nộp muộn).' 
+                : 'Đã chốt điểm danh và gửi báo cáo cho admin thành công.';
+
+            return back()->with('success', $msg);
         } catch (\Throwable $exception) {
             report($exception);
 

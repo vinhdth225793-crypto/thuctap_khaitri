@@ -346,6 +346,7 @@ class LichHocController extends Controller
 
         $date = Carbon::parse($validated['ngay_hoc']);
         $data = $this->prepareSchedulePayload($validated, $khoaHocId, $date, $lichHoc->buoi_so);
+        $data = $this->preserveOnlineLinkSourceForUpdate($lichHoc, $data);
         $data['trang_thai'] = $validated['trang_thai'];
 
         DB::beginTransaction();
@@ -354,11 +355,16 @@ class LichHocController extends Controller
             $lichHoc->update($data);
 
             if (($validated['hinh_thuc'] ?? null) === 'online' && $request->boolean('apply_to_all_online')) {
+                $bulkOnlineData = [
+                    'link_online' => $data['link_online'],
+                    'online_link_source' => filled($data['link_online'] ?? null)
+                        ? LichHoc::ONLINE_LINK_SOURCE_ADMIN_MANUAL
+                        : null,
+                ];
+
                 LichHoc::where('khoa_hoc_id', $khoaHocId)
                     ->where('hinh_thuc', 'online')
-                    ->update([
-                        'link_online' => $data['link_online'],
-                    ]);
+                    ->update($bulkOnlineData);
             }
 
             DB::commit();
@@ -422,7 +428,9 @@ class LichHocController extends Controller
      */
     private function prepareSchedulePayload(array $data, int $courseId, Carbon $date, int $sessionNumber): array
     {
-        $locationValue = $data['phong_hoc'] ?? null;
+        $locationValue = filled($data['phong_hoc'] ?? null)
+            ? trim((string) $data['phong_hoc'])
+            : null;
         $isOnline = ($data['hinh_thuc'] ?? 'truc_tiep') === 'online';
 
         return [
@@ -440,9 +448,43 @@ class LichHocController extends Controller
             'phong_hoc' => !$isOnline ? $locationValue : null,
             'hinh_thuc' => $data['hinh_thuc'],
             'link_online' => $isOnline ? $locationValue : null,
+            'online_link_source' => $this->resolveAdminOnlineLinkSource($isOnline, $locationValue),
             'ghi_chu' => $data['ghi_chu'] ?? null,
             'trang_thai' => $data['trang_thai'] ?? 'cho',
         ];
+    }
+
+    private function resolveAdminOnlineLinkSource(bool $isOnline, ?string $link): ?string
+    {
+        return $isOnline && filled($link)
+            ? LichHoc::ONLINE_LINK_SOURCE_ADMIN_MANUAL
+            : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function preserveOnlineLinkSourceForUpdate(LichHoc $lichHoc, array $data): array
+    {
+        if (($data['hinh_thuc'] ?? null) !== 'online') {
+            $data['online_link_source'] = null;
+
+            return $data;
+        }
+
+        if (blank($data['link_online'] ?? null)) {
+            $data['online_link_source'] = null;
+
+            return $data;
+        }
+
+        $oldLink = $lichHoc->getRawOriginal('link_online') ?: $lichHoc->link_online;
+        if ((string) $oldLink === (string) $data['link_online'] && filled($lichHoc->online_link_source)) {
+            $data['online_link_source'] = $lichHoc->online_link_source;
+        }
+
+        return $data;
     }
 
     private function resolveThuTrongTuan(Carbon $date): int

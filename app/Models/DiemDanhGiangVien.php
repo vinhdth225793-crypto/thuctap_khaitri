@@ -17,6 +17,16 @@ class DiemDanhGiangVien extends Model
     public const STATUS_LEGACY_DANG_DAY = 'dang_day';
     public const STATUS_LEGACY_DA_KET_THUC = 'da_ket_thuc';
 
+    public const CHECK_IN_DUNG_GIO = 'dung_gio';
+    public const CHECK_IN_VAO_TRE = 'vao_tre';
+    public const CHECK_IN_NGOAI_KHUNG = 'ngoai_khung';
+    public const CHECK_IN_KHONG_CHECKIN = 'khong_checkin';
+
+    public const CHECK_OUT_DUNG_HAN = 'dung_han';
+    public const CHECK_OUT_DONG_SOM = 'dong_som';
+    public const CHECK_OUT_QUA_HAN = 'qua_han';
+    public const CHECK_OUT_CHUA_CHECKOUT = 'chua_checkout';
+
     protected $table = 'diem_danh_giang_vien';
 
     protected $fillable = [
@@ -30,6 +40,14 @@ class DiemDanhGiangVien extends Model
         'thoi_gian_mo_live',
         'thoi_gian_tat_live',
         'tong_thoi_luong_day_phut',
+        'expected_start_at',
+        'expected_end_at',
+        'check_in_status',
+        'check_out_status',
+        'late_minutes',
+        'early_leave_minutes',
+        'flag_reason',
+        'flagged_at',
         'trang_thai',
         'ghi_chu',
         'nguoi_tao_id',
@@ -41,6 +59,11 @@ class DiemDanhGiangVien extends Model
         'thoi_gian_mo_live' => 'datetime',
         'thoi_gian_tat_live' => 'datetime',
         'tong_thoi_luong_day_phut' => 'integer',
+        'expected_start_at' => 'datetime',
+        'expected_end_at' => 'datetime',
+        'late_minutes' => 'integer',
+        'early_leave_minutes' => 'integer',
+        'flagged_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -88,6 +111,11 @@ class DiemDanhGiangVien extends Model
     public function getHasCheckedOutAttribute(): bool
     {
         return $this->thoi_gian_ket_thuc_day !== null;
+    }
+
+    public function getIsFlaggedAttribute(): bool
+    {
+        return filled($this->flag_reason) || $this->flagged_at !== null;
     }
 
     public function getDisplayStatusAttribute(): string

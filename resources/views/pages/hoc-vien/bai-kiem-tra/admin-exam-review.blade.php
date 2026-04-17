@@ -63,26 +63,36 @@
 
         <div class="col-lg-8">
             <div class="card vip-card mb-4">
-                <div class="card-header border-0"><h5 class="mb-0 fw-semibold">Danh sách câu hỏi</h5></div>
+                @php
+                    $approvalQuestionCount = $baiKiemTra->is_free_essay && filled($baiKiemTra->mo_ta)
+                        ? 1
+                        : $baiKiemTra->chiTietCauHois->count();
+                @endphp
+                <div class="card-header border-0"><h5 class="mb-0 fw-semibold">Danh sách câu hỏi ({{ $approvalQuestionCount }})</h5></div>
                 <div class="card-body">
-                    @forelse($baiKiemTra->chiTietCauHois as $index => $chiTiet)
-                        <div class="border rounded-3 p-3 mb-3">
+                    @if($baiKiemTra->is_free_essay && filled($baiKiemTra->mo_ta))
+                        <div class="border rounded-3 p-3 mb-3 bg-light">
                             <div class="d-flex justify-content-between gap-3">
-                                <div><strong>Câu {{ $index + 1 }}.</strong> {!! nl2br(e($chiTiet->cauHoi->noi_dung ?? 'Không rõ nội dung')) !!}</div>
-                                <span class="badge bg-light text-dark">{{ number_format((float) $chiTiet->diem_so, 2) }} điểm</span>
+                                <div>
+                                    <strong>Câu 1. Đề bài tự luận</strong>
+                                    <div class="text-muted small mb-3">Học viên nộp một bài viết tổng. Giảng viên chấm tay sau khi học viên nộp.</div>
+                                    <div class="text-dark" style="white-space: pre-wrap; line-height: 1.7;">{!! nl2br(e($baiKiemTra->mo_ta)) !!}</div>
+                                </div>
+                                <span class="badge bg-light text-dark border">{{ number_format((float) $baiKiemTra->tong_diem, 2) }} điểm</span>
                             </div>
                         </div>
-                    @empty
-                        @if($baiKiemTra->is_free_essay && $baiKiemTra->mo_ta)
-                            <div class="border rounded-3 p-3 bg-light">
-                                <div class="fw-semibold mb-2">Đề tự luận tự do</div>
-                                <div class="text-muted small mb-3">Học viên sẽ đọc mô tả đề và nộp một bài làm tổng. Giảng viên chấm tay sau khi học viên nộp.</div>
-                                <div>{!! nl2br(e($baiKiemTra->mo_ta)) !!}</div>
+                    @else
+                        @forelse($baiKiemTra->chiTietCauHois as $index => $chiTiet)
+                            <div class="border rounded-3 p-3 mb-3">
+                                <div class="d-flex justify-content-between gap-3">
+                                    <div><strong>Câu {{ $index + 1 }}.</strong> {!! nl2br(e($chiTiet->cauHoi->noi_dung ?? 'Không rõ nội dung')) !!}</div>
+                                    <span class="badge bg-light text-dark">{{ number_format((float) $chiTiet->diem_so, 2) }} điểm</span>
+                                </div>
                             </div>
-                        @else
+                        @empty
                             <div class="text-muted">Đề thi hiện chưa có câu hỏi.</div>
-                        @endif
-                    @endforelse
+                        @endforelse
+                    @endif
                 </div>
             </div>
 

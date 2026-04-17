@@ -105,8 +105,12 @@
                                 </div>
                             </td>
                             <td class="text-center">
-                                <span class="fw-bold text-primary">{{ $baiKiemTra->chi_tiet_cau_hois_count }}</span>
-                                <div class="text-muted small">câu hỏi</div>
+                                @if($baiKiemTra->content_mode_key === 'tu_luan_tu_do')
+                                    <span class="badge bg-soft-primary text-primary border border-primary-subtle px-2">Tự luận</span>
+                                @else
+                                    <span class="fw-bold text-primary">{{ $baiKiemTra->chi_tiet_cau_hois_count }}</span>
+                                    <div class="text-muted small">câu hỏi</div>
+                                @endif
                             </td>
                             <td class="text-center">
                                 @php

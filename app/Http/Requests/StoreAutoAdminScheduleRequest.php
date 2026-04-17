@@ -81,6 +81,12 @@ class StoreAutoAdminScheduleRequest extends FormRequest
                 return;
             }
 
+            $this->validateOptionalOnlineLink($validator);
+
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
             $ruleCheck = app(TeacherScheduleRuleService::class)->inspect(
                 (string) $this->input('ngay_bat_dau'),
                 (string) $this->input('gio_bat_dau'),
@@ -91,5 +97,18 @@ class StoreAutoAdminScheduleRequest extends FormRequest
                 $validator->errors()->add('gio_bat_dau', $ruleCheck['message']);
             }
         });
+    }
+
+    private function validateOptionalOnlineLink($validator): void
+    {
+        $link = trim((string) $this->input('phong_hoc', ''));
+
+        if ((string) $this->input('hinh_thuc') !== 'online' || $link === '') {
+            return;
+        }
+
+        if (filter_var($link, FILTER_VALIDATE_URL) === false) {
+            $validator->errors()->add('phong_hoc', 'Link online phai la URL hop le.');
+        }
     }
 }

@@ -94,10 +94,10 @@
         </div>
     </div>
 
-    <div class="row">
+    <div class="row dashboard-balance-row">
         <div class="col-xl-8 mb-4">
-            <div class="card vip-card h-100">
-                <div class="card-header border-0 d-flex justify-content-between align-items-center">
+            <div class="card vip-card h-100 dashboard-balance-card">
+                <div class="card-header border-0 d-flex flex-row justify-content-between align-items-center">
                     <div>
                         <h5 class="mb-1 fw-semibold">Tiến độ theo khóa học</h5>
                         <p class="text-muted small mb-0">Dữ liệu được tính từ các buổi học đã lên lịch trong từng khóa.</p>
@@ -106,7 +106,7 @@
                         Xem khóa học của tôi
                     </a>
                 </div>
-                <div class="card-body">
+                <div class="card-body dashboard-card-scroll">
                     @if($tienDoKhoaHoc->isNotEmpty())
                         <div class="table-responsive">
                             <table class="table align-middle dashboard-table">
@@ -190,12 +190,12 @@
         </div>
 
         <div class="col-xl-4 mb-4">
-            <div class="card vip-card mb-4">
+            <div class="card vip-card h-100 dashboard-balance-card">
                 <div class="card-header border-0">
                     <h5 class="mb-1 fw-semibold">Buổi học sắp tới</h5>
                     <p class="text-muted small mb-0">Chỉ hiển thị các buổi thuộc khóa học đang học.</p>
                 </div>
-                <div class="card-body">
+                <div class="card-body dashboard-card-scroll">
                     @forelse($buoiSapToi as $lichHoc)
                         <div class="upcoming-item">
                             <div class="fw-semibold text-dark">{{ $lichHoc->khoaHoc->ten_khoa_hoc }}</div>
@@ -235,54 +235,16 @@
                     @endforelse
                 </div>
             </div>
+        </div>
+    </div>
 
-            <div class="card vip-card mb-4">
-                <div class="card-header border-0">
-                    <h5 class="mb-1 fw-semibold">Bài kiểm tra cần chú ý</h5>
-                    <p class="text-muted small mb-0">Các bài sắp mở hoặc đang mở trong những khóa học bạn đang theo học.</p>
-                </div>
-                <div class="card-body">
-                    @forelse($baiKiemTraCanChuY as $baiKiemTra)
-                        <div class="upcoming-item">
-                            <div class="d-flex justify-content-between gap-2">
-                                <div class="fw-semibold text-dark">{{ $baiKiemTra->tieu_de }}</div>
-                                <span class="badge bg-{{ $baiKiemTra->access_status_color }}">{{ $baiKiemTra->access_status_label }}</span>
-                            </div>
-                            <div class="small text-muted">{{ $baiKiemTra->khoaHoc->ten_khoa_hoc ?? 'Chưa xác định khóa học' }}</div>
-                            <div class="small text-muted">
-                                {{ $baiKiemTra->moduleHoc->ten_module ?? 'Toàn khóa' }}
-                                @if($baiKiemTra->lichHoc)
-                                    • Buổi {{ $baiKiemTra->lichHoc->buoi_so ?: '#' }}
-                                @endif
-                            </div>
-                            <div class="small text-muted">
-                                {{ $baiKiemTra->ngay_mo ? $baiKiemTra->ngay_mo->format('d/m/Y H:i') : 'Mở ngay' }}
-                            </div>
-                            <div class="d-flex flex-wrap gap-2 mt-3">
-                                <a href="{{ route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id) }}" class="btn btn-sm btn-outline-primary">
-                                    Xem bài kiểm tra
-                                </a>
-                                @if($baiKiemTra->lich_hoc_id)
-                                    <a href="{{ route('hoc-vien.buoi-hoc.show', $baiKiemTra->lich_hoc_id) }}" class="btn btn-sm btn-outline-secondary">
-                                        Về buổi học
-                                    </a>
-                                @endif
-                            </div>
-                        </div>
-                    @empty
-                        <div class="text-center py-4">
-                            <div class="empty-icon mb-3"><i class="fas fa-list-check"></i></div>
-                            <p class="text-muted mb-0">Hiện chưa có bài kiểm tra sắp mở hoặc đang mở.</p>
-                        </div>
-                    @endforelse
-                </div>
-            </div>
-
-            <div class="card vip-card">
+    <div class="row">
+        <div class="col-xl-8 mb-4">
+            <div class="card vip-card h-100">
                 <div class="card-header border-0">
                     <h5 class="mb-0 fw-semibold">Thao tác nhanh</h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body dashboard-card-sm">
                     <div class="row g-2">
                         <div class="col-6">
                             <a href="{{ route('hoc-vien.khoa-hoc-cua-toi') }}" class="btn btn-outline-primary w-100 quick-btn">
@@ -322,6 +284,50 @@
                             @endif
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 mb-4">
+            <div class="card vip-card h-100">
+                <div class="card-header border-0">
+                    <h5 class="mb-1 fw-semibold">Bài kiểm tra cần chú ý</h5>
+                    <p class="text-muted small mb-0">Các bài sắp mở hoặc đang mở trong những khóa học bạn đang theo học.</p>
+                </div>
+                <div class="card-body dashboard-card-sm">
+                    @forelse($baiKiemTraCanChuY as $baiKiemTra)
+                        <div class="upcoming-item">
+                            <div class="d-flex justify-content-between gap-2">
+                                <div class="fw-semibold text-dark">{{ $baiKiemTra->tieu_de }}</div>
+                                <span class="badge bg-{{ $baiKiemTra->access_status_color }}">{{ $baiKiemTra->access_status_label }}</span>
+                            </div>
+                            <div class="small text-muted">{{ $baiKiemTra->khoaHoc->ten_khoa_hoc ?? 'Chưa xác định khóa học' }}</div>
+                            <div class="small text-muted">
+                                {{ $baiKiemTra->moduleHoc->ten_module ?? 'Toàn khóa' }}
+                                @if($baiKiemTra->lichHoc)
+                                    • Buổi {{ $baiKiemTra->lichHoc->buoi_so ?: '#' }}
+                                @endif
+                            </div>
+                            <div class="small text-muted">
+                                {{ $baiKiemTra->ngay_mo ? $baiKiemTra->ngay_mo->format('d/m/Y H:i') : 'Mở ngay' }}
+                            </div>
+                            <div class="d-flex flex-wrap gap-2 mt-3">
+                                <a href="{{ route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id) }}" class="btn btn-sm btn-outline-primary">
+                                    Xem bài kiểm tra
+                                </a>
+                                @if($baiKiemTra->lich_hoc_id)
+                                    <a href="{{ route('hoc-vien.buoi-hoc.show', $baiKiemTra->lich_hoc_id) }}" class="btn btn-sm btn-outline-secondary">
+                                        Về buổi học
+                                    </a>
+                                @endif
+                            </div>
+                        </div>
+                    @empty
+                        <div class="text-center py-4">
+                            <div class="empty-icon mb-3"><i class="fas fa-list-check"></i></div>
+                            <p class="text-muted mb-0">Hiện chưa có bài kiểm tra sắp mở hoặc đang mở.</p>
+                        </div>
+                    @endforelse
                 </div>
             </div>
         </div>
@@ -464,6 +470,51 @@
         font-size: 0.85rem;
         text-transform: uppercase;
         letter-spacing: 0.04em;
+    }
+
+    .vip-card .card-header {
+        min-height: 90px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .dashboard-balance-row > [class*="col-"] {
+        display: flex;
+    }
+
+    .dashboard-balance-card {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .dashboard-balance-card > .card-body {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    .dashboard-card-scroll {
+        height: 520px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+    }
+
+    .dashboard-card-sm {
+        height: 360px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+    }
+
+    .dashboard-card-scroll::-webkit-scrollbar,
+    .dashboard-card-sm::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .dashboard-card-scroll::-webkit-scrollbar-thumb,
+    .dashboard-card-sm::-webkit-scrollbar-thumb {
+        background: #e2e8f0;
+        border-radius: 999px;
     }
 
     .progress-thin {

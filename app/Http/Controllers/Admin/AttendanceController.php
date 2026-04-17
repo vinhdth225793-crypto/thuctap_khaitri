@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\GiangVien;
 use App\Models\LichHoc;
+use App\Models\BaiGiang;
 use App\Services\AttendanceReportService;
 use Illuminate\Http\Request;
 
@@ -65,11 +66,41 @@ class AttendanceController extends Controller
             fn ($value) => filled($value)
         );
 
+        $liveLectures = $schedule->baiGiangs()
+            ->where('loai_bai_giang', BaiGiang::TYPE_LIVE)
+            ->with(['phongHocLive'])
+            ->get();
+
+        $studentAttendances = $schedule->diemDanhs()
+            ->with(['hocVien.nguoiDung'])
+            ->get()
+            ->filter(fn($item) => $item->hocVien !== null)
+            ->sortBy(fn($item) => $item->hocVien->nguoiDung->ho_ten ?? '');
+
         return view('pages.admin.diem-danh.teacher-show', [
             'schedule' => $schedule,
             'teacher' => $giangVien->load('nguoiDung'),
             'attendance' => $schedule->teacherAttendanceLogs->first(),
+            'liveLectures' => $liveLectures,
+            'studentAttendances' => $studentAttendances,
             'backLinkParams' => $backLinkParams,
         ]);
+    }
+
+    public function resolveMonitoring($lichHocId)
+    {
+        $lichHoc = LichHoc::findOrFail($lichHocId);
+        $lichHoc->update([
+            'teacher_monitoring_status' => 'binh_thuong',
+            'teacher_monitoring_note' => $lichHoc->teacher_monitoring_note . "\nAdmin đã xác nhận xử lý lúc " . now()->format('H:i d/m/Y'),
+        ]);
+
+        // Đánh dấu tất cả alerts của buổi này là resolved
+        $lichHoc->teachingSessionAlerts()->update([
+            'status' => 'resolved',
+            'resolved_at' => now(),
+        ]);
+
+        return back()->with('success', 'Đã xác nhận xử lý vi phạm cho buổi học này.');
     }
 }

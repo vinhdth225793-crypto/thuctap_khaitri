@@ -407,19 +407,27 @@ class NganHangCauHoiController extends Controller
     public function downloadTemplate()
     {
         $template = $this->templateRegistry->questionBankMcq();
+        $templatePath = (string) $template['absolute_path'];
 
-        if (!$this->templateRegistry->exists(ImportTemplateRegistry::QUESTION_BANK_MCQ)) {
+        clearstatcache(true, $templatePath);
+
+        if (!is_file($templatePath) || !is_readable($templatePath)) {
+            $fallbackRoute = request()->routeIs('giang-vien.*')
+                ? 'giang-vien.bai-kiem-tra.index'
+                : 'admin.kiem-tra-online.cau-hoi.index';
+
             return redirect()
-                ->route('admin.kiem-tra-online.cau-hoi.index')
+                ->route($fallbackRoute)
                 ->with('error', 'Không tìm thấy file mẫu import câu hỏi trong storage.');
         }
 
-        clearstatcache(true, $template['absolute_path']);
-
-        return response()->download($template['absolute_path'], (string) $template['download_name'], [
-            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+        return response()->download($templatePath, (string) $template['download_name'], [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Length' => (string) filesize($templatePath),
+            'Cache-Control' => 'private, no-store, no-cache, must-revalidate, max-age=0',
             'Pragma' => 'no-cache',
             'Expires' => '0',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 

@@ -98,8 +98,6 @@ class LiveRoomController extends Controller
         $this->participationService->startRoom($phongHocLive, auth()->user());
 
         if ($baiGiang->lichHoc && auth()->user()->giangVien) {
-            $this->markScheduleInProgress($baiGiang->lichHoc);
-
             $this->teacherAttendanceService->ensureCheckInFromRoom(
                 $this->freshScheduleWithOptionalParticipants($baiGiang->lichHoc),
                 auth()->user()->giangVien,
@@ -122,8 +120,6 @@ class LiveRoomController extends Controller
         $this->participationService->joinRoom($phongHocLive, auth()->user());
 
         if ($baiGiang->lichHoc && auth()->user()->giangVien) {
-            $this->markScheduleInProgress($baiGiang->lichHoc);
-
             $this->teacherAttendanceService->ensureCheckInFromRoom(
                 $this->freshScheduleWithOptionalParticipants($baiGiang->lichHoc),
                 auth()->user()->giangVien,
@@ -394,6 +390,14 @@ class LiveRoomController extends Controller
         if ($lichHoc->teaching_session_status === 'da_ket_thuc') {
             throw ValidationException::withMessages([
                 'live_room' => 'Buổi học đã kết thúc, không thể mở lại hoặc tham gia phòng học trực tuyến.',
+            ]);
+        }
+
+        if (in_array($action, ['start', 'join'], true)
+            && $lichHoc->teaching_session_status === 'chua_bat_dau'
+            && ! $lichHoc->can_start_teaching_session) {
+            throw ValidationException::withMessages([
+                'live_room' => 'Chua den khung gio cho phep de mo phong hoc truc tuyen.',
             ]);
         }
     }

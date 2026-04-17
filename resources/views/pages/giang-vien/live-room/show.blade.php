@@ -9,17 +9,38 @@
     $leaveRoute = route('giang-vien.live-room.leave', $lectureId);
     $endRoute = route('giang-vien.live-room.end', $lectureId);
     $platformPayload = $phongHocLive->du_lieu_nen_tang_json ?? [];
+    $scheduleOnlineUrl = \App\Support\OnlineMeetingUrl::normalize($baiGiang->lichHoc?->link_online);
+    $schedulePlatform = strtolower((string) $baiGiang->lichHoc?->nen_tang);
+    $roomExternalUrl = \App\Support\OnlineMeetingUrl::normalize($phongHocLive->start_url ?: $phongHocLive->join_url);
+    $externalLaunchUrl = $roomExternalUrl ?: $scheduleOnlineUrl;
+    $hasExternalLaunch = filled($externalLaunchUrl);
+    $isGoogleMeetLaunch = $phongHocLive->nen_tang_live === \App\Models\PhongHocLive::PLATFORM_GOOGLE_MEET
+        || str_contains(strtolower((string) $externalLaunchUrl), 'meet.google.com')
+        || str_contains($schedulePlatform, 'google')
+        || str_contains($schedulePlatform, 'meet');
     $meetingIdentifier = $platformPayload['meeting_id'] ?? $platformPayload['meeting_code'] ?? null;
-    $meetingPasscode = $platformPayload['passcode'] ?? null;
-    $platformLabel = $phongHocLive->nen_tang_live === 'google_meet' ? 'Google Meet' : $phongHocLive->platform_label;
+    $meetingPasscode = $platformPayload['passcode'] ?? $baiGiang->lichHoc?->mat_khau_cuoc_hop;
+    $meetingIdentifier = $meetingIdentifier ?: $baiGiang->lichHoc?->meeting_id;
+    if (!$meetingIdentifier && $isGoogleMeetLaunch && $externalLaunchUrl) {
+        $meetingIdentifier = \App\Support\OnlineMeetingUrl::meetingCode($externalLaunchUrl);
+    }
+    $platformLabel = match ($phongHocLive->nen_tang_live) {
+        \App\Models\PhongHocLive::PLATFORM_GOOGLE_MEET => 'Google Meet',
+        \App\Models\PhongHocLive::PLATFORM_INTERNAL => 'Live nội bộ',
+        default => $phongHocLive->platform_label,
+    };
+    $externalPlatformLabel = $isGoogleMeetLaunch ? 'Google Meet' : ($hasExternalLaunch ? $platformLabel : 'Nền tảng live');
+    $externalLaunchText = 'Mở ' . $externalPlatformLabel;
     $isInternalRoom = $phongHocLive->nen_tang_live === \App\Models\PhongHocLive::PLATFORM_INTERNAL;
+    $displayPlatformLabel = $isInternalRoom && $hasExternalLaunch
+        ? $platformLabel . ' + ' . $externalPlatformLabel
+        : ($hasExternalLaunch ? $externalPlatformLabel : $platformLabel);
     $canTeacherStart = $canManageRoom
         && ($isInternalRoom || filled($phongHocLive->start_url) || filled($phongHocLive->join_url))
         && !in_array($timelineStatus, [\App\Models\PhongHocLive::ROOM_STATE_DANG_DIEN_RA, \App\Models\PhongHocLive::ROOM_STATE_DA_KET_THUC, \App\Models\PhongHocLive::ROOM_STATE_DA_HUY], true);
     $canTeacherReopen = $canManageRoom
         && $phongHocLive->isDangDienRa()
         && ($isInternalRoom || filled($phongHocLive->start_url) || filled($phongHocLive->join_url));
-    $isExternalLaunch = filled($playerUrl) && !$playerSupportsEmbed;
 @endphp
 
 <div class="container-fluid">
@@ -33,7 +54,10 @@
                     <div class="d-flex flex-wrap gap-2">
                         <span class="badge bg-{{ $phongHocLive->timeline_trang_thai_color }}">{{ $phongHocLive->timeline_trang_thai_label }}</span>
                         <span class="badge bg-light text-dark">{{ $platformLabel }}</span>
-                        <span class="badge bg-light text-dark">{{ $phongHocLive->thoi_luong_phut }} phut</span>
+                        @if($isInternalRoom && $hasExternalLaunch)
+                            <span class="badge bg-success text-white">{{ $externalPlatformLabel }} sẵn sàng</span>
+                        @endif
+                        <span class="badge bg-light text-dark">{{ $phongHocLive->thoi_luong_phut }} phút</span>
                     </div>
                 </div>
                 <div class="text-md-end">
@@ -47,6 +71,16 @@
                         data-timeline="{{ $timelineStatus }}"
                         data-player-mode="{{ $playerMode }}"
                     ></div>
+                    <div class="d-flex flex-wrap justify-content-md-end gap-2 mt-3">
+                        @if($hasExternalLaunch)
+                            <a href="{{ $externalLaunchUrl }}" target="_blank" rel="noopener" class="btn btn-light btn-sm fw-bold px-3">
+                                <i class="fas fa-external-link-alt me-1"></i> {{ $externalLaunchText }}
+                            </a>
+                        @endif
+                        <a href="{{ $backUrl }}" class="btn btn-outline-light btn-sm fw-bold px-3">
+                            <i class="fas fa-arrow-left me-1"></i> Về buổi học
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -58,35 +92,86 @@
 
             <div class="row g-4">
                 <div class="col-lg-8">
-                    <div class="card border-0 shadow-sm mb-4">
+                    <div class="card border-0 shadow-sm mb-4 overflow-hidden teacher-live-overview-card">
                         <div class="card-body p-4">
-                            <h5 class="fw-bold mb-3">Tổng quan phòng học</h5>
-                            <p class="text-muted mb-4">{{ $phongHocLive->mo_ta ?: ($baiGiang->mo_ta ?: 'Chưa có mô tả chi tiết cho phòng học này.') }}</p>
-
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <div class="small text-muted text-uppercase">Người điều phối</div>
-                                    <div class="fw-bold">{{ $phongHocLive->moderator->ho_ten ?? 'Chưa cập nhật' }}</div>
+                            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+                                <div class="flex-grow-1">
+                                    <div class="teacher-live-eyebrow">Bảng điều hành</div>
+                                    <h5 class="fw-bold mb-2">Tổng quan phòng học</h5>
+                                    <p class="text-muted mb-0">{{ $phongHocLive->mo_ta ?: ($baiGiang->mo_ta ?: 'Chưa có mô tả chi tiết cho phòng học này.') }}</p>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="small text-muted text-uppercase">Trợ giảng</div>
-                                    <div class="fw-bold">{{ $phongHocLive->troGiang->ho_ten ?? 'Không có' }}</div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="small text-muted text-uppercase">Mở phòng trước</div>
-                                    <div class="fw-bold">{{ $phongHocLive->mo_phong_truoc_phut }} phut</div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="small text-muted text-uppercase">Trạng thái</div>
-                                    <div class="fw-bold">{{ $phongHocLive->status_hint }}</div>
+                                <div class="teacher-live-status-pill">
+                                    <span class="teacher-live-status-pill__dot"></span>
+                                    {{ $phongHocLive->timeline_trang_thai_label }}
                                 </div>
                             </div>
+
+                            <div class="row g-3 teacher-live-metrics">
+                                <div class="col-sm-6 col-xl-3">
+                                    <div class="teacher-live-metric">
+                                        <span>Nền tảng</span>
+                                        <strong>{{ $displayPlatformLabel }}</strong>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-xl-3">
+                                    <div class="teacher-live-metric">
+                                        <span>Điều phối</span>
+                                        <strong>{{ $phongHocLive->moderator->ho_ten ?? 'Chưa cập nhật' }}</strong>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-xl-3">
+                                    <div class="teacher-live-metric">
+                                        <span>Thời lượng</span>
+                                        <strong>{{ $phongHocLive->thoi_luong_phut }} phút</strong>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-xl-3">
+                                    <div class="teacher-live-metric">
+                                        <span>Tham gia</span>
+                                        <strong>{{ $phongHocLive->participant_count }} người</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if($hasExternalLaunch)
+                                <div class="teacher-live-meeting-strip mt-4">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="teacher-live-meeting-strip__icon">
+                                            <i class="fas fa-video"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">{{ $externalPlatformLabel }} đã sẵn sàng</div>
+                                            <div class="small text-muted">
+                                                Link được lấy từ {{ $roomExternalUrl ? 'cấu hình live room' : 'lịch học' }}. Bấm nút bên cạnh để mở phòng họp ở tab mới.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <a href="{{ $externalLaunchUrl }}" target="_blank" rel="noopener" class="btn btn-success fw-bold px-4">
+                                        <i class="fas fa-external-link-alt me-2"></i>{{ $externalLaunchText }}
+                                    </a>
+                                </div>
+                            @elseif($baiGiang->lichHoc?->hinh_thuc === 'online')
+                                <div class="teacher-live-meeting-strip teacher-live-meeting-strip--warning mt-4">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="teacher-live-meeting-strip__icon">
+                                            <i class="fas fa-unlink"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">Chưa có link Google Meet</div>
+                                            <div class="small text-muted">Lịch học online này chưa có link online, nên hệ thống chưa thể hiển thị nút mở Meet.</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     </div>
 
-                    <div class="card border-0 shadow-sm overflow-hidden">
-                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center gap-2">
-                            <h6 class="fw-bold mb-0">Khung live room</h6>
+                    <div class="card border-0 shadow-sm overflow-hidden teacher-live-console">
+                        <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div>
+                                <div class="teacher-live-eyebrow mb-1">Control room</div>
+                                <h6 class="fw-bold mb-0">Khung live room chuyên nghiệp</h6>
+                            </div>
                             @if($playerMode === 'host')
                                 <span class="badge bg-success-subtle text-success border border-success-subtle">Đang điều hành</span>
                             @elseif($canTeacherStart)
@@ -113,11 +198,11 @@
                                             <div class="teacher-live-internal__badge">LIVE NỘI BỘ</div>
                                             <h3 class="fw-bold text-white mb-3">{{ $phongHocLive->tieu_de }}</h3>
                                             <p class="text-white-50 mb-4">
-                                                Bạn đang điều hành buổi học ngay trong hệ thống. Khu vực này được thiết kế để demo luồng room nội bộ và có thể thay bằng WebRTC/Jitsi sau này.
+                                                Bạn đang điều hành buổi học ngay trong hệ thống. Nếu buổi học có Google Meet, nút mở Meet luôn nằm ở khu vực thao tác bên phải và phía trên khung này.
                                             </p>
                                             <div class="teacher-live-internal__stats">
                                                 <div class="teacher-live-internal__stat">
-                                                    <span>Phong</span>
+                                                    <span>Phòng</span>
                                                     <strong>{{ data_get($platformPayload, 'room_code', 'NOI-BO') }}</strong>
                                                 </div>
                                                 <div class="teacher-live-internal__stat">
@@ -155,20 +240,74 @@
                                     </div>
                                 @elseif($playerMode === 'host' && $playerUrl)
                                     <div class="teacher-live-launcher text-center p-5">
-                                        <div class="badge bg-primary mb-3">{{ strtoupper($platformLabel) }}</div>
-                                        <h4 class="fw-bold mb-2">Sẵn sàng mở {{ $platformLabel }}</h4>
-                                        <p class="text-muted mb-4">Nền tảng này sẽ mở ở cửa sổ mới. Bấm nút bên phải để vào phòng điều hành.</p>
-                                        <a href="{{ $playerUrl }}" target="_blank" class="btn btn-primary btn-lg px-5 fw-bold">
-                                            Mở {{ $platformLabel }}
+                                        <div class="teacher-live-platform-orb mx-auto mb-3">
+                                            <i class="fas fa-video"></i>
+                                        </div>
+                                        <div class="badge bg-primary-subtle text-primary border border-primary-subtle mb-3">{{ $externalPlatformLabel }}</div>
+                                        <h4 class="fw-bold mb-2">Sẵn sàng mở {{ $externalPlatformLabel }}</h4>
+                                        <p class="text-muted mb-4">Nền tảng này mở ở cửa sổ mới để camera, micro và chia sẻ màn hình hoạt động ổn định hơn.</p>
+                                        <a href="{{ $playerUrl }}" target="_blank" rel="noopener" class="btn btn-success btn-lg px-5 fw-bold">
+                                            <i class="fas fa-external-link-alt me-2"></i>{{ $externalLaunchText }}
                                         </a>
                                     </div>
+                                @elseif($hasExternalLaunch)
+                                    <div class="teacher-live-external-ready p-4 p-md-5 text-center">
+                                        <div class="teacher-live-platform-orb mx-auto mb-3">
+                                            <i class="fas fa-video"></i>
+                                        </div>
+                                        <div class="small text-uppercase fw-bold text-success mb-2">{{ $externalPlatformLabel }}</div>
+                                        <h3 class="fw-bold text-white mb-3">Phòng {{ $externalPlatformLabel }} đã sẵn sàng</h3>
+                                        <p class="text-white-50 mb-4 mx-auto">
+                                            Để hệ thống ghi nhận đúng trạng thái lớp học, bạn nên bấm "Bắt đầu buổi học" trước, sau đó mở {{ $externalPlatformLabel }} ở tab mới.
+                                        </p>
+
+                                        <div class="teacher-live-steps mb-4">
+                                            <div class="teacher-live-step">
+                                                <strong>1</strong>
+                                                <span>Bắt đầu buổi học để đồng bộ trạng thái và điểm danh giảng viên.</span>
+                                            </div>
+                                            <div class="teacher-live-step">
+                                                <strong>2</strong>
+                                                <span>Bấm "{{ $externalLaunchText }}" để vào phòng họp thật.</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex flex-wrap justify-content-center gap-2">
+                                            @if($canTeacherStart)
+                                                <form action="{{ $startRoute }}" method="POST">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-light btn-lg fw-bold px-4">
+                                                        <i class="fas fa-play-circle me-2"></i>Bắt đầu buổi học
+                                                    </button>
+                                                </form>
+                                            @elseif($canTeacherReopen && $playerMode !== 'host')
+                                                <a href="{{ $hostViewRoute }}" class="btn btn-outline-light btn-lg fw-bold px-4">
+                                                    <i class="fas fa-video me-2"></i>Mở chế độ điều hành
+                                                </a>
+                                            @endif
+                                            <a href="{{ $externalLaunchUrl }}" target="_blank" rel="noopener" class="btn btn-success btn-lg fw-bold px-4">
+                                                <i class="fas fa-external-link-alt me-2"></i>{{ $externalLaunchText }}
+                                            </a>
+                                        </div>
+
+                                        @if($meetingIdentifier)
+                                            <div class="teacher-live-meeting-code mt-4 mx-auto">
+                                                <span>Mã phòng</span>
+                                                <strong>{{ $meetingIdentifier }}</strong>
+                                                @if($meetingPasscode)
+                                                    <span>Mật khẩu</span>
+                                                    <strong>{{ $meetingPasscode }}</strong>
+                                                @endif
+                                            </div>
+                                        @endif
+                                    </div>
                                 @else
-                                    <div class="teacher-live-placeholder p-5 text-center bg-light">
+                                    <div class="teacher-live-placeholder p-5 text-center">
                                         <i class="fas fa-video-slash fa-4x text-muted opacity-25 mb-3"></i>
                                         <h5 class="fw-bold text-dark">Phòng học chưa mở</h5>
                                         <p class="text-muted mb-0">
                                             @if($canTeacherStart)
-                                                Đã tới giờ. Bấm "Bắt đầu buổi học" để mở phòng ngay.
+                                                Bấm "Bắt đầu buổi học" để mở phòng và ghi nhận trạng thái buổi dạy.
                                             @elseif($canTeacherReopen)
                                                 Buổi học đang diễn ra. Bấm "Mở phòng điều hành" để quay lại phòng.
                                             @else
@@ -183,17 +322,59 @@
                 </div>
 
                 <div class="col-lg-4">
-                    <div class="card border-0 shadow-sm sticky-top" style="top: 1.5rem;">
+                    <div class="card border-0 shadow-sm sticky-top teacher-live-action-card" style="top: 1.5rem;">
                         <div class="card-body p-4">
-                            <h5 class="fw-bold mb-4">Hành động</h5>
+                            <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+                                <div>
+                                    <div class="teacher-live-eyebrow">Giảng viên</div>
+                                    <h5 class="fw-bold mb-1">Trung tâm thao tác</h5>
+                                    <p class="text-muted small mb-0">Điều hành lớp, mở Meet và quay lại tài nguyên buổi học.</p>
+                                </div>
+                                <span class="teacher-live-action-card__badge">{{ $phongHocLive->timeline_trang_thai_label }}</span>
+                            </div>
+
+                            @if($hasExternalLaunch)
+                                <div class="teacher-live-meet-cta mb-4">
+                                    <div class="small text-uppercase fw-bold text-success mb-2">{{ $externalPlatformLabel }}</div>
+                                    <h6 class="fw-bold mb-2">{{ $externalLaunchText }}</h6>
+                                    <p class="small text-muted mb-3">Nút này mở phòng họp thật ở tab mới. Link đang lấy từ {{ $roomExternalUrl ? 'live room' : 'lịch học' }}.</p>
+                                    <a href="{{ $externalLaunchUrl }}" target="_blank" rel="noopener" class="btn btn-success btn-lg w-100 fw-bold shadow-sm">
+                                        <i class="fas fa-external-link-alt me-2"></i>{{ $externalLaunchText }}
+                                    </a>
+                                </div>
+                            @endif
+
+                            <div class="teacher-live-runbook mb-4">
+                                <div class="teacher-live-runbook__item">
+                                    <span>1</span>
+                                    <div>
+                                        <strong>Bắt đầu trên hệ thống</strong>
+                                        <small>Ghi nhận trạng thái buổi dạy và điểm danh giảng viên.</small>
+                                    </div>
+                                </div>
+                                <div class="teacher-live-runbook__item">
+                                    <span>2</span>
+                                    <div>
+                                        <strong>Mở phòng họp thật</strong>
+                                        <small>{{ $hasExternalLaunch ? 'Dùng nút ' . $externalLaunchText . ' để vào Google Meet/Zoom.' : 'Cần cập nhật link online cho lịch học.' }}</small>
+                                    </div>
+                                </div>
+                                <div class="teacher-live-runbook__item">
+                                    <span>3</span>
+                                    <div>
+                                        <strong>Kết thúc đúng luồng</strong>
+                                        <small>Bấm kết thúc buổi học để đồng bộ check-out.</small>
+                                    </div>
+                                </div>
+                            </div>
 
                             <div class="d-grid gap-3">
                                 @php
                                     $lichHocId = $baiGiang->lichHoc?->id;
                                 @endphp
-                                
+
                                 @if($lichHocId)
-                                    <div class="row g-2">
+                                    <div class="row g-2 teacher-live-quick-actions">
                                         <div class="col-4">
                                             <a href="{{ $attendanceUrl ?: $backUrl }}" class="btn btn-outline-info w-100 py-2 fw-bold">
                                                 <i class="fas fa-user-check d-block mb-1"></i> Điểm danh
@@ -222,10 +403,6 @@
                                 @elseif($canTeacherReopen && $playerMode !== 'host')
                                     <a href="{{ $hostViewRoute }}" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">
                                         <i class="fas fa-video me-2"></i> Mở phòng điều hành
-                                    </a>
-                                @elseif($playerMode === 'host' && $isExternalLaunch)
-                                    <a href="{{ $playerUrl }}" target="_blank" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">
-                                        <i class="fas fa-external-link-alt me-2"></i> Mở {{ $platformLabel }}
                                     </a>
                                 @endif
 
@@ -257,16 +434,16 @@
                             </div>
 
                             @if($meetingIdentifier)
-                                <div class="mt-4 p-3 bg-light rounded border">
+                                <div class="mt-4 p-3 bg-light rounded border teacher-live-login-info">
                                     <div class="small text-muted text-uppercase mb-2">Thông tin đăng nhập nhanh</div>
-                                    <div class="d-flex justify-content-between mb-2">
-                                        <span>Meeting ID</span>
-                                        <strong>{{ $meetingIdentifier }}</strong>
+                                    <div class="d-flex justify-content-between mb-2 gap-3">
+                                        <span>{{ $isGoogleMeetLaunch ? 'Mã Meet' : 'Meeting ID' }}</span>
+                                        <strong class="text-end">{{ $meetingIdentifier }}</strong>
                                     </div>
                                     @if($meetingPasscode)
-                                        <div class="d-flex justify-content-between">
+                                        <div class="d-flex justify-content-between gap-3">
                                             <span>Passcode</span>
-                                            <strong>{{ $meetingPasscode }}</strong>
+                                            <strong class="text-end">{{ $meetingPasscode }}</strong>
                                         </div>
                                     @endif
                                 </div>
@@ -283,12 +460,108 @@
     .teacher-live-hero {
         border-radius: 1.5rem;
         background:
-            radial-gradient(circle at top left, rgba(255,255,255,0.18), transparent 30%),
-            linear-gradient(135deg, #1d4ed8, #0f172a);
+            radial-gradient(circle at top left, rgba(255, 255, 255, 0.2), transparent 30%),
+            radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.24), transparent 28%),
+            linear-gradient(135deg, #0f766e, #0f172a 64%);
+    }
+
+    .teacher-live-eyebrow {
+        color: #0f766e;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08rem;
+        text-transform: uppercase;
+    }
+
+    .teacher-live-overview-card,
+    .teacher-live-console,
+    .teacher-live-action-card {
+        border-radius: 1.25rem;
+    }
+
+    .teacher-live-status-pill,
+    .teacher-live-action-card__badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        border-radius: 999px;
+        background: #ecfdf5;
+        color: #047857;
+        border: 1px solid #bbf7d0;
+        font-size: 0.78rem;
+        font-weight: 800;
+        padding: 0.45rem 0.75rem;
+        white-space: nowrap;
+    }
+
+    .teacher-live-status-pill__dot {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 999px;
+        background: #22c55e;
+        box-shadow: 0 0 0 0.25rem rgba(34, 197, 94, 0.14);
+    }
+
+    .teacher-live-metric {
+        height: 100%;
+        padding: 1rem;
+        border-radius: 1rem;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+
+    .teacher-live-metric span {
+        display: block;
+        color: #64748b;
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.04rem;
+        margin-bottom: 0.35rem;
+        text-transform: uppercase;
+    }
+
+    .teacher-live-metric strong {
+        color: #0f172a;
+        display: block;
+        font-size: 0.98rem;
+        line-height: 1.35;
+    }
+
+    .teacher-live-meeting-strip {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        border-radius: 1.1rem;
+        padding: 1rem;
+        background: linear-gradient(135deg, #ecfdf5, #ffffff);
+        border: 1px solid #bbf7d0;
+    }
+
+    .teacher-live-meeting-strip--warning {
+        background: linear-gradient(135deg, #fff7ed, #ffffff);
+        border-color: #fed7aa;
+    }
+
+    .teacher-live-meeting-strip__icon,
+    .teacher-live-platform-orb {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 1rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background:
+            linear-gradient(135deg, #22c55e 0 25%, #fbbc04 25% 50%, #4285f4 50% 75%, #ea4335 75% 100%);
+        color: #ffffff;
+        box-shadow: 0 14px 28px rgba(15, 118, 110, 0.16);
+        flex: 0 0 auto;
     }
 
     .teacher-live-player {
-        background: #020617;
+        background:
+            radial-gradient(circle at top left, rgba(34, 197, 94, 0.16), transparent 28%),
+            linear-gradient(145deg, #020617 0%, #0f172a 54%, #111827 100%);
         min-height: 520px;
     }
 
@@ -391,6 +664,74 @@
         line-height: 1.6;
     }
 
+    .teacher-live-external-ready {
+        min-height: 560px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .teacher-live-external-ready p {
+        max-width: 680px;
+    }
+
+    .teacher-live-steps {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+        width: min(680px, 100%);
+    }
+
+    .teacher-live-step {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.85rem;
+        padding: 1rem;
+        border-radius: 1rem;
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        color: #dbeafe;
+        text-align: left;
+    }
+
+    .teacher-live-step strong {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #22c55e;
+        color: #ffffff;
+        flex: 0 0 auto;
+    }
+
+    .teacher-live-step span {
+        font-size: 0.92rem;
+        line-height: 1.5;
+    }
+
+    .teacher-live-meeting-code {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.45rem 1rem;
+        max-width: 460px;
+        padding: 1rem;
+        border-radius: 1rem;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        color: #e2e8f0;
+        text-align: left;
+    }
+
+    .teacher-live-meeting-code span {
+        color: #94a3b8;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
     .teacher-live-launcher,
     .teacher-live-placeholder {
         min-height: 520px;
@@ -398,6 +739,69 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
+    }
+
+    .teacher-live-placeholder {
+        background:
+            radial-gradient(circle at top, rgba(15, 118, 110, 0.08), transparent 35%),
+            #f8fafc;
+    }
+
+    .teacher-live-meet-cta {
+        border-radius: 1.1rem;
+        padding: 1rem;
+        background:
+            linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(255, 255, 255, 0.9)),
+            #ffffff;
+        border: 1px solid #bbf7d0;
+    }
+
+    .teacher-live-runbook {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .teacher-live-runbook__item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.85rem;
+        border-radius: 1rem;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+
+    .teacher-live-runbook__item > span {
+        width: 1.85rem;
+        height: 1.85rem;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #0f766e;
+        color: #ffffff;
+        font-weight: 800;
+        flex: 0 0 auto;
+    }
+
+    .teacher-live-runbook__item strong,
+    .teacher-live-runbook__item small {
+        display: block;
+    }
+
+    .teacher-live-runbook__item small {
+        color: #64748b;
+        line-height: 1.45;
+        margin-top: 0.15rem;
+    }
+
+    .teacher-live-quick-actions .btn {
+        font-size: 0.78rem;
+        border-radius: 0.85rem;
+    }
+
+    .teacher-live-login-info {
+        font-size: 0.92rem;
     }
 
     @media (max-width: 991.98px) {
@@ -411,6 +815,19 @@
         }
 
         .teacher-live-internal__stats {
+            grid-template-columns: 1fr;
+        }
+
+        .teacher-live-meeting-strip {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .teacher-live-meeting-strip .btn {
+            width: 100%;
+        }
+
+        .teacher-live-steps {
             grid-template-columns: 1fr;
         }
     }
@@ -448,7 +865,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const now = new Date();
 
         if (now < openAt) {
-            countdown.textContent = `Mở phong sau ${formatDuration((openAt - now) / 1000)}`;
+            countdown.textContent = `Mở phòng sau ${formatDuration((openAt - now) / 1000)}`;
         } else if (now < startAt) {
             countdown.textContent = `Đến giờ bắt đầu sau ${formatDuration((startAt - now) / 1000)}`;
         } else {

@@ -203,6 +203,381 @@ class OnlineExamFlowTest extends TestCase
         ]);
     }
 
+    public function test_teacher_can_publish_approved_exam_from_teacher_exam_index(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        $student = $this->createStudent();
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+        $lichHoc = $this->createLichHoc($course, $module);
+
+        $this->assignTeacher($admin, $teacher, $course, $module);
+        $this->enrollStudent($admin, $student, $course);
+
+        $exam = BaiKiemTra::create([
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => $module->id,
+            'lich_hoc_id' => $lichHoc->id,
+            'tieu_de' => 'De da duyet cho giang vien phat hanh',
+            'mo_ta' => 'De tu luan da duoc admin duyet va dang cho phat hanh.',
+            'thoi_gian_lam_bai' => 25,
+            'ngay_mo' => now()->subMinutes(10),
+            'ngay_dong' => now()->addHour(),
+            'pham_vi' => 'buoi_hoc',
+            'loai_bai_kiem_tra' => 'buoi_hoc',
+            'loai_noi_dung' => 'tu_luan',
+            'trang_thai_duyet' => 'da_duyet',
+            'trang_thai_phat_hanh' => 'nhap',
+            'tong_diem' => 10,
+            'so_lan_duoc_lam' => 1,
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+            'trang_thai' => true,
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->get(route('giang-vien.bai-kiem-tra.index'))
+            ->assertOk()
+            ->assertSee(route('giang-vien.bai-kiem-tra.publish', $exam->id), false);
+
+        $this->actingAs($teacherUser)
+            ->from(route('giang-vien.bai-kiem-tra.index'))
+            ->post(route('giang-vien.bai-kiem-tra.publish', $exam->id))
+            ->assertRedirect(route('giang-vien.bai-kiem-tra.index'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('bai_kiem_tra', [
+            'id' => $exam->id,
+            'trang_thai_duyet' => 'da_duyet',
+            'trang_thai_phat_hanh' => 'phat_hanh',
+            'trang_thai' => 1,
+        ]);
+
+        $this->actingAs($student)
+            ->get(route('hoc-vien.bai-kiem-tra'))
+            ->assertOk()
+            ->assertSeeText($exam->tieu_de);
+
+        $this->actingAs($student)
+            ->post(route('hoc-vien.bai-kiem-tra.bat-dau', $exam->id))
+            ->assertRedirect(route('hoc-vien.bai-kiem-tra.show', $exam->id));
+    }
+
+    public function test_student_can_start_next_attempt_when_exam_allows_multiple_attempts(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        $student = $this->createStudent();
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+
+        $this->assignTeacher($admin, $teacher, $course, $module);
+        $this->enrollStudent($admin, $student, $course);
+
+        $exam = BaiKiemTra::create([
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => $module->id,
+            'tieu_de' => 'De cho phep lam nhieu lan',
+            'mo_ta' => 'Hoc vien duoc phep nop lan 1 va tiep tuc lam lan 2.',
+            'thoi_gian_lam_bai' => 20,
+            'ngay_mo' => now()->subMinutes(5),
+            'ngay_dong' => now()->addHour(),
+            'pham_vi' => 'module',
+            'loai_bai_kiem_tra' => 'module',
+            'loai_noi_dung' => 'tu_luan',
+            'trang_thai_duyet' => 'da_duyet',
+            'trang_thai_phat_hanh' => 'phat_hanh',
+            'tong_diem' => 10,
+            'so_lan_duoc_lam' => 2,
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+            'trang_thai' => true,
+        ]);
+
+        $this->actingAs($student)
+            ->post(route('hoc-vien.bai-kiem-tra.bat-dau', $exam->id))
+            ->assertRedirect(route('hoc-vien.bai-kiem-tra.show', $exam->id));
+
+        $this->actingAs($student)
+            ->post(route('hoc-vien.bai-kiem-tra.nop', $exam->id), [
+                'noi_dung_bai_lam' => 'Bai lam lan dau tien.',
+            ])
+            ->assertRedirect(route('hoc-vien.bai-kiem-tra.show', $exam->id));
+
+        $this->assertDatabaseHas('bai_lam_bai_kiem_tra', [
+            'bai_kiem_tra_id' => $exam->id,
+            'hoc_vien_id' => $student->ma_nguoi_dung,
+            'lan_lam_thu' => 1,
+            'trang_thai' => 'cho_cham',
+        ]);
+
+        $this->actingAs($student)
+            ->get(route('hoc-vien.bai-kiem-tra'))
+            ->assertOk()
+            ->assertSeeText('Làm lần tiếp theo')
+            ->assertSeeText('còn 1 lượt');
+
+        $this->actingAs($student)
+            ->get(route('hoc-vien.bai-kiem-tra.show', $exam->id))
+            ->assertOk()
+            ->assertSeeText('Làm lần tiếp theo');
+
+        $this->actingAs($student)
+            ->post(route('hoc-vien.bai-kiem-tra.bat-dau', $exam->id))
+            ->assertRedirect(route('hoc-vien.bai-kiem-tra.show', $exam->id));
+
+        $this->assertDatabaseHas('bai_lam_bai_kiem_tra', [
+            'bai_kiem_tra_id' => $exam->id,
+            'hoc_vien_id' => $student->ma_nguoi_dung,
+            'lan_lam_thu' => 2,
+            'trang_thai' => 'dang_lam',
+        ]);
+
+        $this->assertSame(2, $exam->baiLams()->where('hoc_vien_id', $student->ma_nguoi_dung)->count());
+    }
+
+    public function test_teacher_course_show_page_shows_publish_button_for_approved_session_exam(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+        $lichHoc = $this->createLichHoc($course, $module);
+
+        $this->assignTeacher($admin, $teacher, $course, $module);
+
+        $approvedExam = BaiKiemTra::create([
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => $module->id,
+            'lich_hoc_id' => $lichHoc->id,
+            'tieu_de' => 'De buoi hoc da duyet cho nut phat hanh',
+            'mo_ta' => 'De da duoc duyet va dang cho giang vien phat hanh.',
+            'thoi_gian_lam_bai' => 20,
+            'pham_vi' => 'buoi_hoc',
+            'loai_bai_kiem_tra' => 'buoi_hoc',
+            'loai_noi_dung' => 'tu_luan',
+            'trang_thai_duyet' => 'da_duyet',
+            'trang_thai_phat_hanh' => 'nhap',
+            'tong_diem' => 10,
+            'so_lan_duoc_lam' => 1,
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+            'trang_thai' => true,
+        ]);
+
+        $pendingExam = BaiKiemTra::create([
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => $module->id,
+            'lich_hoc_id' => $lichHoc->id,
+            'tieu_de' => 'De buoi hoc chua duoc duyet',
+            'mo_ta' => 'De nay chua co nut phat hanh.',
+            'thoi_gian_lam_bai' => 20,
+            'pham_vi' => 'buoi_hoc',
+            'loai_bai_kiem_tra' => 'buoi_hoc',
+            'loai_noi_dung' => 'tu_luan',
+            'trang_thai_duyet' => 'cho_duyet',
+            'trang_thai_phat_hanh' => 'nhap',
+            'tong_diem' => 10,
+            'so_lan_duoc_lam' => 1,
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+            'trang_thai' => true,
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->get(route('giang-vien.khoa-hoc.show', $course->id))
+            ->assertOk()
+            ->assertSee(route('giang-vien.bai-kiem-tra.publish', $approvedExam->id), false)
+            ->assertDontSee(route('giang-vien.bai-kiem-tra.publish', $pendingExam->id), false);
+    }
+
+    public function test_teacher_cannot_publish_exam_before_admin_approval(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        $student = $this->createStudent();
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+
+        $this->assignTeacher($admin, $teacher, $course, $module);
+        $this->enrollStudent($admin, $student, $course);
+
+        $exam = BaiKiemTra::create([
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => $module->id,
+            'tieu_de' => 'De chua duoc admin duyet',
+            'mo_ta' => 'De nay khong duoc phat hanh boi giang vien khi chua duyet.',
+            'thoi_gian_lam_bai' => 20,
+            'pham_vi' => 'module',
+            'loai_bai_kiem_tra' => 'module',
+            'loai_noi_dung' => 'tu_luan',
+            'trang_thai_duyet' => 'cho_duyet',
+            'trang_thai_phat_hanh' => 'nhap',
+            'tong_diem' => 10,
+            'so_lan_duoc_lam' => 1,
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+            'trang_thai' => true,
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->get(route('giang-vien.bai-kiem-tra.index'))
+            ->assertOk()
+            ->assertDontSee(route('giang-vien.bai-kiem-tra.publish', $exam->id), false);
+
+        $this->actingAs($teacherUser)
+            ->from(route('giang-vien.bai-kiem-tra.index'))
+            ->post(route('giang-vien.bai-kiem-tra.publish', $exam->id))
+            ->assertRedirect(route('giang-vien.bai-kiem-tra.index'))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('bai_kiem_tra', [
+            'id' => $exam->id,
+            'trang_thai_duyet' => 'cho_duyet',
+            'trang_thai_phat_hanh' => 'nhap',
+        ]);
+
+        $this->actingAs($student)
+            ->get(route('hoc-vien.bai-kiem-tra'))
+            ->assertOk()
+            ->assertDontSeeText($exam->tieu_de);
+    }
+
+    public function test_teacher_can_view_exam_scoreboard_and_filter_by_exam(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        $studentOne = $this->createStudent();
+        $studentTwo = $this->createStudent();
+        $hiddenStudent = $this->createStudent();
+
+        $studentOne->update(['ho_ten' => 'Hoc vien diem module', 'email' => 'diem-module@example.com']);
+        $studentTwo->update(['ho_ten' => 'Hoc vien diem cuoi khoa', 'email' => 'diem-cuoi-khoa@example.com']);
+        $hiddenStudent->update(['ho_ten' => 'Hoc vien ngoai pham vi', 'email' => 'ngoai-pham-vi@example.com']);
+
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+        $this->assignTeacher($admin, $teacher, $course, $module);
+        $this->enrollStudent($admin, $studentOne, $course);
+        $this->enrollStudent($admin, $studentTwo, $course);
+
+        $moduleExam = BaiKiemTra::create([
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => $module->id,
+            'tieu_de' => 'De module co diem',
+            'mo_ta' => 'De module da co bai lam.',
+            'thoi_gian_lam_bai' => 30,
+            'pham_vi' => 'module',
+            'loai_bai_kiem_tra' => 'module',
+            'loai_noi_dung' => 'trac_nghiem',
+            'trang_thai_duyet' => 'da_duyet',
+            'trang_thai_phat_hanh' => 'phat_hanh',
+            'tong_diem' => 10,
+            'so_lan_duoc_lam' => 1,
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+            'trang_thai' => true,
+        ]);
+
+        $finalExam = BaiKiemTra::create([
+            'khoa_hoc_id' => $course->id,
+            'module_hoc_id' => null,
+            'tieu_de' => 'De cuoi khoa co diem',
+            'mo_ta' => 'De cuoi khoa da co bai lam.',
+            'thoi_gian_lam_bai' => 45,
+            'pham_vi' => 'cuoi_khoa',
+            'loai_bai_kiem_tra' => 'cuoi_khoa',
+            'loai_noi_dung' => 'tu_luan',
+            'trang_thai_duyet' => 'da_duyet',
+            'trang_thai_phat_hanh' => 'phat_hanh',
+            'tong_diem' => 10,
+            'so_lan_duoc_lam' => 1,
+            'nguoi_tao_id' => $teacherUser->ma_nguoi_dung,
+            'trang_thai' => true,
+        ]);
+
+        $moduleExam->baiLams()->create([
+            'hoc_vien_id' => $studentOne->ma_nguoi_dung,
+            'lan_lam_thu' => 1,
+            'trang_thai' => 'da_cham',
+            'trang_thai_cham' => 'da_cham',
+            'bat_dau_luc' => now()->subHour(),
+            'nop_luc' => now()->subMinutes(40),
+            'diem_so' => 8.5,
+            'tong_diem_trac_nghiem' => 8.5,
+        ]);
+
+        $finalExam->baiLams()->create([
+            'hoc_vien_id' => $studentTwo->ma_nguoi_dung,
+            'lan_lam_thu' => 1,
+            'trang_thai' => 'cho_cham',
+            'trang_thai_cham' => 'cho_cham',
+            'bat_dau_luc' => now()->subMinutes(50),
+            'nop_luc' => now()->subMinutes(20),
+            'diem_so' => null,
+        ]);
+
+        $otherCourse = $this->createCourse($admin);
+        $otherModule = $this->createModule($otherCourse);
+        $hiddenExam = BaiKiemTra::create([
+            'khoa_hoc_id' => $otherCourse->id,
+            'module_hoc_id' => $otherModule->id,
+            'tieu_de' => 'De ngoai pham vi co diem',
+            'mo_ta' => 'De nay khong thuoc phan cong.',
+            'thoi_gian_lam_bai' => 30,
+            'pham_vi' => 'module',
+            'loai_bai_kiem_tra' => 'module',
+            'loai_noi_dung' => 'trac_nghiem',
+            'trang_thai_duyet' => 'da_duyet',
+            'trang_thai_phat_hanh' => 'phat_hanh',
+            'tong_diem' => 10,
+            'so_lan_duoc_lam' => 1,
+            'nguoi_tao_id' => $admin->ma_nguoi_dung,
+            'trang_thai' => true,
+        ]);
+
+        $hiddenExam->baiLams()->create([
+            'hoc_vien_id' => $hiddenStudent->ma_nguoi_dung,
+            'lan_lam_thu' => 1,
+            'trang_thai' => 'da_cham',
+            'trang_thai_cham' => 'da_cham',
+            'bat_dau_luc' => now()->subHour(),
+            'nop_luc' => now()->subMinutes(15),
+            'diem_so' => 9.75,
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->get(route('giang-vien.diem-kiem-tra.index'))
+            ->assertOk()
+            ->assertSeeText('Bảng điểm bài kiểm tra')
+            ->assertSeeText('De module co diem')
+            ->assertSeeText('De cuoi khoa co diem')
+            ->assertSeeText('8.50')
+            ->assertSee('data-bs-toggle="modal"', false)
+            ->assertSee('scoreStudentsModal-' . $moduleExam->id, false)
+            ->assertSee('scoreStudentsModal-' . $finalExam->id, false)
+            ->assertDontSee('score-collapse-trigger', false)
+            ->assertSeeText('Hoc vien diem module')
+            ->assertSeeText('Hoc vien diem cuoi khoa')
+            ->assertDontSeeText('Hoc vien ngoai pham vi')
+            ->assertDontSeeText('De ngoai pham vi co diem');
+
+        $this->actingAs($teacherUser)
+            ->get(route('giang-vien.diem-kiem-tra.hoc-vien', $moduleExam->id))
+            ->assertOk()
+            ->assertSeeText('Danh sách học viên làm bài')
+            ->assertSeeText('Hoc vien diem module')
+            ->assertSeeText('8.50')
+            ->assertDontSeeText('Hoc vien diem cuoi khoa');
+
+        $this->actingAs($teacherUser)
+            ->get(route('giang-vien.diem-kiem-tra.index', ['bai_kiem_tra_id' => $moduleExam->id]))
+            ->assertOk()
+            ->assertSee('scoreStudentsModal-' . $moduleExam->id, false)
+            ->assertDontSee('scoreStudentsModal-' . $finalExam->id, false);
+
+        $this->actingAs($teacherUser)
+            ->get(route('giang-vien.diem-kiem-tra.index', ['loai_bai_kiem_tra' => 'cuoi_khoa']))
+            ->assertOk()
+            ->assertSee('scoreStudentsModal-' . $finalExam->id, false)
+            ->assertDontSee('scoreStudentsModal-' . $moduleExam->id, false);
+    }
+
     public function test_student_can_submit_mixed_exam_and_mcq_is_auto_graded(): void
     {
         $context = $this->buildMixedExamContext();

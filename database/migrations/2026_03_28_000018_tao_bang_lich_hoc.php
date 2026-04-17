@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('lich_hoc', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->unsignedBigInteger('khoa_hoc_id');
+            $table->unsignedBigInteger('lop_hoc_id')->nullable();
             $table->unsignedBigInteger('module_hoc_id');
             $table->unsignedBigInteger('giang_vien_id')->nullable();
             $table->date('ngay_hoc');

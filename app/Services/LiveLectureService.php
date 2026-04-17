@@ -36,21 +36,34 @@ class LiveLectureService
 
         $roomData = [
             'lop_hoc_id' => $this->resolveClassId($baiGiang),
-            'lich_hoc_id' => $baiGiang->lich_hoc_id,
             'giang_vien_id' => $actor->giangVien?->id ?? 0,
+            'moderator_id' => $liveInput['moderator_id'] ?? null,
+            'tro_giang_id' => $liveInput['tro_giang_id'] ?? null,
             'tieu_de' => $liveInput['tieu_de'] ?? $baiGiang->tieu_de,
             'nen_tang' => $liveInput['nen_tang_live'] ?? PhongHocLive::PLATFORM_ZOOM,
             'bat_dau_du_kien' => $liveInput['thoi_gian_bat_dau'] ?? ($baiGiang->thoi_diem_mo ?? now()),
+            'thoi_luong_phut' => $liveInput['thoi_luong_phut'] ?? 90,
             'ket_thuc_du_kien' => \Carbon\Carbon::parse($liveInput['thoi_gian_bat_dau'] ?? ($baiGiang->thoi_diem_mo ?? now()))->addMinutes($liveInput['thoi_luong_phut'] ?? 90),
             'trang_thai' => $this->normalizeRoomState($baiGiang->phongHocLive?->trang_thai),
+            'trang_thai_duyet' => $approvalStatus,
+            'trang_thai_cong_bo' => $publishStatus,
             'du_lieu_nen_tang' => $this->platformService->buildPlatformPayload(
                 $liveInput['nen_tang_live'] ?? PhongHocLive::PLATFORM_ZOOM,
                 $liveInput
             ),
         ];
 
+        if ($approvalStatus === BaiGiang::STATUS_DUYET_DA_DUYET) {
+            $roomData['approved_by'] = $actor->ma_nguoi_dung;
+            $roomData['approved_at'] = now();
+        }
+
+        if (!$baiGiang->phongHocLive) {
+            $roomData['created_by'] = $actor->ma_nguoi_dung;
+        }
+
         return $baiGiang->phongHocLive()->updateOrCreate(
-            ['lich_hoc_id' => $baiGiang->lich_hoc_id],
+            ['bai_giang_id' => $baiGiang->id],
             $roomData
         );
     }

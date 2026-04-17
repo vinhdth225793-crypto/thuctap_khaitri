@@ -431,9 +431,16 @@
                                                         @endif
                                                     </td>
                                                     <td class="text-center">
-                                                        <span class="badge bg-{{ match($lich->trang_thai){'cho'=>'secondary','dang_hoc'=>'info','hoan_thanh'=>'success','huy'=>'danger',default=>'light'} }} w-100 py-1" style="font-size: 0.65rem;">
-                                                            {{ $lich->trang_thai_label }}
-                                                        </span>
+                                                        <div class="d-flex flex-column gap-1">
+                                                            <span class="badge bg-{{ match($lich->trang_thai){'cho'=>'secondary','dang_hoc'=>'info','hoan_thanh'=>'success','huy'=>'danger',default=>'light'} }} w-100 py-1" style="font-size: 0.65rem;">
+                                                                {{ $lich->trang_thai_label }}
+                                                            </span>
+                                                            @if($lich->giang_vien_id && $lich->trang_thai !== 'cho')
+                                                                <a href="{{ route('admin.diem-danh.giang-vien.show', [$lich->id, $lich->giang_vien_id]) }}" class="smaller text-primary text-decoration-none fw-bold mt-1">
+                                                                    <i class="fas fa-search-plus me-1"></i>Chi tiết log
+                                                                </a>
+                                                            @endif
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             @endforeach

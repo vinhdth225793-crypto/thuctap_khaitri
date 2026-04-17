@@ -172,6 +172,32 @@
                     <span class="badge bg-soft-info text-info rounded-pill px-3 fw-bold">{{ $baiKiemTra->loai_noi_dung_label }}</span>
                 </div>
                 <div class="card-body p-4 question-list-scroll">
+                    @if($baiKiemTra->content_mode_key === 'tu_luan_tu_do')
+                        <div class="border rounded-4 p-4 bg-light mb-4">
+                            <div class="d-flex align-items-center gap-3 mb-3">
+                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; flex-shrink: 0;">
+                                    <i class="fas fa-pen-nib"></i>
+                                </div>
+                                <h5 class="fw-bold mb-0 text-primary">Nội dung đề tự luận tự do</h5>
+                            </div>
+                            
+                            <div class="p-4 bg-white rounded-4 border shadow-sm mb-3">
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-2">ĐỀ BÀI / HƯỚNG DẪN</label>
+                                <div class="fs-6 text-dark" style="white-space: pre-wrap; line-height: 1.8;">{!! nl2br(e($baiKiemTra->mo_ta ?: 'Không có nội dung hướng dẫn.')) !!}</div>
+                            </div>
+
+                            <div class="alert alert-soft-success border-0 rounded-4 d-flex align-items-center gap-3 mb-0">
+                                <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; flex-shrink: 0;">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <div>
+                                    <span class="text-muted small fw-bold">TỔNG ĐIỂM CHẤM BÀI:</span>
+                                    <span class="ms-2 fw-bold text-success fs-5">{{ number_format((float) $baiKiemTra->tong_diem, 2) }} điểm</span>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
                     @forelse($baiKiemTra->chiTietCauHois as $index => $chiTiet)
                         <div class="question-item mb-4 pb-4 border-bottom last-child-no-border">
                             <div class="d-flex justify-content-between align-items-start gap-3 mb-3">

@@ -91,6 +91,18 @@ class HomeController extends Controller
             ->paginate(6)
             ->withQueryString();
 
+        // Kiểm tra xem học viên đã tham gia khóa học nào chưa
+        if ($user && $user->vai_tro === 'hoc_vien') {
+            $enrolledCourseIds = HocVienKhoaHoc::where('hoc_vien_id', $user->ma_nguoi_dung)
+                ->pluck('khoa_hoc_id')
+                ->toArray();
+            
+            $courses->getCollection()->transform(function ($course) use ($enrolledCourseIds) {
+                $course->is_enrolled = in_array($course->id, $enrolledCourseIds);
+                return $course;
+            });
+        }
+
         $featuredCourse = (clone $publicCourseBase)
             ->with([
                 'nhomNganh:id,ma_nhom_nganh,ten_nhom_nganh',
@@ -111,6 +123,10 @@ class HomeController extends Controller
             ->orderBy('ngay_khai_giang')
             ->orderByDesc('created_at')
             ->first();
+
+        if ($featuredCourse && $user && $user->vai_tro === 'hoc_vien') {
+            $featuredCourse->is_enrolled = in_array($featuredCourse->id, $enrolledCourseIds ?? []);
+        }
 
         $featuredInstructors = GiangVien::hienThiTrangChu()
             ->with('nguoiDung:ma_nguoi_dung,ho_ten,email,anh_dai_dien')

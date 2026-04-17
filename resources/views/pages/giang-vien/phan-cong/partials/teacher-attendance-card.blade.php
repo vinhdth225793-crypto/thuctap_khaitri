@@ -69,9 +69,15 @@
                     </button>
                 </form>
             @endif
-            <button type="button" class="btn btn-sm btn-outline-primary fw-bold btn-diem-danh px-3 py-2" data-id="{{ $lich->id }}" data-buoi="{{ $lich->buoi_so }}">
-                <i class="fas fa-users me-1"></i> Điểm danh HV
-            </button>
+            @if($studentAttendanceStatus['is_finalized'])
+                <button type="button" class="btn btn-sm btn-success fw-bold btn-diem-danh px-3 py-2 flex-grow-1 shadow-sm" data-id="{{ $lich->id }}" data-buoi="{{ $lich->buoi_so }}">
+                    <i class="fas fa-check-double me-1"></i> Đã điểm danh HV
+                </button>
+            @else
+                <button type="button" class="btn btn-sm btn-outline-primary fw-bold btn-diem-danh px-3 py-2" data-id="{{ $lich->id }}" data-buoi="{{ $lich->buoi_so }}">
+                    <i class="fas fa-users me-1"></i> Điểm danh HV
+                </button>
+            @endif
         </div>
 
         <div class="p-2 rounded bg-white bg-opacity-50 border border-white">

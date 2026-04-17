@@ -188,57 +188,122 @@
     </div>
 
     <div class="row g-4 mb-4">
-        <div class="col-lg-6">
+        <div class="col-xl-7">
             <div class="card vip-card h-100">
-                <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                <div class="card-header border-0 d-flex justify-content-between align-items-start gap-3 lesson-roadmap-header">
                     <div>
-                        <h5 class="mb-1 fw-semibold">Buổi học sắp tới</h5>
-                        <p class="text-muted small mb-0">Các buổi học thuộc khóa học đang học.</p>
+                        <h5 class="mb-1 fw-semibold">Lộ trình buổi học</h5>
+                        <p class="text-muted small mb-0">Nhìn nhanh buổi đã xong, buổi đang học và các buổi còn lại.</p>
                     </div>
-                    <span class="badge bg-light text-primary">{{ $dashboardStats['buoi_hoc_sap_toi'] }}</span>
+                    <div class="lesson-progress-pill">
+                        <i class="fas fa-route"></i>
+                        <span>{{ $dashboardStats['tong_buoi_hoan_thanh_dang_hoc'] }}/{{ $dashboardStats['tong_buoi_dang_hoc'] }} đã xong</span>
+                    </div>
                 </div>
                 <div class="card-body">
-                    @forelse($buoiSapToi as $lichHoc)
-                        <div class="list-block">
-                            <div class="d-flex justify-content-between gap-2">
-                                <div class="fw-semibold text-dark">{{ $lichHoc->khoaHoc->ten_khoa_hoc }}</div>
-                                <span class="badge bg-{{ $lichHoc->hinh_thuc_color }}">{{ $lichHoc->hinh_thuc_label }}</span>
-                            </div>
-                            <div class="small text-muted">{{ $lichHoc->moduleHoc->ten_module ?? 'Chưa gán module' }}</div>
-                            <div class="small text-muted">
-                                {{ $lichHoc->ngay_hoc->format('d/m/Y') }}
-                                • {{ $lichHoc->gio_bat_dau ?: '--:--' }}
-                                @if($lichHoc->gio_ket_thuc)
-                                    - {{ $lichHoc->gio_ket_thuc }}
-                                @endif
-                            </div>
-                            <div class="d-flex flex-wrap gap-2 mt-3">
-                                <a href="{{ route('hoc-vien.buoi-hoc.show', $lichHoc->id) }}" class="btn btn-sm btn-outline-primary">
-                                    Xem buổi học
-                                </a>
-                                <a href="{{ route('hoc-vien.chi-tiet-khoa-hoc', $lichHoc->khoa_hoc_id) }}" class="btn btn-sm btn-outline-secondary">
-                                    Xem khóa học
-                                </a>
-                                @if($lichHoc->can_open_online_room)
-                                    <a href="{{ $lichHoc->online_entry_url }}"
-                                       @if($lichHoc->online_entry_target_blank) target="_blank" rel="noopener noreferrer" @endif
-                                       class="btn btn-sm btn-primary">
-                                        Vào phòng học
-                                    </a>
-                                @endif
-                            </div>
+                    <div class="lesson-roadmap-summary">
+                        <div class="lesson-roadmap-summary-item is-done">
+                            <span>Đã xong</span>
+                            <strong>{{ $dashboardStats['tong_buoi_hoan_thanh_dang_hoc'] }}</strong>
                         </div>
-                    @empty
-                        <div class="text-center py-4">
-                            <div class="empty-icon mb-3"><i class="fas fa-calendar-check"></i></div>
-                            <p class="text-muted mb-0">Chưa có buổi học sắp tới.</p>
+                        <div class="lesson-roadmap-summary-item is-current">
+                            <span>Đang học</span>
+                            <strong>{{ $dashboardStats['tong_buoi_dang_hoc_hien_tai'] }}</strong>
                         </div>
-                    @endforelse
+                        <div class="lesson-roadmap-summary-item is-upcoming">
+                            <span>Còn lại</span>
+                            <strong>{{ $dashboardStats['tong_buoi_con_lai_dang_hoc'] }}</strong>
+                        </div>
+                    </div>
+
+                    @php
+                        $currentLessonIds = collect($dashboardStats['buoi_hoc_hien_tai_ids'] ?? [])
+                            ->map(fn ($id) => (int) $id)
+                            ->all();
+                    @endphp
+
+                    <div class="lesson-roadmap-list">
+                        @forelse($dongThoiGianBuoiHoc as $lichHoc)
+                            @php
+                                $isCurrentLesson = $lichHoc->is_in_progress
+                                    || in_array((int) $lichHoc->id, $currentLessonIds, true);
+                                $lessonState = $lichHoc->is_ended ? 'done' : ($isCurrentLesson ? 'current' : 'upcoming');
+                                $lessonStateLabel = match ($lessonState) {
+                                    'done' => 'Đã xong',
+                                    'current' => 'Đang học',
+                                    default => 'Còn lại',
+                                };
+                                $lessonStateIcon = match ($lessonState) {
+                                    'done' => 'fa-check',
+                                    'current' => 'fa-play',
+                                    default => 'fa-clock',
+                                };
+                            @endphp
+                            <div class="lesson-roadmap-item is-{{ $lessonState }}">
+                                <div class="lesson-roadmap-marker">
+                                    <i class="fas {{ $lessonStateIcon }}"></i>
+                                </div>
+
+                                <div class="lesson-roadmap-card">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                                        <div class="min-w-0">
+                                            <div class="lesson-roadmap-eyebrow">
+                                                Buổi {{ $lichHoc->buoi_so ?: $loop->iteration }}
+                                                <span>•</span>
+                                                {{ $lichHoc->hinh_thuc_label }}
+                                            </div>
+                                            <h6 class="lesson-roadmap-title">{{ $lichHoc->khoaHoc->ten_khoa_hoc }}</h6>
+                                        </div>
+                                        <span class="lesson-state-badge lesson-state-{{ $lessonState }}">{{ $lessonStateLabel }}</span>
+                                    </div>
+
+                                    <div class="lesson-roadmap-meta">
+                                        <span>
+                                            <i class="fas fa-layer-group"></i>
+                                            {{ $lichHoc->moduleHoc->ten_module ?? 'Chưa gán module' }}
+                                        </span>
+                                        <span>
+                                            <i class="fas fa-calendar-alt"></i>
+                                            {{ optional($lichHoc->ngay_hoc)->format('d/m/Y') ?: 'Chưa có ngày học' }}
+                                        </span>
+                                        <span>
+                                            <i class="fas fa-clock"></i>
+                                            {{ $lichHoc->gio_bat_dau ?: '--:--' }}
+                                            @if($lichHoc->gio_ket_thuc)
+                                                - {{ $lichHoc->gio_ket_thuc }}
+                                            @endif
+                                        </span>
+                                    </div>
+
+                                    <div class="d-flex flex-wrap gap-2 mt-2">
+                                        <a href="{{ route('hoc-vien.buoi-hoc.show', $lichHoc->id) }}" class="btn btn-sm btn-outline-primary">
+                                            Xem buổi học
+                                        </a>
+                                        <a href="{{ route('hoc-vien.chi-tiet-khoa-hoc', $lichHoc->khoa_hoc_id) }}" class="btn btn-sm btn-outline-secondary">
+                                            Xem khóa học
+                                        </a>
+                                        @if($lichHoc->can_open_online_room)
+                                            <a href="{{ $lichHoc->online_entry_url }}"
+                                               @if($lichHoc->online_entry_target_blank) target="_blank" rel="noopener noreferrer" @endif
+                                               class="btn btn-sm btn-primary">
+                                                Vào phòng học
+                                            </a>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="text-center py-4">
+                                <div class="empty-icon mb-3"><i class="fas fa-calendar-check"></i></div>
+                                <p class="text-muted mb-0">Chưa có buổi học nào trong khóa đang học.</p>
+                            </div>
+                        @endforelse
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-lg-6">
+        <div class="col-xl-5">
             <div class="card vip-card h-100">
                 <div class="card-header border-0 d-flex justify-content-between align-items-center">
                     <div>
@@ -553,6 +618,233 @@
         font-size: 0.85rem;
     }
 
+    .lesson-roadmap-header {
+        flex-wrap: wrap;
+    }
+
+    .lesson-progress-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        font-size: 0.86rem;
+        font-weight: 700;
+        padding: 0.5rem 0.75rem;
+        white-space: nowrap;
+    }
+
+    .lesson-roadmap-summary {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.6rem;
+        margin-bottom: 0.9rem;
+    }
+
+    .lesson-roadmap-summary-item {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: #f8fafc;
+        padding: 0.65rem 0.75rem;
+    }
+
+    .lesson-roadmap-summary-item span {
+        display: block;
+        color: #64748b;
+        font-size: 0.78rem;
+        margin-bottom: 0.2rem;
+    }
+
+    .lesson-roadmap-summary-item strong {
+        display: block;
+        color: #0f172a;
+        font-size: 1.25rem;
+        line-height: 1;
+    }
+
+    .lesson-roadmap-summary-item.is-done {
+        background: #ecfdf5;
+        border-color: #86efac;
+    }
+
+    .lesson-roadmap-summary-item.is-current {
+        background: #eff6ff;
+        border-color: #93c5fd;
+    }
+
+    .lesson-roadmap-summary-item.is-upcoming {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+    }
+
+    .lesson-roadmap-list {
+        display: grid;
+        gap: 0.65rem;
+        max-height: 520px;
+        max-height: min(52vh, 520px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding-right: 0.35rem;
+        scrollbar-gutter: stable;
+        scrollbar-width: thin;
+        scrollbar-color: #93c5fd #eff6ff;
+    }
+
+    .lesson-roadmap-list::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .lesson-roadmap-list::-webkit-scrollbar-track {
+        background: #eff6ff;
+        border-radius: 8px;
+    }
+
+    .lesson-roadmap-list::-webkit-scrollbar-thumb {
+        background: #93c5fd;
+        border-radius: 8px;
+    }
+
+    .lesson-roadmap-item {
+        position: relative;
+        display: grid;
+        grid-template-columns: 32px minmax(0, 1fr);
+        gap: 0.6rem;
+    }
+
+    .lesson-roadmap-item:not(:last-child)::before {
+        content: "";
+        position: absolute;
+        left: 15px;
+        top: 32px;
+        bottom: -0.65rem;
+        border-left: 2px solid #dbeafe;
+    }
+
+    .lesson-roadmap-marker {
+        position: relative;
+        z-index: 1;
+        width: 32px;
+        height: 32px;
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.82rem;
+    }
+
+    .lesson-roadmap-card {
+        min-width: 0;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: #fff;
+        padding: 0.7rem 0.8rem;
+    }
+
+    .lesson-roadmap-card .min-w-0 {
+        min-width: 0;
+    }
+
+    .lesson-roadmap-eyebrow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        color: #2563eb;
+        font-size: 0.78rem;
+        font-weight: 700;
+        margin-bottom: 0.15rem;
+    }
+
+    .lesson-roadmap-title {
+        color: #0f172a;
+        font-size: 0.94rem;
+        font-weight: 700;
+        margin-bottom: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .lesson-roadmap-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem 0.8rem;
+        color: #64748b;
+        font-size: 0.82rem;
+        margin-top: 0.45rem;
+    }
+
+    .lesson-roadmap-meta span {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .lesson-roadmap-meta i {
+        flex: 0 0 auto;
+        color: #2563eb;
+        font-size: 0.78rem;
+    }
+
+    .lesson-state-badge {
+        border-radius: 8px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        line-height: 1;
+        padding: 0.35rem 0.5rem;
+        white-space: nowrap;
+    }
+
+    .lesson-state-done {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .lesson-state-current {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .lesson-state-upcoming {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .lesson-roadmap-item.is-done:not(:last-child)::before {
+        border-color: #86efac;
+    }
+
+    .lesson-roadmap-item.is-done .lesson-roadmap-marker {
+        background: #dcfce7;
+        border-color: #86efac;
+        color: #15803d;
+    }
+
+    .lesson-roadmap-item.is-done .lesson-roadmap-card {
+        background: #f0fdf4;
+        border-color: #bbf7d0;
+    }
+
+    .lesson-roadmap-item.is-current .lesson-roadmap-marker {
+        background: #dbeafe;
+        border-color: #60a5fa;
+        color: #1d4ed8;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+
+    .lesson-roadmap-item.is-current .lesson-roadmap-card {
+        border-color: #60a5fa;
+        box-shadow: 0 10px 24px rgba(37, 99, 235, 0.1);
+    }
+
+    .lesson-roadmap-item.is-upcoming .lesson-roadmap-card {
+        background: #ffffff;
+    }
+
     .attendance-log,
     .list-block {
         padding: 1rem 0;
@@ -629,6 +921,37 @@
         align-items: center;
         justify-content: center;
         font-size: 1.5rem;
+    }
+
+    @media (max-width: 575.98px) {
+        .lesson-roadmap-summary {
+            grid-template-columns: 1fr;
+        }
+
+        .lesson-roadmap-list {
+            max-height: 58vh;
+        }
+
+        .lesson-progress-pill {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .lesson-roadmap-item {
+            grid-template-columns: 32px minmax(0, 1fr);
+            gap: 0.65rem;
+        }
+
+        .lesson-roadmap-marker {
+            width: 32px;
+            height: 32px;
+            font-size: 0.82rem;
+        }
+
+        .lesson-roadmap-item:not(:last-child)::before {
+            left: 15px;
+            top: 32px;
+        }
     }
 </style>
 @endpush

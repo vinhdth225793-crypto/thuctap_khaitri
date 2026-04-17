@@ -6,6 +6,8 @@
     $scoreByQuestionId = $baiKiemTra->chiTietCauHois->mapWithKeys(fn ($item) => [$item->ngan_hang_cau_hoi_id => $item->diem_so]);
     $currentScoringMode = old('che_do_tinh_diem', $baiKiemTra->che_do_tinh_diem ?? 'thu_cong');
     $currentContentMode = old('che_do_noi_dung', $preferredContentMode ?? $baiKiemTra->content_mode_key);
+    $essayPrompt = old('mo_ta', $baiKiemTra->mo_ta);
+    $freeEssayScore = old('tong_diem_tu_luan_tu_do', $baiKiemTra->chiTietCauHois->isEmpty() ? ($baiKiemTra->tong_diem ?: 10) : 10);
     $questionFilters = $questionFilters ?? [];
     $selectableQuestionIds = $selectableQuestionIds ?? [];
     $importedQuestionIds = collect(session('exam_imported_question_ids', []))->map(fn ($id) => (int) $id)->all();
@@ -13,6 +15,9 @@
     $activeExamTab = in_array($activeTab ?? null, ['info', 'scoring', 'import', 'questions'], true)
         ? $activeTab
         : 'info';
+    if ($currentContentMode === 'tu_luan_tu_do' && in_array($activeExamTab, ['import', 'questions'], true)) {
+        $activeExamTab = 'scoring';
+    }
     $questionFilterIsActive = filled($questionFilters['search'] ?? null)
         || filled($questionFilters['module_hoc_id'] ?? null)
         || filled($questionFilters['loai_cau_hoi'] ?? null)
@@ -38,12 +43,9 @@
                 <i class="fas fa-arrow-left me-1"></i> Quay lại
             </a>
             @if($baiKiemTra->trang_thai_duyet === 'nhap' || $baiKiemTra->trang_thai_duyet === 'tu_choi')
-                <form action="{{ route('giang-vien.bai-kiem-tra.submit', $baiKiemTra->id) }}" method="POST" onsubmit="return confirm('Gửi bài kiểm tra này để quản trị viên duyệt?')">
-                    @csrf
-                    <button type="submit" class="btn btn-success rounded-pill px-3 shadow-sm">
-                        <i class="fas fa-paper-plane me-1"></i> Gửi duyệt
-                    </button>
-                </form>
+                <button type="submit" form="mainExamForm" name="action_after_save" value="submit_for_approval" class="btn btn-success rounded-pill px-3 shadow-sm" onclick="return confirm('Lưu cấu hình hiện tại và gửi bài kiểm tra này để quản trị viên duyệt?')">
+                    <i class="fas fa-paper-plane me-1"></i> Lưu & gửi duyệt
+                </button>
             @endif
         </div>
     </div>
@@ -156,12 +158,12 @@
                                 <i class="fas fa-calculator me-2"></i>Thiết lập điểm
                             </button>
                         </li>
-                        <li class="nav-item" role="presentation">
+                        <li class="nav-item @if($currentContentMode === 'tu_luan_tu_do') d-none @endif" role="presentation" data-question-flow-tab>
                             <button class="nav-link {{ $activeExamTab === 'import' ? 'active' : '' }} py-3 fw-bold" id="import-tab" data-bs-toggle="tab" data-bs-target="#import" type="button" role="tab" aria-selected="{{ $activeExamTab === 'import' ? 'true' : 'false' }}">
                                 <i class="fas fa-file-import me-2"></i>Import file
                             </button>
                         </li>
-                        <li class="nav-item" role="presentation">
+                        <li class="nav-item @if($currentContentMode === 'tu_luan_tu_do') d-none @endif" role="presentation" data-question-flow-tab>
                             <button class="nav-link {{ $activeExamTab === 'questions' ? 'active' : '' }} py-3 fw-bold" id="questions-tab" data-bs-toggle="tab" data-bs-target="#questions" type="button" role="tab" aria-selected="{{ $activeExamTab === 'questions' ? 'true' : 'false' }}">
                                 <i class="fas fa-list-check me-2"></i>Ngân hàng câu hỏi
                             </button>
@@ -238,11 +240,18 @@
 </div>
 <div class="col-12">
     <label class="form-label fw-bold">Mô tả / Hướng dẫn học viên</label>
-    <textarea name="mo_ta" rows="5" class="form-control shadow-none rounded-3" placeholder="Nhập hướng dẫn làm bài...">{{ old('mo_ta', $baiKiemTra->mo_ta) }}</textarea>
+    <textarea name="mo_ta" id="essayPromptInfoInput" rows="5" class="form-control shadow-none rounded-3" placeholder="Nhập hướng dẫn làm bài..." data-essay-prompt-input>{{ $essayPrompt }}</textarea>
+    <div class="form-text">Với bài tự luận tự do, phần này chính là đề bài/hướng dẫn hiển thị cho học viên.</div>
+    @error('mo_ta')
+        <div class="text-danger small fw-bold mt-2">{{ $message }}</div>
+    @enderror
 </div>
                                 </div>
                                 
-                                <div class="mt-5 text-end">
+                                <div class="mt-5 d-flex justify-content-end gap-2">
+                                    <button type="submit" class="btn btn-outline-primary btn-lg rounded-pill px-4 fw-bold shadow-sm">
+                                        <i class="fas fa-save me-2"></i> Lưu thông tin
+                                    </button>
                                     <button type="button" class="btn btn-primary btn-lg rounded-pill px-5 fw-bold shadow-sm" onclick="document.getElementById('scoring-tab').click()">Tiếp theo: Thiết lập điểm <i class="fas fa-chevron-right ms-2"></i></button>
                                 </div>
                             </div>
@@ -453,7 +462,7 @@
                                         </div>
 
                                         <div class="d-flex justify-content-center gap-3">
-                                            <a href="{{ route('admin.kiem-tra-online.cau-hoi.template') }}" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
+                                            <a href="{{ route('giang-vien.bai-kiem-tra.import-template') }}" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
                                                 <i class="fas fa-download me-1"></i> Tải file mẫu .xlsx
                                             </a>
                                             <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm" id="btnUploadImport">
@@ -489,6 +498,7 @@
 
                             <!-- Tab 4: Thiết lập điểm -->
                             <div class="tab-pane fade {{ $activeExamTab === 'scoring' ? 'show active' : '' }}" id="scoring" role="tabpanel">
+                                <div id="structuredScoringArea" class="@if($currentContentMode === 'tu_luan_tu_do') d-none @endif">
                                 <div class="mb-5">
                                     <h5 class="fw-bold mb-4">Chọn chế độ tính điểm</h5>
                                     <div class="row g-3">
@@ -605,14 +615,75 @@
                                         </div>
                                     </div>
                                 </div>
+                                </div>
+
+                                <div id="freeEssayScoringArea" class="@if($currentContentMode !== 'tu_luan_tu_do') d-none @endif fade-in">
+                                    <div class="border rounded-4 p-4 p-lg-5 bg-light mb-4">
+                                        <div class="row g-4">
+                                            <div class="col-lg-8">
+                                                <div class="d-flex align-items-center gap-3 mb-3">
+                                                    <div class="icon-circle bg-soft-info text-info">
+                                                        <i class="fas fa-pen-nib"></i>
+                                                    </div>
+                                                    <div>
+                                                        <h5 class="fw-bold mb-1">Đề kiểm tra tự luận</h5>
+                                                        <p class="text-muted small mb-0">Nhập đề trực tiếp tại đây. Học viên sẽ thấy nội dung này ngay trước ô làm bài.</p>
+                                                    </div>
+                                                </div>
+
+                                                <label class="form-label fw-bold" for="essayPromptScoringInput">Đề bài / yêu cầu làm bài</label>
+                                                <textarea id="essayPromptScoringInput" rows="9" class="form-control shadow-none rounded-3 free-essay-prompt-textarea" placeholder="Ví dụ: Phân tích tình huống, trình bày luận điểm chính và nêu kết luận của bạn..." data-essay-prompt-input>{{ $essayPrompt }}</textarea>
+                                                <div class="form-text">Ô này được đồng bộ với phần “Mô tả / Hướng dẫn học viên” ở tab đầu tiên.</div>
+                                                @error('mo_ta')
+                                                    <div class="text-danger small fw-bold mt-2">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            <div class="col-lg-4">
+                                                <div class="bg-white border rounded-4 p-4 h-100">
+                                                    <label class="form-label fw-bold" for="freeEssayTotalScore">Tổng điểm bài tự luận</label>
+                                                    <div class="input-group input-group-lg mb-2">
+                                                        <input type="number" step="0.25" min="0.25" max="1000" name="tong_diem_tu_luan_tu_do" id="freeEssayTotalScore" value="{{ $freeEssayScore }}" class="form-control shadow-none rounded-start border-2 fw-bold">
+                                                        <span class="input-group-text bg-white border-2">đ</span>
+                                                    </div>
+                                                    <div class="small text-muted">Điểm này dùng để chấm bài viết tổng của học viên.</div>
+                                                    @error('tong_diem_tu_luan_tu_do')
+                                                        <div class="text-danger small fw-bold mt-2">{{ $message }}</div>
+                                                    @enderror
+
+                                                    <hr class="my-4">
+
+                                                    <h6 class="fw-bold mb-2">Muốn import câu hỏi bên ngoài?</h6>
+                                                    <p class="text-muted small mb-3">Nếu đề gồm nhiều câu tự luận riêng lẻ, import file vào ngân hàng rồi chọn câu cho bài kiểm tra.</p>
+                                                    <div class="d-grid gap-2">
+                                                        <button type="button" class="btn btn-outline-primary rounded-pill fw-bold" id="btnUseImportedEssayQuestions">
+                                                            <i class="fas fa-file-import me-2"></i>Import câu hỏi từ file
+                                                        </button>
+                                                        <button type="button" class="btn btn-light border rounded-pill fw-bold" id="btnOpenQuestionBankForEssay">
+                                                            <i class="fas fa-list-check me-2"></i>Chọn câu tự luận có sẵn
+                                                        </button>
+                                                    </div>
+                                                    <div class="alert alert-soft-info border-0 rounded-4 small mt-4 mb-0">
+                                                        <i class="fas fa-info-circle me-1"></i>
+                                                        Khi dùng câu hỏi import/ngân hàng, hệ thống sẽ chuyển sang chế độ “Tự luận theo câu”.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 
                                 <div class="mt-5 d-flex justify-content-between align-items-center flex-wrap gap-3 border-top pt-4">
                                     <button type="button" class="btn btn-outline-secondary rounded-pill px-4" onclick="document.getElementById('info-tab').click()"><i class="fas fa-chevron-left me-2"></i> Quay lại: Thông tin & Cấu hình</button>
                                     <div class="d-flex gap-2">
-                                        <button type="submit" class="btn btn-outline-primary rounded-pill px-4 fw-bold">
+                                        <button type="submit" id="btnScoringSave" class="btn {{ $currentContentMode === 'tu_luan_tu_do' ? 'btn-primary shadow-sm' : 'btn-outline-primary' }} rounded-pill px-4 fw-bold">
                                             <i class="fas fa-save me-2"></i> Lưu cấu hình
                                         </button>
-                                        <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" onclick="document.getElementById('import-tab').click()">
+                                        @if($baiKiemTra->trang_thai_duyet === 'nhap' || $baiKiemTra->trang_thai_duyet === 'tu_choi')
+                                            <button type="submit" name="action_after_save" value="submit_for_approval" class="btn btn-success rounded-pill px-4 fw-bold shadow-sm" onclick="return confirm('Lưu cấu hình hiện tại và gửi bài kiểm tra này để quản trị viên duyệt?')">
+                                                <i class="fas fa-paper-plane me-2"></i>Lưu & gửi duyệt
+                                            </button>
+                                        @endif
+                                        <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm @if($currentContentMode === 'tu_luan_tu_do') d-none @endif" id="btnScoringNextImport" onclick="document.getElementById('import-tab').click()">
                                             Tiếp theo: Import <i class="fas fa-chevron-right ms-2"></i>
                                         </button>
                                     </div>
@@ -663,6 +734,7 @@
                 <form id="confirmImportForm" action="{{ route('giang-vien.bai-kiem-tra.import-confirm', $baiKiemTra->id) }}" method="POST">
                     @csrf
                     <input type="hidden" name="preview_id" id="hiddenPreviewId">
+                    <input type="hidden" name="preferred_mode" id="hiddenImportPreferredMode" value="{{ $currentContentMode }}">
                     <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold shadow-sm">Xác nhận và Lưu vào kho</button>
                 </form>
             </div>
@@ -716,6 +788,7 @@
     .scoring-mode-option { transition: all 0.2s; border-color: #eee; }
     .scoring-mode-option:hover { background-color: #f8f9fa; border-color: #ccc !important; }
     .scoring-mode-option.active { border-color: var(--bs-primary) !important; background-color: var(--primary-soft); border-width: 2px !important; }
+    .free-essay-prompt-textarea { min-height: 260px; resize: vertical; line-height: 1.65; }
     
     .icon-circle {
         width: 56px; height: 56px; border-radius: 16px;
@@ -768,6 +841,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const scoringModeOptions = document.querySelectorAll('.scoring-mode-option');
     const packageArea = document.getElementById('packageScoringArea');
     const manualArea = document.getElementById('manualScoringArea');
+    const structuredScoringArea = document.getElementById('structuredScoringArea');
+    const freeEssayScoringArea = document.getElementById('freeEssayScoringArea');
+    const contentModeSelect = document.getElementById('contentModeSelect');
+    const contentModeDescription = document.getElementById('contentModeDescription');
+    const essayPromptInputs = Array.from(document.querySelectorAll('[data-essay-prompt-input]'));
+    const btnUseImportedEssayQuestions = document.getElementById('btnUseImportedEssayQuestions');
+    const btnOpenQuestionBankForEssay = document.getElementById('btnOpenQuestionBankForEssay');
+    const btnScoringSave = document.getElementById('btnScoringSave');
+    const btnScoringNextImport = document.getElementById('btnScoringNextImport');
+    const hiddenImportPreferredMode = document.getElementById('hiddenImportPreferredMode');
+    const questionFlowTabItems = Array.from(document.querySelectorAll('[data-question-flow-tab]'));
     const selectAll = document.getElementById('selectAllQuestions');
     const selectedList = document.getElementById('selectedQuestionsList');
     const realtimeTotal = document.getElementById('realtimeTotalScore');
@@ -811,6 +895,77 @@ document.addEventListener('DOMContentLoaded', function() {
         const button = document.querySelector(`[data-bs-target="#${tabId}"]`);
         if (!button) return;
         bootstrap.Tab.getOrCreateInstance(button).show();
+    }
+
+    function getContentMode() {
+        return contentModeSelect?.value || 'hon_hop';
+    }
+
+    function setContentMode(mode) {
+        if (!contentModeSelect) return;
+        contentModeSelect.value = mode;
+        updateContentModeUI();
+    }
+
+    function syncEssayPrompt(source) {
+        essayPromptInputs.forEach(input => {
+            if (input !== source) input.value = source.value;
+        });
+    }
+
+    function updateContentModeUI() {
+        const mode = getContentMode();
+        const isFreeEssay = mode === 'tu_luan_tu_do';
+        const descriptions = {
+            trac_nghiem: 'Bài chỉ dùng câu hỏi trắc nghiệm, có thể chia điểm tự động hoặc nhập điểm từng câu.',
+            tu_luan_tu_do: 'Bài dùng một đề tự luận tổng. Nhập đề và tổng điểm ngay trong tab Thiết lập điểm.',
+            tu_luan_theo_cau: 'Bài dùng các câu tự luận từ ngân hàng/import, giảng viên chấm từng câu sau khi học viên nộp.',
+            hon_hop: 'Bài có cả trắc nghiệm và tự luận, cần chọn đủ hai loại câu hỏi trong ngân hàng.',
+        };
+
+        if (contentModeDescription) {
+            contentModeDescription.textContent = descriptions[mode] || '';
+        }
+
+        if (hiddenImportPreferredMode) {
+            hiddenImportPreferredMode.value = mode;
+        }
+
+        structuredScoringArea?.classList.toggle('d-none', isFreeEssay);
+        freeEssayScoringArea?.classList.toggle('d-none', !isFreeEssay);
+        questionFlowTabItems.forEach(item => item.classList.toggle('d-none', isFreeEssay));
+        btnScoringNextImport?.classList.toggle('d-none', isFreeEssay);
+
+        if (btnScoringSave) {
+            btnScoringSave.classList.toggle('btn-primary', isFreeEssay);
+            btnScoringSave.classList.toggle('shadow-sm', isFreeEssay);
+            btnScoringSave.classList.toggle('btn-outline-primary', !isFreeEssay);
+        }
+
+        if (isFreeEssay) {
+            const activeTabTarget = document.querySelector('#examTabs .nav-link.active')?.dataset.bsTarget;
+            if (activeTabTarget === '#import' || activeTabTarget === '#questions') {
+                activateTab('scoring');
+            }
+
+            scoringModeOptions.forEach(item => {
+                item.classList.toggle('active', item.dataset.mode === 'thu_cong');
+            });
+            const manualRadio = document.querySelector('input[name="che_do_tinh_diem"][value="thu_cong"]');
+            if (manualRadio) manualRadio.checked = true;
+            packageArea?.classList.add('d-none');
+            manualArea?.classList.add('d-none');
+            return;
+        }
+
+        if (getScoringMode() === 'goi_diem') {
+            packageArea?.classList.remove('d-none');
+            manualArea?.classList.add('d-none');
+        } else {
+            packageArea?.classList.add('d-none');
+            manualArea?.classList.remove('d-none');
+            updateManualList();
+        }
     }
 
     function escapeHtml(value) {
@@ -1041,7 +1196,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.q-score-input').forEach(input => {
             total += parseFloat(input.value || 0);
         });
-        realtimeTotal.textContent = total.toLọcaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        realtimeTotal.textContent = total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
     function calculatePackagePreview() {
@@ -1119,6 +1274,30 @@ document.addEventListener('DOMContentLoaded', function() {
             questionDetailModal.hide();
         }
     };
+
+    contentModeSelect?.addEventListener('change', updateContentModeUI);
+
+    essayPromptInputs.forEach(input => {
+        input.addEventListener('input', function() {
+            syncEssayPrompt(this);
+        });
+    });
+
+    btnUseImportedEssayQuestions?.addEventListener('click', function() {
+        setContentMode('tu_luan_theo_cau');
+        activateTab('import');
+    });
+
+    btnOpenQuestionBankForEssay?.addEventListener('click', function() {
+        setContentMode('tu_luan_theo_cau');
+        activateTab('questions');
+    });
+
+    btnScoringNextImport?.addEventListener('click', function() {
+        if (getContentMode() === 'tu_luan_tu_do') {
+            setContentMode('tu_luan_theo_cau');
+        }
+    });
 
     // Global Events
     document.addEventListener('change', function(e) {
@@ -1288,6 +1467,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     updateSelectionUI();
     calculatePackagePreview();
+    updateContentModeUI();
 });
 </script>
 @endpush

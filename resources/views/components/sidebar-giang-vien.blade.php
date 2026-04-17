@@ -84,17 +84,20 @@
 
         <!-- Nhóm 3: Đánh giá -->
         <div class="nav-item mb-3">
-            <a class="edu-link-parent {{ request()->routeIs('giang-vien.bai-kiem-tra*', 'giang-vien.cham-diem*') ? '' : 'collapsed' }}" 
+            <a class="edu-link-parent {{ request()->routeIs('giang-vien.bai-kiem-tra*', 'giang-vien.cham-diem*', 'giang-vien.diem-kiem-tra*') ? '' : 'collapsed' }}"
                data-bs-toggle="collapse" data-bs-target="#examGroup" role="button"
-               aria-expanded="{{ request()->routeIs('giang-vien.bai-kiem-tra*', 'giang-vien.cham-diem*') ? 'true' : 'false' }}">
+               aria-expanded="{{ request()->routeIs('giang-vien.bai-kiem-tra*', 'giang-vien.cham-diem*', 'giang-vien.diem-kiem-tra*') ? 'true' : 'false' }}">
                 <div class="edu-icon-circle bg-soft-danger"><i class="fas fa-pen-fancy"></i></div>
                 <span class="fw-bold">Khảo thí & Điểm</span>
                 <i class="fas fa-chevron-right ms-auto arrow-toggle"></i>
             </a>
-            <div class="collapse {{ request()->routeIs('giang-vien.bai-kiem-tra*', 'giang-vien.cham-diem*') ? 'show' : '' }}" id="examGroup">
+            <div class="collapse {{ request()->routeIs('giang-vien.bai-kiem-tra*', 'giang-vien.cham-diem*', 'giang-vien.diem-kiem-tra*') ? 'show' : '' }}" id="examGroup">
                 <div class="edu-submenu-container">
                     <a href="{{ route('giang-vien.bai-kiem-tra.index') }}" class="edu-submenu-item {{ request()->routeIs('giang-vien.bai-kiem-tra*') ? 'active' : '' }}">
                         <i class="fas fa-clipboard-list me-2"></i> Thiết lập đề thi
+                    </a>
+                    <a href="{{ route('giang-vien.diem-kiem-tra.index') }}" class="edu-submenu-item {{ request()->routeIs('giang-vien.diem-kiem-tra*') ? 'active' : '' }}">
+                        <i class="fas fa-chart-line me-2"></i> Bảng điểm bài kiểm tra
                     </a>
                     <a href="{{ route('giang-vien.cham-diem.index') }}" class="edu-submenu-item {{ request()->routeIs('giang-vien.cham-diem*') ? 'active' : '' }}">
                         <i class="fas fa-user-edit me-2"></i> Chấm điểm tự luận

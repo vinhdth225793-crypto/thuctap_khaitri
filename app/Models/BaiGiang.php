@@ -94,7 +94,7 @@ class BaiGiang extends Model
 
     public function phongHocLive()
     {
-        return $this->hasOne(PhongHocLive::class, 'lich_hoc_id', 'lich_hoc_id');
+        return $this->hasOne(PhongHocLive::class, 'bai_giang_id');
     }
 
     /**

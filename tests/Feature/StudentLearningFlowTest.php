@@ -150,6 +150,38 @@ class StudentLearningFlowTest extends TestCase
             ->assertSeeText('Kiem tra buoi 1');
     }
 
+    public function test_student_session_detail_shows_google_meet_join_area_from_online_link(): void
+    {
+        $student = $this->createStudent();
+        $course = $this->createCourse();
+        $module = $this->createModule($course);
+        $schedule = $this->createSchedule($course, $module, [
+            'nen_tang' => 'Google Meet',
+            'link_online' => 'https://meet.google.com/abc-defg-hij?pli=1',
+            'meeting_id' => 'abc-defg-hij',
+            'mat_khau_cuoc_hop' => '246810',
+            'ghi_chu' => 'On tap quy trinh lam bai va thao tac trong phong live.',
+        ]);
+
+        HocVienKhoaHoc::create([
+            'khoa_hoc_id' => $course->id,
+            'hoc_vien_id' => $student->ma_nguoi_dung,
+            'ngay_tham_gia' => now()->toDateString(),
+            'trang_thai' => 'dang_hoc',
+        ]);
+
+        $this->actingAs($student)
+            ->get(route('hoc-vien.buoi-hoc.show', $schedule->id))
+            ->assertOk()
+            ->assertSee('Tham gia lớp học online', false)
+            ->assertSee('Mở Google Meet', false)
+            ->assertSee('https://meet.google.com/abc-defg-hij', false)
+            ->assertDontSee('?pli=1', false)
+            ->assertSee('abc-defg-hij', false)
+            ->assertSee('246810', false)
+            ->assertSee('Nội dung trọng tâm của buổi học', false);
+    }
+
     public function test_student_cannot_open_session_detail_without_active_enrollment(): void
     {
         $student = $this->createStudent();
@@ -253,9 +285,9 @@ class StudentLearningFlowTest extends TestCase
         ]);
     }
 
-    private function createSchedule(KhoaHoc $course, ModuleHoc $module): LichHoc
+    private function createSchedule(KhoaHoc $course, ModuleHoc $module, array $overrides = []): LichHoc
     {
-        return LichHoc::create([
+        return LichHoc::create(array_merge([
             'khoa_hoc_id' => $course->id,
             'module_hoc_id' => $module->id,
             'ngay_hoc' => now()->toDateString(),
@@ -266,6 +298,6 @@ class StudentLearningFlowTest extends TestCase
             'hinh_thuc' => 'online',
             'link_online' => 'https://example.com/class',
             'trang_thai' => 'cho',
-        ]);
+        ], $overrides));
     }
 }

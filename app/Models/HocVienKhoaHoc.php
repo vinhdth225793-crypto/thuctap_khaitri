@@ -40,7 +40,7 @@ class HocVienKhoaHoc extends Model
      */
     public function hocVien(): BelongsTo
     {
-        return $this->belongsTo(HocVien::class, 'hoc_vien_id');
+        return $this->belongsTo(HocVien::class, 'hoc_vien_id', 'nguoi_dung_id');
     }
 
     /**

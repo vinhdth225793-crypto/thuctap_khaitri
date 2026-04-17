@@ -52,6 +52,10 @@
         @forelse($baiKiemTras as $baiKiemTra)
             @php
                 $baiLam = $baiKiemTra->baiLams->first();
+                $activeBaiLam = $baiKiemTra->baiLams->firstWhere('trang_thai', 'dang_lam');
+                $attemptsUsed = $baiKiemTra->baiLams->count();
+                $remainingAttempts = max(0, (int) $baiKiemTra->so_lan_duoc_lam - $attemptsUsed);
+                $canStartNewAttempt = $baiKiemTra->can_student_start && !$activeBaiLam && $remainingAttempts > 0;
             @endphp
             <div class="col-xl-4 col-lg-6">
                 <div class="card vip-card h-100 test-card">
@@ -101,6 +105,16 @@
                             {{ $baiKiemTra->ngay_dong ? $baiKiemTra->ngay_dong->format('d/m/Y H:i') : 'Chưa đặt lịch đóng' }}
                         </div>
 
+                        <div class="small text-muted mb-3">
+                            <i class="fas fa-rotate-right me-1"></i>
+                            Lượt làm: <strong>{{ $attemptsUsed }}/{{ (int) $baiKiemTra->so_lan_duoc_lam }}</strong>
+                            @if($remainingAttempts > 0)
+                                <span class="text-success">còn {{ $remainingAttempts }} lượt</span>
+                            @else
+                                <span class="text-muted">hết lượt</span>
+                            @endif
+                        </div>
+
                         <p class="text-muted small mb-4">
                             {{ \Illuminate\Support\Str::limit($baiKiemTra->mo_ta ?: 'Chưa có mô tả cho bài kiểm tra này.', 130) }}
                         </p>
@@ -116,19 +130,23 @@
                                 </a>
                             @endif
 
-                            @if($baiLam && $baiLam->is_submitted)
-                                <span class="btn btn-success disabled">Đã nộp bài</span>
-                            @elseif(!$baiLam && $baiKiemTra->co_giam_sat && $baiKiemTra->can_student_start)
-                                <a href="{{ route('hoc-vien.bai-kiem-tra.precheck', $baiKiemTra->id) }}" class="btn btn-warning">
-                                    Pre-check trước khi thi
+                            @if($activeBaiLam)
+                                <a href="{{ route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id) }}" class="btn btn-primary">
+                                    Tiếp tục làm bài
                                 </a>
-                            @elseif($baiKiemTra->can_student_start)
+                            @elseif($canStartNewAttempt && $baiKiemTra->co_giam_sat)
+                                <a href="{{ route('hoc-vien.bai-kiem-tra.precheck', $baiKiemTra->id) }}" class="btn btn-warning">
+                                    {{ $baiLam ? 'Pre-check để làm lại' : 'Pre-check trước khi thi' }}
+                                </a>
+                            @elseif($canStartNewAttempt)
                                 <form action="{{ route('hoc-vien.bai-kiem-tra.bat-dau', $baiKiemTra->id) }}" method="POST">
                                     @csrf
                                     <button type="submit" class="btn btn-primary">
-                                        {{ $baiLam ? 'Tiếp tục làm bài' : 'Bắt đầu làm bài' }}
+                                        {{ $baiLam ? 'Làm lần tiếp theo' : 'Bắt đầu làm bài' }}
                                     </button>
                                 </form>
+                            @elseif($baiLam && $baiLam->is_submitted)
+                                <span class="btn btn-success disabled">Đã nộp bài</span>
                             @else
                                 <span class="btn btn-secondary disabled">{{ $baiKiemTra->access_status_label }}</span>
                             @endif

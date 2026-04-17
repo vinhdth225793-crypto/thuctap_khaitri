@@ -23,7 +23,7 @@ class BaiKiemTraPheDuyetController extends Controller
             ->with([
                 'khoaHoc:id,ma_khoa_hoc,ten_khoa_hoc',
                 'moduleHoc:id,ma_module,ten_module',
-                'nguoiTao:id,ho_ten,email',
+                'nguoiTao:ma_nguoi_dung,ho_ten,email',
             ])
             ->withCount('chiTietCauHois')
             ->when($request->filled('trang_thai_duyet'), fn ($query) => $query->where('trang_thai_duyet', $request->string('trang_thai_duyet')))
@@ -57,11 +57,11 @@ class BaiKiemTraPheDuyetController extends Controller
             'khoaHoc',
             'moduleHoc',
             'lichHoc',
-            'nguoiTao:id,ho_ten,email',
-            'nguoiDuyet:id,ho_ten,email',
+            'nguoiTao:ma_nguoi_dung,ho_ten,email',
+            'nguoiDuyet:ma_nguoi_dung,ho_ten,email',
             'chiTietCauHois.cauHoi.dapAns',
-            'baiLams.hocVien:id,ho_ten,email',
-            'baiLams.nguoiHauKiem:id,ho_ten,email',
+            'baiLams.hocVien:ma_nguoi_dung,ho_ten,email',
+            'baiLams.nguoiHauKiem:ma_nguoi_dung,ho_ten,email',
         ])->findOrFail($id);
 
         return view('pages.hoc-vien.bai-kiem-tra.admin-exam-review', compact('baiKiemTra'));
@@ -70,7 +70,7 @@ class BaiKiemTraPheDuyetController extends Controller
     public function showAttempt(int $baiLamId)
     {
         $baiLam = BaiLamBaiKiemTra::with([
-            'hocVien:id,ho_ten,email',
+            'hocVien:ma_nguoi_dung,ho_ten,email',
             'baiKiemTra.khoaHoc',
             'baiKiemTra.moduleHoc',
             'chiTietTraLois.chiTietBaiKiemTra',
@@ -78,7 +78,7 @@ class BaiKiemTraPheDuyetController extends Controller
             'chiTietTraLois.dapAn',
             'giamSatLogs',
             'giamSatSnapshots',
-            'nguoiHauKiem:id,ho_ten,email',
+            'nguoiHauKiem:ma_nguoi_dung,ho_ten,email',
         ])->findOrFail($baiLamId);
 
         $surveillanceSummary = $baiLam->baiKiemTra->co_giam_sat

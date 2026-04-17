@@ -208,12 +208,17 @@
                             <div><dt>Khai giảng</dt><dd>{{ $course->ngay_khai_giang ? $course->ngay_khai_giang->format('d/m/Y') : 'Linh hoạt' }}</dd></div>
                         </dl>
                         <div class="course-actions">
-                            <a href="{{ $courseAreaRoute }}" class="btn-main">{{ $courseAreaLabel }}</a>
-                            @guest
-                                <a href="{{ route('dang-nhap') }}" class="btn-soft">Đăng nhập</a>
+                            @if(isset($course->is_enrolled) && $course->is_enrolled)
+                                <a href="javascript:void(0)" class="btn-main" style="background-color: #28a745; border-color: #28a745; cursor: default;">Đã tham gia</a>
+                                <a href="{{ route('hoc-vien.chi-tiet-khoa-hoc', $course->id) }}" class="btn-soft" style="color: #dc3545; border-color: #dc3545;">Vào lớp</a>
                             @else
-                                <a href="{{ $dashboardRoute }}" class="btn-soft">Theo dõi</a>
-                            @endguest
+                                <a href="{{ $courseAreaRoute }}" class="btn-main">{{ $courseAreaLabel }}</a>
+                                @guest
+                                    <a href="{{ route('dang-nhap') }}" class="btn-soft">Đăng nhập</a>
+                                @else
+                                    <a href="{{ $dashboardRoute }}" class="btn-soft">Theo dõi</a>
+                                @endguest
+                            @endif
                         </div>
                     </div>
                 </article>

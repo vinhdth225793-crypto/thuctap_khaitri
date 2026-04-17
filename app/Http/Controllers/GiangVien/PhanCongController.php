@@ -353,20 +353,14 @@ class PhanCongController extends Controller
             return back()->with('error', $this->resolveTeachingSessionGuardMessage($sessionStatus, 'start'));
         }
 
-        DB::transaction(function () use ($lichHoc, $giangVien) {
-            $lichHoc->forceFill([
-                'trang_thai' => 'dang_hoc',
-            ])->save();
-
-            $this->teacherAttendanceService->ensureCheckIn(
-                $lichHoc->fresh(),
-                $giangVien,
-                auth()->user(),
-                [
-                    'note' => 'Tu dong check-in khi giang vien bam nut bat dau buoi hoc.',
-                ]
-            );
-        });
+        $this->teacherAttendanceService->ensureCheckIn(
+            $lichHoc,
+            $giangVien,
+            auth()->user(),
+            [
+                'note' => 'Tu dong check-in khi giang vien bam nut bat dau buoi hoc.',
+            ]
+        );
 
         return back()->with('success', 'Đã bắt đầu buổi học và chuyển sang trạng thái đang diễn ra.');
     }
@@ -392,20 +386,14 @@ class PhanCongController extends Controller
             return back()->with('error', $this->resolveTeachingSessionGuardMessage($sessionStatus, 'finish'));
         }
 
-        DB::transaction(function () use ($lichHoc, $giangVien) {
-            $this->teacherAttendanceService->ensureCheckOut(
-                $lichHoc,
-                $giangVien,
-                auth()->user(),
-                [
-                    'note' => 'Tu dong check-out khi giang vien bam nut ket thuc buoi hoc.',
-                ]
-            );
-
-            $lichHoc->forceFill([
-                'trang_thai' => 'hoan_thanh',
-            ])->save();
-        });
+        $this->teacherAttendanceService->ensureCheckOut(
+            $lichHoc,
+            $giangVien,
+            auth()->user(),
+            [
+                'note' => 'Tu dong check-out khi giang vien bam nut ket thuc buoi hoc.',
+            ]
+        );
 
         return back()->with('success', 'Đã kết thúc buổi học và đánh dấu buổi học hoàn tất.');
     }
@@ -657,16 +645,30 @@ class PhanCongController extends Controller
     {
         $status = $lichHoc->teaching_session_status;
         $isLocked = in_array($status, ['da_ket_thuc', 'da_huy'], true);
+        $canStart = $canManage && $lichHoc->can_start_teaching_session;
+        $startBlockReason = null;
+
+        if ($canManage && $status === 'chua_bat_dau' && ! $canStart) {
+            $openAt = $lichHoc->teacher_open_window_starts_at;
+            $deadlineAt = $lichHoc->teacher_checkout_deadline;
+
+            if ($openAt && now()->lt($openAt)) {
+                $startBlockReason = 'Chi duoc bat dau/check-in tu ' . $openAt->format('d/m/Y H:i') . '.';
+            } elseif ($deadlineAt && now()->gt($deadlineAt)) {
+                $startBlockReason = 'Da qua han bat dau/check-in luc ' . $deadlineAt->format('d/m/Y H:i') . '.';
+            }
+        }
 
         return [
             'value' => $status,
             'label' => $lichHoc->teaching_session_status_label,
             'color' => $lichHoc->teaching_session_status_color,
-            'can_start' => $canManage && $lichHoc->can_start_teaching_session,
+            'can_start' => $canStart,
             'can_finish' => $canManage && $lichHoc->can_finish_teaching_session,
             'is_active' => $status === 'dang_dien_ra',
             'is_locked' => $isLocked,
             'is_cancelled' => $status === 'da_huy',
+            'start_block_reason' => $startBlockReason,
             'hint' => match ($status) {
                 'dang_dien_ra' => 'Buổi học đang mở để tiếp tục điểm danh, điều hành lớp và xử lý nội dung buổi học.',
                 'da_ket_thuc' => 'Buổi học đã được đánh dấu hoàn tất. Hệ thống sẽ ẩn các thao tác mở lại không hợp lệ.',
@@ -750,6 +752,10 @@ class PhanCongController extends Controller
 
     private function resolveTeachingSessionGuardMessage(array $sessionStatus, string $action): string
     {
+        if ($action === 'start' && filled($sessionStatus['start_block_reason'] ?? null)) {
+            return $sessionStatus['start_block_reason'];
+        }
+
         return match ($sessionStatus['value']) {
             'dang_dien_ra' => $action === 'start'
                 ? 'Buổi học này đã ở trạng thái đang diễn ra.'

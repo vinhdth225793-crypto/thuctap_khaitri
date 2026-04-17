@@ -6,8 +6,10 @@ use App\Models\BaiGiang;
 use App\Models\HocVienKhoaHoc;
 use App\Models\KetQuaHocTap;
 use App\Models\KhoaHoc;
+use App\Models\TaiNguyenBuoiHoc;
 use App\Models\YeuCauHocVien;
 use App\Services\StudentLearningDashboardService;
+use App\Services\StudentResourcePreviewService;
 use App\Services\StudentScheduleViewService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -238,6 +240,29 @@ class HocVienController extends Controller
         }
 
         return view('pages.hoc-vien.buoi-hoc.show', $data);
+    }
+
+    public function xemTruocTaiNguyen($id)
+    {
+        $resource = TaiNguyenBuoiHoc::with('lichHoc')
+            ->hienThiChoHocVien()
+            ->findOrFail($id);
+
+        abort_unless($resource->lichHoc, 404);
+
+        $daGhiDanh = HocVienKhoaHoc::where('khoa_hoc_id', $resource->lichHoc->khoa_hoc_id)
+            ->where('hoc_vien_id', auth()->user()->ma_nguoi_dung)
+            ->whereIn('trang_thai', ['dang_hoc', 'hoan_thanh'])
+            ->exists();
+
+        abort_unless($daGhiDanh, 403, 'Bạn không có quyền xem tài nguyên này.');
+
+        $preview = app(StudentResourcePreviewService::class)->build($resource);
+
+        return response()->view('pages.hoc-vien.buoi-hoc.resource-preview', [
+            'resource' => $resource,
+            'preview' => $preview,
+        ]);
     }
 
     public function chiTietBaiGiang($id)

@@ -33,15 +33,30 @@
             @endif
 
             @php
-                $isExternalLaunch = filled($playerUrl) && !$playerSupportsEmbed;
                 $platformPayload = $phongHocLive->du_lieu_nen_tang_json ?? [];
-                $meetingIdentifier = $platformPayload['meeting_id'] ?? $platformPayload['meeting_code'] ?? null;
-                $meetingPasscode = $platformPayload['passcode'] ?? null;
-                $platformLaunchLabel = $phongHocLive->nen_tang_live === 'google_meet' ? 'Google Meet' : $phongHocLive->platform_label;
-                $startActionLabel = $playerSupportsEmbed ? 'Bắt đầu trong trình duyệt' : 'Bắt đầu và mở ' . $platformLaunchLabel;
+                $scheduleOnlineUrl = \App\Support\OnlineMeetingUrl::normalize($baiGiang->lichHoc?->link_online);
+                $schedulePlatform = strtolower((string) $baiGiang->lichHoc?->nen_tang);
+                $externalLaunchUrl = \App\Support\OnlineMeetingUrl::normalize($playerUrl ?: ($phongHocLive->join_url ?: ($phongHocLive->start_url ?: $scheduleOnlineUrl)));
+                $roomTimelineStatus = $phongHocLive->timeline_trang_thai;
+                $isRoomClosed = in_array($roomTimelineStatus, ['da_ket_thuc', 'da_huy'], true);
+                $canOpenExternalLaunch = filled($externalLaunchUrl) && $canJoinRoom && ! $isRoomClosed;
+                $isExternalLaunch = $canOpenExternalLaunch && !$playerSupportsEmbed;
+                $isGoogleMeetLaunch = $phongHocLive->nen_tang_live === \App\Models\PhongHocLive::PLATFORM_GOOGLE_MEET
+                    || str_contains(strtolower((string) $externalLaunchUrl), 'meet.google.com')
+                    || str_contains($schedulePlatform, 'google')
+                    || str_contains($schedulePlatform, 'meet');
+                $meetingIdentifier = $platformPayload['meeting_id'] ?? $platformPayload['meeting_code'] ?? $baiGiang->lichHoc?->meeting_id ?? null;
+                $meetingPasscode = $platformPayload['passcode'] ?? $baiGiang->lichHoc?->mat_khau_cuoc_hop ?? null;
+                if (!$meetingIdentifier && $isGoogleMeetLaunch && $externalLaunchUrl) {
+                    $meetingIdentifier = \App\Support\OnlineMeetingUrl::meetingCode($externalLaunchUrl);
+                }
+                $platformLaunchLabel = $isGoogleMeetLaunch ? 'Google Meet' : ($phongHocLive->nen_tang_live === 'google_meet' ? 'Google Meet' : $phongHocLive->platform_label);
                 $joinManageActionLabel = $playerSupportsEmbed ? 'Mở phòng học trực tiếp' : 'Mở ' . $platformLaunchLabel;
                 $joinStudentActionLabel = $playerSupportsEmbed ? 'Tham gia trực tiếp' : 'Tham gia ' . $platformLaunchLabel;
-                $platformThemeClass = $phongHocLive->nen_tang_live === 'google_meet' ? 'live-room-launcher--google-meet' : 'live-room-launcher--zoom';
+                $platformThemeClass = $isGoogleMeetLaunch ? 'live-room-launcher--google-meet' : 'live-room-launcher--zoom';
+                $showRoute = route('hoc-vien.live-room.show', $baiGiang->id);
+                $joinRoute = route('hoc-vien.live-room.join', $baiGiang->id);
+                $leaveRoute = route('hoc-vien.live-room.leave', $baiGiang->id);
             @endphp
 
             <div class="row g-4">
@@ -91,6 +106,8 @@
                                 <span class="badge bg-primary-soft text-primary border border-primary px-3">Chế độ tham gia</span>
                             @elseif($isExternalLaunch)
                                 <span class="badge bg-warning-soft text-warning border border-warning px-3">Mở bên ngoài trang</span>
+                            @elseif($isRoomClosed)
+                                <span class="badge bg-secondary text-white border px-3">Đã đóng</span>
                             @else
                                 <span class="badge bg-light text-dark border px-3">Phòng chưa mở</span>
                             @endif
@@ -106,18 +123,24 @@
                                         referrerpolicy="strict-origin-when-cross-origin"
                                         allowfullscreen
                                         style="width: 100%; height: 600px; border: 0;"></iframe>
-                                @elseif($playerUrl)
+                                @elseif($canOpenExternalLaunch)
                                     <div class="live-room-launcher {{ $platformThemeClass }} p-5 text-center bg-dark text-white">
                                         <div class="live-room-launcher__copy mb-4">
                                             <div class="live-room-player-chip badge bg-primary mb-3">{{ strtoupper($platformLaunchLabel) }}</div>
                                             <h4 class="fw-bold mb-2">{{ $platformLaunchLabel }} sẽ được mở trong cửa sổ mới</h4>
                                             <p class="mb-3 text-white-50">
-                                                Nền tảng này không hỗ trợ học trực tiếp trong website. Vui lòng bấm nút bên dưới để bắt đầu.
+                                                Nền tảng này không hỗ trợ học trực tiếp trong website. Vui lòng bấm nút bên dưới để vào lớp học.
                                             </p>
                                         </div>
-                                        <a href="{{ $playerUrl }}" target="_blank" class="btn btn-primary btn-lg px-5 fw-bold shadow">
+                                        <a href="{{ $externalLaunchUrl }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg px-5 fw-bold shadow">
                                             <i class="fas fa-external-link-alt me-2"></i> MỞ {{ strtoupper($platformLaunchLabel) }} NGAY
                                         </a>
+                                    </div>
+                                @elseif($isRoomClosed)
+                                    <div class="p-5 text-center bg-light">
+                                        <i class="fas fa-lock fa-4x text-muted mb-4 opacity-25"></i>
+                                        <h5 class="fw-bold text-muted">Phòng học đã đóng</h5>
+                                        <p class="text-muted mb-0">{{ $platformLaunchLabel }} đã đóng vì buổi học đã kết thúc.</p>
                                     </div>
                                 @else
                                     <div class="p-5 text-center bg-light">
@@ -137,33 +160,41 @@
                             <h5 class="fw-bold mb-4">Hành động của bạn</h5>
 
                             <div class="d-grid gap-3">
-                                @if($playerMode === 'host')
-                                    <form action="{{ route('live-room.launch', $phongHocLive->id) }}" method="POST">
-                                        @csrf
-                                        <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">
-                                            <i class="fas fa-play-circle me-2"></i> {{ $startActionLabel }}
-                                        </button>
-                                    </form>
-                                @elseif($playerMode === 'participant')
-                                    <form action="{{ route('live-room.launch', $phongHocLive->id) }}" method="POST">
+                                @if(!$playerMode && $canJoinRoom)
+                                    <form action="{{ $joinRoute }}" method="POST">
                                         @csrf
                                         <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">
                                             <i class="fas fa-door-open me-2"></i> {{ $joinStudentActionLabel }}
                                         </button>
                                     </form>
-                                @elseif($isExternalLaunch)
-                                    <a href="{{ $playerUrl }}" target="_blank" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">
+                                @endif
+
+                                @if($isExternalLaunch)
+                                    <a href="{{ $externalLaunchUrl }}" target="_blank" rel="noopener noreferrer" class="btn btn-success btn-lg w-100 fw-bold shadow-sm">
                                         <i class="fas fa-external-link-alt me-2"></i> {{ $joinManageActionLabel }}
                                     </a>
                                 @endif
 
-                                @if($playerUrl)
-                                    <a href="{{ route('live-room.show', $phongHocLive->id) }}" class="btn btn-outline-secondary w-100 fw-bold">
+                                @if($playerMode === 'participant')
+                                    <form action="{{ $leaveRoute }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="btn btn-outline-secondary w-100 fw-bold">
+                                            <i class="fas fa-sign-out-alt me-2"></i> Rời phòng
+                                        </button>
+                                    </form>
+                                @endif
+
+                                @if($canOpenExternalLaunch || $playerUrl)
+                                    <a href="{{ $showRoute }}" class="btn btn-outline-secondary w-100 fw-bold">
                                         <i class="fas fa-sync-alt me-2"></i> LÀM MỚI PHÒNG
                                     </a>
                                 @endif
 
-                                @if(Auth::user()->is_admin)
+                                <a href="{{ $backUrl }}" class="btn btn-link text-decoration-none">
+                                    Quay lại buổi học
+                                </a>
+
+                                @if(Auth::user()?->isAdmin())
                                     <hr>
                                     <a href="{{ route('admin.bai-giang.edit', $baiGiang->id) }}" class="btn btn-outline-dark w-100 fw-bold">
                                         <i class="fas fa-edit me-2"></i> CẤU HÌNH PHÒNG (ADMIN)
@@ -171,7 +202,7 @@
                                 @endif
                             </div>
 
-                            @if($meetingIdentifier)
+                            @if($meetingIdentifier && $canOpenExternalLaunch)
                                 <div class="mt-4 p-3 bg-light rounded shadow-xs border text-dark">
                                     <div class="small text-muted fw-bold text-uppercase smaller mb-2">Thông tin đăng nhập trực tiếp</div>
                                     <div class="d-flex justify-content-between mb-2">

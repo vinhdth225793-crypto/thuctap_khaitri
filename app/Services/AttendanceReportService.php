@@ -129,6 +129,7 @@ class AttendanceReportService
             'khoaHoc',
             'moduleHoc.phanCongGiangViens.giangVien.nguoiDung',
             'giangVien.nguoiDung',
+            'teachingSessionAlerts',
             Schema::hasTable('phong_hoc_live_nguoi_tham_gia')
                 ? 'baiGiangs.phongHocLive.nguoiThamGia.nguoiDung'
                 : 'baiGiangs.phongHocLive',

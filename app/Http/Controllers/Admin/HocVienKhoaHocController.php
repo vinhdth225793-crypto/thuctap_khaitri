@@ -11,6 +11,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
+use Illuminate\Support\Facades\Log;
+
 class HocVienKhoaHocController extends Controller
 {
     public function index(int $khoaHocId)
@@ -90,7 +92,7 @@ class HocVienKhoaHocController extends Controller
         return response()->json([
             'data' => $students->map(function (NguoiDung $student) {
                 return [
-                    'id' => $student->id,
+                    'id' => $student->ma_nguoi_dung, // Sử dụng ma_nguoi_dung thay vì id
                     'name' => $student->ho_ten,
                     'email' => $student->email,
                     'phone' => $student->so_dien_thoai,
@@ -107,7 +109,7 @@ class HocVienKhoaHocController extends Controller
     {
         $request->validate([
             'hoc_vien_ids' => 'required|array|min:1',
-            'hoc_vien_ids.*' => 'exists:nguoi_dung,ma_nguoi_dung',
+            'hoc_vien_ids.*' => 'exists:nguoi_dung,ma_nguoi_dung', // Sử dụng ma_nguoi_dung thay vì id
             'ngay_tham_gia' => 'nullable|date',
             'ghi_chu' => 'nullable|string|max:500',
         ]);
@@ -119,21 +121,20 @@ class HocVienKhoaHocController extends Controller
         try {
             $count = 0;
 
-            foreach ($request->hoc_vien_ids as $hvNguoiDungId) {
-                // Phải lấy hoc_vien.id vì bảng hoc_vien_khoa_hoc tham chiếu tới hoc_vien.id (không phải nguoi_dung.ma_nguoi_dung)
-                $hocVien = HocVien::where('nguoi_dung_id', $hvNguoiDungId)->first();
+            foreach ($request->hoc_vien_ids as $hvMaNguoiDung) {
+                // Kiểm tra sự tồn tại của học viên trong bảng hoc_vien
+                $hocVien = HocVien::where('nguoi_dung_id', $hvMaNguoiDung)->first();
                 if (!$hocVien) continue;
 
-                $hvId = $hocVien->id;
-
+                // Lưu ma_nguoi_dung vào cột hoc_vien_id (theo quy ước của dự án này)
                 $exists = HocVienKhoaHoc::where('khoa_hoc_id', $khoaHocId)
-                    ->where('hoc_vien_id', $hvId)
+                    ->where('hoc_vien_id', $hvMaNguoiDung)
                     ->exists();
 
                 if (!$exists) {
                     HocVienKhoaHoc::create([
                         'khoa_hoc_id' => $khoaHocId,
-                        'hoc_vien_id' => $hvId,
+                        'hoc_vien_id' => $hvMaNguoiDung,
                         'ngay_tham_gia' => $request->ngay_tham_gia ?? now(),
                         'trang_thai' => 'dang_hoc',
                         'ghi_chu' => $request->ghi_chu,
@@ -149,6 +150,11 @@ class HocVienKhoaHocController extends Controller
             return back()->with('success', "Đã thêm thành công {$count} học viên vào khóa học.");
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error("Lỗi thêm học viên vào khóa học: " . $e->getMessage(), [
+                'khoa_hoc_id' => $khoaHocId,
+                'request' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
             report($e);
 
             return back()->with('error', 'Không thể thêm học viên vào khóa học lúc này. Vui lòng thử lại.');

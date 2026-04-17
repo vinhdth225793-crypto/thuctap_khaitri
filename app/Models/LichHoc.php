@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\LearningProgressStatusService;
+use App\Services\TeachingSessionWindowService;
 use App\Support\Scheduling\TeachingPeriodCatalog;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,6 +17,21 @@ class LichHoc extends Model
     use HasFactory;
 
     public const ONLINE_JOIN_EARLY_MINUTES = 15;
+    public const DEFAULT_TEACHER_OPEN_BEFORE_MINUTES = 30;
+    public const DEFAULT_TEACHER_CLOSE_AFTER_MINUTES = 60;
+    public const DEFAULT_ATTENDANCE_REMIND_AFTER_FINISH_MINUTES = 15;
+
+    public const ONLINE_LINK_SOURCE_ADMIN_MANUAL = 'admin_manual';
+    public const ONLINE_LINK_SOURCE_TEACHER_MANUAL = 'teacher_manual';
+    public const ONLINE_LINK_SOURCE_TEACHER_GENERATED = 'teacher_generated';
+    public const ONLINE_LINK_SOURCE_SYSTEM_GENERATED = 'system_generated';
+
+    public const TEACHER_MONITORING_BINH_THUONG = 'binh_thuong';
+    public const TEACHER_MONITORING_VAO_TRE = 'vao_tre';
+    public const TEACHER_MONITORING_KHONG_DAY = 'khong_day';
+    public const TEACHER_MONITORING_CHUA_CHECKOUT = 'chua_checkout';
+    public const TEACHER_MONITORING_DONG_SOM = 'dong_som';
+    public const TEACHER_MONITORING_BAT_THUONG = 'bat_thuong';
 
     protected $table = 'lich_hoc';
 
@@ -35,10 +51,20 @@ class LichHoc extends Model
         'phong_hoc',
         'hinh_thuc',
         'link_online',
+        'online_link_source',
         'nen_tang',
         'meeting_id',
         'mat_khau_cuoc_hop',
         'trang_thai',
+        'actual_started_at',
+        'actual_finished_at',
+        'teacher_monitoring_status',
+        'teacher_monitoring_note',
+        'teacher_monitoring_flagged_at',
+        'allow_open_before_minutes',
+        'allow_close_after_minutes',
+        'attendance_remind_after_finish_minutes',
+        'attendance_deadline_at',
         'ghi_chu',
         'bao_cao_giang_vien',
         'thoi_gian_bao_cao',
@@ -49,6 +75,13 @@ class LichHoc extends Model
         'ngay_hoc' => 'date',
         'tiet_bat_dau' => 'integer',
         'tiet_ket_thuc' => 'integer',
+        'actual_started_at' => 'datetime',
+        'actual_finished_at' => 'datetime',
+        'teacher_monitoring_flagged_at' => 'datetime',
+        'allow_open_before_minutes' => 'integer',
+        'allow_close_after_minutes' => 'integer',
+        'attendance_remind_after_finish_minutes' => 'integer',
+        'attendance_deadline_at' => 'datetime',
         'thoi_gian_bao_cao' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -142,6 +175,12 @@ class LichHoc extends Model
             ->orderByDesc('created_at');
     }
 
+    public function teachingSessionAlerts(): HasMany
+    {
+        return $this->hasMany(TeachingSessionAlert::class, 'lich_hoc_id')
+            ->orderByDesc('created_at');
+    }
+
     public function teacherLeaveRequests(): HasMany
     {
         return $this->hasMany(GiangVienDonXinNghi::class, 'lich_hoc_id')
@@ -225,6 +264,51 @@ class LichHoc extends Model
         }
 
         return $this->ngay_hoc->copy()->setTimeFromTimeString((string) $this->gio_ket_thuc);
+    }
+
+    public function getTeacherOpenWindowStartsAtAttribute(): ?Carbon
+    {
+        return app(TeachingSessionWindowService::class)->teacherOpenWindowStartsAt($this);
+    }
+
+    public function getTeacherCheckoutDeadlineAttribute(): ?Carbon
+    {
+        return app(TeachingSessionWindowService::class)->teacherCheckoutDeadlineAt($this);
+    }
+
+    public function getTeacherEarlyFinishThresholdAttribute(): ?Carbon
+    {
+        return app(TeachingSessionWindowService::class)->teacherEarlyFinishThresholdAt($this);
+    }
+
+    public function getResolvedAttendanceDeadlineAtAttribute(): ?Carbon
+    {
+        return app(TeachingSessionWindowService::class)->attendanceDeadlineAt($this);
+    }
+
+    public function getTeacherTimingWindowAttribute(): array
+    {
+        return app(TeachingSessionWindowService::class)->windows($this);
+    }
+
+    public function canStartTeachingSessionAt(?Carbon $at = null): bool
+    {
+        return app(TeachingSessionWindowService::class)->canStart($this, $at);
+    }
+
+    public function canFinishTeachingSessionAt(?Carbon $at = null): bool
+    {
+        return app(TeachingSessionWindowService::class)->canFinish($this, $at);
+    }
+
+    public function isTeacherLateAt(?Carbon $at = null): bool
+    {
+        return app(TeachingSessionWindowService::class)->isLateCheckIn($this, $at);
+    }
+
+    public function isTeacherEarlyFinishAt(?Carbon $at = null): bool
+    {
+        return app(TeachingSessionWindowService::class)->isEarlyFinish($this, $at);
     }
 
     public function getTimelineTrangThaiAttribute(): string
@@ -328,12 +412,12 @@ class LichHoc extends Model
 
     public function getCanStartTeachingSessionAttribute(): bool
     {
-        return $this->teaching_session_status === 'chua_bat_dau';
+        return $this->canStartTeachingSessionAt();
     }
 
     public function getCanFinishTeachingSessionAttribute(): bool
     {
-        return $this->teaching_session_status === 'dang_dien_ra';
+        return $this->canFinishTeachingSessionAt();
     }
 
     public function getHinhThucLabelAttribute(): string
@@ -377,18 +461,7 @@ class LichHoc extends Model
             return false;
         }
 
-        $startsAt = $this->starts_at;
-        $endsAt = $this->ends_at;
-
-        if (!$startsAt || !$endsAt) {
-            return $this->trang_thai === 'dang_hoc';
-        }
-
-        $joinOpensAt = $startsAt->copy()->subMinutes(self::ONLINE_JOIN_EARLY_MINUTES);
-        $now = now();
-
-        return $now->greaterThanOrEqualTo($joinOpensAt)
-            && $now->lessThanOrEqualTo($endsAt);
+        return app(TeachingSessionWindowService::class)->canStudentJoinOnline($this);
     }
 
     public function getCanOpenOnlineRoomAttribute(): bool

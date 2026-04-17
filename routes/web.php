@@ -97,6 +97,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     Route::get('/hoc-vien', [AdminController::class, 'indexHocVien'])->name('hoc-vien.index');
     Route::get('/diem-danh', [AdminAttendanceController::class, 'index'])->name('diem-danh.index');
     Route::get('/diem-danh/giang-vien/{lichHoc}/{giangVien}', [AdminAttendanceController::class, 'showTeacherAttendance'])->name('diem-danh.giang-vien.show');
+    Route::post('/diem-danh/giang-vien/{lichHoc}/resolve', [AdminAttendanceController::class, 'resolveMonitoring'])->name('diem-danh.giang-vien.resolve');
 
     // Quản lý nhóm ngành
     Route::prefix('nhom-nganh')->name('nhom-nganh.')->group(function () {
@@ -349,6 +350,7 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
     // Bài kiểm tra và chấm điểm
     Route::get('/bai-kiem-tra', [BaiKiemTraController::class, 'index'])->name('bai-kiem-tra.index');
     Route::post('/bai-kiem-tra', [BaiKiemTraController::class, 'store'])->name('bai-kiem-tra.store');
+    Route::get('/bai-kiem-tra/import-template', [NganHangCauHoiController::class, 'downloadTemplate'])->name('bai-kiem-tra.import-template');
     Route::get('/bai-kiem-tra/{id}/edit', [BaiKiemTraController::class, 'edit'])->name('bai-kiem-tra.edit');
     Route::get('/bai-kiem-tra/{id}/giam-sat', [BaiKiemTraController::class, 'editSurveillance'])->name('bai-kiem-tra.surveillance.edit');
     Route::put('/bai-kiem-tra/{id}', [BaiKiemTraController::class, 'update'])->name('bai-kiem-tra.update');
@@ -356,7 +358,11 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
     Route::post('/bai-kiem-tra/{id}/import-preview', [BaiKiemTraController::class, 'importPreview'])->name('bai-kiem-tra.import-preview');
     Route::post('/bai-kiem-tra/{id}/import-confirm', [BaiKiemTraController::class, 'importConfirm'])->name('bai-kiem-tra.import-confirm');
     Route::post('/bai-kiem-tra/{id}/gui-duyet', [BaiKiemTraController::class, 'submitForApproval'])->name('bai-kiem-tra.submit');
+    Route::post('/bai-kiem-tra/{id}/phat-hanh', [BaiKiemTraController::class, 'publish'])->name('bai-kiem-tra.publish');
     Route::delete('/bai-kiem-tra/{id}', [BaiKiemTraController::class, 'destroy'])->name('bai-kiem-tra.destroy');
+    Route::get('/diem-kiem-tra', [BaiKiemTraController::class, 'diemKiemTraIndex'])->name('diem-kiem-tra.index');
+    Route::get('/diem-kiem-tra/{id}/bao-cao', [BaiKiemTraController::class, 'xuatBaoCaoDiemKiemTra'])->name('diem-kiem-tra.bao-cao');
+    Route::get('/diem-kiem-tra/{id}/hoc-vien', [BaiKiemTraController::class, 'diemKiemTraHocVien'])->name('diem-kiem-tra.hoc-vien');
     Route::get('/cham-diem/danh-sach', [BaiKiemTraController::class, 'chamDiemIndex'])->name('cham-diem.index');
     Route::get('/cham-diem/{id}', [BaiKiemTraController::class, 'chamDiemShow'])->name('cham-diem.show');
     Route::post('/cham-diem/{id}', [BaiKiemTraController::class, 'chamDiemStore'])->name('cham-diem.store');
@@ -382,6 +388,7 @@ Route::prefix('hoc-vien')->name('hoc-vien.')->middleware(['auth', \App\Http\Midd
     Route::post('/khoa-hoc/{khoaHocId}/xin-tham-gia', [HocVienController::class, 'guiYeuCauThamGia'])->name('khoa-hoc.gui-yeu-cau-tham-gia');
     Route::get('/khoa-hoc/{id}', [HocVienController::class, 'chiTietKhoaHoc'])->name('chi-tiet-khoa-hoc');
     Route::get('/buoi-hoc/{id}', [HocVienController::class, 'chiTietBuoiHoc'])->name('buoi-hoc.show');
+    Route::get('/tai-nguyen/{id}/preview', [HocVienController::class, 'xemTruocTaiNguyen'])->name('tai-nguyen.preview');
     Route::get('/bai-giang/{id}', [HocVienController::class, 'chiTietBaiGiang'])->name('bai-giang.show');
     Route::get('/live-room/{id}', [HocVienLiveRoomController::class, 'show'])->name('live-room.show');
     Route::post('/live-room/{id}/join', [HocVienLiveRoomController::class, 'join'])->name('live-room.join');

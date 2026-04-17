@@ -14,9 +14,11 @@ use App\Services\BaiKiemTraScoringService;
 use App\Services\ExamConfigurationService;
 use App\Services\ExamQuestionSelectionService;
 use App\Services\ExamSurveillanceService;
+use App\Services\ExamAttemptReportExportService;
 use App\Services\KetQuaHocTapService;
 use App\Services\TeacherAssignmentResolver;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -30,6 +32,7 @@ class BaiKiemTraController extends Controller
         private readonly ExamQuestionSelectionService $questionSelectionService,
         private readonly ExamConfigurationService $examConfigurationService,
         private readonly ExamSurveillanceService $surveillanceService,
+        private readonly ExamAttemptReportExportService $attemptReportExportService,
     ) {
     }
 
@@ -153,7 +156,7 @@ class BaiKiemTraController extends Controller
             'moduleHoc:id,ma_module,ten_module',
             'lichHoc:id,buoi_so,ngay_hoc',
             'chiTietCauHois.cauHoi.dapAns',
-            'baiLams' => fn ($query) => $query->with('hocVien:id,ho_ten,email')->orderByDesc('created_at')->limit(10),
+            'baiLams' => fn ($query) => $query->with('hocVien:ma_nguoi_dung,ho_ten,email')->orderByDesc('created_at')->limit(10),
         ])->findOrFail($id);
 
         $giangVien = auth()->user()?->giangVien;
@@ -270,17 +273,27 @@ class BaiKiemTraController extends Controller
             'che_do_tinh_diem' => 'required|in:goi_diem,thu_cong',
             'so_cau_goi_diem' => 'nullable|integer|min:1',
             'tong_diem_goi_diem' => 'nullable|numeric|min:0.25',
+            'tong_diem_tu_luan_tu_do' => 'nullable|numeric|min:0.25|max:1000',
             'question_ids' => 'nullable|array',
             'question_ids.*' => 'integer|exists:ngan_hang_cau_hoi,id',
             'question_scores' => 'nullable|array',
             'question_scores.*' => 'nullable|numeric|min:0.25|max:100',
+            'action_after_save' => 'nullable|in:submit_for_approval',
         ]);
 
-        DB::transaction(function () use ($baiKiemTra, $validated, $request) {
-            $explicitContentMode = $request->filled('che_do_noi_dung');
-            $requestedContentMode = $explicitContentMode
-                ? (string) $validated['che_do_noi_dung']
-                : null;
+        $explicitContentMode = $request->filled('che_do_noi_dung');
+        $requestedContentMode = $explicitContentMode
+            ? (string) $validated['che_do_noi_dung']
+            : $baiKiemTra->content_mode_key;
+        $freeEssayTotalScore = round((float) ($validated['tong_diem_tu_luan_tu_do'] ?? ($baiKiemTra->tong_diem ?: 10)), 2);
+
+        if ($requestedContentMode === 'tu_luan_tu_do' && blank($validated['mo_ta'] ?? null)) {
+            throw ValidationException::withMessages([
+                'mo_ta' => 'Vui lòng nhập đề kiểm tra tự luận trước khi lưu.',
+            ]);
+        }
+
+        DB::transaction(function () use ($baiKiemTra, $validated, $request, $explicitContentMode, $requestedContentMode, $freeEssayTotalScore) {
             $questionIds = array_values(array_unique(array_map('intval', $validated['question_ids'] ?? [])));
 
             if ($requestedContentMode === 'tu_luan_tu_do') {
@@ -343,10 +356,23 @@ class BaiKiemTraController extends Controller
             [$tongDiem, $loaiNoiDung] = $this->questionSelectionService->syncQuestions($baiKiemTra, $questionIds, $questionScores);
 
             $baiKiemTra->update([
-                'tong_diem' => $questionIds === [] ? 10 : $tongDiem,
+                'tong_diem' => $questionIds === [] ? $freeEssayTotalScore : $tongDiem,
                 'loai_noi_dung' => $questionIds === [] ? 'tu_luan' : $loaiNoiDung,
             ]);
         });
+
+        if (($validated['action_after_save'] ?? null) === 'submit_for_approval') {
+            $baiKiemTra->refresh()->load(['chiTietCauHois.cauHoi']);
+            $this->examConfigurationService->ensureReadyForApproval($baiKiemTra);
+
+            $baiKiemTra->update([
+                'trang_thai_duyet' => 'cho_duyet',
+                'trang_thai_phat_hanh' => 'nhap',
+                'de_xuat_duyet_luc' => now(),
+            ]);
+
+            return back()->with('success', 'Đã lưu cấu hình và gửi bài kiểm tra cho admin duyệt.');
+        }
 
         return back()->with('success', 'Đã cập nhật bài kiểm tra.');
     }
@@ -392,7 +418,7 @@ class BaiKiemTraController extends Controller
 
         try {
             $preview = $this->importService->previewForExam($request->file('file'), $baiKiemTra);
-            
+
             // Store preview in session for confirm step
             $previewId = str()->uuid()->toString();
             session()->put('exam_import_preview_' . $previewId, $preview);
@@ -437,6 +463,7 @@ class BaiKiemTraController extends Controller
 
         $request->validate([
             'preview_id' => 'required|string',
+            'preferred_mode' => 'nullable|in:trac_nghiem,tu_luan_tu_do,tu_luan_theo_cau,hon_hop',
         ]);
 
         $preview = session()->get('exam_import_preview_' . $request->preview_id);
@@ -452,6 +479,7 @@ class BaiKiemTraController extends Controller
                 ->route('giang-vien.bai-kiem-tra.edit', [
                     'id' => $baiKiemTra->id,
                     'tab' => 'questions',
+                    'preferred_mode' => $request->input('preferred_mode', $baiKiemTra->content_mode_key),
                 ])
                 ->with('success', "Đã import thành công {$result['created']} câu hỏi vào ngân hàng. Bạn có thể chọn chúng cho đề thi ngay bây giờ.")
                 ->with('exam_imported_question_ids', $result['ids'] ?? []);
@@ -477,6 +505,30 @@ class BaiKiemTraController extends Controller
         return back()->with('success', 'Đã gửi bài kiểm tra cho admin duyệt.');
     }
 
+    public function publish(int $id)
+    {
+        $baiKiemTra = BaiKiemTra::with(['chiTietCauHois.cauHoi'])->findOrFail($id);
+        $this->authorizeTeacherForExam(auth()->user()?->giangVien, $baiKiemTra);
+
+        if ($baiKiemTra->trang_thai_duyet !== 'da_duyet') {
+            return back()->with('error', 'Chỉ bài đã được admin duyệt mới được phát hành cho học viên.');
+        }
+
+        if ($baiKiemTra->trang_thai_phat_hanh === 'phat_hanh') {
+            return back()->with('success', 'Bài kiểm tra này đang được phát hành cho học viên.');
+        }
+
+        $this->examConfigurationService->ensureReadyForApproval($baiKiemTra);
+
+        $baiKiemTra->update([
+            'trang_thai_phat_hanh' => 'phat_hanh',
+            'phat_hanh_luc' => now(),
+            'trang_thai' => true,
+        ]);
+
+        return back()->with('success', 'Đã phát hành bài kiểm tra cho học viên.');
+    }
+
     public function destroy(int $id)
     {
         $baiKiemTra = BaiKiemTra::withCount('baiLams')->findOrFail($id);
@@ -491,6 +543,284 @@ class BaiKiemTraController extends Controller
         return back()->with('success', 'Đã xóa bài kiểm tra.');
     }
 
+    public function diemKiemTraIndex(Request $request)
+    {
+        $giangVien = auth()->user()?->giangVien;
+        abort_if(!$giangVien, 403, 'Tài khoản chưa được liên kết với giảng viên.');
+
+        $moduleIds = $this->getAcceptedModuleIds($giangVien);
+        $courseIds = $this->getAcceptedCourseIds($giangVien);
+        $submittedStatuses = ['da_nop', 'cho_cham', 'da_cham'];
+
+        $filters = [
+            'search' => trim((string) $request->query('search', '')),
+            'bai_kiem_tra_id' => $request->filled('bai_kiem_tra_id') ? $request->integer('bai_kiem_tra_id') : null,
+            'loai_bai_kiem_tra' => $request->filled('loai_bai_kiem_tra') ? (string) $request->query('loai_bai_kiem_tra') : null,
+            'trang_thai_cham' => $request->filled('trang_thai_cham') ? (string) $request->query('trang_thai_cham') : null,
+        ];
+
+        $examOptions = $this->buildAccessibleExamQuery($moduleIds, $courseIds)
+            ->with([
+                'khoaHoc:id,ma_khoa_hoc,ten_khoa_hoc',
+                'moduleHoc:id,ma_module,ten_module',
+            ])
+            ->whereHas('baiLams', function ($query) use ($submittedStatuses) {
+                $query->whereIn('trang_thai', $submittedStatuses)
+                    ->whereNotNull('nop_luc');
+            })
+            ->orderBy('tieu_de')
+            ->get(['id', 'khoa_hoc_id', 'module_hoc_id', 'tieu_de', 'loai_bai_kiem_tra', 'pham_vi']);
+
+        $attemptQuery = BaiLamBaiKiemTra::query()
+            ->with([
+                'hocVien:ma_nguoi_dung,ho_ten,email',
+                'baiKiemTra' => function ($query) {
+                    $query->select([
+                        'id',
+                        'khoa_hoc_id',
+                        'module_hoc_id',
+                        'lich_hoc_id',
+                        'tieu_de',
+                        'pham_vi',
+                        'loai_bai_kiem_tra',
+                        'loai_noi_dung',
+                        'tong_diem',
+                        'co_giam_sat',
+                    ])->withCount('chiTietCauHois');
+                },
+                'baiKiemTra.khoaHoc:id,ma_khoa_hoc,ten_khoa_hoc',
+                'baiKiemTra.moduleHoc:id,ma_module,ten_module,thu_tu_module',
+                'baiKiemTra.lichHoc:id,buoi_so,ngay_hoc',
+                'nguoiCham:ma_nguoi_dung,ho_ten,email',
+            ])
+            ->whereIn('bai_kiem_tra_id', $this->buildAccessibleExamQuery($moduleIds, $courseIds)->select('id'))
+            ->whereIn('trang_thai', $submittedStatuses)
+            ->whereNotNull('nop_luc')
+            ->when($filters['bai_kiem_tra_id'], fn ($query, $examId) => $query->where('bai_kiem_tra_id', $examId))
+            ->when($filters['trang_thai_cham'], fn ($query, $status) => $query->where('trang_thai_cham', $status))
+            ->when($filters['loai_bai_kiem_tra'], function ($query, $type) {
+                $query->whereHas('baiKiemTra', fn ($examQuery) => $examQuery->where('loai_bai_kiem_tra', $type));
+            })
+            ->when($filters['search'] !== '', function ($query) use ($filters) {
+                $search = $filters['search'];
+
+                $query->where(function ($searchQuery) use ($search) {
+                    $searchQuery->whereHas('hocVien', function ($studentQuery) use ($search) {
+                        $studentQuery->where('ho_ten', 'like', '%' . $search . '%')
+                            ->orWhere('email', 'like', '%' . $search . '%');
+                    })->orWhereHas('baiKiemTra', function ($examQuery) use ($search) {
+                        $examQuery->where('tieu_de', 'like', '%' . $search . '%');
+                    });
+                });
+            });
+
+        $stats = [
+            'tong_luot_nop' => (clone $attemptQuery)->count(),
+            'da_cham' => (clone $attemptQuery)->where('trang_thai_cham', 'da_cham')->count(),
+            'cho_cham' => (clone $attemptQuery)->where('trang_thai_cham', 'cho_cham')->count(),
+            'diem_trung_binh' => round((float) ((clone $attemptQuery)->whereNotNull('diem_so')->avg('diem_so') ?? 0), 2),
+        ];
+
+        $baiLams = $attemptQuery
+            ->orderByDesc('nop_luc')
+            ->orderByDesc('updated_at')
+            ->get();
+        $scoreboardCourses = $this->buildScoreboardCourses($baiLams);
+        $totalExamCards = $scoreboardCourses->sum(
+            fn (array $course) => $course['modules']->sum(fn (array $module) => $module['exams']->count())
+        );
+
+        return view('pages.giang-vien.bai-kiem-tra.diem-index', compact(
+            'examOptions',
+            'filters',
+            'scoreboardCourses',
+            'stats',
+            'totalExamCards',
+        ));
+    }
+
+    /**
+     * @param Collection<int, BaiLamBaiKiemTra> $baiLams
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function buildScoreboardCourses(Collection $baiLams): Collection
+    {
+        return $baiLams
+            ->filter(fn (BaiLamBaiKiemTra $baiLam) => $baiLam->baiKiemTra !== null)
+            ->groupBy(fn (BaiLamBaiKiemTra $baiLam) => $baiLam->baiKiemTra->khoa_hoc_id ?: 'course-unknown')
+            ->map(function (Collection $courseAttempts) {
+                $firstExam = $courseAttempts->first()?->baiKiemTra;
+                $course = $firstExam?->khoaHoc;
+                $modules = $courseAttempts
+                    ->groupBy(function (BaiLamBaiKiemTra $baiLam) {
+                        $exam = $baiLam->baiKiemTra;
+
+                        if ($exam?->loai_bai_kiem_tra === 'cuoi_khoa' || empty($exam?->module_hoc_id)) {
+                            return 'final';
+                        }
+
+                        return 'module-' . $exam->module_hoc_id;
+                    })
+                    ->map(function (Collection $moduleAttempts, string $moduleKey) {
+                        $firstExam = $moduleAttempts->first()?->baiKiemTra;
+                        $module = $firstExam?->moduleHoc;
+                        $isFinalGroup = $moduleKey === 'final';
+                        $exams = $moduleAttempts
+                            ->groupBy('bai_kiem_tra_id')
+                            ->map(fn (Collection $examAttempts) => $this->buildScoreboardExamCard($examAttempts))
+                            ->sortBy('sort')
+                            ->values();
+
+                        return [
+                            'key' => $moduleKey,
+                            'title' => $isFinalGroup
+                                ? 'Bài kiểm tra cuối khóa'
+                                : ($module?->ten_module ?? 'Module chưa xác định'),
+                            'subtitle' => $isFinalGroup
+                                ? 'Tổng kết toàn khóa'
+                                : ($module?->ma_module ?? 'Chưa có mã module'),
+                            'sort' => $isFinalGroup ? 999999 : (int) ($module?->thu_tu_module ?? 999998),
+                            'attempt_count' => $moduleAttempts->count(),
+                            'exam_count' => $exams->count(),
+                            'exams' => $exams,
+                        ];
+                    })
+                    ->sortBy('sort')
+                    ->values();
+
+                return [
+                    'id' => $firstExam?->khoa_hoc_id,
+                    'code' => $course?->ma_khoa_hoc ?? 'KH',
+                    'title' => $course?->ten_khoa_hoc ?? 'Khóa học chưa xác định',
+                    'sort' => $course?->ma_khoa_hoc ?? ('course-' . ($firstExam?->khoa_hoc_id ?? 'unknown')),
+                    'attempt_count' => $courseAttempts->count(),
+                    'student_count' => $courseAttempts->pluck('hoc_vien_id')->unique()->count(),
+                    'exam_count' => $modules->sum(fn (array $module) => $module['exam_count']),
+                    'modules' => $modules,
+                ];
+            })
+            ->sortBy('sort')
+            ->values();
+    }
+
+    /**
+     * @param Collection<int, BaiLamBaiKiemTra> $examAttempts
+     * @return array<string, mixed>
+     */
+    private function buildScoreboardExamCard(Collection $examAttempts): array
+    {
+        $exam = $examAttempts->first()?->baiKiemTra;
+        $sortedAttempts = $examAttempts
+            ->sortByDesc(fn (BaiLamBaiKiemTra $baiLam) => $baiLam->nop_luc?->timestamp ?? 0)
+            ->values();
+        $scoredAttempts = $examAttempts->filter(fn (BaiLamBaiKiemTra $baiLam) => $baiLam->diem_so !== null);
+
+        return [
+            'id' => $exam?->id,
+            'exam' => $exam,
+            'attempts' => $sortedAttempts,
+            'attempt_count' => $examAttempts->count(),
+            'student_count' => $examAttempts->pluck('hoc_vien_id')->unique()->count(),
+            'graded_count' => $examAttempts->where('trang_thai_cham', 'da_cham')->count(),
+            'pending_count' => $examAttempts->where('trang_thai_cham', 'cho_cham')->count(),
+            'average_score' => $scoredAttempts->isNotEmpty() ? round((float) $scoredAttempts->avg('diem_so'), 2) : null,
+            'last_submitted_at' => $sortedAttempts->first()?->nop_luc,
+            'sort' => sprintf('%05d-%s', (int) ($exam?->lichHoc?->buoi_so ?? 99999), $exam?->tieu_de ?? 'unknown'),
+        ];
+    }
+
+    public function diemKiemTraHocVien(Request $request, int $id)
+    {
+        $giangVien = auth()->user()?->giangVien;
+        abort_if(!$giangVien, 403, 'Tài khoản chưa được liên kết với giảng viên.');
+
+        $baiKiemTra = BaiKiemTra::query()
+            ->with([
+                'khoaHoc:id,ma_khoa_hoc,ten_khoa_hoc',
+                'moduleHoc:id,ma_module,ten_module',
+                'lichHoc:id,buoi_so,ngay_hoc',
+            ])
+            ->withCount('chiTietCauHois')
+            ->findOrFail($id);
+
+        $this->authorizeTeacherForExam($giangVien, $baiKiemTra);
+
+        $submittedStatuses = ['da_nop', 'cho_cham', 'da_cham'];
+        $filters = [
+            'search' => trim((string) $request->query('search', '')),
+            'trang_thai_cham' => $request->filled('trang_thai_cham') ? (string) $request->query('trang_thai_cham') : null,
+        ];
+
+        $attemptQuery = BaiLamBaiKiemTra::query()
+            ->with([
+                'hocVien:ma_nguoi_dung,ho_ten,email',
+                'nguoiCham:ma_nguoi_dung,ho_ten,email',
+            ])
+            ->where('bai_kiem_tra_id', $baiKiemTra->id)
+            ->whereIn('trang_thai', $submittedStatuses)
+            ->whereNotNull('nop_luc')
+            ->when($filters['trang_thai_cham'], fn ($query, $status) => $query->where('trang_thai_cham', $status))
+            ->when($filters['search'] !== '', function ($query) use ($filters) {
+                $search = $filters['search'];
+
+                $query->whereHas('hocVien', function ($studentQuery) use ($search) {
+                    $studentQuery->where('ho_ten', 'like', '%' . $search . '%')
+                        ->orWhere('email', 'like', '%' . $search . '%');
+                });
+            });
+
+        $stats = [
+            'tong_luot_nop' => (clone $attemptQuery)->count(),
+            'hoc_vien' => (clone $attemptQuery)->distinct('hoc_vien_id')->count('hoc_vien_id'),
+            'da_cham' => (clone $attemptQuery)->where('trang_thai_cham', 'da_cham')->count(),
+            'cho_cham' => (clone $attemptQuery)->where('trang_thai_cham', 'cho_cham')->count(),
+            'diem_trung_binh' => round((float) ((clone $attemptQuery)->whereNotNull('diem_so')->avg('diem_so') ?? 0), 2),
+        ];
+
+        $baiLams = $attemptQuery
+            ->orderByDesc('nop_luc')
+            ->orderByDesc('updated_at')
+            ->paginate(25)
+            ->withQueryString();
+
+        return view('pages.giang-vien.bai-kiem-tra.diem-hoc-vien', compact(
+            'baiKiemTra',
+            'baiLams',
+            'filters',
+            'stats',
+        ));
+    }
+
+    public function xuatBaoCaoDiemKiemTra(int $id)
+    {
+        $giangVien = auth()->user()?->giangVien;
+        abort_if(!$giangVien, 403, 'Tài khoản chưa được liên kết với giảng viên.');
+
+        $baiKiemTra = BaiKiemTra::query()
+            ->with([
+                'khoaHoc:id,ma_khoa_hoc,ten_khoa_hoc',
+                'moduleHoc:id,ma_module,ten_module,so_buoi',
+                'lichHoc:id,khoa_hoc_id,module_hoc_id,buoi_so,buoi_hoc,ngay_hoc,gio_bat_dau,gio_ket_thuc,hinh_thuc,link_online',
+                'lichHoc.khoaHoc:id,ma_khoa_hoc,ten_khoa_hoc',
+                'lichHoc.moduleHoc:id,ma_module,ten_module,so_buoi',
+            ])
+            ->findOrFail($id);
+
+        $this->authorizeTeacherForExam($giangVien, $baiKiemTra);
+
+        try {
+            $export = $this->attemptReportExportService->export($baiKiemTra);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->with('error', 'Không thể xuất báo cáo bài kiểm tra. Vui lòng kiểm tra lại file mẫu hoặc dữ liệu bài làm.');
+        }
+
+        return response()->download($export['path'], $export['download_name'], [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend(true);
+    }
+
     public function chamDiemIndex()
     {
         $giangVien = auth()->user()?->giangVien;
@@ -503,7 +833,7 @@ class BaiKiemTraController extends Controller
             ->with([
                 'baiKiemTra.khoaHoc:id,ma_khoa_hoc,ten_khoa_hoc',
                 'baiKiemTra.moduleHoc:id,ma_module,ten_module',
-                'hocVien:id,ho_ten,email',
+                'hocVien:ma_nguoi_dung,ho_ten,email',
             ])
             ->where('trang_thai_cham', 'cho_cham')
             ->whereHas('baiKiemTra', function ($query) use ($moduleIds, $courseIds) {
@@ -524,7 +854,7 @@ class BaiKiemTraController extends Controller
     public function chamDiemShow(int $id)
     {
         $baiLam = BaiLamBaiKiemTra::with([
-            'hocVien:id,ho_ten,email',
+            'hocVien:ma_nguoi_dung,ho_ten,email',
             'baiKiemTra.khoaHoc',
             'baiKiemTra.moduleHoc',
             'chiTietTraLois.chiTietBaiKiemTra',
@@ -532,7 +862,7 @@ class BaiKiemTraController extends Controller
             'chiTietTraLois.dapAn',
             'giamSatLogs',
             'giamSatSnapshots',
-            'nguoiHauKiem:id,ho_ten,email',
+            'nguoiHauKiem:ma_nguoi_dung,ho_ten,email',
         ])->findOrFail($id);
 
         $this->authorizeTeacherForExam(auth()->user()?->giangVien, $baiLam->baiKiemTra);

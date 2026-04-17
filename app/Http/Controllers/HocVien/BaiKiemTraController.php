@@ -65,7 +65,8 @@ class BaiKiemTraController extends Controller
     {
         $hocVienId = auth()->id();
         $baiKiemTra = $this->findBaiKiemTraHocVien($id, $hocVienId);
-        $baiLam = $baiKiemTra->baiLams->sortByDesc('lan_lam_thu')->first();
+        $activeBaiLam = $baiKiemTra->baiLams->firstWhere('trang_thai', 'dang_lam');
+        $baiLam = $activeBaiLam ?: $baiKiemTra->baiLams->sortByDesc('lan_lam_thu')->first();
 
         if ($baiLam) {
             $relations = [
@@ -97,6 +98,7 @@ class BaiKiemTraController extends Controller
 
         $attemptsUsed = $baiKiemTra->baiLams->count();
         $remainingAttempts = max(0, (int) $baiKiemTra->so_lan_duoc_lam - $attemptsUsed);
+        $canStartNewAttempt = $baiKiemTra->can_student_start && !$activeBaiLam && $remainingAttempts > 0;
         $precheckState = $baiKiemTra->co_giam_sat
             ? $this->precheckService->getPassedPrecheck($baiKiemTra, $hocVienId)
             : null;
@@ -107,9 +109,11 @@ class BaiKiemTraController extends Controller
         return view('pages.hoc-vien.bai-kiem-tra.show', compact(
             'baiKiemTra',
             'baiLam',
+            'activeBaiLam',
             'cauHoiHienThi',
             'attemptsUsed',
             'remainingAttempts',
+            'canStartNewAttempt',
             'precheckState',
             'surveillanceSummary'
         ));

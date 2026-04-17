@@ -45,6 +45,13 @@
         </div>
     @endif
 
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <div class="alert alert-info border-0 shadow-sm mb-4">
         <div class="fw-bold mb-1">Đường vào tạo đề mới</div>
         <div class="small mb-0">
@@ -226,6 +233,14 @@
                                             <a href="{{ route('giang-vien.bai-kiem-tra.edit', $baiKiemTra->id) }}" class="btn btn-sm btn-primary">
                                                 <i class="fas fa-sliders-h me-1"></i> Cấu hình
                                             </a>
+                                            @if($baiKiemTra->trang_thai_duyet === 'da_duyet' && $baiKiemTra->trang_thai_phat_hanh !== 'phat_hanh')
+                                                <form action="{{ route('giang-vien.bai-kiem-tra.publish', $baiKiemTra->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Phát hành đề kiểm tra này cho học viên làm bài?')">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-sm btn-success">
+                                                        <i class="fas fa-paper-plane me-1"></i> Phát hành
+                                                    </button>
+                                                </form>
+                                            @endif
                                             @if($baiKiemTra->has_essay_questions && $baiKiemTra->bai_lams_count > 0)
                                                 <a href="{{ route('giang-vien.cham-diem.index') }}" class="btn btn-sm btn-outline-secondary">
                                                     Chấm bài

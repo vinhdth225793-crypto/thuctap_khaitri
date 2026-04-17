@@ -132,7 +132,7 @@ class GiangVienController extends Controller
         if (!$giang) {
             $giang = $user->giangVien()->create([]);
         }
-        $giang->update($request->only(['chuyen_nganh', 'hoc_vi', 'so_gio_day']));
+        $giang->update($request->only(['chuyen_nganh', 'hoc_vi']));
 
         return redirect()->route('giang-vien.profile')->with('success', 'Cập nhật thông tin thành công.');
     }

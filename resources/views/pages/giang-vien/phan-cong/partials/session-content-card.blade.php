@@ -80,10 +80,20 @@
                         @endif
                     </div>
                     <div class="d-flex flex-column gap-1">
-                        @foreach($lich->baiKiemTras->take(2) as $test)
+                        @foreach($lich->baiKiemTras as $test)
                             <div class="d-flex align-items-center justify-content-between bg-white p-1 px-2 rounded border border-danger border-opacity-10 smaller shadow-xs">
                                 <span class="text-truncate me-2 text-danger fw-bold" title="{{ $test->tieu_de }}">{{ $test->tieu_de }}</span>
-                                <a href="{{ route('giang-vien.bai-kiem-tra.edit', $test->id) }}" class="text-danger"><i class="fas fa-cog" style="font-size: 0.7rem;"></i></a>
+                                <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                                    @if($test->trang_thai_duyet === 'da_duyet' && $test->trang_thai_phat_hanh !== 'phat_hanh')
+                                        <form action="{{ route('giang-vien.bai-kiem-tra.publish', $test->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Phát hành đề kiểm tra này cho học viên làm bài?')">
+                                            @csrf
+                                            <button type="submit" class="btn btn-xs btn-success py-0 px-2" title="Phát hành cho học viên">
+                                                <i class="fas fa-paper-plane"></i>
+                                            </button>
+                                        </form>
+                                    @endif
+                                    <a href="{{ route('giang-vien.bai-kiem-tra.edit', $test->id) }}" class="text-danger" title="Cấu hình đề"><i class="fas fa-cog" style="font-size: 0.7rem;"></i></a>
+                                </div>
                             </div>
                         @endforeach
                         <div class="bg-white p-1 px-2 rounded border border-light smaller shadow-xs text-muted italic text-truncate">

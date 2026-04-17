@@ -38,8 +38,10 @@ class PhongHocLive extends Model
 
     protected $fillable = [
         'lop_hoc_id',
-        'lich_hoc_id',
+        'bai_giang_id',
         'giang_vien_id',
+        'moderator_id',
+        'tro_giang_id',
         'tieu_de',
         'nen_tang',
         'nen_tang_live',
@@ -53,8 +55,13 @@ class PhongHocLive extends Model
         'ket_thuc_thuc_te',
         'trang_thai',
         'trang_thai_phong',
+        'trang_thai_duyet',
+        'trang_thai_cong_bo',
         'du_lieu_nen_tang',
         'du_lieu_nen_tang_json',
+        'created_by',
+        'approved_by',
+        'approved_at',
     ];
 
     protected $casts = [
@@ -62,7 +69,6 @@ class PhongHocLive extends Model
         'ket_thuc_du_kien' => 'datetime',
         'bat_dau_thuc_te' => 'datetime',
         'ket_thuc_thuc_te' => 'datetime',
-        'du_lieu_nen_tang' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
@@ -73,9 +79,21 @@ class PhongHocLive extends Model
         return $this->belongsTo(LopHoc::class, 'lop_hoc_id');
     }
 
+    public function baiGiang()
+    {
+        return $this->belongsTo(BaiGiang::class, 'bai_giang_id');
+    }
+
     public function lichHoc()
     {
-        return $this->belongsTo(LichHoc::class, 'lich_hoc_id');
+        return $this->hasOneThrough(
+            LichHoc::class,
+            BaiGiang::class,
+            'id', // Khóa ngoại trên BaiGiang
+            'id', // Khóa ngoại trên LichHoc
+            'bai_giang_id', // Khóa nội trên PhongHocLive
+            'lich_hoc_id' // Khóa nội trên BaiGiang
+        );
     }
 
     public function giangVien()
@@ -85,14 +103,7 @@ class PhongHocLive extends Model
 
     public function moderator()
     {
-        return $this->hasOneThrough(
-            NguoiDung::class,
-            GiangVien::class,
-            'id',
-            'ma_nguoi_dung',
-            'giang_vien_id',
-            'nguoi_dung_id'
-        );
+        return $this->belongsTo(NguoiDung::class, 'moderator_id', 'ma_nguoi_dung');
     }
 
     public function troGiang()
@@ -123,6 +134,13 @@ class PhongHocLive extends Model
     public function setNenTangLiveAttribute($value): void
     {
         $this->attributes['nen_tang'] = $value;
+        $this->attributes['nen_tang_live'] = $value;
+    }
+
+    public function setNenTangAttribute($value): void
+    {
+        $this->attributes['nen_tang'] = $value;
+        $this->attributes['nen_tang_live'] = $value;
     }
 
     public function getThoiGianBatDauAttribute($value): ?Carbon
@@ -135,6 +153,13 @@ class PhongHocLive extends Model
     public function setThoiGianBatDauAttribute($value): void
     {
         $this->attributes['bat_dau_du_kien'] = $value;
+        $this->attributes['thoi_gian_bat_dau'] = $value;
+    }
+
+    public function setBatDauDuKienAttribute($value): void
+    {
+        $this->attributes['bat_dau_du_kien'] = $value;
+        $this->attributes['thoi_gian_bat_dau'] = $value;
     }
 
     public function getThoiLuongPhutAttribute($value): int
@@ -154,6 +179,7 @@ class PhongHocLive extends Model
     {
         $start = $this->bat_dau_du_kien ?? now();
         $this->attributes['ket_thuc_du_kien'] = $start->copy()->addMinutes((int) $value);
+        $this->attributes['thoi_luong_phut'] = (int) $value;
     }
 
     public function getDuLieuNenTangJsonAttribute($value): array
@@ -167,7 +193,18 @@ class PhongHocLive extends Model
 
     public function setDuLieuNenTangJsonAttribute($value): void
     {
-        $this->attributes['du_lieu_nen_tang'] = is_array($value) ? json_encode($value) : $value;
+        $jsonValue = is_array($value) ? json_encode($value) : $value;
+
+        $this->attributes['du_lieu_nen_tang_json'] = $jsonValue;
+        $this->attributes['du_lieu_nen_tang'] = $jsonValue;
+    }
+
+    public function setDuLieuNenTangAttribute($value): void
+    {
+        $jsonValue = is_array($value) ? json_encode($value) : $value;
+
+        $this->attributes['du_lieu_nen_tang_json'] = $jsonValue;
+        $this->attributes['du_lieu_nen_tang'] = $jsonValue;
     }
 
     public function getTrangThaiPhongAttribute($value): ?string
@@ -185,9 +222,20 @@ class PhongHocLive extends Model
 
     public function setTrangThaiPhongAttribute($value): void
     {
+        $this->attributes['trang_thai_phong'] = $value;
         $this->attributes['trang_thai'] = match ($value) {
             self::ROOM_STATE_CHUA_MO, self::ROOM_STATE_SAP_DIEN_RA => 'cho',
             self::ROOM_STATE_DA_HUY => 'huy',
+            default => $value,
+        };
+    }
+
+    public function setTrangThaiAttribute($value): void
+    {
+        $this->attributes['trang_thai'] = $value;
+        $this->attributes['trang_thai_phong'] = match ($value) {
+            'cho' => self::ROOM_STATE_CHUA_MO,
+            'huy' => self::ROOM_STATE_DA_HUY,
             default => $value,
         };
     }

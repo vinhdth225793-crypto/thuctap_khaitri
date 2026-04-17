@@ -119,6 +119,11 @@
                             <span class="label">Điểm hiện tại</span>
                             <strong>{{ $baiLam->diem_so !== null ? number_format((float) $baiLam->diem_so, 2) : 'Đang chờ chấm' }}</strong>
                         </div>
+                        @if($canStartNewAttempt)
+                            <div class="alert alert-info">
+                                Bạn vẫn còn <strong>{{ $remainingAttempts }}</strong> lượt làm. Có thể bấm <strong>{{ $baiKiemTra->co_giam_sat ? 'Pre-check để làm lại' : 'Làm lần tiếp theo' }}</strong> để tạo lần làm mới.
+                            </div>
+                        @endif
                         @if($baiKiemTra->co_giam_sat)
                             <div class="info-row">
                                 <span class="label">Trạng thái giám sát</span>
@@ -138,25 +143,25 @@
             <div class="card vip-card">
                 <div class="card-header border-0 d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 fw-semibold">Nội dung bài kiểm tra</h5>
-                    @if(!$baiLam && $baiKiemTra->can_student_start)
+                    @if($canStartNewAttempt)
                         @if($baiKiemTra->co_giam_sat)
                             @if($precheckState)
                                 <div class="d-flex gap-2">
                                     <a href="{{ route('hoc-vien.bai-kiem-tra.precheck', $baiKiemTra->id) }}" class="btn btn-outline-warning">Kiểm tra lại pre-check</a>
                                     <form action="{{ route('hoc-vien.bai-kiem-tra.bat-dau', $baiKiemTra->id) }}" method="POST">
                                         @csrf
-                                        <button type="submit" class="btn btn-primary">Bắt đầu làm bài</button>
+                                        <button type="submit" class="btn btn-primary">{{ $baiLam ? 'Làm lần tiếp theo' : 'Bắt đầu làm bài' }}</button>
                                     </form>
                                 </div>
                             @else
                                 <a href="{{ route('hoc-vien.bai-kiem-tra.precheck', $baiKiemTra->id) }}" class="btn btn-warning">
-                                    Kiểm tra trước khi thi
+                                    {{ $baiLam ? 'Pre-check để làm lại' : 'Kiểm tra trước khi thi' }}
                                 </a>
                             @endif
                         @else
                             <form action="{{ route('hoc-vien.bai-kiem-tra.bat-dau', $baiKiemTra->id) }}" method="POST">
                                 @csrf
-                                <button type="submit" class="btn btn-primary">Bắt đầu làm bài</button>
+                                <button type="submit" class="btn btn-primary">{{ $baiLam ? 'Làm lần tiếp theo' : 'Bắt đầu làm bài' }}</button>
                             </form>
                         @endif
                     @endif
@@ -306,14 +311,29 @@
                                         <span class="badge bg-light text-dark">{{ number_format((float) ($chiTiet->chiTietBaiKiemTra->diem_so ?? 0), 2) }} điểm</span>
                                     </div>
                                     @if($chiTiet->cauHoi->loai_cau_hoi === 'trac_nghiem')
-                                        <div class="submitted-box">
+                                        @php
+                                            $isWrong = !$chiTiet->is_dung;
+                                        @endphp
+                                        <div class="submitted-box {{ $isWrong ? 'is-wrong' : 'is-correct' }}">
+                                            <div class="fw-bold mb-1">
+                                                @if($isWrong)
+                                                    <i class="fas fa-times-circle me-1"></i> Kết quả: Sai / chưa có đáp án
+                                                @else
+                                                    <i class="fas fa-check-circle me-1"></i> Kết quả: Đúng
+                                                @endif
+                                            </div>
                                             Đáp án đã chọn: {{ $chiTiet->dapAn->ky_hieu ?? 'Chưa chọn' }} - {{ $chiTiet->dapAn->noi_dung ?? 'Không có' }}<br>
-                                            Kết quả: {{ $chiTiet->is_dung ? 'Đúng' : 'Sai / chưa có đáp án' }}<br>
                                             Điểm: {{ number_format((float) ($chiTiet->diem_tu_dong ?? 0), 2) }}
                                         </div>
                                     @else
-                                        <div class="submitted-box mb-2">{!! nl2br(e($chiTiet->cau_tra_loi_text ?: 'Không có câu trả lời.')) !!}</div>
-                                        <div class="small text-muted">Điểm tự luận: {{ $chiTiet->diem_tu_luan !== null ? number_format((float) $chiTiet->diem_tu_luan, 2) : 'Đang chờ chấm' }}</div>
+                                        @php
+                                            $isGraded = $chiTiet->diem_tu_luan !== null;
+                                            $isWrongEssay = $isGraded && $chiTiet->diem_tu_luan == 0;
+                                        @endphp
+                                        <div class="submitted-box mb-2 {{ $isWrongEssay ? 'is-wrong' : '' }}">
+                                            {!! nl2br(e($chiTiet->cau_tra_loi_text ?: 'Không có câu trả lời.')) !!}
+                                        </div>
+                                        <div class="small text-muted">Điểm tự luận: {{ $isGraded ? number_format((float) $chiTiet->diem_tu_luan, 2) : 'Đang chờ chấm' }}</div>
                                         @if($chiTiet->nhan_xet)
                                             <div class="small text-muted">Nhận xét: {{ $chiTiet->nhan_xet }}</div>
                                         @endif
@@ -321,10 +341,14 @@
                                 </div>
                             @endforeach
                         @else
-                            <div class="submitted-box">
+                            @php
+                                $isGradedTotal = $baiLam->diem_so !== null;
+                                $isWrongTotal = $isGradedTotal && $baiLam->diem_so == 0;
+                            @endphp
+                            <div class="submitted-box {{ $isWrongTotal ? 'is-wrong' : '' }}">
                                 {!! nl2br(e($baiLam->noi_dung_bai_lam ?: 'Không có nội dung bài làm.')) !!}
                             </div>
-                            <div class="small text-muted mt-3">Điểm tự luận: {{ $baiLam->diem_so !== null ? number_format((float) $baiLam->diem_so, 2) : 'Đang chờ chấm' }}</div>
+                            <div class="small text-muted mt-3">Điểm tự luận: {{ $isGradedTotal ? number_format((float) $baiLam->diem_so, 2) : 'Đang chờ chấm' }}</div>
                             @if($baiLam->nhan_xet)
                                 <div class="small text-muted mt-1">Nhận xét: {{ $baiLam->nhan_xet }}</div>
                             @endif
@@ -398,9 +422,16 @@
         line-height: 1.8;
     }
 
-    .submitted-box {
+    .submitted-box.is-wrong {
+        background: #fef2f2;
+        border-color: #fecaca;
+        color: #991b1b;
+    }
+
+    .submitted-box.is-correct {
         background: #f0fdf4;
         border-color: #bbf7d0;
+        color: #166534;
     }
 
     .answer-option {

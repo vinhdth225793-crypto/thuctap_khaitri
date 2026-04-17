@@ -163,13 +163,21 @@
                                                 {{ $test->thoi_gian_lam_bai }} phút | {{ $test->chi_tiet_cau_hois_count ?? $test->chiTietCauHois()->count() }} câu
                                             </div>
                                         </div>
-                                        <div class="d-flex gap-2">
+                                        <div class="d-flex gap-2 flex-wrap justify-content-end">
                                             <a href="{{ route('giang-vien.bai-kiem-tra.edit', $test->id) }}" class="btn btn-sm btn-outline-danger px-3 shadow-xs" title="Cấu hình đề">
                                                 <i class="fas fa-cog me-1"></i> Cấu hình
                                             </a>
                                             <a href="{{ route('giang-vien.bai-kiem-tra.surveillance.edit', $test->id) }}" class="btn btn-sm btn-outline-warning px-3 shadow-xs" title="Cấu hình giám sát">
                                                 <i class="fas fa-shield-alt me-1"></i> Giám sát
                                             </a>
+                                            @if($test->trang_thai_duyet === 'da_duyet' && $test->trang_thai_phat_hanh !== 'phat_hanh')
+                                                <form action="{{ route('giang-vien.bai-kiem-tra.publish', $test->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Phát hành đề kiểm tra này cho học viên làm bài?')">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-sm btn-success px-3 shadow-xs">
+                                                        <i class="fas fa-paper-plane me-1"></i> Phát hành
+                                                    </button>
+                                                </form>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
