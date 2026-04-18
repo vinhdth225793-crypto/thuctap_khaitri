@@ -59,8 +59,10 @@
                         @php
                             $student = $data['student'];
                             $cResult = $data['course_result'];
+                            $moduleResult = $data['module_result'] ?? null;
                             $mResults = $data['module_results'];
                             $eResults = $data['exam_results'];
+                            $attemptsByExam = $data['attempts_by_exam'] ?? collect();
                         @endphp
                         <tr class="student-row" data-student-id="{{ $student->ma_nguoi_dung }}">
                             <td class="ps-4">
@@ -78,51 +80,69 @@
                                 </button>
                             </td>
                             <td class="text-center">
-                                @if($cResult)
-                                    <div class="fw-bold">{{ number_format($cResult->diem_diem_danh ?: 0, 1) }}</div>
-                                    <div class="smaller text-muted">{{ $cResult->ty_le_tham_du }}% ({{ $cResult->so_buoi_tham_du }}/{{ $cResult->tong_so_buoi }})</div>
+                                @if($moduleResult)
+                                    <div class="fw-bold">{{ number_format($moduleResult->diem_diem_danh ?: 0, 1) }}</div>
+                                    <div class="smaller text-muted">{{ $moduleResult->ty_le_tham_du }}% ({{ $moduleResult->so_buoi_tham_du }}/{{ $moduleResult->tong_so_buoi }})</div>
                                 @else
                                     <span class="text-muted">--</span>
                                 @endif
                             </td>
                             <td class="text-center">
-                                @if($cResult)
-                                    <div class="fw-bold">{{ number_format($cResult->diem_kiem_tra ?: 0, 1) }}</div>
-                                    <div class="smaller text-muted">{{ $cResult->so_bai_kiem_tra_hoan_thanh }} bài</div>
+                                @if($moduleResult)
+                                    <div class="fw-bold">{{ number_format($moduleResult->diem_kiem_tra ?: 0, 1) }}</div>
+                                    <div class="smaller text-muted">{{ $moduleResult->so_bai_kiem_tra_hoan_thanh }} bai</div>
                                 @else
                                     <span class="text-muted">--</span>
                                 @endif
                             </td>
                             <td class="text-center">
-                                @if($cResult)
-                                    <div class="fw-extrabold text-primary fs-5">{{ number_format($cResult->diem_tong_ket ?: 0, 2) }}</div>
+                                @if($moduleResult)
+                                    <div class="fw-extrabold text-primary fs-5">{{ number_format($moduleResult->diem_tong_ket ?: 0, 2) }}</div>
+                                    @if($moduleResult->diem_giang_vien_chot !== null)
+                                        <div class="smaller text-success">Da chot: {{ number_format((float) $moduleResult->diem_giang_vien_chot, 2) }}</div>
+                                    @endif
                                 @else
                                     <span class="text-muted">--</span>
                                 @endif
                             </td>
                             <td>
-                                @if($cResult)
-                                    <select class="form-select form-select-sm rounded-pill select-status" data-result-id="{{ $cResult->id }}">
-                                        <option value="dang_hoc" {{ $cResult->trang_thai === 'dang_hoc' ? 'selected' : '' }}>Đang học</option>
-                                        <option value="dat" {{ $cResult->trang_thai === 'dat' ? 'selected' : '' }}>Đạt</option>
-                                        <option value="khong_dat" {{ $cResult->trang_thai === 'khong_dat' ? 'selected' : '' }}>Chưa đạt</option>
-                                    </select>
+                                @if($moduleResult)
+                                    <div class="d-grid gap-1">
+                                        <span class="badge bg-{{ $moduleResult->trang_thai_chot === 'da_chot' ? 'success' : 'secondary' }}-soft text-{{ $moduleResult->trang_thai_chot === 'da_chot' ? 'success' : 'secondary' }}">
+                                            {{ $moduleResult->trang_thai_chot_label }}
+                                        </span>
+                                        <span class="badge bg-light text-dark border">{{ $moduleResult->trang_thai_duyet_label }}</span>
+                                        <select class="form-select form-select-sm rounded-pill select-status" data-result-id="{{ $moduleResult->id }}">
+                                            <option value="dang_hoc" {{ $moduleResult->trang_thai === 'dang_hoc' ? 'selected' : '' }}>Dang hoc</option>
+                                            <option value="hoan_thanh" {{ $moduleResult->trang_thai === 'hoan_thanh' ? 'selected' : '' }}>Hoan thanh</option>
+                                            <option value="dat" {{ $moduleResult->trang_thai === 'dat' ? 'selected' : '' }}>Dat</option>
+                                            <option value="khong_dat" {{ $moduleResult->trang_thai === 'khong_dat' ? 'selected' : '' }}>Chua dat</option>
+                                        </select>
+                                    </div>
                                 @else
                                     <span class="badge bg-secondary-soft text-secondary">Chưa khởi tạo</span>
                                 @endif
                             </td>
                             <td class="pe-4">
-                                @if($cResult)
+                                @if($moduleResult)
                                     <div class="input-group input-group-sm">
-                                        <input type="text" class="form-control rounded-start-pill input-comment" 
-                                               value="{{ $cResult->nhan_xet_giang_vien }}" 
+                                        <input type="text" class="form-control rounded-start-pill input-comment"
+                                               value="{{ $moduleResult->nhan_xet_giang_vien }}"
                                                placeholder="Nhập nhận xét..."
-                                               data-result-id="{{ $cResult->id }}">
-                                        <button class="btn btn-primary rounded-end-pill btn-save-comment" data-result-id="{{ $cResult->id }}">
+                                               data-result-id="{{ $moduleResult->id }}">
+                                        <button class="btn btn-primary rounded-end-pill btn-save-comment" data-result-id="{{ $moduleResult->id }}">
                                             <i class="fas fa-save"></i>
                                         </button>
                                     </div>
                                 @endif
+                                <form method="POST" action="{{ route('giang-vien.khoa-hoc.ket-qua.chot', $phanCong->id) }}" class="mt-2">
+                                    @csrf
+                                    <input type="hidden" name="hoc_vien_id" value="{{ $student->ma_nguoi_dung }}">
+                                    <input type="text" name="ghi_chu_chot" class="form-control form-control-sm mb-2" placeholder="Ghi chu chot diem..." value="{{ $moduleResult?->ghi_chu_chot }}">
+                                    <button type="submit" class="btn btn-success btn-sm w-100" onclick="return confirm('Chot diem module nay va gui admin duyet?')">
+                                        <i class="fas fa-lock me-1"></i>{{ $moduleResult?->trang_thai_chot === 'da_chot' ? 'Chot lai diem module' : 'Chot diem module' }}
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                         {{-- Collapsible Details Row --}}
@@ -159,6 +179,18 @@
                                                             <div>
                                                                 <div class="small fw-bold text-dark">{{ $er->baiKiemTra->tieu_de }}</div>
                                                                 <div class="smaller text-muted">Phạm vi: {{ $er->baiKiemTra->pham_vi_label }}</div>
+                                                                @if($er->attempt_strategy_used)
+                                                                    <div class="smaller text-primary">Cach tinh: {{ $er->attempt_strategy_used }}</div>
+                                                                @endif
+                                                                @foreach(($attemptsByExam[$er->bai_kiem_tra_id] ?? collect()) as $attempt)
+                                                                    <div class="smaller text-muted">
+                                                                        Lan {{ $attempt->lan_lam_thu }}:
+                                                                        {{ $attempt->diem_so !== null ? number_format((float) $attempt->diem_so, 2) : 'cho cham' }}
+                                                                        @if(in_array((int) $attempt->id, array_map('intval', $er->source_attempt_ids ?: []), true) || (int) $attempt->id === (int) $er->source_attempt_id)
+                                                                            <span class="badge bg-primary-soft text-primary">chinh thuc</span>
+                                                                        @endif
+                                                                    </div>
+                                                                @endforeach
                                                             </div>
                                                             <div class="text-end">
                                                                 <div class="fw-bold text-primary">{{ number_format($er->diem_kiem_tra ?: 0, 2) }}</div>

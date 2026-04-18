@@ -18,6 +18,8 @@ class ChiTietBaiKiemTra extends Model
         'ngan_hang_cau_hoi_id',
         'thu_tu',
         'diem_so',
+        'huong_dan_rieng',
+        'rubric_rieng',
         'bat_buoc',
     ];
 

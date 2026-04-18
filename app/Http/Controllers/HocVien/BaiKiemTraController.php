@@ -7,6 +7,7 @@ use App\Models\BaiKiemTra;
 use App\Models\BaiLamBaiKiemTra;
 use App\Models\BaiLamViPhamGiamSat;
 use App\Models\HocVienKhoaHoc;
+use App\Models\KetQuaHocTap;
 use App\Services\BaiKiemTraScoringService;
 use App\Services\ExamPrecheckService;
 use App\Services\ExamSnapshotService;
@@ -105,6 +106,25 @@ class BaiKiemTraController extends Controller
         $surveillanceSummary = ($baiLam && $baiKiemTra->co_giam_sat)
             ? $this->surveillanceService->summarizeLogs($baiLam)
             : [];
+        $officialResult = KetQuaHocTap::query()
+            ->where('bai_kiem_tra_id', $baiKiemTra->id)
+            ->where('hoc_vien_id', $hocVienId)
+            ->first();
+        $officialAttemptIds = collect($officialResult?->source_attempt_ids ?: []);
+
+        if ($officialResult?->source_attempt_id) {
+            $officialAttemptIds->push((int) $officialResult->source_attempt_id);
+        }
+
+        if (isset($officialResult?->chi_tiet['bai_lam_id'])) {
+            $officialAttemptIds->push((int) $officialResult->chi_tiet['bai_lam_id']);
+        }
+
+        $officialAttemptIds = $officialAttemptIds->map(fn ($id) => (int) $id)->filter()->unique()->values();
+        $baiKiemTra->baiLams->each(function (BaiLamBaiKiemTra $attempt) use ($officialAttemptIds, $officialResult) {
+            $attempt->setAttribute('is_official_attempt', $officialAttemptIds->contains((int) $attempt->id));
+            $attempt->setAttribute('official_strategy', $officialResult?->attempt_strategy_used);
+        });
 
         return view('pages.hoc-vien.bai-kiem-tra.show', compact(
             'baiKiemTra',
@@ -115,7 +135,8 @@ class BaiKiemTraController extends Controller
             'remainingAttempts',
             'canStartNewAttempt',
             'precheckState',
-            'surveillanceSummary'
+            'surveillanceSummary',
+            'officialResult'
         ));
     }
 
@@ -206,6 +227,12 @@ class BaiKiemTraController extends Controller
                 ->with('error', 'Bạn đã dùng hết số lần làm bài được phép.');
         }
 
+        if ($baiKiemTra->uses_question_bank && $baiKiemTra->chiTietCauHois->isEmpty()) {
+            return redirect()
+                ->route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id)
+                ->with('error', 'De kiem tra nay chua co cau hoi phu hop, vui long lien he giang vien.');
+        }
+
         $precheckState = null;
         if ($baiKiemTra->co_giam_sat) {
             $precheckState = $this->precheckService->consumePassedPrecheck($baiKiemTra, $user->ma_nguoi_dung);
@@ -264,6 +291,12 @@ class BaiKiemTraController extends Controller
             return redirect()
                 ->route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id)
                 ->with('error', 'Không thể nộp bài vì bài kiểm tra này đã đóng hoặc chưa đến giờ mở.');
+        }
+
+        if ($baiKiemTra->uses_question_bank && $baiKiemTra->chiTietCauHois->isEmpty()) {
+            return redirect()
+                ->route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id)
+                ->with('error', 'De kiem tra nay chua co cau hoi phu hop, vui long lien he giang vien.');
         }
 
         if ($baiKiemTra->chiTietCauHois->isEmpty()) {

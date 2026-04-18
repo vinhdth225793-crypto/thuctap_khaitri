@@ -78,7 +78,7 @@ class DiemDanhController extends Controller
             'vang_mat' => $diemDanhs->where('trang_thai', 'vang_mat')->count(),
             'vao_tre' => $diemDanhs->where('trang_thai', 'vao_tre')->count(),
             'co_phep' => $diemDanhs->where('trang_thai', 'co_phep')->count(),
-            'is_finalized' => $lichHoc->trang_thai_bao_cao === 'da_bao_cao',
+            'is_finalized' => in_array($lichHoc->trang_thai_bao_cao, ['da_bao_cao', 'da_bao_cao_muon'], true),
         ];
 
         return response()->json([
@@ -110,9 +110,17 @@ class DiemDanhController extends Controller
             return back()->with('info', 'Khóa học này hiện không có học viên đang học để điểm danh.');
         }
 
-        if (!$request->has('attendance') || empty($request->attendance)) {
-            return back()->with('info', 'Không có dữ liệu điểm danh để lưu.');
+        $attendanceData = collect($request->attendance)
+            ->filter(fn ($item) => !empty($item['trang_thai']))
+            ->values()
+            ->all();
+
+        if (empty($attendanceData)) {
+            return back()->with('info', 'Bạn chưa chọn trạng thái điểm danh cho học viên nào.');
         }
+
+        // Thay thế input attendance bằng dữ liệu đã lọc để pass qua validate
+        $request->merge(['attendance' => $attendanceData]);
 
         $request->validate([
             'attendance' => 'required|array',
@@ -148,8 +156,13 @@ class DiemDanhController extends Controller
             return back()->with('success', 'Đã lưu dữ liệu điểm danh học viên thành công.');
         } catch (\Throwable $exception) {
             report($exception);
+            
+            $errorMessage = 'Không thể lưu điểm danh lúc này.';
+            if (config('app.debug')) {
+                $errorMessage .= ' Lỗi: ' . $exception->getMessage();
+            }
 
-            return back()->with('error', 'Không thể lưu điểm danh lúc này. Dữ liệu chưa được ghi nhận, vui lòng thử lại.');
+            return back()->with('error', $errorMessage . ' Dữ liệu chưa được ghi nhận, vui lòng thử lại.');
         }
     }
 

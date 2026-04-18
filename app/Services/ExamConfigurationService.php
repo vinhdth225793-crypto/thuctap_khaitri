@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\BaiKiemTra;
+use App\Models\NganHangCauHoi;
 use Illuminate\Validation\ValidationException;
 
 class ExamConfigurationService
@@ -33,6 +34,15 @@ class ExamConfigurationService
         $baiKiemTra->loadMissing(['chiTietCauHois.cauHoi']);
 
         $errors = [];
+        $contentMode = $baiKiemTra->content_mode_key;
+        $questionDetails = $baiKiemTra->chiTietCauHois;
+        $hasQuestionDetails = $questionDetails->isNotEmpty();
+        $objectiveCount = $questionDetails
+            ->filter(fn ($detail) => $detail->cauHoi?->loai_cau_hoi === NganHangCauHoi::LOAI_TRAC_NGHIEM)
+            ->count();
+        $essayCount = $questionDetails
+            ->filter(fn ($detail) => $detail->cauHoi?->loai_cau_hoi === NganHangCauHoi::LOAI_TU_LUAN)
+            ->count();
 
         if (blank($baiKiemTra->tieu_de)) {
             $errors['tieu_de'] = 'Vui lòng nhập tiêu đề bài kiểm tra trước khi gửi duyệt.';
@@ -50,11 +60,34 @@ class ExamConfigurationService
             $errors['ngay_dong'] = 'Ngày đóng đề phải sau ngày mở đề.';
         }
 
-        if ($baiKiemTra->chiTietCauHois->isEmpty() && blank($baiKiemTra->mo_ta)) {
+        if ($contentMode === BaiKiemTra::CHE_DO_TU_LUAN_TU_DO && !$hasQuestionDetails && blank($baiKiemTra->mo_ta)) {
             $errors['mo_ta'] = 'Hãy thêm câu hỏi hoặc mô tả đề bài trước khi gửi duyệt.';
         }
 
-        if ($baiKiemTra->chiTietCauHois->isNotEmpty()) {
+        if ($contentMode === BaiKiemTra::CHE_DO_TU_LUAN_TU_DO) {
+            if ($hasQuestionDetails) {
+                $errors['question_ids'] = 'Cháº¿ Ä‘á»™ tá»± luáº­n tá»± do khÃ´ng gÃ¡n cÃ¢u há»i tá»« ngÃ¢n hÃ ng.';
+            }
+
+            if ($hasQuestionDetails) {
+                $errors['question_ids'] = 'Che do tu luan tu do khong gan cau hoi tu ngan hang.';
+            }
+
+            if ((float) $baiKiemTra->tong_diem <= 0) {
+                $errors['tong_diem'] = 'Tá»•ng Ä‘iá»ƒm cá»§a Ä‘á» pháº£i lá»›n hÆ¡n 0.';
+            }
+            if ((float) $baiKiemTra->tong_diem <= 0) {
+                $errors['tong_diem'] = 'Tong diem cua de phai lon hon 0.';
+            }
+        } elseif (!$hasQuestionDetails) {
+            $errors['question_ids'] = 'Vui lÃ²ng chá»n cÃ¢u há»i phÃ¹ há»£p vá»›i cháº¿ Ä‘á»™ ná»™i dung trÆ°á»›c khi gá»­i duyá»‡t.';
+        }
+
+        if ($contentMode !== BaiKiemTra::CHE_DO_TU_LUAN_TU_DO && !$hasQuestionDetails) {
+            $errors['question_ids'] = 'Vui long chon cau hoi phu hop voi che do noi dung truoc khi gui duyet.';
+        }
+
+        if ($hasQuestionDetails) {
             if ($baiKiemTra->chiTietCauHois->contains(fn ($detail) => $detail->cauHoi === null)) {
                 $errors['question_ids'] = 'Đề đang chứa câu hỏi không còn tồn tại trong ngân hàng.';
             }
@@ -62,10 +95,21 @@ class ExamConfigurationService
             if ($baiKiemTra->chiTietCauHois->contains(fn ($detail) => (float) $detail->diem_so < self::MIN_QUESTION_SCORE)) {
                 $errors['question_scores'] = 'Mỗi câu hỏi phải có điểm số hợp lệ từ ' . number_format(self::MIN_QUESTION_SCORE, 2) . ' trở lên.';
             }
+            if ($contentMode === BaiKiemTra::CHE_DO_TRAC_NGHIEM && $essayCount > 0) {
+                $errors['question_ids'] = 'Che do trac nghiem chi duoc gan cau hoi trac nghiem.';
+            }
+
+            if ($contentMode === BaiKiemTra::CHE_DO_TU_LUAN_THEO_CAU && $objectiveCount > 0) {
+                $errors['question_ids'] = 'Che do tu luan theo cau chi duoc gan cau hoi tu luan.';
+            }
+
+            if ($contentMode === BaiKiemTra::CHE_DO_HON_HOP && ($objectiveCount === 0 || $essayCount === 0)) {
+                $errors['question_ids'] = 'Che do hon hop can it nhat mot cau trac nghiem va mot cau tu luan.';
+            }
         }
 
-        if ($baiKiemTra->che_do_tinh_diem === 'goi_diem') {
-            if ($baiKiemTra->chiTietCauHois->isEmpty()) {
+        if ($baiKiemTra->che_do_tinh_diem === 'goi_diem' && $contentMode !== BaiKiemTra::CHE_DO_TU_LUAN_TU_DO) {
+            if (!$hasQuestionDetails) {
                 $errors['question_ids'] = 'Chế độ gói điểm yêu cầu chọn đủ câu hỏi trước khi gửi duyệt.';
             }
 
@@ -73,12 +117,12 @@ class ExamConfigurationService
                 $errors['so_cau_goi_diem'] = 'Vui lòng cấu hình số câu cho gói điểm.';
             }
 
-            if ($baiKiemTra->chiTietCauHois->isNotEmpty() && (int) $baiKiemTra->so_cau_goi_diem !== $baiKiemTra->chiTietCauHois->count()) {
+            if ($hasQuestionDetails && (int) $baiKiemTra->so_cau_goi_diem !== $questionDetails->count()) {
                 $errors['question_ids'] = 'Số câu hỏi hiện tại chưa khớp với số câu trong gói điểm.';
             }
         }
 
-        if ($baiKiemTra->chiTietCauHois->isNotEmpty()) {
+        if ($hasQuestionDetails) {
             $tongDiemChiTiet = round($baiKiemTra->chiTietCauHois->sum(fn ($detail) => (float) $detail->diem_so), 2);
             $tongDiemDe = round((float) $baiKiemTra->tong_diem, 2);
 

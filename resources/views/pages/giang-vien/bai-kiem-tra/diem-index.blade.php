@@ -150,6 +150,24 @@
         transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
     }
 
+    .score-exam-card--trac-nghiem {
+        background: linear-gradient(180deg, #fffdf0 0%, #fff9e6 100%);
+        border-color: rgba(217, 119, 6, 0.15);
+    }
+
+    .score-exam-card--tu-luan {
+        background: linear-gradient(180deg, #fff9f9 0%, #fff0f0 100%);
+        border-color: rgba(220, 38, 38, 0.15);
+    }
+
+    .score-exam-card--trac-nghiem:hover {
+        border-color: rgba(217, 119, 6, 0.4);
+    }
+
+    .score-exam-card--tu-luan:hover {
+        border-color: rgba(220, 38, 38, 0.4);
+    }
+
     .score-exam-card:hover {
         border-color: rgba(37, 99, 235, 0.32);
         box-shadow: 0 22px 46px rgba(15, 23, 42, 0.13);
@@ -558,11 +576,20 @@
                                 $exam = $card['exam'];
                                 $examType = $examTypeMap[$exam?->loai_bai_kiem_tra] ?? ['label' => 'Khác', 'class' => 'secondary', 'icon' => 'fa-circle-question'];
                                 $studentModalId = 'scoreStudentsModal-' . $card['id'];
+                                
+                                $cardColorClass = '';
+                                if ($exam) {
+                                    if ($exam->loai_noi_dung === 'trac_nghiem') {
+                                        $cardColorClass = 'score-exam-card--trac-nghiem';
+                                    } elseif ($exam->loai_noi_dung === 'tu_luan') {
+                                        $cardColorClass = 'score-exam-card--tu-luan';
+                                    }
+                                }
                             @endphp
 
                             @continue(!$exam)
 
-                            <article class="score-exam-card">
+                            <article class="score-exam-card {{ $cardColorClass }}">
                                 <div class="score-exam-card-body">
                                     <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
                                         <span class="badge text-bg-{{ $examType['class'] }}">

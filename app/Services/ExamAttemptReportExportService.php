@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\BaiKiemTra;
 use App\Models\BaiLamBaiKiemTra;
+use App\Models\KetQuaHocTap;
 use DOMDocument;
 use DOMElement;
 use DOMXPath;
@@ -76,10 +77,12 @@ class ExamAttemptReportExportService
             'lichHoc.moduleHoc:id,ma_module,ten_module,so_buoi',
         ]);
 
-        return BaiLamBaiKiemTra::query()
+        $attempts = BaiLamBaiKiemTra::query()
             ->with([
                 'hocVien:ma_nguoi_dung,ho_ten,email,so_dien_thoai',
                 'nguoiCham:ma_nguoi_dung,ho_ten,email',
+                'chiTietTraLois.cauHoi:id,noi_dung,loai_cau_hoi',
+                'chiTietTraLois.chiTietBaiKiemTra:id,diem_so,thu_tu',
             ])
             ->where('bai_kiem_tra_id', $baiKiemTra->id)
             ->whereIn('trang_thai', ['da_nop', 'cho_cham', 'da_cham'])
@@ -87,7 +90,15 @@ class ExamAttemptReportExportService
             ->orderBy('hoc_vien_id')
             ->orderBy('lan_lam_thu')
             ->get()
-            ->map(fn (BaiLamBaiKiemTra $baiLam) => $this->buildRow($baiKiemTra, $baiLam))
+            ->values();
+        $officialResults = KetQuaHocTap::query()
+            ->where('bai_kiem_tra_id', $baiKiemTra->id)
+            ->whereIn('hoc_vien_id', $attempts->pluck('hoc_vien_id')->unique()->values()->all())
+            ->get()
+            ->keyBy('hoc_vien_id');
+
+        return $attempts
+            ->map(fn (BaiLamBaiKiemTra $baiLam) => $this->buildRow($baiKiemTra, $baiLam, $officialResults->get($baiLam->hoc_vien_id)))
             ->values()
             ->all();
     }
@@ -95,7 +106,7 @@ class ExamAttemptReportExportService
     /**
      * @return array<int, string>
      */
-    private function buildRow(BaiKiemTra $baiKiemTra, BaiLamBaiKiemTra $baiLam): array
+    private function buildRow(BaiKiemTra $baiKiemTra, BaiLamBaiKiemTra $baiLam, ?KetQuaHocTap $officialResult = null): array
     {
         $student = $baiLam->hocVien;
         $schedule = $baiKiemTra->lichHoc;
@@ -128,7 +139,7 @@ class ExamAttemptReportExportService
             $this->formatDecimal($baiLam->tong_diem_trac_nghiem),
             $this->formatDecimal($baiLam->tong_diem_tu_luan),
             (string) ($baiLam->tong_so_vi_pham ?? 0),
-            $this->buildArchiveNote($baiLam),
+            $this->buildArchiveNote($baiLam, $officialResult),
         ];
     }
 
@@ -185,17 +196,71 @@ class ExamAttemptReportExportService
         return rtrim(rtrim($formatted, '0'), '.');
     }
 
-    private function buildArchiveNote(BaiLamBaiKiemTra $baiLam): string
+    private function buildArchiveNote(BaiLamBaiKiemTra $baiLam, ?KetQuaHocTap $officialResult = null): string
     {
         return collect([
+            $this->buildOfficialResultNote($baiLam, $officialResult),
             $baiLam->nhan_xet,
             $baiLam->ghi_chu_giam_sat,
+            $this->buildQuestionDetailArchiveNote($baiLam),
             $baiLam->da_tu_dong_nop ? 'Tự động nộp khi hết giờ/vi phạm' : null,
             $baiLam->nguoiCham ? 'Người chấm: ' . $baiLam->nguoiCham->ho_ten : null,
         ])
             ->filter(fn ($note) => filled($note))
             ->map(fn ($note) => trim((string) $note))
             ->implode(' | ');
+    }
+
+    private function buildOfficialResultNote(BaiLamBaiKiemTra $baiLam, ?KetQuaHocTap $officialResult): ?string
+    {
+        if (!$officialResult) {
+            return null;
+        }
+
+        $sourceAttemptIds = collect($officialResult->source_attempt_ids ?: []);
+        if ($officialResult->source_attempt_id) {
+            $sourceAttemptIds->push((int) $officialResult->source_attempt_id);
+        }
+
+        if (isset($officialResult->chi_tiet['bai_lam_id'])) {
+            $sourceAttemptIds->push((int) $officialResult->chi_tiet['bai_lam_id']);
+        }
+
+        $isOfficialAttempt = $sourceAttemptIds
+            ->map(fn ($id) => (int) $id)
+            ->contains((int) $baiLam->id);
+
+        return 'Diem chinh thuc: ' . $this->formatDecimal($officialResult->diem_kiem_tra)
+            . '; strategy: ' . ($officialResult->attempt_strategy_used ?: 'highest_score')
+            . '; attempt nay: ' . ($isOfficialAttempt ? 'co' : 'khong');
+    }
+
+    private function buildQuestionDetailArchiveNote(BaiLamBaiKiemTra $baiLam): ?string
+    {
+        if (!$baiLam->relationLoaded('chiTietTraLois') || $baiLam->chiTietTraLois->isEmpty()) {
+            return null;
+        }
+
+        $items = $baiLam->chiTietTraLois
+            ->sortBy(fn ($detail) => (int) ($detail->chiTietBaiKiemTra?->thu_tu ?? 0))
+            ->values()
+            ->map(function ($detail, int $index) {
+                $maxScore = $this->formatDecimal($detail->chiTietBaiKiemTra?->diem_so);
+                $score = $detail->cauHoi?->loai_cau_hoi === 'trac_nghiem'
+                    ? $this->formatDecimal($detail->diem_tu_dong)
+                    : $this->formatDecimal($detail->diem_tu_luan);
+                $scoreText = $score !== '' || $maxScore !== ''
+                    ? trim(($score !== '' ? $score : '0') . '/' . ($maxScore !== '' ? $maxScore : '?'))
+                    : '';
+                $typeText = $detail->cauHoi?->loai_cau_hoi === 'trac_nghiem' ? 'TN' : 'TL';
+                $comment = filled($detail->nhan_xet) ? ' - ' . trim((string) $detail->nhan_xet) : '';
+
+                return trim('C' . ($index + 1) . " {$typeText} {$scoreText}{$comment}");
+            })
+            ->filter(fn (string $item) => $item !== '')
+            ->implode('; ');
+
+        return $items !== '' ? 'Chi tiet cau hoi: ' . $items : null;
     }
 
     /**

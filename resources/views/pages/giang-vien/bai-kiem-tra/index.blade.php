@@ -246,6 +246,16 @@
                                                     Chấm bài
                                                 </a>
                                             @endif
+
+                                            @if($baiKiemTra->bai_lams_count === 0 && in_array($baiKiemTra->trang_thai_duyet, ['nhap', 'cho_duyet', 'tu_choi']))
+                                                <form action="{{ route('giang-vien.bai-kiem-tra.destroy', $baiKiemTra->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bài kiểm tra này? Thao tác này không thể hoàn tác.')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa đề">
+                                                        <i class="fas fa-trash-alt"></i>
+                                                    </button>
+                                                </form>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>

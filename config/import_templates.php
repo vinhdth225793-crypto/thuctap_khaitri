@@ -19,6 +19,23 @@ return [
                 'dap_an_dung',
             ],
         ],
+        'question_bank_essay' => [
+            'disk' => 'local',
+            'path' => 'templates/imports/cau-hoi/mau-import-cau-hoi-tu-luan.csv',
+            'download_name' => 'mau-import-cau-hoi-tu-luan.csv',
+            'sheet' => 'Mau_Tu_Luan',
+            'data_starts_on_row' => 2,
+            'headers' => [
+                'noi_dung',
+                'goi_y_tra_loi',
+                'dap_an_mau',
+                'rubric',
+                'diem',
+                'muc_do',
+                'status',
+                'note',
+            ],
+        ],
     ],
 
     'legacy_profiles' => [

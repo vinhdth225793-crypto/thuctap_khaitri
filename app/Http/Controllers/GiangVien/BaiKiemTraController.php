@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BaiKiemTra;
 use App\Models\BaiLamBaiKiemTra;
 use App\Models\GiangVien;
+use App\Models\KetQuaHocTap;
 use App\Models\LichHoc;
 use App\Models\ModuleHoc;
 use App\Models\NganHangCauHoi;
@@ -117,6 +118,9 @@ class BaiKiemTraController extends Controller
         [$moduleId, $lichHoc] = $this->resolveScope($validated);
         $loaiBaiKiemTra = $this->resolveExamType($validated['pham_vi']);
         $preferredContentMode = (string) ($validated['che_do_noi_dung'] ?? 'tu_luan_tu_do');
+        if (!in_array($preferredContentMode, BaiKiemTra::contentModeKeys(), true)) {
+            $preferredContentMode = BaiKiemTra::CHE_DO_TU_LUAN_TU_DO;
+        }
         $surveillanceConfig = $this->surveillanceService->normalizeExamConfig($validated, $request);
 
         $this->authorizeTeacherForScope($giangVien, (int) $validated['khoa_hoc_id'], $moduleId, $loaiBaiKiemTra);
@@ -130,7 +134,8 @@ class BaiKiemTraController extends Controller
             'thoi_gian_lam_bai' => $validated['thoi_gian_lam_bai'],
             'pham_vi' => $validated['pham_vi'],
             'loai_bai_kiem_tra' => $loaiBaiKiemTra,
-            'loai_noi_dung' => 'tu_luan',
+            'loai_noi_dung' => BaiKiemTra::legacyContentTypeForMode($preferredContentMode),
+            'che_do_noi_dung' => $preferredContentMode,
             'trang_thai_duyet' => 'nhap',
             'trang_thai_phat_hanh' => 'nhap',
             'tong_diem' => 10,
@@ -176,7 +181,15 @@ class BaiKiemTraController extends Controller
             ? (string) $request->query('preferred_mode')
             : $baiKiemTra->content_mode_key;
 
-        if (!in_array($preferredContentMode, ['trac_nghiem', 'tu_luan_tu_do', 'tu_luan_theo_cau', 'hon_hop'], true)) {
+        if (
+            !$request->filled('preferred_mode')
+            && $preferredContentMode === BaiKiemTra::CHE_DO_TU_LUAN_TU_DO
+            && in_array($activeTab, ['import', 'questions'], true)
+        ) {
+            $preferredContentMode = BaiKiemTra::CHE_DO_TU_LUAN_THEO_CAU;
+        }
+
+        if (!in_array($preferredContentMode, BaiKiemTra::contentModeKeys(), true)) {
             $preferredContentMode = $baiKiemTra->content_mode_key;
         }
 
@@ -255,6 +268,7 @@ class BaiKiemTraController extends Controller
         $validated = $request->validate([
             'tieu_de' => 'required|string|max:255',
             'mo_ta' => 'nullable|string',
+            'mo_ta_tu_luan_tu_do' => 'nullable|string',
             'thoi_gian_lam_bai' => 'required|integer|min:1|max:300',
             'ngay_mo' => 'nullable|date',
             'ngay_dong' => 'nullable|date|after:ngay_mo',
@@ -282,19 +296,34 @@ class BaiKiemTraController extends Controller
         ]);
 
         $explicitContentMode = $request->filled('che_do_noi_dung');
+        $submittedQuestionIds = array_values(array_unique(array_map('intval', $validated['question_ids'] ?? [])));
         $requestedContentMode = $explicitContentMode
             ? (string) $validated['che_do_noi_dung']
             : $baiKiemTra->content_mode_key;
-        $freeEssayTotalScore = round((float) ($validated['tong_diem_tu_luan_tu_do'] ?? ($baiKiemTra->tong_diem ?: 10)), 2);
 
-        if ($requestedContentMode === 'tu_luan_tu_do' && blank($validated['mo_ta'] ?? null)) {
+        if (!$explicitContentMode) {
+            $requestedContentMode = $submittedQuestionIds === []
+                ? BaiKiemTra::CHE_DO_TU_LUAN_TU_DO
+                : $this->inferContentModeFromQuestionIds($baiKiemTra, $submittedQuestionIds);
+        }
+
+        $defaultFreeEssayScore = $baiKiemTra->is_free_essay ? ($baiKiemTra->tong_diem ?: 10) : 10;
+        $freeEssayTotalScore = round((float) ($validated['tong_diem_tu_luan_tu_do'] ?? $defaultFreeEssayScore), 2);
+
+        // Cải thiện logic lấy nội dung đề bài: Ưu tiên mo_ta_tu_luan_tu_do nếu nó được điền,
+        // bất kể requestedContentMode là gì, vì chúng ta có thể cưỡng ép về tu_luan_tu_do nếu question_ids trống.
+        $essayPromptForSave = filled($validated['mo_ta_tu_luan_tu_do'] ?? null)
+            ? $validated['mo_ta_tu_luan_tu_do']
+            : ($validated['mo_ta'] ?? null);
+
+        if (($requestedContentMode === BaiKiemTra::CHE_DO_TU_LUAN_TU_DO || $submittedQuestionIds === []) && blank($essayPromptForSave)) {
             throw ValidationException::withMessages([
                 'mo_ta' => 'Vui lòng nhập đề kiểm tra tự luận trước khi lưu.',
             ]);
         }
 
-        DB::transaction(function () use ($baiKiemTra, $validated, $request, $explicitContentMode, $requestedContentMode, $freeEssayTotalScore) {
-            $questionIds = array_values(array_unique(array_map('intval', $validated['question_ids'] ?? [])));
+        DB::transaction(function () use ($baiKiemTra, $validated, $request, $explicitContentMode, $requestedContentMode, $freeEssayTotalScore, $submittedQuestionIds, $essayPromptForSave) {
+            $questionIds = $submittedQuestionIds;
 
             if ($requestedContentMode === 'tu_luan_tu_do') {
                 $questionIds = [];
@@ -335,7 +364,7 @@ class BaiKiemTraController extends Controller
 
             $baiKiemTra->update([
                 'tieu_de' => $validated['tieu_de'],
-                'mo_ta' => $validated['mo_ta'] ?? null,
+                'mo_ta' => $essayPromptForSave,
                 'thoi_gian_lam_bai' => $validated['thoi_gian_lam_bai'],
                 'ngay_mo' => $validated['ngay_mo'] ?? null,
                 'ngay_dong' => $validated['ngay_dong'] ?? null,
@@ -354,10 +383,18 @@ class BaiKiemTraController extends Controller
                     $questionIds
                 );
             [$tongDiem, $loaiNoiDung] = $this->questionSelectionService->syncQuestions($baiKiemTra, $questionIds, $questionScores);
+            $contentModeToPersist = $questionIds === []
+                ? BaiKiemTra::CHE_DO_TU_LUAN_TU_DO
+                : match ($loaiNoiDung) {
+                    'trac_nghiem' => BaiKiemTra::CHE_DO_TRAC_NGHIEM,
+                    'hon_hop' => BaiKiemTra::CHE_DO_HON_HOP,
+                    default => BaiKiemTra::CHE_DO_TU_LUAN_THEO_CAU,
+                };
 
             $baiKiemTra->update([
                 'tong_diem' => $questionIds === [] ? $freeEssayTotalScore : $tongDiem,
-                'loai_noi_dung' => $questionIds === [] ? 'tu_luan' : $loaiNoiDung,
+                'loai_noi_dung' => BaiKiemTra::legacyContentTypeForMode($contentModeToPersist),
+                'che_do_noi_dung' => $contentModeToPersist,
             ]);
         });
 
@@ -407,6 +444,118 @@ class BaiKiemTraController extends Controller
             ->with('success', 'Đã cập nhật cấu hình giám sát cho bài kiểm tra.');
     }
 
+    public function downloadEssayImportTemplate()
+    {
+        $rows = [
+            ['noi_dung', 'goi_y_tra_loi', 'dap_an_mau', 'rubric', 'diem', 'muc_do', 'status', 'note'],
+            [
+                'Phan tich tinh huong va neu ket luan cua ban.',
+                'Goi y ngan cho hoc vien neu can hien thi.',
+                'Dap an mau hoac cac y chinh giang vien dung de tham khao.',
+                'Y chinh: 4 diem; Lap luan: 3 diem; Trinh bay: 3 diem.',
+                '10',
+                'trung_binh',
+                'san_sang',
+                'Dong mau co the xoa truoc khi import.',
+            ],
+        ];
+
+        return response()->streamDownload(function () use ($rows) {
+            $handle = fopen('php://output', 'wb');
+            if ($handle === false) {
+                return;
+            }
+
+            fwrite($handle, "\xEF\xBB\xBF");
+            foreach ($rows as $row) {
+                fputcsv($handle, $row);
+            }
+            fclose($handle);
+        }, 'mau-import-cau-hoi-tu-luan.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    public function storeEssayQuestion(Request $request, int $id)
+    {
+        $baiKiemTra = BaiKiemTra::with('chiTietCauHois.cauHoi')->findOrFail($id);
+        $this->authorizeTeacherForExam(auth()->user()?->giangVien, $baiKiemTra);
+
+        $validated = $request->validate([
+            'noi_dung' => 'required|string|max:50000',
+            'goi_y_tra_loi' => 'nullable|string|max:50000',
+            'dap_an_mau' => 'nullable|string|max:50000',
+            'rubric_cham' => 'nullable|string|max:50000',
+            'diem_mac_dinh' => 'required|numeric|min:0.25|max:100',
+            'muc_do' => 'required|in:de,trung_binh,kho',
+            'thu_tu' => 'nullable|integer|min:1',
+            'trang_thai' => 'nullable|in:nhap,san_sang,tam_an',
+        ]);
+
+        if (($validated['trang_thai'] ?? NganHangCauHoi::TRANG_THAI_SAN_SANG) !== NganHangCauHoi::TRANG_THAI_SAN_SANG) {
+            throw ValidationException::withMessages([
+                'trang_thai' => 'Cau hoi gan vao de can o trang thai san sang.',
+            ]);
+        }
+
+        $cauHoi = DB::transaction(function () use ($baiKiemTra, $validated) {
+            $normalizedContent = NganHangCauHoi::normalizeString($validated['noi_dung']);
+            $existingQuestion = NganHangCauHoi::query()
+                ->where('khoa_hoc_id', $baiKiemTra->khoa_hoc_id)
+                ->get()
+                ->first(fn (NganHangCauHoi $question) => NganHangCauHoi::normalizeString($question->noi_dung) === $normalizedContent);
+
+            if ($existingQuestion && $existingQuestion->loai_cau_hoi !== NganHangCauHoi::LOAI_TU_LUAN) {
+                throw ValidationException::withMessages([
+                    'noi_dung' => 'Noi dung nay da ton tai trong kho voi loai cau hoi khac.',
+                ]);
+            }
+
+            $cauHoi = $existingQuestion ?: NganHangCauHoi::create([
+                'khoa_hoc_id' => $baiKiemTra->khoa_hoc_id,
+                'module_hoc_id' => $baiKiemTra->module_hoc_id,
+                'nguoi_tao_id' => auth()->id(),
+                'noi_dung' => $validated['noi_dung'],
+                'loai_cau_hoi' => NganHangCauHoi::LOAI_TU_LUAN,
+                'kieu_dap_an' => null,
+                'muc_do' => $validated['muc_do'],
+                'diem_mac_dinh' => round((float) $validated['diem_mac_dinh'], 2),
+                'goi_y_tra_loi' => $validated['goi_y_tra_loi'] ?? null,
+                'dap_an_mau' => $validated['dap_an_mau'] ?? null,
+                'rubric_cham' => $validated['rubric_cham'] ?? null,
+                'trang_thai' => NganHangCauHoi::TRANG_THAI_SAN_SANG,
+                'co_the_tai_su_dung' => true,
+            ]);
+
+            if ($existingQuestion && (
+                $existingQuestion->trang_thai !== NganHangCauHoi::TRANG_THAI_SAN_SANG
+                || !$existingQuestion->co_the_tai_su_dung
+            )) {
+                throw ValidationException::withMessages([
+                    'noi_dung' => 'Cau hoi nay da ton tai nhung chua san sang de gan vao de.',
+                ]);
+            }
+
+            $this->attachQuestionsToExam(
+                $baiKiemTra,
+                [(int) $cauHoi->id],
+                [(int) $cauHoi->id => round((float) $validated['diem_mac_dinh'], 2)],
+                isset($validated['thu_tu']) ? (int) $validated['thu_tu'] : null
+            );
+
+            return $cauHoi;
+        });
+
+        return redirect()
+            ->route('giang-vien.bai-kiem-tra.edit', [
+                'id' => $baiKiemTra->id,
+                'tab' => 'questions',
+                'preferred_mode' => $baiKiemTra->fresh()->content_mode_key,
+            ])
+            ->with('success', 'Da them cau tu luan vao de.')
+            ->with('exam_imported_question_ids', [(int) $cauHoi->id]);
+    }
+
     public function importPreview(Request $request, int $id)
     {
         $baiKiemTra = BaiKiemTra::findOrFail($id);
@@ -439,6 +588,10 @@ class BaiKiemTraController extends Controller
                             'question_type_label' => $row['loai_cau_hoi_label'] ?? null,
                             'correct_answer' => $row['dap_an_dung'] ?? null,
                             'goi_y_tra_loi' => $row['goi_y_tra_loi'] ?? null,
+                            'dap_an_mau' => $row['dap_an_mau'] ?? null,
+                            'rubric_cham' => $row['rubric_cham'] ?? null,
+                            'diem_mac_dinh' => $row['diem_mac_dinh'] ?? null,
+                            'muc_do' => $row['muc_do'] ?? null,
                             'status' => $row['status'] ?? null,
                             'note' => $row['note'] ?? null,
                         ];
@@ -473,15 +626,29 @@ class BaiKiemTraController extends Controller
 
         try {
             $result = $this->importService->importToBank($preview, $baiKiemTra, auth()->id());
+            $attachableQuestionIds = NganHangCauHoi::query()
+                ->whereIn('id', $result['ids'] ?? [])
+                ->where('trang_thai', NganHangCauHoi::TRANG_THAI_SAN_SANG)
+                ->where('co_the_tai_su_dung', true)
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+
+            if ($attachableQuestionIds !== []) {
+                $this->attachQuestionsToExam($baiKiemTra, $attachableQuestionIds);
+            }
+
             session()->forget('exam_import_preview_' . $request->preview_id);
+            $baiKiemTra->refresh();
 
             return redirect()
                 ->route('giang-vien.bai-kiem-tra.edit', [
                     'id' => $baiKiemTra->id,
                     'tab' => 'questions',
-                    'preferred_mode' => $request->input('preferred_mode', $baiKiemTra->content_mode_key),
+                    'preferred_mode' => $baiKiemTra->content_mode_key,
                 ])
                 ->with('success', "Đã import thành công {$result['created']} câu hỏi vào ngân hàng. Bạn có thể chọn chúng cho đề thi ngay bây giờ.")
+                ->with('success', 'Da import thanh cong ' . $result['created'] . ' cau hoi va tu dong gan ' . count($attachableQuestionIds) . ' cau vao de.')
                 ->with('exam_imported_question_ids', $result['ids'] ?? []);
         } catch (\Exception $e) {
             report($e);
@@ -536,6 +703,11 @@ class BaiKiemTraController extends Controller
 
         if ($baiKiemTra->bai_lams_count > 0) {
             return back()->with('error', 'Không thể xóa bài kiểm tra đã có học viên làm bài.');
+        }
+
+        // Chỉ cho phép xóa nếu ở trạng thái nháp, chờ duyệt hoặc từ chối
+        if (!in_array($baiKiemTra->trang_thai_duyet, ['nhap', 'cho_duyet', 'tu_choi'])) {
+            return back()->with('error', 'Chỉ có thể xóa bài kiểm tra ở trạng thái nháp, chờ duyệt hoặc bị từ chối.');
         }
 
         $baiKiemTra->delete();
@@ -625,6 +797,8 @@ class BaiKiemTraController extends Controller
             ->orderByDesc('nop_luc')
             ->orderByDesc('updated_at')
             ->get();
+        $this->attachOfficialResultContext($baiLams);
+
         $scoreboardCourses = $this->buildScoreboardCourses($baiLams);
         $totalExamCards = $scoreboardCourses->sum(
             fn (array $course) => $course['modules']->sum(fn (array $module) => $module['exams']->count())
@@ -723,10 +897,47 @@ class BaiKiemTraController extends Controller
             'student_count' => $examAttempts->pluck('hoc_vien_id')->unique()->count(),
             'graded_count' => $examAttempts->where('trang_thai_cham', 'da_cham')->count(),
             'pending_count' => $examAttempts->where('trang_thai_cham', 'cho_cham')->count(),
+            'official_count' => $examAttempts->filter(fn (BaiLamBaiKiemTra $baiLam) => (bool) ($baiLam->is_official_attempt ?? false))->count(),
             'average_score' => $scoredAttempts->isNotEmpty() ? round((float) $scoredAttempts->avg('diem_so'), 2) : null,
             'last_submitted_at' => $sortedAttempts->first()?->nop_luc,
             'sort' => sprintf('%05d-%s', (int) ($exam?->lichHoc?->buoi_so ?? 99999), $exam?->tieu_de ?? 'unknown'),
         ];
+    }
+
+    /**
+     * @param Collection<int, BaiLamBaiKiemTra> $baiLams
+     */
+    private function attachOfficialResultContext(Collection $baiLams): void
+    {
+        if ($baiLams->isEmpty()) {
+            return;
+        }
+
+        $results = KetQuaHocTap::query()
+            ->whereIn('bai_kiem_tra_id', $baiLams->pluck('bai_kiem_tra_id')->filter()->unique()->values()->all())
+            ->whereIn('hoc_vien_id', $baiLams->pluck('hoc_vien_id')->filter()->unique()->values()->all())
+            ->get()
+            ->keyBy(fn (KetQuaHocTap $result) => $result->bai_kiem_tra_id . ':' . $result->hoc_vien_id);
+
+        $baiLams->each(function (BaiLamBaiKiemTra $baiLam) use ($results) {
+            $result = $results->get($baiLam->bai_kiem_tra_id . ':' . $baiLam->hoc_vien_id);
+            $sourceAttemptIds = collect($result?->source_attempt_ids ?: []);
+
+            if ($result?->source_attempt_id) {
+                $sourceAttemptIds->push((int) $result->source_attempt_id);
+            }
+
+            if (isset($result?->chi_tiet['bai_lam_id'])) {
+                $sourceAttemptIds->push((int) $result->chi_tiet['bai_lam_id']);
+            }
+
+            $sourceAttemptIds = $sourceAttemptIds->map(fn ($id) => (int) $id)->filter()->unique()->values();
+
+            $baiLam->setAttribute('is_official_attempt', $sourceAttemptIds->contains((int) $baiLam->id));
+            $baiLam->setAttribute('official_score', $result?->diem_kiem_tra);
+            $baiLam->setAttribute('official_strategy', $result?->attempt_strategy_used);
+            $baiLam->setAttribute('official_result_id', $result?->id);
+        });
     }
 
     public function diemKiemTraHocVien(Request $request, int $id)
@@ -782,6 +993,7 @@ class BaiKiemTraController extends Controller
             ->orderByDesc('updated_at')
             ->paginate(25)
             ->withQueryString();
+        $this->attachOfficialResultContext($baiLams->getCollection());
 
         return view('pages.giang-vien.bai-kiem-tra.diem-hoc-vien', compact(
             'baiKiemTra',
@@ -1110,21 +1322,108 @@ class BaiKiemTraController extends Controller
         });
     }
 
+    /**
+     * @param  array<int, int>  $questionIds
+     */
+    private function inferContentModeFromQuestionIds(BaiKiemTra $baiKiemTra, array $questionIds): string
+    {
+        $questions = $this->questionSelectionService
+            ->buildSelectableQuery($baiKiemTra)
+            ->whereIn('id', array_values(array_unique(array_map('intval', $questionIds))))
+            ->get(['id', 'loai_cau_hoi']);
+
+        return BaiKiemTra::contentModeForQuestionTypes(
+            $questions->contains(fn (NganHangCauHoi $question) => $question->loai_cau_hoi === NganHangCauHoi::LOAI_TRAC_NGHIEM),
+            $questions->contains(fn (NganHangCauHoi $question) => $question->loai_cau_hoi === NganHangCauHoi::LOAI_TU_LUAN),
+        );
+    }
+
+    /**
+     * @param  array<int, int>  $questionIdsToAttach
+     * @param  array<int, float>  $scoreOverrides
+     * @return array{0: float, 1: string, 2: array<int, int>}
+     */
+    private function attachQuestionsToExam(
+        BaiKiemTra $baiKiemTra,
+        array $questionIdsToAttach,
+        array $scoreOverrides = [],
+        ?int $insertAt = null
+    ): array {
+        $baiKiemTra->load('chiTietCauHois.cauHoi');
+
+        $existingDetails = $baiKiemTra->chiTietCauHois->sortBy('thu_tu')->values();
+        $orderedQuestionIds = $existingDetails
+            ->pluck('ngan_hang_cau_hoi_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+        $scoreMap = $existingDetails
+            ->mapWithKeys(fn ($detail) => [(int) $detail->ngan_hang_cau_hoi_id => round((float) $detail->diem_so, 2)])
+            ->all();
+
+        $insertIndex = $insertAt !== null
+            ? max(0, min(count($orderedQuestionIds), $insertAt - 1))
+            : null;
+
+        foreach (array_values(array_unique(array_map('intval', $questionIdsToAttach))) as $questionId) {
+            if (in_array($questionId, $orderedQuestionIds, true)) {
+                continue;
+            }
+
+            if ($insertIndex === null) {
+                $orderedQuestionIds[] = $questionId;
+
+                continue;
+            }
+
+            array_splice($orderedQuestionIds, $insertIndex, 0, [$questionId]);
+            $insertIndex++;
+        }
+
+        $questionsById = NganHangCauHoi::query()
+            ->whereIn('id', $orderedQuestionIds)
+            ->get()
+            ->keyBy('id');
+
+        foreach ($orderedQuestionIds as $index => $questionId) {
+            $scoreMap[$questionId] = round((float) (
+                $scoreOverrides[$questionId]
+                ?? $scoreMap[$questionId]
+                ?? $questionsById->get($questionId)?->diem_mac_dinh
+                ?? ExamConfigurationService::MIN_QUESTION_SCORE
+            ), 2);
+
+            if ($scoreMap[$questionId] < ExamConfigurationService::MIN_QUESTION_SCORE) {
+                $scoreMap[$questionId] = ExamConfigurationService::MIN_QUESTION_SCORE;
+            }
+        }
+
+        [$tongDiem, $loaiNoiDung] = $this->questionSelectionService->syncQuestions($baiKiemTra, $orderedQuestionIds, $scoreMap);
+        $contentMode = $orderedQuestionIds === []
+            ? BaiKiemTra::CHE_DO_TU_LUAN_TU_DO
+            : BaiKiemTra::contentModeForLegacyContentType($loaiNoiDung);
+
+        $baiKiemTra->update([
+            'tong_diem' => $orderedQuestionIds === [] ? (float) ($baiKiemTra->tong_diem ?: 10) : $tongDiem,
+            'loai_noi_dung' => BaiKiemTra::legacyContentTypeForMode($contentMode),
+            'che_do_noi_dung' => $contentMode,
+            'che_do_tinh_diem' => $orderedQuestionIds === [] ? 'thu_cong' : $baiKiemTra->che_do_tinh_diem,
+            'so_cau_goi_diem' => $baiKiemTra->che_do_tinh_diem === 'goi_diem' ? count($orderedQuestionIds) : $baiKiemTra->so_cau_goi_diem,
+        ]);
+
+        return [$tongDiem, $contentMode, $orderedQuestionIds];
+    }
+
     private function ensureQuestionSelectionMatchesContentMode(
         BaiKiemTra $baiKiemTra,
         array $questionIds,
         string $requestedContentMode,
         bool $explicitContentMode
     ): void {
-        if (!$explicitContentMode) {
+        if ($requestedContentMode === BaiKiemTra::CHE_DO_TU_LUAN_TU_DO) {
             return;
         }
 
-        if ($requestedContentMode === 'tu_luan_tu_do') {
-            return;
-        }
-
-                if ($questionIds === []) {
+        if ($questionIds === []) {
             throw ValidationException::withMessages([
                 'question_ids' => 'Vui lòng chọn ít nhất một câu hỏi để lưu loại nội dung bài kiểm tra này.',
             ]);
@@ -1136,24 +1435,26 @@ class BaiKiemTraController extends Controller
             ->get();
 
         if ($selectedQuestions->count() !== count($questionIds)) {
-            return;
+            throw ValidationException::withMessages([
+                'question_ids' => 'Danh sÃ¡ch cÃ¢u há»i cÃ³ má»¥c khÃ´ng há»£p lá»‡, ngoÃ i pháº¡m vi Ä‘á» hoáº·c khÃ´ng cÃ²n á»Ÿ tráº¡ng thÃ¡i sáºµn sÃ ng.',
+            ]);
         }
 
         $objectiveCount = $selectedQuestions->where('loai_cau_hoi', NganHangCauHoi::LOAI_TRAC_NGHIEM)->count();
         $essayCount = $selectedQuestions->where('loai_cau_hoi', NganHangCauHoi::LOAI_TU_LUAN)->count();
 
         match ($requestedContentMode) {
-                        'trac_nghiem' => $essayCount > 0
+            BaiKiemTra::CHE_DO_TRAC_NGHIEM => $essayCount > 0
                 ? throw ValidationException::withMessages([
                     'question_ids' => 'Chế độ trắc nghiệm chỉ cho phép chọn câu hỏi trắc nghiệm.',
                 ])
                 : null,
-                        'tu_luan_theo_cau' => $objectiveCount > 0
+            BaiKiemTra::CHE_DO_TU_LUAN_THEO_CAU => $objectiveCount > 0
                 ? throw ValidationException::withMessages([
                     'question_ids' => 'Chế độ tự luận theo câu chỉ cho phép chọn câu hỏi tự luận.',
                 ])
                 : null,
-                        'hon_hop' => ($objectiveCount === 0 || $essayCount === 0)
+            BaiKiemTra::CHE_DO_HON_HOP => ($objectiveCount === 0 || $essayCount === 0)
                 ? throw ValidationException::withMessages([
                     'question_ids' => 'Chế độ hỗn hợp cần ít nhất một câu trắc nghiệm và một câu tự luận.',
                 ])

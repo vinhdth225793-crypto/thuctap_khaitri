@@ -7,10 +7,12 @@ use App\Support\Imports\ImportTemplateRegistry;
 use App\Support\Imports\SimpleXlsxReader;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 
 class ExcelQuestionParser implements QuestionFileParser
 {
     public const PROFILE_NEW_TEMPLATE = ImportTemplateRegistry::QUESTION_BANK_MCQ;
+    public const PROFILE_ESSAY_TEMPLATE = ImportTemplateRegistry::QUESTION_BANK_ESSAY;
     public const PROFILE_LEGACY_CSV = ImportTemplateRegistry::QUESTION_BANK_MCQ_LEGACY_CSV;
 
     public function __construct(
@@ -67,9 +69,21 @@ class ExcelQuestionParser implements QuestionFileParser
         $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: '');
 
         if ($extension === 'xlsx') {
-            $template = $this->templateRegistry->questionBankMcq();
+            $templates = [
+                $this->templateRegistry->questionBankMcq(),
+                $this->templateRegistry->questionBankEssay(),
+            ];
+            $lastException = null;
 
-            return $this->xlsxReader->readSheetRows($file->getRealPath(), (string) $template['sheet']);
+            foreach ($templates as $template) {
+                try {
+                    return $this->xlsxReader->readSheetRows($file->getRealPath(), (string) $template['sheet']);
+                } catch (RuntimeException $exception) {
+                    $lastException = $exception;
+                }
+            }
+
+            throw $lastException ?? new RuntimeException('Khong the doc sheet import trong tep Excel.');
         }
 
         if (in_array($extension, ['csv', 'txt'], true)) {
@@ -88,8 +102,10 @@ class ExcelQuestionParser implements QuestionFileParser
     private function detectHeaderProfile(array $rows): array
     {
         $newHeaders = (array) ($this->templateRegistry->questionBankMcq()['headers'] ?? []);
+        $essayHeaders = (array) ($this->templateRegistry->questionBankEssay()['headers'] ?? []);
         $legacyHeaders = (array) ($this->templateRegistry->questionBankMcqLegacyCsv()['headers'] ?? []);
         $normalizedNewHeaders = $this->normalizeHeaders($newHeaders);
+        $normalizedEssayHeaders = $this->normalizeHeaders($essayHeaders);
         $normalizedLegacyHeaders = $this->normalizeHeaders($legacyHeaders);
 
         foreach ($rows as $index => $row) {
@@ -98,6 +114,10 @@ class ExcelQuestionParser implements QuestionFileParser
 
             if ($normalizedHeaders === $normalizedNewHeaders) {
                 return [self::PROFILE_NEW_TEMPLATE, $index, $headerMap];
+            }
+
+            if ($normalizedHeaders === $normalizedEssayHeaders) {
+                return [self::PROFILE_ESSAY_TEMPLATE, $index, $headerMap];
             }
 
             if ($normalizedHeaders === $normalizedLegacyHeaders) {
@@ -175,9 +195,11 @@ class ExcelQuestionParser implements QuestionFileParser
      */
     private function buildQuestion(string $profile, array $mappedRow, int $rowNumber, string $sourceFormat): array
     {
-        return $profile === self::PROFILE_NEW_TEMPLATE
-            ? $this->buildNewTemplateQuestion($mappedRow, $rowNumber, $sourceFormat)
-            : $this->buildLegacyQuestion($mappedRow, $rowNumber, $sourceFormat);
+        return match ($profile) {
+            self::PROFILE_NEW_TEMPLATE => $this->buildNewTemplateQuestion($mappedRow, $rowNumber, $sourceFormat),
+            self::PROFILE_ESSAY_TEMPLATE => $this->buildEssayTemplateQuestion($mappedRow, $rowNumber, $sourceFormat),
+            default => $this->buildLegacyQuestion($mappedRow, $rowNumber, $sourceFormat),
+        };
     }
 
     /**
@@ -234,6 +256,60 @@ class ExcelQuestionParser implements QuestionFileParser
             'dap_an_dung_text' => $correctAnswerText !== '' ? $correctAnswerText : null,
             'trang_thai_parse' => $status,
             'ghi_chu_loi' => $note,
+            'nguon_file' => $sourceFormat,
+        ];
+    }
+
+    /**
+     * @param  array<string, string>  $mappedRow
+     * @return array<string, mixed>
+     */
+    private function buildEssayTemplateQuestion(array $mappedRow, int $rowNumber, string $sourceFormat): array
+    {
+        $question = trim($mappedRow['noi_dung'] ?? '');
+        $score = trim($mappedRow['diem'] ?? '');
+        $difficulty = trim($mappedRow['muc_do'] ?? 'trung_binh');
+        $statusValue = trim($mappedRow['status'] ?? NganHangCauHoi::TRANG_THAI_SAN_SANG);
+        $note = trim($mappedRow['note'] ?? '');
+
+        $parseStatus = 'hop_le';
+        $parseNote = null;
+
+        if ($question === '') {
+            $parseStatus = 'thieu_noi_dung';
+            $parseNote = 'Thieu noi dung cau hoi.';
+        } elseif ($score !== '' && (!is_numeric($score) || (float) $score < 0.25)) {
+            $parseStatus = 'diem_khong_hop_le';
+            $parseNote = 'Diem cau hoi phai tu 0.25 tro len.';
+        }
+
+        if (!in_array($difficulty, ['de', 'trung_binh', 'kho'], true)) {
+            $difficulty = 'trung_binh';
+        }
+
+        if (!in_array($statusValue, [
+            NganHangCauHoi::TRANG_THAI_NHAP,
+            NganHangCauHoi::TRANG_THAI_SAN_SANG,
+            NganHangCauHoi::TRANG_THAI_TAM_AN,
+        ], true)) {
+            $statusValue = NganHangCauHoi::TRANG_THAI_SAN_SANG;
+        }
+
+        return [
+            'line' => $rowNumber,
+            'so_thu_tu' => $rowNumber,
+            'noi_dung' => $question,
+            'loai' => NganHangCauHoi::LOAI_TU_LUAN,
+            'dap_an' => [],
+            'goi_y_tra_loi' => trim($mappedRow['goi_y_tra_loi'] ?? '') ?: null,
+            'dap_an_mau' => trim($mappedRow['dap_an_mau'] ?? '') ?: null,
+            'rubric_cham' => trim($mappedRow['rubric'] ?? '') ?: null,
+            'diem_mac_dinh' => $score !== '' && is_numeric($score) ? round((float) $score, 2) : 1,
+            'muc_do' => $difficulty,
+            'trang_thai_import' => $statusValue,
+            'trang_thai_parse' => $parseStatus,
+            'ghi_chu_loi' => $parseNote,
+            'ghi_chu_import' => $note !== '' ? $note : null,
             'nguon_file' => $sourceFormat,
         ];
     }
@@ -323,8 +399,10 @@ class ExcelQuestionParser implements QuestionFileParser
 
     private function resolveDataStartRow(string $profile, int $headerRowNumber): int
     {
-        if ($profile === self::PROFILE_NEW_TEMPLATE) {
-            $template = $this->templateRegistry->questionBankMcq();
+        if (in_array($profile, [self::PROFILE_NEW_TEMPLATE, self::PROFILE_ESSAY_TEMPLATE], true)) {
+            $template = $profile === self::PROFILE_NEW_TEMPLATE
+                ? $this->templateRegistry->questionBankMcq()
+                : $this->templateRegistry->questionBankEssay();
             $configuredRow = (int) ($template['data_starts_on_row'] ?? 0);
 
             return max($headerRowNumber + 1, $configuredRow > 0 ? $configuredRow : ($headerRowNumber + 1));

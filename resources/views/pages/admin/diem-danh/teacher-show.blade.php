@@ -246,7 +246,9 @@
                     @if($studentAttendances->isNotEmpty())
                         <div class="d-flex gap-2">
                             <span class="badge bg-success-subtle text-success border border-success-subtle">Hiện diện: {{ $studentAttendances->where('trang_thai', 'co_mat')->count() }}</span>
-                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Vắng: {{ $studentAttendances->where('trang_thai', 'vắng')->count() + $studentAttendances->where('trang_thai', 'vang')->count() }}</span>
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Vắng: {{ $studentAttendances->where('trang_thai', 'vang_mat')->count() }}</span>
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Trễ: {{ $studentAttendances->where('trang_thai', 'vao_tre')->count() }}</span>
+                            <span class="badge bg-info-subtle text-info border border-info-subtle">Phép: {{ $studentAttendances->where('trang_thai', 'co_phep')->count() }}</span>
                         </div>
                     @endif
                 </div>
@@ -267,16 +269,16 @@
                                         $user = $stAttendance->hocVien?->nguoiDung;
                                         $statusClass = match($stAttendance->trang_thai) {
                                             'co_mat' => 'success',
-                                            'vang', 'vắng' => 'danger',
-                                            'phep' => 'info',
-                                            'muon' => 'warning',
+                                            'vang_mat' => 'danger',
+                                            'co_phep' => 'info',
+                                            'vao_tre' => 'warning',
                                             default => 'secondary'
                                         };
                                         $statusLabel = match($stAttendance->trang_thai) {
                                             'co_mat' => 'Có mặt',
-                                            'vang', 'vắng' => 'Vắng mặt',
-                                            'phep' => 'Có phép',
-                                            'muon' => 'Vào muộn',
+                                            'vang_mat' => 'Vắng mặt',
+                                            'co_phep' => 'Có phép',
+                                            'vao_tre' => 'Vào trễ',
                                             default => $stAttendance->trang_thai
                                         };
                                     @endphp

@@ -167,8 +167,17 @@
         <!-- Main Area: Questions and History -->
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm rounded-4 mb-4">
+                @php
+                    $isFreeEssayApproval = $baiKiemTra->content_mode_key === 'tu_luan_tu_do';
+                    $approvalQuestionCount = $isFreeEssayApproval && filled($baiKiemTra->mo_ta)
+                        ? 1
+                        : $baiKiemTra->chiTietCauHois->count();
+                @endphp
                 <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-list-ol me-2 text-primary"></i>Danh sách câu hỏi ({{ $baiKiemTra->chiTietCauHois->count() }})</h5>
+                    <h5 class="mb-0 fw-bold text-dark">
+                        <i class="fas {{ $isFreeEssayApproval ? 'fa-pen-nib' : 'fa-list-ol' }} me-2 text-primary"></i>
+                        {{ $isFreeEssayApproval ? 'Đề tự luận tự do' : 'Danh sách câu hỏi (' . $approvalQuestionCount . ')' }}
+                    </h5>
                     <span class="badge bg-soft-info text-info rounded-pill px-3 fw-bold">{{ $baiKiemTra->loai_noi_dung_label }}</span>
                 </div>
                 <div class="card-body p-4 question-list-scroll">

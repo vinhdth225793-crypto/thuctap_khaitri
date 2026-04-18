@@ -37,6 +37,8 @@ class NganHangCauHoi extends Model
         'muc_do',
         'diem_mac_dinh',
         'goi_y_tra_loi',
+        'dap_an_mau',
+        'rubric_cham',
         'giai_thich_dap_an',
         'trang_thai',
         'co_the_tai_su_dung',

@@ -8,88 +8,78 @@ use App\Models\DiemDanh;
 use App\Models\HocVienKhoaHoc;
 use App\Models\KetQuaHocTap;
 use App\Models\KhoaHoc;
+use App\Models\LichHoc;
 use App\Models\ModuleHoc;
 
 class KetQuaHocTapService
 {
-    /**
-     * Làm mới toàn bộ kết quả học tập của học viên trong một khóa học (gồm các module và bài thi)
-     */
+    public function __construct(
+        private readonly ExamResultAggregationService $examAggregationService,
+        private readonly ModuleResultAggregationService $moduleAggregationService,
+        private readonly CourseResultAggregationService $courseAggregationService,
+    ) {
+    }
+
     public function refreshAllForCourseStudent(int $khoaHocId, int $hocVienId): void
     {
         $khoaHoc = KhoaHoc::with('moduleHocs')->findOrFail($khoaHocId);
 
-        // 1. Làm mới kết quả từng module
         foreach ($khoaHoc->moduleHocs as $module) {
             $this->refreshForModuleStudent($module->id, $hocVienId);
         }
 
-        // 2. Làm mới kết quả tổng hợp khóa học
+        BaiKiemTra::query()
+            ->where('khoa_hoc_id', $khoaHocId)
+            ->where(function ($query) {
+                $query->where('loai_bai_kiem_tra', 'cuoi_khoa')
+                    ->orWhereNull('module_hoc_id');
+            })
+            ->where('trang_thai_duyet', 'da_duyet')
+            ->where('trang_thai_phat_hanh', 'phat_hanh')
+            ->get(['id'])
+            ->each(fn (BaiKiemTra $baiKiemTra) => $this->refreshForExamStudent($baiKiemTra->id, $hocVienId));
+
         $this->refreshForCourseStudent($khoaHocId, $hocVienId);
     }
 
-    /**
-     * Làm mới kết quả tổng hợp cấp Khóa học
-     */
     public function refreshForCourseStudent(int $khoaHocId, int $hocVienId): KetQuaHocTap
     {
         $khoaHoc = KhoaHoc::findOrFail($khoaHocId);
+        $attendance = $this->calculateAttendanceForCourse($khoaHocId, $hocVienId);
+        $tongSoBuoi = $attendance['tong_so_buoi'];
+        $soBuoiThamDu = $attendance['so_buoi_tham_du'];
+        $tyLeThamDu = $attendance['ty_le_tham_du'];
+        $diemDiemDanh = $attendance['diem_diem_danh'];
 
-        // Lấy điểm danh tổng quát của khóa
-        $diemDanh = DiemDanh::query()
+        $allResults = KetQuaHocTap::query()
+            ->with(['moduleHoc', 'baiKiemTra'])
+            ->where('khoa_hoc_id', $khoaHocId)
             ->where('hoc_vien_id', $hocVienId)
-            ->whereHas('lichHoc', fn ($query) => $query->where('khoa_hoc_id', $khoaHocId))
+            ->where(function ($query) {
+                $query->whereNotNull('module_hoc_id')
+                    ->orWhereNotNull('bai_kiem_tra_id');
+            })
             ->get();
 
-        $tongSoBuoi = $diemDanh->count();
-        $soBuoiThamDu = $diemDanh->whereIn('trang_thai', ['co_mat', 'vao_tre'])->count();
-        $tyLeThamDu = $tongSoBuoi > 0 ? round(($soBuoiThamDu / $tongSoBuoi) * 100, 2) : null;
-        $diemDiemDanh = $tyLeThamDu !== null ? round(($tyLeThamDu / 100) * 10, 2) : null;
+        $moduleResults = $allResults
+            ->whereNotNull('module_hoc_id')
+            ->whereNull('bai_kiem_tra_id')
+            ->values();
+        $examResults = $allResults
+            ->whereNotNull('bai_kiem_tra_id')
+            ->values();
+        $finalExamResults = $examResults
+            ->filter(fn (KetQuaHocTap $result) => $result->baiKiemTra?->loai_bai_kiem_tra === 'cuoi_khoa')
+            ->values();
 
-        // Lấy kết quả từ các module hoặc bài thi cuối khóa tùy theo phương thức đánh giá
-        $diemKiemTra = null;
-        $soBaiHoanThanh = 0;
-        $chiTiet = [];
+        $aggregation = $this->courseAggregationService->aggregate(
+            $khoaHoc,
+            $moduleResults,
+            $finalExamResults,
+            $examResults
+        );
 
-        if ($khoaHoc->phuong_thuc_danh_gia === 'theo_module') {
-            $kqModules = KetQuaHocTap::where('khoa_hoc_id', $khoaHocId)
-                ->where('hoc_vien_id', $hocVienId)
-                ->whereNotNull('module_hoc_id')
-                ->whereNull('bai_kiem_tra_id')
-                ->get();
-
-            if ($kqModules->isNotEmpty()) {
-                $diemKiemTra = round($kqModules->avg('diem_tong_ket'), 2);
-                $soBaiHoanThanh = $kqModules->where('trang_thai', 'hoan_thanh')->count();
-                foreach ($kqModules as $kqm) {
-                    $chiTiet['modules'][] = [
-                        'module_id' => $kqm->module_hoc_id,
-                        'diem' => $kqm->diem_tong_ket,
-                        'trang_thai' => $kqm->trang_thai
-                    ];
-                }
-            }
-        } else {
-            // Theo bài kiểm tra cuối khóa
-            $kqExams = KetQuaHocTap::where('khoa_hoc_id', $khoaHocId)
-                ->where('hoc_vien_id', $hocVienId)
-                ->whereNotNull('bai_kiem_tra_id')
-                ->whereHas('baiKiemTra', fn($q) => $q->where('loai_bai_kiem_tra', 'cuoi_khoa'))
-                ->get();
-            
-            if ($kqExams->isNotEmpty()) {
-                $diemKiemTra = round($kqExams->max('diem_kiem_tra'), 2);
-                $soBaiHoanThanh = $kqExams->count();
-                foreach ($kqExams as $kqe) {
-                    $chiTiet['exams'][] = [
-                        'exam_id' => $kqe->bai_kiem_tra_id,
-                        'diem' => $kqe->diem_kiem_tra,
-                        'trang_thai' => $kqe->trang_thai
-                    ];
-                }
-            }
-        }
-
+        $diemKiemTra = $aggregation['score'];
         $diemTongKet = null;
         if ($diemDiemDanh !== null && $diemKiemTra !== null) {
             $diemTongKet = round(
@@ -104,7 +94,6 @@ class KetQuaHocTapService
             $trangThai = $diemTongKet >= 5.0 ? 'dat' : 'khong_dat';
         }
 
-        // Tự động chốt trạng thái hoàn thành khóa học cho học viên nếu ĐẠT
         if ($trangThai === 'dat') {
             HocVienKhoaHoc::where('khoa_hoc_id', $khoaHocId)
                 ->where('hoc_vien_id', $hocVienId)
@@ -121,57 +110,64 @@ class KetQuaHocTapService
             ],
             [
                 'phuong_thuc_danh_gia' => $khoaHoc->phuong_thuc_danh_gia,
+                'aggregation_strategy_used' => $aggregation['strategy'],
+                'source_attempt_ids' => $aggregation['source_attempt_ids'],
                 'diem_diem_danh' => $diemDiemDanh,
                 'diem_kiem_tra' => $diemKiemTra,
                 'diem_tong_ket' => $diemTongKet,
                 'tong_so_buoi' => $tongSoBuoi,
                 'so_buoi_tham_du' => $soBuoiThamDu,
                 'ty_le_tham_du' => $tyLeThamDu,
-                'so_bai_kiem_tra_hoan_thanh' => $soBaiHoanThanh,
+                'so_bai_kiem_tra_hoan_thanh' => $aggregation['completed_count'],
                 'trang_thai' => $trangThai,
-                'chi_tiet' => $chiTiet,
+                'chi_tiet' => [
+                    'aggregation_strategy' => $aggregation['strategy'],
+                    'source_result_ids' => $aggregation['source_result_ids'],
+                    'sources' => $aggregation['metadata']['sources'] ?? [],
+                ],
+                'calculation_metadata' => [
+                    'attendance' => [
+                        'tong_so_buoi' => $tongSoBuoi,
+                        'so_buoi_tham_du' => $soBuoiThamDu,
+                        'ty_le_tham_du' => $tyLeThamDu,
+                        'diem_diem_danh' => $diemDiemDanh,
+                    ],
+                    'assessment' => $aggregation['metadata'],
+                    'weights' => [
+                        'ty_trong_diem_danh' => (float) $khoaHoc->ty_trong_diem_danh,
+                        'ty_trong_kiem_tra' => (float) $khoaHoc->ty_trong_kiem_tra,
+                    ],
+                ],
                 'cap_nhat_luc' => now(),
             ]
         );
     }
 
-    /**
-     * Làm mới kết quả tổng hợp cấp Module
-     */
     public function refreshForModuleStudent(int $moduleHocId, int $hocVienId): KetQuaHocTap
     {
         $module = ModuleHoc::with('khoaHoc')->findOrFail($moduleHocId);
-        
-        // 1. Refresh các bài thi thuộc module này trước
-        $baiKiemTras = BaiKiemTra::where('module_hoc_id', $moduleHocId)
+
+        BaiKiemTra::where('module_hoc_id', $moduleHocId)
             ->where('trang_thai_duyet', 'da_duyet')
             ->where('trang_thai_phat_hanh', 'phat_hanh')
-            ->get();
+            ->get(['id'])
+            ->each(fn (BaiKiemTra $baiKiemTra) => $this->refreshForExamStudent($baiKiemTra->id, $hocVienId));
 
-        foreach ($baiKiemTras as $bkt) {
-            $this->refreshForExamStudent($bkt->id, $hocVienId);
-        }
-
-        // 2. Tổng hợp điểm từ các bài thi
-        $kqExams = KetQuaHocTap::where('module_hoc_id', $moduleHocId)
+        $kqExams = KetQuaHocTap::with('baiKiemTra')
+            ->where('module_hoc_id', $moduleHocId)
             ->where('hoc_vien_id', $hocVienId)
             ->whereNotNull('bai_kiem_tra_id')
             ->get();
 
-        $diemKiemTra = $kqExams->isNotEmpty() ? round($kqExams->avg('diem_kiem_tra'), 2) : null;
-        
-        // 3. Lấy điểm danh module
-        $diemDanh = DiemDanh::query()
-            ->where('hoc_vien_id', $hocVienId)
-            ->whereHas('lichHoc', fn ($query) => $query->where('module_hoc_id', $moduleHocId))
-            ->get();
+        $aggregation = $this->moduleAggregationService->aggregate($module, $kqExams);
+        $diemKiemTra = $aggregation['score'];
 
-        $tongSoBuoi = $diemDanh->count();
-        $soBuoiThamDu = $diemDanh->whereIn('trang_thai', ['co_mat', 'vao_tre'])->count();
-        $tyLeThamDu = $tongSoBuoi > 0 ? round(($soBuoiThamDu / $tongSoBuoi) * 100, 2) : null;
-        $diemDiemDanh = $tyLeThamDu !== null ? round(($tyLeThamDu / 100) * 10, 2) : null;
+        $attendance = $this->calculateAttendanceForModule($moduleHocId, $hocVienId);
+        $tongSoBuoi = $attendance['tong_so_buoi'];
+        $soBuoiThamDu = $attendance['so_buoi_tham_du'];
+        $tyLeThamDu = $attendance['ty_le_tham_du'];
+        $diemDiemDanh = $attendance['diem_diem_danh'];
 
-        // 4. Tính điểm tổng kết module (tạm thời dùng tỷ trọng của khóa học)
         $diemTongKet = null;
         if ($diemDiemDanh !== null && $diemKiemTra !== null) {
             $diemTongKet = round(
@@ -196,6 +192,8 @@ class KetQuaHocTapService
                 'bai_kiem_tra_id' => null,
             ],
             [
+                'aggregation_strategy_used' => $aggregation['strategy'],
+                'source_attempt_ids' => $aggregation['source_attempt_ids'],
                 'diem_diem_danh' => $diemDiemDanh,
                 'diem_kiem_tra' => $diemKiemTra,
                 'diem_tong_ket' => $diemTongKet,
@@ -204,29 +202,50 @@ class KetQuaHocTapService
                 'ty_le_tham_du' => $tyLeThamDu,
                 'so_bai_kiem_tra_hoan_thanh' => $kqExams->count(),
                 'trang_thai' => $trangThai,
+                'chi_tiet' => [
+                    'aggregation_strategy' => $aggregation['strategy'],
+                    'source_result_ids' => $aggregation['source_result_ids'],
+                    'exams' => $aggregation['metadata']['exams'] ?? [],
+                ],
+                'calculation_metadata' => [
+                    'attendance' => [
+                        'tong_so_buoi' => $tongSoBuoi,
+                        'so_buoi_tham_du' => $soBuoiThamDu,
+                        'ty_le_tham_du' => $tyLeThamDu,
+                        'diem_diem_danh' => $diemDiemDanh,
+                    ],
+                    'assessment' => $aggregation['metadata'],
+                    'weights' => [
+                        'ty_trong_diem_danh' => (float) $module->khoaHoc->ty_trong_diem_danh,
+                        'ty_trong_kiem_tra' => (float) $module->khoaHoc->ty_trong_kiem_tra,
+                    ],
+                ],
                 'cap_nhat_luc' => now(),
             ]
         );
     }
 
-    /**
-     * Làm mới kết quả cho một bài kiểm tra cụ thể (lấy điểm cao nhất)
-     */
     public function refreshForExamStudent(int $baiKiemTraId, int $hocVienId): ?KetQuaHocTap
     {
         $baiKiemTra = BaiKiemTra::findOrFail($baiKiemTraId);
-        
-        $bestAttempt = BaiLamBaiKiemTra::where('bai_kiem_tra_id', $baiKiemTraId)
+        $attempts = BaiLamBaiKiemTra::where('bai_kiem_tra_id', $baiKiemTraId)
             ->where('hoc_vien_id', $hocVienId)
-            ->where('trang_thai_cham', 'da_cham')
-            ->orderByDesc('diem_so')
-            ->first();
+            ->orderBy('lan_lam_thu')
+            ->get();
 
-        if (!$bestAttempt) {
+        $strategy = $baiKiemTra->ket_qua_config['attempt_strategy']
+            ?? $baiKiemTra->attempt_strategy
+            ?? ExamResultAggregationService::HIGHEST_SCORE;
+        $aggregation = $this->examAggregationService->aggregate($attempts, $strategy);
+
+        if ($aggregation['score'] === null) {
             return null;
         }
 
-        $trangThai = $bestAttempt->diem_so >= ($baiKiemTra->tong_diem * 0.5) ? 'dat' : 'khong_dat';
+        $sourceAttempt = $aggregation['source_attempt_id']
+            ? $attempts->firstWhere('id', $aggregation['source_attempt_id'])
+            : null;
+        $trangThai = $aggregation['score'] >= ((float) $baiKiemTra->tong_diem * 0.5) ? 'dat' : 'khong_dat';
 
         return KetQuaHocTap::updateOrCreate(
             [
@@ -236,16 +255,82 @@ class KetQuaHocTapService
                 'bai_kiem_tra_id' => $baiKiemTraId,
             ],
             [
-                'diem_kiem_tra' => $bestAttempt->diem_so,
-                'diem_tong_ket' => $bestAttempt->diem_so,
+                'attempt_strategy_used' => $aggregation['strategy'],
+                'source_attempt_id' => $aggregation['source_attempt_id'],
+                'source_attempt_ids' => $aggregation['source_attempt_ids'],
+                'diem_kiem_tra' => $aggregation['score'],
+                'diem_tong_ket' => $aggregation['score'],
                 'trang_thai' => $trangThai,
                 'chi_tiet' => [
-                    'bai_lam_id' => $bestAttempt->id,
-                    'lan_lam_thu' => $bestAttempt->lan_lam_thu,
-                    'nop_luc' => $bestAttempt->nop_luc,
+                    'bai_lam_id' => $aggregation['source_attempt_id'],
+                    'lan_lam_thu' => $sourceAttempt?->lan_lam_thu,
+                    'nop_luc' => $sourceAttempt?->nop_luc,
+                    'source_attempt_ids' => $aggregation['source_attempt_ids'],
+                    'attempt_strategy' => $aggregation['strategy'],
                 ],
+                'calculation_metadata' => $aggregation['metadata'],
                 'cap_nhat_luc' => now(),
             ]
         );
+    }
+
+    /**
+     * @return array{tong_so_buoi: int, so_buoi_tham_du: int, ty_le_tham_du: float|null, diem_diem_danh: float|null}
+     */
+    private function calculateAttendanceForModule(int $moduleHocId, int $hocVienId): array
+    {
+        $scheduleIds = LichHoc::query()
+            ->where('module_hoc_id', $moduleHocId)
+            ->where('trang_thai', '!=', 'huy')
+            ->pluck('id');
+
+        return $this->calculateAttendanceScore($scheduleIds, $hocVienId);
+    }
+
+    /**
+     * @return array{tong_so_buoi: int, so_buoi_tham_du: int, ty_le_tham_du: float|null, diem_diem_danh: float|null}
+     */
+    private function calculateAttendanceForCourse(int $khoaHocId, int $hocVienId): array
+    {
+        $scheduleIds = LichHoc::query()
+            ->where('khoa_hoc_id', $khoaHocId)
+            ->where('trang_thai', '!=', 'huy')
+            ->pluck('id');
+
+        return $this->calculateAttendanceScore($scheduleIds, $hocVienId);
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, int>  $scheduleIds
+     * @return array{tong_so_buoi: int, so_buoi_tham_du: int, ty_le_tham_du: float|null, diem_diem_danh: float|null}
+     */
+    private function calculateAttendanceScore($scheduleIds, int $hocVienId): array
+    {
+        $tongSoBuoi = $scheduleIds->count();
+
+        if ($tongSoBuoi === 0) {
+            return [
+                'tong_so_buoi' => 0,
+                'so_buoi_tham_du' => 0,
+                'ty_le_tham_du' => null,
+                'diem_diem_danh' => null,
+            ];
+        }
+
+        $soBuoiThamDu = DiemDanh::query()
+            ->where('hoc_vien_id', $hocVienId)
+            ->whereIn('lich_hoc_id', $scheduleIds->all())
+            ->whereIn('trang_thai', ['co_mat', 'vao_tre'])
+            ->distinct('lich_hoc_id')
+            ->count('lich_hoc_id');
+
+        $tyLeThamDu = round(($soBuoiThamDu / $tongSoBuoi) * 100, 2);
+
+        return [
+            'tong_so_buoi' => $tongSoBuoi,
+            'so_buoi_tham_du' => $soBuoiThamDu,
+            'ty_le_tham_du' => $tyLeThamDu,
+            'diem_diem_danh' => round(($tyLeThamDu / 100) * 10, 2),
+        ];
     }
 }

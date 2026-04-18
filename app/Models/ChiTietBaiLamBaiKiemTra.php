@@ -18,6 +18,7 @@ class ChiTietBaiLamBaiKiemTra extends Model
         'ngan_hang_cau_hoi_id',
         'dap_an_cau_hoi_id',
         'cau_tra_loi_text',
+        'file_dinh_kem',
         'is_dung',
         'diem_tu_dong',
         'diem_tu_luan',

@@ -137,6 +137,48 @@
                     @endif
                 </div>
             </div>
+
+            @if($baiKiemTra->baiLams->isNotEmpty())
+                <div class="card vip-card mt-4">
+                    <div class="card-header border-0">
+                        <h5 class="mb-0 fw-semibold">Lich su lam bai</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-3">
+                            @foreach($baiKiemTra->baiLams->sortByDesc('lan_lam_thu') as $attempt)
+                                <div class="border rounded-3 p-3 bg-light-subtle">
+                                    <div class="d-flex justify-content-between align-items-start gap-2">
+                                        <div>
+                                            <div class="fw-bold">Lan {{ $attempt->lan_lam_thu }}</div>
+                                            <div class="small text-muted">
+                                                Nop: {{ optional($attempt->nop_luc)->format('d/m/Y H:i') ?? 'Chua nop' }}
+                                            </div>
+                                        </div>
+                                        <div class="text-end">
+                                            @if($attempt->diem_so !== null)
+                                                <div class="fw-bold text-success">{{ number_format((float) $attempt->diem_so, 2) }}</div>
+                                            @else
+                                                <span class="badge text-bg-warning">Cho cham</span>
+                                            @endif
+                                            @if($attempt->is_official_attempt ?? false)
+                                                <div class="mt-1">
+                                                    <span class="badge text-bg-primary">Diem chinh thuc</span>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <div class="small text-muted mt-2">
+                                        Trang thai cham: {{ $attempt->trang_thai_cham }}.
+                                        @if($attempt->official_strategy)
+                                            Cach chon diem: {{ $attempt->official_strategy }}.
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
 
         <div class="col-lg-8">
@@ -287,6 +329,11 @@
                                                 </label>
                                             @endforeach
                                         @else
+                                            @if(filled($question->goi_y_tra_loi ?? null))
+                                                <div class="alert alert-info small mb-3">
+                                                    <strong>Goi y:</strong> {!! nl2br(e($question->goi_y_tra_loi)) !!}
+                                                </div>
+                                            @endif
                                             <textarea name="answers[{{ $chiTiet->id }}][cau_tra_loi_text]" rows="6" class="form-control" placeholder="Nhập câu trả lời của bạn...">{{ old('answers.' . $chiTiet->id . '.cau_tra_loi_text', $answerDetail->cau_tra_loi_text ?? '') }}</textarea>
                                         @endif
                                     </div>

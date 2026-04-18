@@ -35,6 +35,7 @@
             $courseResult = $data['course_result'];
             $moduleResults = $data['module_results'];
             $examResults = $data['exam_results'];
+            $displayFinalScore = $courseResult?->diem_giang_vien_chot ?? $courseResult?->diem_tong_ket;
         @endphp
 
         <div class="card vip-card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
@@ -56,7 +57,10 @@
                         @if($courseResult)
                             <div class="text-end me-3">
                                 <div class="smaller text-muted text-uppercase fw-bold">Tổng kết</div>
-                                <div class="fw-extrabold text-primary fs-4">{{ number_format($courseResult->diem_tong_ket ?: 0, 2) }}</div>
+                                <div class="fw-extrabold text-primary fs-4">{{ number_format($displayFinalScore ?: 0, 2) }}</div>
+                                @if($courseResult->diem_giang_vien_chot !== null)
+                                    <div class="smaller text-success">Diem GV chot</div>
+                                @endif
                             </div>
                             <span class="badge bg-{{ $courseResult->trang_thai === 'dat' ? 'success' : ($courseResult->trang_thai === 'khong_dat' ? 'danger' : 'info') }}-soft text-{{ $courseResult->trang_thai === 'dat' ? 'success' : ($courseResult->trang_thai === 'khong_dat' ? 'danger' : 'info') }} border px-3 py-2 rounded-pill">
                                 <i class="fas fa-{{ $courseResult->trang_thai === 'dat' ? 'check-circle' : ($courseResult->trang_thai === 'khong_dat' ? 'times-circle' : 'clock') }} me-1"></i>
@@ -96,7 +100,7 @@
                             {{-- Bài kiểm tra --}}
                             <div>
                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <div class="fw-bold small text-dark"><i class="fas fa-file-signature text-primary me-2"></i>Điểm kiểm tra</div>
+                                    <div class="fw-bold small text-dark"><i class="fas fa-file-signature text-primary me-2"></i>TB kiem tra</div>
                                     <span class="fw-bold text-dark">{{ $courseResult ? number_format($courseResult->diem_kiem_tra ?: 0, 2) : '--' }}/10</span>
                                 </div>
                                 <div class="progress rounded-pill" style="height: 8px;">
@@ -109,6 +113,18 @@
                             </div>
 
                             {{-- Nhận xét --}}
+                            {{-- Diem giang vien chot --}}
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div class="fw-bold small text-dark"><i class="fas fa-lock text-warning me-2"></i>Diem giang vien chot</div>
+                                    <span class="fw-bold text-dark">{{ $courseResult?->diem_giang_vien_chot !== null ? number_format((float) $courseResult->diem_giang_vien_chot, 2) : '--' }}/10</span>
+                                </div>
+                                <div class="smaller text-muted">
+                                    {{ $courseResult?->trang_thai_chot_label ?? 'Chua chot' }} -
+                                    {{ $courseResult?->trang_thai_duyet_label ?? 'Chua gui duyet' }}
+                                </div>
+                            </div>
+
                             @if($courseResult && $courseResult->nhan_xet_giang_vien)
                                 <div class="bg-white p-3 rounded-3 border border-dashed mt-2">
                                     <div class="fw-bold small text-dark mb-2"><i class="fas fa-comment-dots text-warning me-2"></i>Nhận xét từ hệ thống/giảng viên:</div>
@@ -146,7 +162,7 @@
                                                 <th class="py-3 border-0 smaller text-muted text-uppercase text-center">Chuyên cần</th>
                                                 <th class="py-3 border-0 smaller text-muted text-uppercase text-center">Điểm thi</th>
                                                 <th class="py-3 border-0 smaller text-muted text-uppercase text-center">Tổng kết</th>
-                                                <th class="pe-4 py-3 border-0 smaller text-muted text-uppercase text-end">Trạng thái</th>
+                                                <th class="pe-4 py-3 border-0 smaller text-muted text-uppercase text-end">GV chot / Ho so</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -168,6 +184,13 @@
                                                         <div class="fw-extrabold text-primary">{{ number_format($mResult->diem_tong_ket ?: 0, 2) }}</div>
                                                     </td>
                                                     <td class="pe-4 text-end">
+                                                        @if($mResult->diem_giang_vien_chot !== null)
+                                                            <div class="fw-bold text-success">{{ number_format((float) $mResult->diem_giang_vien_chot, 2) }}</div>
+                                                        @else
+                                                            <div class="text-muted">--</div>
+                                                        @endif
+                                                        <div class="smaller text-muted">{{ $mResult->trang_thai_chot_label }}</div>
+                                                        <div class="smaller text-muted">{{ $mResult->trang_thai_duyet_label }}</div>
                                                         <span class="badge bg-{{ $mResult->trang_thai === 'hoan_thanh' ? 'success' : 'info' }}-soft text-{{ $mResult->trang_thai === 'hoan_thanh' ? 'success' : 'info' }} rounded-pill">
                                                             {{ $mResult->trang_thai === 'hoan_thanh' ? 'HOÀN THÀNH' : 'ĐANG HỌC' }}
                                                         </span>
@@ -212,6 +235,9 @@
                                                     </td>
                                                     <td class="text-center">
                                                         <div class="fw-extrabold text-dark fs-5">{{ number_format($eResult->diem_kiem_tra ?: 0, 2) }}</div>
+                                                        @if($eResult->attempt_strategy_used)
+                                                            <div class="smaller text-primary fw-semibold">{{ $eResult->attempt_strategy_used }}</div>
+                                                        @endif
                                                         <div class="smaller text-muted">Lần thứ {{ $eResult->chi_tiet['lan_lam_thu'] ?? 1 }}</div>
                                                     </td>
                                                     <td class="text-center">

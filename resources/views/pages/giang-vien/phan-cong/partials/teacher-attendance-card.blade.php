@@ -19,14 +19,14 @@
     $studentAttendanceStatus = $timelineItem['studentAttendanceStatus'] ?? [
         'label' => 'Chưa chốt',
         'color' => 'secondary',
-        'total_students' => $phanCong->khoaHoc->hocVienKhoaHocs->count(),
+        'total_students' => $phanCong->khoaHoc->hocVienKhoaHocs()->whereIn('trang_thai', ['dang_hoc', 'hoan_thanh'])->count(),
         'marked_students' => $lich->diemDanhs->count(),
         'present_count' => $lich->diemDanhs->where('trang_thai', 'co_mat')->count(),
         'late_count' => $lich->diemDanhs->where('trang_thai', 'vao_tre')->count(),
         'absent_count' => $lich->diemDanhs->where('trang_thai', 'vang_mat')->count(),
         'excused_count' => $lich->diemDanhs->where('trang_thai', 'co_phep')->count(),
         'can_manage' => true,
-        'is_finalized' => false,
+        'is_finalized' => in_array($lich->trang_thai_bao_cao, ['da_bao_cao', 'da_bao_cao_muon'], true),
         'status_hint' => 'Giảng viên có thể cập nhật điểm danh nhiều lần trong buổi học rồi chốt lại khi hoàn tất.',
     ];
 @endphp

@@ -92,6 +92,24 @@
                                             {{ $chiTiet->is_dung ? 'Đã đúng' : 'Sai / chưa có đáp án' }} • {{ number_format((float) ($chiTiet->diem_tu_dong ?? 0), 2) }} điểm tự động
                                         </div>
                                     @else
+                                        @php
+                                            $goiYCham = $chiTiet->chiTietBaiKiemTra->huong_dan_rieng ?: ($chiTiet->cauHoi->goi_y_tra_loi ?? null);
+                                            $dapAnMau = $chiTiet->cauHoi->dap_an_mau ?? null;
+                                            $rubricCham = $chiTiet->chiTietBaiKiemTra->rubric_rieng ?: ($chiTiet->cauHoi->rubric_cham ?? null);
+                                        @endphp
+                                        @if(filled($goiYCham) || filled($dapAnMau) || filled($rubricCham))
+                                            <div class="border rounded-3 bg-light p-3 mb-3 small">
+                                                @if(filled($goiYCham))
+                                                    <div class="mb-2"><strong>Goi y:</strong> {!! nl2br(e($goiYCham)) !!}</div>
+                                                @endif
+                                                @if(filled($dapAnMau))
+                                                    <div class="mb-2"><strong>Dap an mau:</strong> {!! nl2br(e($dapAnMau)) !!}</div>
+                                                @endif
+                                                @if(filled($rubricCham))
+                                                    <div><strong>Rubric:</strong> {!! nl2br(e($rubricCham)) !!}</div>
+                                                @endif
+                                            </div>
+                                        @endif
                                         <div class="mb-3">
                                             <label class="form-label small fw-semibold">Câu trả lời của học viên</label>
                                             <div class="border rounded-3 bg-light p-3">{!! nl2br(e($chiTiet->cau_tra_loi_text ?: 'Học viên chưa trả lời.')) !!}</div>

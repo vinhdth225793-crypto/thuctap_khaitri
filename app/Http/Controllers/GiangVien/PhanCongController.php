@@ -4,6 +4,7 @@ namespace App\Http\Controllers\GiangVien;
 
 use App\Http\Controllers\Controller;
 use App\Models\BaiKiemTra;
+use App\Models\BaiLamBaiKiemTra;
 use App\Models\DiemDanhGiangVien;
 use App\Models\KhoaHoc;
 use App\Models\LichHoc;
@@ -14,6 +15,7 @@ use App\Models\HocVienKhoaHoc;
 use App\Services\TeacherAttendanceService;
 use App\Services\ThongBaoService;
 use App\Services\KetQuaHocTapService;
+use App\Services\LearningResultFinalizationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -22,6 +24,7 @@ class PhanCongController extends Controller
     public function __construct(
         private readonly TeacherAttendanceService $teacherAttendanceService,
         private readonly KetQuaHocTapService $ketQuaHocTapService,
+        private readonly LearningResultFinalizationService $finalizationService,
     ) {
     }
 
@@ -272,27 +275,49 @@ class PhanCongController extends Controller
         $phanCong = $this->resolveTeacherAssignment($giangVien->id, (int) $id);
         $khoaHoc = $phanCong->khoaHoc;
 
-        $hocViens = HocVienKhoaHoc::with('hocVien')
+        $hocViens = HocVienKhoaHoc::with('hocVien.nguoiDung')
             ->where('khoa_hoc_id', $khoaHoc->id)
-            ->where('trang_thai', 'dang_hoc')
+            ->whereIn('trang_thai', ['dang_hoc', 'hoan_thanh'])
             ->get();
+        $hocVienIds = $hocViens->pluck('hoc_vien_id')->filter()->values();
+        $resultsByStudent = KetQuaHocTap::with(['moduleHoc', 'baiKiemTra'])
+            ->whereIn('hoc_vien_id', $hocVienIds->all())
+            ->where('khoa_hoc_id', $khoaHoc->id)
+            ->get()
+            ->groupBy('hoc_vien_id');
+        $attemptsByStudentExam = BaiLamBaiKiemTra::query()
+            ->with(['baiKiemTra:id,khoa_hoc_id,module_hoc_id,tieu_de,loai_bai_kiem_tra', 'nguoiCham:ma_nguoi_dung,ho_ten,email'])
+            ->whereIn('hoc_vien_id', $hocVienIds->all())
+            ->whereHas('baiKiemTra', fn ($query) => $query->where('khoa_hoc_id', $khoaHoc->id))
+            ->orderBy('lan_lam_thu')
+            ->get()
+            ->groupBy(fn (BaiLamBaiKiemTra $attempt) => $attempt->hoc_vien_id . ':' . $attempt->bai_kiem_tra_id);
 
         $studentResults = [];
         foreach ($hocViens as $enrollment) {
-            $student = $enrollment->hocVien;
+            $student = $enrollment->hocVien?->nguoiDung;
             
             // Lấy tất cả kết quả của học viên này trong khóa
-            $allResults = KetQuaHocTap::with(['moduleHoc', 'baiKiemTra'])
-                ->where('hoc_vien_id', $enrollment->hoc_vien_id)
-                ->where('khoa_hoc_id', $khoaHoc->id)
-                ->get();
+            $allResults = $resultsByStudent->get($enrollment->hoc_vien_id, collect());
+            $moduleResults = $allResults->whereNotNull('module_hoc_id')->whereNull('bai_kiem_tra_id')->values();
+            $currentModuleResult = $moduleResults->firstWhere('module_hoc_id', $phanCong->module_hoc_id);
+            $examResults = $allResults
+                ->whereNotNull('bai_kiem_tra_id')
+                ->filter(fn (KetQuaHocTap $result) => (int) $result->module_hoc_id === (int) $phanCong->module_hoc_id)
+                ->values();
 
             $studentResults[] = [
                 'enrollment' => $enrollment,
                 'student' => $student,
                 'course_result' => $allResults->whereNull('module_hoc_id')->whereNull('bai_kiem_tra_id')->first(),
-                'module_results' => $allResults->whereNotNull('module_hoc_id')->whereNull('bai_kiem_tra_id')->values(),
-                'exam_results' => $allResults->whereNotNull('bai_kiem_tra_id')->values(),
+                'module_result' => $currentModuleResult,
+                'module_results' => $moduleResults,
+                'exam_results' => $examResults,
+                'attempts_by_exam' => $examResults->mapWithKeys(function (KetQuaHocTap $result) use ($attemptsByStudentExam, $enrollment) {
+                    return [
+                        $result->bai_kiem_tra_id => $attemptsByStudentExam->get($enrollment->hoc_vien_id . ':' . $result->bai_kiem_tra_id, collect()),
+                    ];
+                }),
             ];
         }
 
@@ -324,9 +349,33 @@ class PhanCongController extends Controller
 
         // Sau khi update thủ công, có thể cần refresh lại cấp cao hơn nếu muốn logic tự động đè lên
         // Nhưng ở đây là giảng viên chốt, nên ta giữ nguyên hoặc chỉ refresh phần điểm số
-        $this->ketQuaHocTapService->refreshAllForCourseStudent($kq->khoa_hoc_id, $kq->hoc_vien_id);
-
         return response()->json(['success' => true, 'message' => 'Đã cập nhật kết quả học tập.']);
+    }
+
+    public function chotKetQua(Request $request, $id)
+    {
+        $giangVien = auth()->user()->giangVien;
+        $phanCong = $this->resolveTeacherAssignment($giangVien->id, (int) $id);
+
+        $validated = $request->validate([
+            'hoc_vien_id' => 'required|integer|exists:nguoi_dung,ma_nguoi_dung',
+            'ghi_chu_chot' => 'nullable|string|max:2000',
+        ]);
+
+        HocVienKhoaHoc::query()
+            ->where('khoa_hoc_id', $phanCong->khoa_hoc_id)
+            ->where('hoc_vien_id', (int) $validated['hoc_vien_id'])
+            ->whereIn('trang_thai', ['dang_hoc', 'hoan_thanh'])
+            ->firstOrFail();
+
+        $this->finalizationService->finalizeModuleResult(
+            $phanCong,
+            (int) $validated['hoc_vien_id'],
+            (int) auth()->user()->ma_nguoi_dung,
+            $validated['ghi_chu_chot'] ?? null
+        );
+
+        return back()->with('success', 'Da chot diem module va gui sang admin cho duyet.');
     }
 
     /**
@@ -731,12 +780,18 @@ class PhanCongController extends Controller
         $lateCount = $attendances->where('trang_thai', 'vao_tre')->count();
         $absentCount = $attendances->where('trang_thai', 'vang_mat')->count();
         $excusedCount = $attendances->where('trang_thai', 'co_phep')->count();
-        $isFinalized = $lichHoc->trang_thai_bao_cao === 'da_bao_cao';
+        $isFinalized = in_array($lichHoc->trang_thai_bao_cao, ['da_bao_cao', 'da_bao_cao_muon'], true);
+
+        // Đếm lại tổng số học viên thực tế cần điểm danh (đang học hoặc đã hoàn thành)
+        // Thay vì dùng $totalStudents truyền vào (vốn có thể bao gồm cả học viên ngừng học)
+        $actualTotalStudents = $lichHoc->khoaHoc->hocVienKhoaHocs()
+            ->whereIn('trang_thai', ['dang_hoc', 'hoan_thanh'])
+            ->count();
 
         return [
             'label' => $isFinalized ? 'Đã chốt điểm danh' : 'Chưa chốt điểm danh',
             'color' => $isFinalized ? 'success' : ($markedStudents > 0 ? 'warning' : 'secondary'),
-            'total_students' => $totalStudents,
+            'total_students' => $actualTotalStudents,
             'marked_students' => $markedStudents,
             'present_count' => $presentCount,
             'late_count' => $lateCount,

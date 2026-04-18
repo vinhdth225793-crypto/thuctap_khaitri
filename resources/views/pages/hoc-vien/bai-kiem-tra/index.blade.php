@@ -56,9 +56,16 @@
                 $attemptsUsed = $baiKiemTra->baiLams->count();
                 $remainingAttempts = max(0, (int) $baiKiemTra->so_lan_duoc_lam - $attemptsUsed);
                 $canStartNewAttempt = $baiKiemTra->can_student_start && !$activeBaiLam && $remainingAttempts > 0;
+                
+                $cardColorClass = '';
+                if ($baiKiemTra->loai_noi_dung === 'trac_nghiem') {
+                    $cardColorClass = 'test-card--trac-nghiem';
+                } elseif ($baiKiemTra->loai_noi_dung === 'tu_luan') {
+                    $cardColorClass = 'test-card--tu-luan';
+                }
             @endphp
             <div class="col-xl-4 col-lg-6">
-                <div class="card vip-card h-100 test-card">
+                <div class="card vip-card h-100 test-card {{ $cardColorClass }}">
                     <div class="card-body d-flex flex-column">
                         <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
                             <div>
@@ -193,6 +200,16 @@
 
     .test-card {
         border: 1px solid #e2e8f0;
+    }
+
+    .test-card--trac-nghiem {
+        background: linear-gradient(180deg, #fffdf0 0%, #fff9e6 100%);
+        border-color: rgba(217, 119, 6, 0.15);
+    }
+
+    .test-card--tu-luan {
+        background: linear-gradient(180deg, #fff9f9 0%, #fff0f0 100%);
+        border-color: rgba(220, 38, 38, 0.15);
     }
 
     .empty-icon {

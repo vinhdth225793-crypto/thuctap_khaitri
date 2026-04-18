@@ -77,11 +77,19 @@
                                             </td>
                                             <td class="text-center">
                                                 <span class="badge text-bg-light border">#{{ $baiLam->lan_lam_thu }}</span>
+                                                @if($baiLam->is_official_attempt ?? false)
+                                                    <div class="mt-2">
+                                                        <span class="badge text-bg-primary">Diem chinh thuc</span>
+                                                    </div>
+                                                @endif
                                             </td>
                                             <td class="text-center">
                                                 @if($baiLam->diem_so !== null)
                                                     <div class="fw-bold text-success fs-5">{{ number_format((float) $baiLam->diem_so, 2) }}</div>
                                                     <div class="small text-muted">/ {{ number_format((float) ($exam->tong_diem ?? 10), 2) }}</div>
+                                                    @if($baiLam->is_official_attempt ?? false)
+                                                        <div class="small text-primary fw-semibold">Strategy: {{ $baiLam->official_strategy ?? 'highest_score' }}</div>
+                                                    @endif
                                                 @else
                                                     <span class="badge text-bg-warning">Chờ chấm</span>
                                                 @endif

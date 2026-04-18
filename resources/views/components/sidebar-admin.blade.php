@@ -28,7 +28,7 @@
     <nav class="sidebar-nav custom-scrollbar px-3 pb-5" id="sidebarScrollContainer">
         @php
             $accountGroupOpen = request()->routeIs('admin.hoc-vien.*', 'admin.giang-vien.*');
-            $trainingGroupOpen = request()->routeIs('admin.nhom-nganh.*', 'admin.khoa-hoc.*', 'admin.module-hoc.*', 'admin.diem-danh.*');
+            $trainingGroupOpen = request()->routeIs('admin.nhom-nganh.*', 'admin.khoa-hoc.*', 'admin.module-hoc.*', 'admin.diem-danh.*', 'admin.ket-qua.*');
             $questionBankActive = request()->routeIs('admin.kiem-tra-online.cau-hoi.*');
             $approvalGroupOpen = request()->routeIs(
                 'admin.phe-duyet-tai-khoan.*',
@@ -98,6 +98,9 @@
                     </a>
                     <a href="{{ route('admin.diem-danh.index') }}" class="edu-submenu-item {{ request()->routeIs('admin.diem-danh.*') ? 'active' : '' }}">
                         <i class="fas fa-user-check me-2"></i> Điểm danh
+                    </a>
+                    <a href="{{ route('admin.ket-qua.index') }}" class="edu-submenu-item {{ request()->routeIs('admin.ket-qua.*') ? 'active' : '' }}">
+                        <i class="fas fa-chart-line me-2"></i> Ket qua hoc tap
                     </a>
                 </div>
             </div>

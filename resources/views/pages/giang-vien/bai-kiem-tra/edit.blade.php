@@ -11,7 +11,8 @@
     $questionFilters = $questionFilters ?? [];
     $selectableQuestionIds = $selectableQuestionIds ?? [];
     $importedQuestionIds = collect(session('exam_imported_question_ids', []))->map(fn ($id) => (int) $id)->all();
-    $viewErrors = $errors ?? new \Illuminate\Support\ViewErrorBag();
+    $errors = $errors ?? new \Illuminate\Support\ViewErrorBag();
+    $viewErrors = $errors;
     $activeExamTab = in_array($activeTab ?? null, ['info', 'scoring', 'import', 'questions'], true)
         ? $activeTab
         : 'info';
@@ -174,6 +175,7 @@
                 <form action="{{ route('giang-vien.bai-kiem-tra.update', $baiKiemTra->id) }}" method="POST" id="mainExamForm">
                     @csrf
                     @method('PUT')
+                    <div id="orderedQuestionInputs"></div>
                     
                     <div class="card-body p-4">
                         <div class="tab-content" id="examTabsContent">
@@ -270,6 +272,9 @@
                                                 </div>
                                             </div>
                                             <div class="d-flex gap-2">
+                                                <button type="button" class="btn btn-success btn-sm rounded-pill px-3 fw-bold" data-bs-toggle="modal" data-bs-target="#quickEssayQuestionModal">
+                                                    <i class="fas fa-pen me-1"></i> Tao cau tu luan
+                                                </button>
                                                 <button type="button" class="btn btn-light btn-sm border" id="btnToggleFilters">
                                                     <i class="fas fa-filter me-1 text-primary"></i> Bộ lọc
                                                 </button>
@@ -364,7 +369,6 @@
                                                                 </button>
                                                                 <div class="form-check form-switch mb-0">
                                                                     <input type="checkbox" class="form-check-input question-checkbox" 
-                                                                        name="question_ids[]" 
                                                                         value="{{ $questionId }}" 
                                                                         id="q_cb_{{ $questionId }}"
                                                                         data-id="{{ $questionId }}"
@@ -464,6 +468,9 @@
                                         <div class="d-flex justify-content-center gap-3">
                                             <a href="{{ route('giang-vien.bai-kiem-tra.import-template') }}" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
                                                 <i class="fas fa-download me-1"></i> Tải file mẫu .xlsx
+                                            </a>
+                                            <a href="{{ route('giang-vien.bai-kiem-tra.import-template-essay') }}" class="btn btn-outline-success btn-sm rounded-pill px-3 fw-bold">
+                                                <i class="fas fa-download me-1"></i> Mau tu luan .csv
                                             </a>
                                             <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm" id="btnUploadImport">
                                                 <i class="fas fa-upload me-1"></i> Bắt đầu xử lý file
@@ -632,7 +639,7 @@
                                                 </div>
 
                                                 <label class="form-label fw-bold" for="essayPromptScoringInput">Đề bài / yêu cầu làm bài</label>
-                                                <textarea id="essayPromptScoringInput" rows="9" class="form-control shadow-none rounded-3 free-essay-prompt-textarea" placeholder="Ví dụ: Phân tích tình huống, trình bày luận điểm chính và nêu kết luận của bạn..." data-essay-prompt-input>{{ $essayPrompt }}</textarea>
+                                                <textarea name="mo_ta_tu_luan_tu_do" id="essayPromptScoringInput" rows="9" class="form-control shadow-none rounded-3 free-essay-prompt-textarea" placeholder="Ví dụ: Phân tích tình huống, trình bày luận điểm chính và nêu kết luận của bạn..." data-essay-prompt-input>{{ old('mo_ta_tu_luan_tu_do', $essayPrompt) }}</textarea>
                                                 <div class="form-text">Ô này được đồng bộ với phần “Mô tả / Hướng dẫn học viên” ở tab đầu tiên.</div>
                                                 @error('mo_ta')
                                                     <div class="text-danger small fw-bold mt-2">{{ $message }}</div>
@@ -712,6 +719,72 @@
                 <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-modal="modal" data-bs-dismiss="modal">Đóng</button>
                 <div id="detailModalAction"></div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tao nhanh cau tu luan -->
+<div class="modal fade" id="quickEssayQuestionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <form action="{{ route('giang-vien.bai-kiem-tra.essay-question.store', $baiKiemTra->id) }}" method="POST">
+                @csrf
+                <input type="hidden" name="trang_thai" value="san_sang">
+                <div class="modal-header border-0 bg-light py-3 px-4">
+                    <h5 class="modal-title fw-bold text-primary">Tao cau tu luan moi</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Noi dung cau hoi <span class="text-danger">*</span></label>
+                        <textarea name="noi_dung" rows="5" class="form-control shadow-none rounded-3 border-2" required>{{ old('noi_dung') }}</textarea>
+                        @error('noi_dung')
+                            <div class="text-danger small fw-bold mt-2">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Diem</label>
+                            <input type="number" name="diem_mac_dinh" step="0.25" min="0.25" max="100" value="{{ old('diem_mac_dinh', 1) }}" class="form-control shadow-none rounded-3 border-2" required>
+                            @error('diem_mac_dinh')
+                                <div class="text-danger small fw-bold mt-2">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Muc do</label>
+                            <select name="muc_do" class="form-select shadow-none rounded-3 border-2" required>
+                                <option value="de" @selected(old('muc_do') === 'de')>De</option>
+                                <option value="trung_binh" @selected(old('muc_do', 'trung_binh') === 'trung_binh')>Trung binh</option>
+                                <option value="kho" @selected(old('muc_do') === 'kho')>Kho</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Chen vao vi tri</label>
+                            <input type="number" name="thu_tu" min="1" value="{{ old('thu_tu') }}" class="form-control shadow-none rounded-3 border-2" placeholder="De trong de them cuoi">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Goi y tra loi</label>
+                        <textarea name="goi_y_tra_loi" rows="3" class="form-control shadow-none rounded-3 border-2">{{ old('goi_y_tra_loi') }}</textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Dap an mau</label>
+                        <textarea name="dap_an_mau" rows="3" class="form-control shadow-none rounded-3 border-2">{{ old('dap_an_mau') }}</textarea>
+                    </div>
+
+                    <div>
+                        <label class="form-label fw-bold">Rubric cham</label>
+                        <textarea name="rubric_cham" rows="4" class="form-control shadow-none rounded-3 border-2" placeholder="VD: Y chinh 4 diem, lap luan 3 diem, trinh bay 3 diem">{{ old('rubric_cham') }}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 bg-light py-3 px-4 rounded-bottom-4">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Huy</button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold">Luu va them vao de</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -857,6 +930,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const realtimeTotal = document.getElementById('realtimeTotalScore');
     const previewPackage = document.getElementById('previewPackageScore');
     const importedQuestionIds = @json($importedQuestionIds);
+    const initialSelectedQuestionIds = @json(old('question_ids', $selectedQuestionIds));
+    const orderedQuestionInputs = document.getElementById('orderedQuestionInputs');
+    const questionCardWrappers = Array.from(document.querySelectorAll('.question-card-wrapper'));
 
     const totalInput = document.querySelector('input[name="tong_diem_goi_diem"]');
     const countInput = document.querySelector('input[name="so_cau_goi_diem"]');
@@ -885,6 +961,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const questionDetailModal = new bootstrap.Modal(document.getElementById('questionDetailModal'));
 
     let latestImportPreview = null;
+    let selectedOrder = initialSelectedQuestionIds.map(id => String(id));
 
     // Helper Functions
     function getCheckboxes() {
@@ -899,6 +976,60 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function getContentMode() {
         return contentModeSelect?.value || 'hon_hop';
+    }
+
+    function isQuestionTypeAllowed(type, mode = getContentMode()) {
+        if (mode === 'trac_nghiem') return type === 'trac_nghiem';
+        if (mode === 'tu_luan_theo_cau') return type === 'tu_luan';
+        if (mode === 'tu_luan_tu_do') return false;
+
+        return true;
+    }
+
+    function syncSelectedOrder() {
+        const checkedIds = getCheckboxes()
+            .filter(cb => cb.checked)
+            .map(cb => String(cb.dataset.id));
+
+        selectedOrder = selectedOrder.filter(id => checkedIds.includes(id));
+        checkedIds.forEach(id => {
+            if (!selectedOrder.includes(id)) {
+                selectedOrder.push(id);
+            }
+        });
+    }
+
+    function getSelectedCheckboxesInOrder() {
+        syncSelectedOrder();
+
+        return selectedOrder
+            .map(id => document.querySelector(`.question-checkbox[data-id="${id}"]`))
+            .filter(Boolean)
+            .filter(cb => cb.checked);
+    }
+
+    function syncOrderedQuestionInputs() {
+        if (!orderedQuestionInputs) return;
+
+        orderedQuestionInputs.innerHTML = getSelectedCheckboxesInOrder()
+            .map(cb => `<input type="hidden" name="question_ids[]" value="${escapeHtml(cb.dataset.id)}">`)
+            .join('');
+    }
+
+    function applyContentModeQuestionFilter() {
+        const mode = getContentMode();
+
+        questionCardWrappers.forEach(wrapper => {
+            const type = wrapper.dataset.type;
+            const allowed = isQuestionTypeAllowed(type, mode);
+            const checkbox = wrapper.querySelector('.question-checkbox');
+
+            if (!allowed && checkbox) {
+                checkbox.checked = false;
+            }
+
+            wrapper.classList.toggle('d-none', !allowed);
+        });
     }
 
     function setContentMode(mode) {
@@ -935,6 +1066,7 @@ document.addEventListener('DOMContentLoaded', function() {
         freeEssayScoringArea?.classList.toggle('d-none', !isFreeEssay);
         questionFlowTabItems.forEach(item => item.classList.toggle('d-none', isFreeEssay));
         btnScoringNextImport?.classList.toggle('d-none', isFreeEssay);
+        applyContentModeQuestionFilter();
 
         if (btnScoringSave) {
             btnScoringSave.classList.toggle('btn-primary', isFreeEssay);
@@ -955,6 +1087,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (manualRadio) manualRadio.checked = true;
             packageArea?.classList.add('d-none');
             manualArea?.classList.add('d-none');
+            updateSelectionUI();
             return;
         }
 
@@ -966,6 +1099,8 @@ document.addEventListener('DOMContentLoaded', function() {
             manualArea?.classList.remove('d-none');
             updateManualList();
         }
+
+        updateSelectionUI();
     }
 
     function escapeHtml(value) {
@@ -991,7 +1126,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function getSelectionStatus() {
-        const selected = getCheckboxes().filter(cb => cb.checked).length;
+        const selected = getSelectedCheckboxesInOrder().length;
         const target = getPackageTargetCount();
 
         return {
@@ -1060,6 +1195,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function applyQuickSelection(predicate) {
         const candidates = getCheckboxes()
             .filter(cb => !cb.disabled)
+            .filter(cb => !cb.closest('.question-card-wrapper')?.classList.contains('d-none'))
             .filter(cb => predicate(cb, cb.closest('.question-card-wrapper')));
 
         if (!isPackageMode()) {
@@ -1085,14 +1221,28 @@ document.addEventListener('DOMContentLoaded', function() {
         updateSelectionUI();
     }
 
+    function moveSelectedQuestion(id, direction) {
+        syncSelectedOrder();
+        const currentIndex = selectedOrder.indexOf(String(id));
+        const nextIndex = currentIndex + direction;
+
+        if (currentIndex < 0 || nextIndex < 0 || nextIndex >= selectedOrder.length) {
+            return;
+        }
+
+        [selectedOrder[currentIndex], selectedOrder[nextIndex]] = [selectedOrder[nextIndex], selectedOrder[currentIndex]];
+        updateSelectionUI();
+    }
+
     // Question Selection Logic
     function updateSelectionUI() {
         const checkboxes = getCheckboxes();
-        const checked = checkboxes.filter(cb => cb.checked);
+        const checked = getSelectedCheckboxesInOrder();
+        syncOrderedQuestionInputs();
         let totalScore = 0;
         let html = '';
 
-        checked.forEach(cb => {
+        checked.forEach((cb, index) => {
             const id = cb.dataset.id;
             const code = cb.dataset.code;
             const content = cb.dataset.content;
@@ -1109,6 +1259,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         <button type="button" class="btn btn-sm btn-light text-danger p-0 rounded-circle remove-selection" data-id="${id}" style="width:24px; height:24px;">
                             <i class="fas fa-times"></i>
                         </button>
+                    </div>
+                    <div class="d-flex gap-1 mt-2">
+                        <button type="button" class="btn btn-sm btn-light border move-selection" data-id="${id}" data-dir="-1" ${index === 0 ? 'disabled' : ''}>Len</button>
+                        <button type="button" class="btn btn-sm btn-light border move-selection" data-id="${id}" data-dir="1" ${index === checked.length - 1 ? 'disabled' : ''}>Xuong</button>
                     </div>
                 </div>
             `;
@@ -1143,6 +1297,12 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
 
+        document.querySelectorAll('.move-selection').forEach(btn => {
+            btn.addEventListener('click', function() {
+                moveSelectedQuestion(this.dataset.id, Number(this.dataset.dir || 0));
+            });
+        });
+
         updateManualList();
     }
 
@@ -1156,7 +1316,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         let html = '';
-        getCheckboxes().filter(cb => cb.checked).forEach((cb, index) => {
+        getSelectedCheckboxesInOrder().forEach((cb, index) => {
             const id = cb.value;
             const code = cb.dataset.code;
             const content = cb.dataset.content;
@@ -1269,6 +1429,10 @@ document.addEventListener('DOMContentLoaded', function() {
     window.toggleQuestion = function(id, state) {
         const cb = document.querySelector(`.question-checkbox[data-id="${id}"]`);
         if (cb) {
+            const wrapper = cb.closest('.question-card-wrapper');
+            if (state && wrapper && !isQuestionTypeAllowed(wrapper.dataset.type)) {
+                return;
+            }
             cb.checked = state;
             cb.dispatchEvent(new Event('change'));
             questionDetailModal.hide();
@@ -1302,6 +1466,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Global Events
     document.addEventListener('change', function(e) {
         if (e.target.classList.contains('question-checkbox')) {
+            const wrapper = e.target.closest('.question-card-wrapper');
+            if (e.target.checked && wrapper && !isQuestionTypeAllowed(wrapper.dataset.type)) {
+                e.target.checked = false;
+                return;
+            }
             updateSelectionUI();
         }
     });
@@ -1432,6 +1601,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const typeLabel = row.question_type_label || row.question_type || 'Không rõ';
             const typeBadge = row.question_type === 'tu_luan' ? 'info' : 'primary';
             const noteHtml = [
+                row.dap_an_mau ? `<div class="small text-muted mt-1"><strong>Dap an mau:</strong> ${escapeHtml(row.dap_an_mau)}</div>` : '',
+                row.rubric_cham ? `<div class="small text-muted mt-1"><strong>Rubric:</strong> ${escapeHtml(row.rubric_cham)}</div>` : '',
+                row.diem_mac_dinh ? `<div class="small text-muted mt-1"><strong>Diem:</strong> ${escapeHtml(row.diem_mac_dinh)} - ${escapeHtml(row.muc_do || 'trung_binh')}</div>` : '',
                 row.goi_y_tra_loi ? `<div class="small text-muted mt-1"><strong>Gợi ý:</strong> ${escapeHtml(row.goi_y_tra_loi)}</div>` : '',
                 row.note ? `<div class="small text-warning mt-1"><strong>Lưu ý:</strong> ${escapeHtml(row.note)}</div>` : '',
             ].filter(Boolean).join('');

@@ -19,7 +19,10 @@ class AttendanceReportService
     {
         $hasTeacherAttendanceTable = $this->hasTeacherAttendanceTable();
         $currentWeekStart = now()->startOfWeek(Carbon::MONDAY);
+        
+        // Mở rộng phạm vi tìm lịch học: từ retentionStart đến 2 tuần tới
         $retentionStart = $currentWeekStart->copy()->subMonthNoOverflow()->startOfWeek(Carbon::MONDAY);
+        $futureEnd = $currentWeekStart->copy()->addWeeks(2)->endOfWeek(Carbon::SUNDAY);
 
         if ($hasTeacherAttendanceTable) {
             $this->pruneExpiredTeacherAttendanceHistory($retentionStart);
@@ -34,6 +37,7 @@ class AttendanceReportService
 
         $schedules = $this->teacherAttendanceBaseQuery($filters, $hasTeacherAttendanceTable)
             ->whereDate('ngay_hoc', '>=', $retentionStart->toDateString())
+            ->whereDate('ngay_hoc', '<=', $futureEnd->toDateString())
             ->orderBy('ngay_hoc')
             ->orderBy('gio_bat_dau')
             ->get();
@@ -263,10 +267,6 @@ class AttendanceReportService
             return $retentionStart->copy();
         }
 
-        if ($selected->gt($currentWeekStart)) {
-            return $currentWeekStart->copy();
-        }
-
         return $selected;
     }
 
@@ -299,7 +299,8 @@ class AttendanceReportService
 
     private function buildTeacherHistoryWeeks($schedules, Carbon $currentWeekStart, Carbon $retentionStart, Carbon $selectedWeekStart, bool $hasTeacherAttendanceTable)
     {
-        return collect(range(0, 4))
+        // Lấy từ 2 tuần sau đến 4 tuần trước để Admin có thể xem lịch sắp tới
+        return collect(range(-2, 4))
             ->map(function (int $offset) use ($currentWeekStart, $retentionStart, $schedules, $selectedWeekStart, $hasTeacherAttendanceTable) {
                 $weekStart = $currentWeekStart->copy()->subWeeks($offset);
                 $weekEnd = $weekStart->copy()->endOfWeek(Carbon::SUNDAY);
@@ -325,9 +326,11 @@ class AttendanceReportService
                     'total' => $weekSchedules->count(),
                     'pending' => $pending,
                     'completed' => $completed,
+                    'sort_key' => $weekStart->timestamp,
                 ];
             })
             ->filter()
+            ->sortByDesc('sort_key') // Đảm bảo tuần tương lai lên đầu, rồi tới hiện tại, rồi quá khứ
             ->values();
     }
 

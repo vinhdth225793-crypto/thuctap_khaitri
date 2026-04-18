@@ -146,54 +146,68 @@
         </div>
 
         <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white border-0">
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#collapseWeeklyManagement" aria-expanded="true">
+                    <i class="fas fa-chevron-down text-muted transition-icon"></i>
                     <div>
-                        <h5 class="mb-1">Quản lý theo tuần</h5>
+                        <h5 class="mb-0 fw-bold">Quản lý theo tuần</h5>
                         <div class="text-muted small">Chọn tuần để xem riêng danh sách cần kiểm tra và danh sách đã điểm danh.</div>
                     </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2">
                         Giới hạn lịch sử từ {{ $dashboard['retention_start'] ? \Carbon\Carbon::parse($dashboard['retention_start'])->format('d/m/Y') : '--' }}
                     </span>
+                    <button class="btn btn-sm btn-light border shadow-xs" type="button" data-bs-toggle="collapse" data-bs-target="#collapseWeeklyManagement">
+                        <i class="fas fa-compress-alt"></i> Thu gọn/Mở rộng
+                    </button>
                 </div>
             </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    @foreach($dashboard['history_weeks'] as $week)
-                        @php
-                            $weekLinkFilters = array_filter([
-                                'tab' => 'giang-vien',
-                                'week_start' => $week['start_date'],
-                                'khoa_hoc_id' => $filters['khoa_hoc_id'] ?? null,
-                                'giang_vien_id' => $filters['giang_vien_id'] ?? null,
-                                'trang_thai' => $filters['trang_thai'] ?? null,
-                            ], fn ($value) => filled($value));
-                        @endphp
-                        <div class="col-xl-3 col-md-6">
-                            <a href="{{ route('admin.diem-danh.index', $weekLinkFilters) }}"
-                               class="card h-100 text-decoration-none shadow-sm {{ $week['is_selected'] ? 'border-primary border-2' : 'border-light' }}">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
-                                        <div>
-                                            <div class="fw-bold text-dark">{{ $week['label'] }}</div>
-                                            <div class="small text-muted mt-1">
-                                                {{ $week['is_current'] ? 'Tuần hiện tại' : 'Lịch sử tuần' }}
+            <div class="collapse show" id="collapseWeeklyManagement">
+                <div class="card-body border-top">
+                    <div class="row g-3">
+                        @foreach($dashboard['history_weeks'] as $week)
+                            @php
+                                $weekLinkFilters = array_filter([
+                                    'tab' => 'giang-vien',
+                                    'week_start' => $week['start_date'],
+                                    'khoa_hoc_id' => $filters['khoa_hoc_id'] ?? null,
+                                    'giang_vien_id' => $filters['giang_vien_id'] ?? null,
+                                    'trang_thai' => $filters['trang_thai'] ?? null,
+                                ], fn ($value) => filled($value));
+                            @endphp
+                            <div class="col-xl-3 col-md-6">
+                                <a href="{{ route('admin.diem-danh.index', $weekLinkFilters) }}"
+                                   class="card h-100 text-decoration-none shadow-sm {{ $week['is_selected'] ? 'border-primary border-2' : 'border-light' }}">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+                                            <div>
+                                                <div class="fw-bold text-dark">{{ $week['label'] }}</div>
+                                                <div class="small text-muted mt-1">
+                                                    {{ $week['is_current'] ? 'Tuần hiện tại' : 'Lịch sử tuần' }}
+                                                </div>
                                             </div>
+                                            @if($week['is_selected'])
+                                                <span class="badge bg-primary">Đang xem</span>
+                                            @endif
                                         </div>
-                                        @if($week['is_selected'])
-                                            <span class="badge bg-primary">Đang xem</span>
-                                        @endif
+                                        <div class="small text-muted">Tổng buổi: <strong class="text-dark">{{ $week['total'] }}</strong></div>
+                                        <div class="small text-muted">Cần kiểm tra: <strong class="text-warning">{{ $week['pending'] }}</strong></div>
+                                        <div class="small text-muted">Đã điểm danh: <strong class="text-success">{{ $week['completed'] }}</strong></div>
                                     </div>
-                                    <div class="small text-muted">Tổng buổi: <strong class="text-dark">{{ $week['total'] }}</strong></div>
-                                    <div class="small text-muted">Cần kiểm tra: <strong class="text-warning">{{ $week['pending'] }}</strong></div>
-                                    <div class="small text-muted">Đã điểm danh: <strong class="text-success">{{ $week['completed'] }}</strong></div>
-                                </div>
-                            </a>
-                        </div>
-                    @endforeach
+                                </a>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
             </div>
         </div>
+
+        <style>
+            [aria-expanded="false"] .transition-icon { transform: rotate(-90deg); transition: 0.3s; }
+            [aria-expanded="true"] .transition-icon { transform: rotate(0deg); transition: 0.3s; }
+            .shadow-xs { box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        </style>
 
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center gap-2">

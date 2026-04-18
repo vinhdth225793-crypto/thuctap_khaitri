@@ -100,6 +100,14 @@ class ParsedQuestionValidator
         $note = $parsedQuestion['ghi_chu_loi'] ?? null;
         $fallbackCorrectDisplay = $this->resolveFallbackCorrectDisplay($parsedQuestion);
         $goiYTraLoi = trim((string) ($parsedQuestion['goi_y_tra_loi'] ?? ''));
+        $dapAnMau = trim((string) ($parsedQuestion['dap_an_mau'] ?? ''));
+        $rubricCham = trim((string) ($parsedQuestion['rubric_cham'] ?? $parsedQuestion['rubric'] ?? ''));
+        $diemMacDinh = is_numeric($parsedQuestion['diem_mac_dinh'] ?? null)
+            ? round((float) $parsedQuestion['diem_mac_dinh'], 2)
+            : 1.0;
+        $mucDo = (string) ($parsedQuestion['muc_do'] ?? 'trung_binh');
+        $trangThaiImport = (string) ($parsedQuestion['trang_thai_import'] ?? NganHangCauHoi::TRANG_THAI_SAN_SANG);
+        $note = $note ?: ($parsedQuestion['ghi_chu_import'] ?? null);
 
         if ($validationStatus === self::STATUS_VALID) {
             if ($questionType === NganHangCauHoi::LOAI_TU_LUAN) {
@@ -133,6 +141,15 @@ class ParsedQuestionValidator
             'note' => $note,
             'import_answers' => $validationStatus === self::STATUS_VALID && $questionType === NganHangCauHoi::LOAI_TRAC_NGHIEM ? $answers : [],
             'goi_y_tra_loi' => $goiYTraLoi !== '' ? $goiYTraLoi : null,
+            'dap_an_mau' => $dapAnMau !== '' ? $dapAnMau : null,
+            'rubric_cham' => $rubricCham !== '' ? $rubricCham : null,
+            'diem_mac_dinh' => max(0.25, $diemMacDinh),
+            'muc_do' => in_array($mucDo, ['de', 'trung_binh', 'kho'], true) ? $mucDo : 'trung_binh',
+            'trang_thai_import' => in_array($trangThaiImport, [
+                NganHangCauHoi::TRANG_THAI_NHAP,
+                NganHangCauHoi::TRANG_THAI_SAN_SANG,
+                NganHangCauHoi::TRANG_THAI_TAM_AN,
+            ], true) ? $trangThaiImport : NganHangCauHoi::TRANG_THAI_SAN_SANG,
             'nguon_file' => $parsedQuestion['nguon_file'] ?? null,
         ];
     }

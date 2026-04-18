@@ -7,6 +7,7 @@ use InvalidArgumentException;
 class ImportTemplateRegistry
 {
     public const QUESTION_BANK_MCQ = 'question_bank_mcq';
+    public const QUESTION_BANK_ESSAY = 'question_bank_essay';
     public const QUESTION_BANK_MCQ_LEGACY_CSV = 'question_bank_mcq_csv';
 
     public function get(string $key): array
@@ -31,6 +32,11 @@ class ImportTemplateRegistry
     public function questionBankMcq(): array
     {
         return $this->get(self::QUESTION_BANK_MCQ);
+    }
+
+    public function questionBankEssay(): array
+    {
+        return $this->get(self::QUESTION_BANK_ESSAY);
     }
 
     public function legacyProfile(string $key): array

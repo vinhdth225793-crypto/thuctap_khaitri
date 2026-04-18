@@ -1299,13 +1299,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         baoCaoContent.value = res.bao_cao || '';
                         
-                        if (res.trang_thai_bao_cao === 'da_bao_cao') {
-                            statusBadge.innerHTML = '<span class="badge bg-success bg-opacity-10 text-success border border-success px-3 py-2 fw-bold"><i class="fas fa-check-circle me-1"></i> Đã gửi báo cáo</span>';
+                        if (['da_bao_cao', 'da_bao_cao_muon'].includes(res.trang_thai_bao_cao)) {
+                            const badgeColor = res.trang_thai_bao_cao === 'da_bao_cao' ? 'success' : 'warning';
+                            const badgeText = res.trang_thai_bao_cao === 'da_bao_cao' ? 'Đã gửi báo cáo' : 'Đã báo cáo muộn';
+                            statusBadge.innerHTML = `<span class="badge bg-${badgeColor} bg-opacity-10 text-${badgeColor} border border-${badgeColor} px-3 py-2 fw-bold"><i class="fas fa-check-circle me-1"></i> ${badgeText}</span>`;
                             btnSubmitReport.innerHTML = '<i class="fas fa-sync-alt me-1"></i> CẬP NHẬT Chốt điểm danh';
                             btnSubmitReport.classList.replace('btn-success', 'btn-warning');
                         } else {
                             statusBadge.innerHTML = '<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary px-3 py-2 fw-bold"><i class="fas fa-clock me-1"></i> CHƯA GỬI BÁO CÁO</span>';
-                            btnSubmitReport.innerHTML = 'Chốt điểm danh VÀ GỬI BÁO CÁO';
+                            btnSubmitReport.innerHTML = '<i class="fas fa-paper-plane me-1"></i> CHỐT ĐIỂM DANH VÀ GỬI BÁO CÁO';
                             btnSubmitReport.classList.replace('btn-warning', 'btn-success');
                         }
 

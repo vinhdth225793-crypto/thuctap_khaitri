@@ -26,6 +26,7 @@ class ModuleHoc extends Model
         'thoi_luong_du_kien',
         'so_buoi',
         'trang_thai',
+        'ket_qua_config',
     ];
 
     protected $casts = [
@@ -33,6 +34,7 @@ class ModuleHoc extends Model
         'thu_tu_module' => 'integer',
         'thoi_luong_du_kien' => 'integer',
         'so_buoi' => 'integer',
+        'ket_qua_config' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

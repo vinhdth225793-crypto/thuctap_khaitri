@@ -12,6 +12,11 @@ class BaiKiemTra extends Model
 {
     use HasFactory;
 
+    public const CHE_DO_TRAC_NGHIEM = 'trac_nghiem';
+    public const CHE_DO_TU_LUAN_TU_DO = 'tu_luan_tu_do';
+    public const CHE_DO_TU_LUAN_THEO_CAU = 'tu_luan_theo_cau';
+    public const CHE_DO_HON_HOP = 'hon_hop';
+
     protected $table = 'bai_kiem_tra';
 
     protected $fillable = [
@@ -26,12 +31,15 @@ class BaiKiemTra extends Model
         'pham_vi',
         'loai_bai_kiem_tra',
         'loai_noi_dung',
+        'che_do_noi_dung',
         'trang_thai_duyet',
         'trang_thai_phat_hanh',
         'tong_diem',
         'che_do_tinh_diem',
         'so_cau_goi_diem',
         'so_lan_duoc_lam',
+        'attempt_strategy',
+        'ket_qua_config',
         'randomize_questions',
         'randomize_answers',
         'co_giam_sat',
@@ -56,6 +64,7 @@ class BaiKiemTra extends Model
         'ngay_dong' => 'datetime',
         'tong_diem' => 'decimal:2',
         'so_lan_duoc_lam' => 'integer',
+        'ket_qua_config' => 'array',
         'so_cau_goi_diem' => 'integer',
         'randomize_questions' => 'boolean',
         'randomize_answers' => 'boolean',
@@ -146,11 +155,15 @@ class BaiKiemTra extends Model
 
     public function getContentModeKeyAttribute(): string
     {
+        if (in_array($this->che_do_noi_dung, self::contentModeKeys(), true)) {
+            return $this->che_do_noi_dung;
+        }
+
         return match (true) {
-            $this->loai_noi_dung === 'trac_nghiem' => 'trac_nghiem',
-            $this->loai_noi_dung === 'hon_hop' => 'hon_hop',
-            $this->loai_noi_dung === 'tu_luan' && $this->question_count > 0 => 'tu_luan_theo_cau',
-            default => 'tu_luan_tu_do',
+            $this->loai_noi_dung === 'trac_nghiem' => self::CHE_DO_TRAC_NGHIEM,
+            $this->loai_noi_dung === 'hon_hop' => self::CHE_DO_HON_HOP,
+            $this->loai_noi_dung === 'tu_luan' && $this->question_count > 0 => self::CHE_DO_TU_LUAN_THEO_CAU,
+            default => self::CHE_DO_TU_LUAN_TU_DO,
         };
     }
 
@@ -166,17 +179,59 @@ class BaiKiemTra extends Model
 
     public function getUsesQuestionBankAttribute(): bool
     {
-        return $this->question_count > 0;
+        return in_array($this->content_mode_key, [
+            self::CHE_DO_TRAC_NGHIEM,
+            self::CHE_DO_TU_LUAN_THEO_CAU,
+            self::CHE_DO_HON_HOP,
+        ], true);
     }
 
     public function getIsFreeEssayAttribute(): bool
     {
-        return $this->content_mode_key === 'tu_luan_tu_do';
+        return $this->content_mode_key === self::CHE_DO_TU_LUAN_TU_DO;
     }
 
     public function getIsStructuredEssayAttribute(): bool
     {
-        return $this->content_mode_key === 'tu_luan_theo_cau';
+        return $this->content_mode_key === self::CHE_DO_TU_LUAN_THEO_CAU;
+    }
+
+    public static function contentModeKeys(): array
+    {
+        return [
+            self::CHE_DO_TRAC_NGHIEM,
+            self::CHE_DO_TU_LUAN_TU_DO,
+            self::CHE_DO_TU_LUAN_THEO_CAU,
+            self::CHE_DO_HON_HOP,
+        ];
+    }
+
+    public static function contentModeForQuestionTypes(bool $hasObjective, bool $hasEssay): string
+    {
+        return match (true) {
+            $hasObjective && $hasEssay => self::CHE_DO_HON_HOP,
+            $hasObjective => self::CHE_DO_TRAC_NGHIEM,
+            $hasEssay => self::CHE_DO_TU_LUAN_THEO_CAU,
+            default => self::CHE_DO_TU_LUAN_TU_DO,
+        };
+    }
+
+    public static function legacyContentTypeForMode(string $contentMode): string
+    {
+        return match ($contentMode) {
+            self::CHE_DO_TRAC_NGHIEM => 'trac_nghiem',
+            self::CHE_DO_HON_HOP => 'hon_hop',
+            default => 'tu_luan',
+        };
+    }
+
+    public static function contentModeForLegacyContentType(string $legacyContentType): string
+    {
+        return match ($legacyContentType) {
+            'trac_nghiem' => self::CHE_DO_TRAC_NGHIEM,
+            'hon_hop' => self::CHE_DO_HON_HOP,
+            default => self::CHE_DO_TU_LUAN_THEO_CAU,
+        };
     }
 
     public function getCheDoGiamSatLabelAttribute(): string
