@@ -8,10 +8,13 @@
     $startRoute = route('giang-vien.live-room.start', $lectureId);
     $leaveRoute = route('giang-vien.live-room.leave', $lectureId);
     $endRoute = route('giang-vien.live-room.end', $lectureId);
+    $updateMeetLinkRoute = $updateMeetLinkRoute ?? route('giang-vien.live-room.google-meet-link.update', $lectureId);
+    $linkHistories = $linkHistories ?? collect();
+    $formErrors = $errors ?? new \Illuminate\Support\ViewErrorBag();
     $platformPayload = $phongHocLive->du_lieu_nen_tang_json ?? [];
     $scheduleOnlineUrl = \App\Support\OnlineMeetingUrl::normalize($baiGiang->lichHoc?->link_online);
     $schedulePlatform = strtolower((string) $baiGiang->lichHoc?->nen_tang);
-    $roomExternalUrl = \App\Support\OnlineMeetingUrl::normalize($phongHocLive->start_url ?: $phongHocLive->join_url);
+    $roomExternalUrl = \App\Support\OnlineMeetingUrl::normalize($phongHocLive->effective_external_meeting_url ?: ($phongHocLive->start_url ?: $phongHocLive->join_url));
     $externalLaunchUrl = $roomExternalUrl ?: $scheduleOnlineUrl;
     $hasExternalLaunch = filled($externalLaunchUrl);
     $isGoogleMeetLaunch = $phongHocLive->nen_tang_live === \App\Models\PhongHocLive::PLATFORM_GOOGLE_MEET
@@ -343,6 +346,52 @@
                                     </a>
                                 </div>
                             @endif
+
+                            <div class="teacher-live-link-update mb-4">
+                                <h6 class="fw-bold mb-2">Cap nhat link Google Meet</h6>
+                                <p class="small text-muted mb-3">Dung khi link Meet cu hong hoac doi phong hop. Hoc vien va admin se thay link moi ngay sau khi luu.</p>
+                                <form action="{{ $updateMeetLinkRoute }}" method="POST" class="d-grid gap-2">
+                                    @csrf
+                                    <input
+                                        type="url"
+                                        name="google_meet_url"
+                                        value="{{ old('google_meet_url', $externalLaunchUrl) }}"
+                                        class="form-control {{ $formErrors->has('google_meet_url') ? 'is-invalid' : '' }}"
+                                        placeholder="https://meet.google.com/abc-defg-hij"
+                                        required>
+                                    @if($formErrors->has('google_meet_url'))
+                                        <div class="invalid-feedback d-block">{{ $formErrors->first('google_meet_url') }}</div>
+                                    @endif
+                                    <textarea
+                                        name="reason"
+                                        rows="2"
+                                        class="form-control {{ $formErrors->has('reason') ? 'is-invalid' : '' }}"
+                                        placeholder="Ly do doi link">{{ old('reason') }}</textarea>
+                                    @if($formErrors->has('reason'))
+                                        <div class="invalid-feedback d-block">{{ $formErrors->first('reason') }}</div>
+                                    @endif
+                                    <button type="submit" class="btn btn-outline-success fw-bold">
+                                        <i class="fas fa-link me-2"></i>Luu link Meet moi
+                                    </button>
+                                </form>
+
+                                @if($linkHistories->isNotEmpty())
+                                    <div class="mt-3 small">
+                                        <div class="fw-bold text-muted mb-2">Lich su gan day</div>
+                                        @foreach($linkHistories as $history)
+                                            <div class="border rounded p-2 mb-2 bg-light">
+                                                <div class="fw-bold text-truncate">{{ $history->new_url }}</div>
+                                                <div class="text-muted">
+                                                    {{ optional($history->created_at)->format('d/m/Y H:i') }}
+                                                    @if($history->nguoiCapNhat)
+                                                        - {{ $history->nguoiCapNhat->ho_ten }}
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
 
                             <div class="teacher-live-runbook mb-4">
                                 <div class="teacher-live-runbook__item">
@@ -754,6 +803,13 @@
             linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(255, 255, 255, 0.9)),
             #ffffff;
         border: 1px solid #bbf7d0;
+    }
+
+    .teacher-live-link-update {
+        border-radius: 1.1rem;
+        padding: 1rem;
+        background: #ffffff;
+        border: 1px solid #dbeafe;
     }
 
     .teacher-live-runbook {

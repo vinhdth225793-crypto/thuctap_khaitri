@@ -13,6 +13,7 @@ class LiveRoomParticipationService
     {
         $phongHocLive->update([
             'trang_thai_phong' => PhongHocLive::ROOM_STATE_DANG_DIEN_RA,
+            'bat_dau_thuc_te' => $phongHocLive->bat_dau_thuc_te ?? now(),
         ]);
 
         $this->logParticipation($phongHocLive, $user, $this->resolveRole($phongHocLive, $user));
@@ -43,6 +44,7 @@ class LiveRoomParticipationService
     {
         $phongHocLive->update([
             'trang_thai_phong' => PhongHocLive::ROOM_STATE_DA_KET_THUC,
+            'ket_thuc_thuc_te' => now(),
         ]);
 
         $this->leaveRoom($phongHocLive, $user);
@@ -59,7 +61,7 @@ class LiveRoomParticipationService
         }
 
         if ($user->isAdmin()) {
-            return 'host';
+            return 'admin_supervisor';
         }
 
         return 'student';

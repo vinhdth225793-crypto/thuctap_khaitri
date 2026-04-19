@@ -72,6 +72,52 @@ class LiveRoomWorkflowTest extends TestCase
         $this->assertSame('https://example.com/live/join', $room->du_lieu_nen_tang_json['join_url']);
     }
 
+    public function test_teacher_can_create_live_lecture_with_defaults_from_selected_schedule(): void
+    {
+        $admin = $this->createUser('admin');
+        [$teacherUser, $teacher] = $this->createTeacher();
+        $course = $this->createCourse($admin);
+        $module = $this->createModule($course);
+        $assignment = $this->assignTeacher($admin, $teacher, $course, $module);
+        $lichHoc = $this->createLichHoc($course, $module, [
+            'ngay_hoc' => '2026-04-08',
+            'gio_bat_dau' => '13:30:00',
+            'gio_ket_thuc' => '14:45:00',
+            'nen_tang' => 'Google Meet',
+            'link_online' => 'https://meet.google.com/abc-defg-hij?pli=1',
+            'meeting_id' => 'abc-defg-hij',
+            'mat_khau_cuoc_hop' => '123456',
+        ]);
+
+        $response = $this->actingAs($teacherUser)
+            ->post(route('giang-vien.bai-giang.store'), [
+                'tieu_de' => 'Phong hoc live tu lich hoc',
+                'phan_cong_id' => $assignment->id,
+                'lich_hoc_id' => $lichHoc->id,
+                'loai_bai_giang' => BaiGiang::TYPE_LIVE,
+                'hanh_dong' => 'gui_duyet',
+                'live' => [
+                    'moderator_id' => $teacherUser->ma_nguoi_dung,
+                ],
+            ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect(route('giang-vien.khoa-hoc.show', [
+            'id' => $course->id,
+            'focus_lich_hoc_id' => $lichHoc->id,
+            'quick_action' => 'lecture',
+        ]));
+
+        $lecture = BaiGiang::query()->where('lich_hoc_id', $lichHoc->id)->firstOrFail();
+        $room = $lecture->phongHocLive()->firstOrFail();
+
+        $this->assertSame(PhongHocLive::PLATFORM_GOOGLE_MEET, $room->nen_tang_live);
+        $this->assertSame('2026-04-08 13:30:00', $room->thoi_gian_bat_dau->format('Y-m-d H:i:s'));
+        $this->assertSame(75, $room->thoi_luong_phut);
+        $this->assertSame('https://meet.google.com/abc-defg-hij', $room->du_lieu_nen_tang_json['join_url']);
+        $this->assertSame('abc-defg-hij', $room->du_lieu_nen_tang_json['meeting_code']);
+    }
+
     public function test_admin_can_create_and_approve_live_lecture_immediately(): void
     {
         $admin = $this->createUser('admin');
@@ -196,6 +242,17 @@ class LiveRoomWorkflowTest extends TestCase
             ->assertDontSee('?pli=1', false)
             ->assertSee('abc-defg-hij', false)
             ->assertSee('246810', false);
+
+        $this->actingAs($student)
+            ->post(route('hoc-vien.live-room.join', $lecture->id))
+            ->assertRedirect('https://meet.google.com/abc-defg-hij');
+
+        $this->assertDatabaseHas('phong_hoc_live_nguoi_tham_gia', [
+            'phong_hoc_live_id' => $lecture->phongHocLive->id,
+            'nguoi_dung_id' => $student->ma_nguoi_dung,
+            'vai_tro' => 'student',
+            'trang_thai' => 'dang_tham_gia',
+        ]);
 
         Carbon::setTestNow();
     }
@@ -551,6 +608,93 @@ class LiveRoomWorkflowTest extends TestCase
             ->assertSee('Bắt đầu buổi học', false);
 
         Carbon::setTestNow();
+    }
+
+    public function test_admin_can_join_google_meet_room_as_supervisor(): void
+    {
+        Carbon::setTestNow('2026-04-04 09:05:00');
+
+        $admin = $this->createUser('admin');
+        [$teacherUser] = $this->createTeacher();
+        $lecture = $this->createApprovedPublishedLiveLecture($teacherUser, [
+            'nen_tang_live' => PhongHocLive::PLATFORM_GOOGLE_MEET,
+            'platform_type' => PhongHocLive::PLATFORM_GOOGLE_MEET,
+            'external_meeting_url' => 'https://meet.google.com/sup-ervr-one',
+            'external_meeting_code' => 'sup-ervr-one',
+            'join_url' => 'https://meet.google.com/sup-ervr-one?pli=1',
+            'meeting_code' => 'sup-ervr-one',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.live-room.show', $lecture->id))
+            ->assertOk()
+            ->assertSee('Giam sat phong hoc', false);
+
+        $this->actingAs($admin)
+            ->post(route('admin.live-room.join', $lecture->id))
+            ->assertRedirect('https://meet.google.com/sup-ervr-one');
+
+        $this->assertDatabaseHas('phong_hoc_live_nguoi_tham_gia', [
+            'phong_hoc_live_id' => $lecture->phongHocLive->id,
+            'nguoi_dung_id' => $admin->ma_nguoi_dung,
+            'vai_tro' => 'admin_supervisor',
+            'trang_thai' => 'dang_tham_gia',
+        ]);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_teacher_can_update_google_meet_link_and_history_is_recorded(): void
+    {
+        [$teacherUser] = $this->createTeacher();
+        $lecture = $this->createApprovedPublishedLiveLecture($teacherUser, [
+            'nen_tang_live' => PhongHocLive::PLATFORM_GOOGLE_MEET,
+            'platform_type' => PhongHocLive::PLATFORM_GOOGLE_MEET,
+            'external_meeting_url' => 'https://meet.google.com/old-link-one',
+            'external_meeting_code' => 'old-link-one',
+            'join_url' => 'https://meet.google.com/old-link-one',
+            'meeting_code' => 'old-link-one',
+        ]);
+
+        $this->actingAs($teacherUser)
+            ->post(route('giang-vien.live-room.google-meet-link.update', $lecture->id), [
+                'google_meet_url' => 'https://meet.google.com/new-link-two?pli=1',
+                'reason' => 'Doi phong hop moi.',
+            ])
+            ->assertRedirect(route('giang-vien.live-room.show', $lecture->id))
+            ->assertSessionHas('success');
+
+        $room = $lecture->phongHocLive()->firstOrFail();
+        $schedule = $lecture->lichHoc()->firstOrFail();
+
+        $this->assertSame(PhongHocLive::PLATFORM_GOOGLE_MEET, $room->platform_type);
+        $this->assertSame('https://meet.google.com/new-link-two', $room->external_meeting_url);
+        $this->assertSame('new-link-two', $room->external_meeting_code);
+        $this->assertSame('https://meet.google.com/new-link-two', $schedule->link_online);
+        $this->assertSame('teacher_manual', $schedule->online_link_source);
+
+        $this->assertDatabaseHas('live_room_link_histories', [
+            'phong_hoc_live_id' => $room->id,
+            'old_url' => 'https://meet.google.com/old-link-one',
+            'new_url' => 'https://meet.google.com/new-link-two',
+            'updated_by' => $teacherUser->ma_nguoi_dung,
+        ]);
+    }
+
+    public function test_teacher_cannot_update_google_meet_link_with_wrong_provider(): void
+    {
+        [$teacherUser] = $this->createTeacher();
+        $lecture = $this->createApprovedPublishedLiveLecture($teacherUser);
+
+        $this->actingAs($teacherUser)
+            ->from(route('giang-vien.live-room.show', $lecture->id))
+            ->post(route('giang-vien.live-room.google-meet-link.update', $lecture->id), [
+                'google_meet_url' => 'https://zoom.us/j/123456789',
+            ])
+            ->assertRedirect(route('giang-vien.live-room.show', $lecture->id))
+            ->assertSessionHasErrors('google_meet_url');
+
+        $this->assertDatabaseCount('live_room_link_histories', 0);
     }
 
     private function createUser(string $role): NguoiDung

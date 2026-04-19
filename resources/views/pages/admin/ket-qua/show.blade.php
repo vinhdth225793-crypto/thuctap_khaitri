@@ -92,6 +92,9 @@
                                                         <div class="d-flex justify-content-between align-items-start mb-2">
                                                             <div>
                                                                 <div class="fw-bold text-dark">{{ $mResult->moduleHoc?->ten_module ?? 'Module' }}</div>
+                                                                @if($mResult->aggregation_strategy_used)
+                                                                    <div class="smaller text-primary">{{ $mResult->aggregation_strategy_used }}</div>
+                                                                @endif
                                                                 <div class="smaller text-muted italic">Chốt bởi: {{ $mResult->chotBoi?->ho_ten ?? '--' }} lúc {{ $mResult->chot_luc ? $mResult->chot_luc->format('d/m/Y H:i') : '--' }}</div>
                                                             </div>
                                                             <div class="text-end">
@@ -99,6 +102,9 @@
                                                                     {{ $mResult->da_chot ? 'ĐÃ CHỐT' : 'CHƯA CHỐT' }}
                                                                 </span>
                                                                 <div class="fw-extrabold text-primary fs-6">{{ number_format($mb['result']->diem_giang_vien_chot ?: $mb['result']->diem_tong_ket ?: 0, 2) }}</div>
+                                                                @if($mResult->diem_giang_vien_chot !== null)
+                                                                    <div class="smaller text-success">Diem GV chot</div>
+                                                                @endif
                                                             </div>
                                                         </div>
                                                         

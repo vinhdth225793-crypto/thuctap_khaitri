@@ -7,6 +7,9 @@
             <h2 class="fw-bold mb-1">Quan ly diem toan khoa</h2>
             <p class="text-muted mb-0">Chon khoa hoc de xem diem tong ket, module, bai kiem tra va tung lan lam bai.</p>
         </div>
+        <a href="{{ route('admin.xet-duyet-ket-qua.index') }}" class="btn btn-primary">
+            <i class="fas fa-file-signature me-1"></i> Phieu xet duyet
+        </a>
     </div>
 
     <div class="card border-0 shadow-sm rounded-3">

@@ -39,14 +39,14 @@
 
         <!-- Nhóm 1: Quản lý giảng dạy -->
         <div class="nav-item mb-3">
-            <a class="edu-link-parent {{ request()->routeIs('giang-vien.khoa-hoc*', 'giang-vien.lich-giang*', 'giang-vien.don-xin-nghi*') ? '' : 'collapsed' }}" 
+            <a class="edu-link-parent {{ request()->routeIs('giang-vien.khoa-hoc*', 'giang-vien.xet-duyet-ket-qua*', 'giang-vien.lich-giang*', 'giang-vien.don-xin-nghi*') ? '' : 'collapsed' }}" 
                data-bs-toggle="collapse" data-bs-target="#teachingGroup" role="button" 
-               aria-expanded="{{ request()->routeIs('giang-vien.khoa-hoc*', 'giang-vien.lich-giang*', 'giang-vien.don-xin-nghi*') ? 'true' : 'false' }}">
+               aria-expanded="{{ request()->routeIs('giang-vien.khoa-hoc*', 'giang-vien.xet-duyet-ket-qua*', 'giang-vien.lich-giang*', 'giang-vien.don-xin-nghi*') ? 'true' : 'false' }}">
                 <div class="edu-icon-circle bg-soft-info"><i class="fas fa-user-tie"></i></div>
                 <span class="fw-bold">Quản lý đào tạo</span>
                 <i class="fas fa-chevron-right ms-auto arrow-toggle"></i>
             </a>
-            <div class="collapse {{ request()->routeIs('giang-vien.khoa-hoc*', 'giang-vien.lich-giang*', 'giang-vien.don-xin-nghi*') ? 'show' : '' }}" id="teachingGroup">
+            <div class="collapse {{ request()->routeIs('giang-vien.khoa-hoc*', 'giang-vien.xet-duyet-ket-qua*', 'giang-vien.lich-giang*', 'giang-vien.don-xin-nghi*') ? 'show' : '' }}" id="teachingGroup">
                 <div class="edu-submenu-container">
                     <a href="{{ route('giang-vien.khoa-hoc') }}" class="edu-submenu-item {{ request()->routeIs('giang-vien.khoa-hoc*') ? 'active' : '' }}">
                         <i class="fas fa-book-reader me-2"></i> Lộ trình giảng dạy

@@ -127,6 +127,10 @@
                                         </div>
                                     </div>
 
+                                    <a href="{{ route('admin.live-room.show', $baiGiang->id) }}" class="btn btn-primary fw-bold px-4">
+                                        <i class="fas fa-eye me-2"></i>Vao phong voi vai tro giam sat
+                                    </a>
+
                                     @if($baiGiang->phongHocLive->banGhis->isNotEmpty())
                                         <div class="mt-4">
                                             <h6 class="fw-bold mb-3"><i class="fas fa-history me-2"></i>Bản ghi buổi học</h6>

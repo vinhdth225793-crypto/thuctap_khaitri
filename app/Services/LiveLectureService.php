@@ -7,6 +7,7 @@ use App\Models\LopHoc;
 use App\Models\NguoiDung;
 use App\Models\PhongHocLive;
 use App\Models\PhongHocLiveBanGhi;
+use App\Support\OnlineMeetingUrl;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -28,6 +29,14 @@ class LiveLectureService
 
         $liveInput = $validated['live'] ?? [];
         $action = $validated['hanh_dong'] ?? 'luu_nhap';
+        $platform = $liveInput['nen_tang_live'] ?? PhongHocLive::PLATFORM_ZOOM;
+        $platformPayload = $this->platformService->buildPlatformPayload($platform, $liveInput);
+        $externalMeetingUrl = $platform === PhongHocLive::PLATFORM_INTERNAL
+            ? null
+            : OnlineMeetingUrl::normalize($platformPayload['join_url'] ?? ($platformPayload['start_url'] ?? null));
+        $externalMeetingCode = $platformPayload['meeting_code']
+            ?? $platformPayload['meeting_id']
+            ?? OnlineMeetingUrl::meetingCode($externalMeetingUrl);
 
         $approvalStatus = $this->resolveApprovalStatus($action, $isAdmin);
         $publishStatus = $approvalStatus === BaiGiang::STATUS_DUYET_DA_DUYET
@@ -40,17 +49,17 @@ class LiveLectureService
             'moderator_id' => $liveInput['moderator_id'] ?? null,
             'tro_giang_id' => $liveInput['tro_giang_id'] ?? null,
             'tieu_de' => $liveInput['tieu_de'] ?? $baiGiang->tieu_de,
-            'nen_tang' => $liveInput['nen_tang_live'] ?? PhongHocLive::PLATFORM_ZOOM,
+            'nen_tang' => $platform,
+            'platform_type' => $platform,
+            'external_meeting_url' => $externalMeetingUrl,
+            'external_meeting_code' => $externalMeetingCode,
             'bat_dau_du_kien' => $liveInput['thoi_gian_bat_dau'] ?? ($baiGiang->thoi_diem_mo ?? now()),
             'thoi_luong_phut' => $liveInput['thoi_luong_phut'] ?? 90,
             'ket_thuc_du_kien' => \Carbon\Carbon::parse($liveInput['thoi_gian_bat_dau'] ?? ($baiGiang->thoi_diem_mo ?? now()))->addMinutes($liveInput['thoi_luong_phut'] ?? 90),
             'trang_thai' => $this->normalizeRoomState($baiGiang->phongHocLive?->trang_thai),
             'trang_thai_duyet' => $approvalStatus,
             'trang_thai_cong_bo' => $publishStatus,
-            'du_lieu_nen_tang' => $this->platformService->buildPlatformPayload(
-                $liveInput['nen_tang_live'] ?? PhongHocLive::PLATFORM_ZOOM,
-                $liveInput
-            ),
+            'du_lieu_nen_tang' => $platformPayload,
         ];
 
         if ($approvalStatus === BaiGiang::STATUS_DUYET_DA_DUYET) {

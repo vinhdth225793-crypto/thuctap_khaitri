@@ -3,8 +3,11 @@
 namespace App\Http\Requests;
 
 use App\Models\BaiGiang;
+use App\Models\LichHoc;
 use App\Models\PhongHocLive;
+use App\Support\OnlineMeetingUrl;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 
 class UpsertBaiGiangRequest extends FormRequest
@@ -17,6 +20,8 @@ class UpsertBaiGiangRequest extends FormRequest
     public function rules(): array
     {
         $platforms = array_keys(config('live_room.platforms', []));
+        $requiresExternalJoinUrl = fn (): bool => $this->input('loai_bai_giang') === BaiGiang::TYPE_LIVE
+            && $this->input('live.nen_tang_live') !== PhongHocLive::PLATFORM_INTERNAL;
 
         return [
             'tieu_de' => ['required', 'string', 'max:255'],
@@ -52,7 +57,7 @@ class UpsertBaiGiangRequest extends FormRequest
             'live.chi_admin_duoc_ghi_hinh' => ['nullable', 'boolean'],
             'live.tu_dong_gan_ban_ghi' => ['nullable', 'boolean'],
             'live.khoa_copy_noi_dung_mo_ta' => ['nullable', 'boolean'],
-            'live.join_url' => ['required_if:loai_bai_giang,' . BaiGiang::TYPE_LIVE, 'nullable', 'url', 'max:500'],
+            'live.join_url' => [Rule::requiredIf($requiresExternalJoinUrl), 'nullable', 'url', 'max:500'],
             'live.start_url' => ['nullable', 'url', 'max:500'],
             'live.embed_url' => ['nullable', 'url', 'max:500'],
             'live.meeting_id' => ['nullable', 'string', 'max:120'],
@@ -71,9 +76,92 @@ class UpsertBaiGiangRequest extends FormRequest
             'live.nen_tang_live.required_if' => 'Vui lòng chọn nền tảng cho phòng học trực tuyến.',
             'live.moderator_id.required_if' => 'Vui lòng chọn người điều phối cho phòng học trực tuyến.',
             'live.thoi_gian_bat_dau.required_if' => 'Vui lòng chọn thời gian bắt đầu.',
+            'live.thoi_gian_bat_dau.date' => 'Thời gian bắt đầu không hợp lệ. Vui lòng chọn lại từ ô ngày giờ.',
             'live.thoi_luong_phut.required_if' => 'Vui lòng nhập thời lượng dự kiến.',
+            'live.join_url.required' => 'Vui lòng nhập liên kết tham gia cho nền tảng bên ngoài.',
             'live.join_url.required_if' => 'Vui lòng nhập liên kết tham gia hợp lệ cho phòng học trực tuyến.',
+            'live.join_url.url' => 'Liên kết tham gia không hợp lệ.',
             'live.tro_giang_id.different' => 'Trợ giảng không được trùng với người điều phối.',
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $data = $this->all();
+
+        if (filled($data['thoi_diem_mo'] ?? null)) {
+            $data['thoi_diem_mo'] = $this->normalizeDateTime((string) $data['thoi_diem_mo']);
+        }
+
+        if (($data['loai_bai_giang'] ?? null) !== BaiGiang::TYPE_LIVE) {
+            $this->merge($data);
+
+            return;
+        }
+
+        $live = $data['live'] ?? [];
+        $lichHoc = filled($data['lich_hoc_id'] ?? null)
+            ? LichHoc::query()->find((int) $data['lich_hoc_id'])
+            : null;
+
+        if (filled($live['thoi_gian_bat_dau'] ?? null)) {
+            $live['thoi_gian_bat_dau'] = $this->normalizeDateTime((string) $live['thoi_gian_bat_dau']);
+        } elseif ($lichHoc?->starts_at) {
+            $live['thoi_gian_bat_dau'] = $lichHoc->starts_at->format('Y-m-d H:i:s');
+        }
+
+        if (blank($live['thoi_luong_phut'] ?? null) && $lichHoc?->starts_at && $lichHoc?->ends_at) {
+            $live['thoi_luong_phut'] = max(15, $lichHoc->starts_at->diffInMinutes($lichHoc->ends_at));
+        }
+
+        if (blank($live['join_url'] ?? null) && filled($lichHoc?->link_online)) {
+            $live['join_url'] = OnlineMeetingUrl::normalize($lichHoc->link_online);
+        }
+
+        if (blank($live['start_url'] ?? null) && filled($live['join_url'] ?? null)) {
+            $live['start_url'] = $live['join_url'];
+        }
+
+        if (blank($live['nen_tang_live'] ?? null) && $lichHoc) {
+            $live['nen_tang_live'] = $this->inferPlatformFromSchedule($lichHoc);
+        }
+
+        if (($live['nen_tang_live'] ?? null) === PhongHocLive::PLATFORM_GOOGLE_MEET
+            && filled($live['join_url'] ?? null)
+            && blank($live['meeting_code'] ?? null)) {
+            $live['meeting_code'] = OnlineMeetingUrl::meetingCode($live['join_url']);
+        }
+
+        $data['live'] = $live;
+
+        $this->merge($data);
+    }
+
+    private function normalizeDateTime(string $value): string
+    {
+        $value = trim($value);
+
+        try {
+            return Carbon::parse($value)->format('Y-m-d H:i:s');
+        } catch (\Throwable) {
+            return $value;
+        }
+    }
+
+    private function inferPlatformFromSchedule(LichHoc $lichHoc): string
+    {
+        $signal = strtolower((string) $lichHoc->nen_tang . ' ' . (string) $lichHoc->link_online);
+
+        if (str_contains($signal, 'google') || str_contains($signal, 'meet.google.com')) {
+            return PhongHocLive::PLATFORM_GOOGLE_MEET;
+        }
+
+        if (str_contains($signal, 'zoom')) {
+            return PhongHocLive::PLATFORM_ZOOM;
+        }
+
+        return filled($lichHoc->link_online)
+            ? PhongHocLive::PLATFORM_ZOOM
+            : PhongHocLive::PLATFORM_INTERNAL;
     }
 }

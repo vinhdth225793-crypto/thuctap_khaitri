@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\GiangVien;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\UpdateLiveRoomGoogleMeetLinkRequest;
 use App\Models\BaiGiang;
 use App\Models\LichHoc;
 use App\Models\PhongHocLive;
 use App\Services\LiveLectureService;
+use App\Services\LiveRoomLinkService;
 use App\Services\LiveRoomParticipationService;
 use App\Services\TeacherAttendanceService;
 use App\Services\TeacherScheduleLiveRoomService;
@@ -23,6 +25,7 @@ class LiveRoomController extends Controller
         private readonly LiveLectureService $liveLectureService,
         private readonly TeacherScheduleLiveRoomService $teacherScheduleLiveRoomService,
         private readonly TeacherAttendanceService $teacherAttendanceService,
+        private readonly LiveRoomLinkService $liveRoomLinkService,
     ) {
     }
 
@@ -86,6 +89,8 @@ class LiveRoomController extends Controller
             'playerMode' => $playerMode,
             'playerUrl' => $playerUrl,
             'playerSupportsEmbed' => $playerSupportsEmbed,
+            'updateMeetLinkRoute' => route('giang-vien.live-room.google-meet-link.update', $baiGiang->id),
+            'linkHistories' => $phongHocLive->linkHistories()->with('nguoiCapNhat')->limit(5)->get(),
         ]);
     }
 
@@ -195,6 +200,26 @@ class LiveRoomController extends Controller
         $this->liveLectureService->deleteRecording($recording);
 
         return redirect()->route('giang-vien.live-room.show', $id)->with('success', 'Đã xóa bản ghi.');
+    }
+
+    public function updateGoogleMeetLink(UpdateLiveRoomGoogleMeetLinkRequest $request, int $id): RedirectResponse
+    {
+        [$baiGiang, $phongHocLive] = $this->resolveManagedLectureAndRoom($id);
+        abort_unless($this->canManageRoom($phongHocLive, auth()->user()), 403);
+
+        $validated = $request->validated();
+
+        $this->liveRoomLinkService->updateGoogleMeetLink(
+            $phongHocLive,
+            $baiGiang->lichHoc,
+            auth()->user(),
+            $validated['google_meet_url'],
+            $validated['reason'] ?? null
+        );
+
+        return redirect()
+            ->route('giang-vien.live-room.show', $id)
+            ->with('success', 'Da cap nhat link Google Meet moi cho phong hoc.');
     }
 
     /**

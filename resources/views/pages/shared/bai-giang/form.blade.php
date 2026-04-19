@@ -8,11 +8,24 @@
         }))->id;
     }
     $selectedLichHocId = old('lich_hoc_id', $baiGiang->lich_hoc_id ?? request('lich_hoc_id'));
+    $selectedLichHoc = $selectedLichHocId ? \App\Models\LichHoc::query()->find((int) $selectedLichHocId) : null;
     $selectedLoai = old('loai_bai_giang', $baiGiang->loai_bai_giang ?? 'hon_hop');
     $selectedMainResource = old('tai_nguyen_chinh_id', $baiGiang->tai_nguyen_chinh_id ?? null);
     $selectedExtraResources = collect(old('tai_nguyen_phu_ids', $baiGiang?->taiNguyenPhu?->pluck('id')->all() ?? []))->map(fn ($id) => (int) $id)->all();
     $selectedModeratorId = old('live.moderator_id', $liveRoom?->moderator_id ?? $defaultModeratorId ?? null);
     $selectedAssistantId = old('live.tro_giang_id', $liveRoom?->tro_giang_id ?? null);
+    $selectedScheduleSignal = strtolower((string) $selectedLichHoc?->nen_tang . ' ' . (string) $selectedLichHoc?->link_online);
+    $defaultLivePlatform = str_contains($selectedScheduleSignal, 'google') || str_contains($selectedScheduleSignal, 'meet.google.com')
+        ? \App\Models\PhongHocLive::PLATFORM_GOOGLE_MEET
+        : (str_contains($selectedScheduleSignal, 'zoom') || filled($selectedLichHoc?->link_online) ? \App\Models\PhongHocLive::PLATFORM_ZOOM : \App\Models\PhongHocLive::PLATFORM_INTERNAL);
+    $defaultLiveStart = optional($liveRoom?->thoi_gian_bat_dau ?: $selectedLichHoc?->starts_at)->format('Y-m-d\TH:i');
+    $defaultLiveDuration = $liveRoom->thoi_luong_phut
+        ?? ($selectedLichHoc?->starts_at && $selectedLichHoc?->ends_at ? max(15, $selectedLichHoc->starts_at->diffInMinutes($selectedLichHoc->ends_at)) : 90);
+    $defaultLiveJoinUrl = $liveRoom->du_lieu_nen_tang_json['join_url'] ?? \App\Support\OnlineMeetingUrl::normalize($selectedLichHoc?->link_online);
+    $defaultLiveStartUrl = $liveRoom->du_lieu_nen_tang_json['start_url'] ?? $defaultLiveJoinUrl;
+    $defaultMeetingCode = $liveRoom->du_lieu_nen_tang_json['meeting_code'] ?? \App\Support\OnlineMeetingUrl::meetingCode($defaultLiveJoinUrl);
+    $defaultMeetingId = $liveRoom->du_lieu_nen_tang_json['meeting_id'] ?? $selectedLichHoc?->meeting_id;
+    $defaultPasscode = $liveRoom->du_lieu_nen_tang_json['passcode'] ?? $selectedLichHoc?->mat_khau_cuoc_hop;
     $submitPrimaryValue = $isAdmin ? 'duyet_ngay' : 'gui_duyet';
     $submitPrimaryLabel = $isAdmin ? 'Lưu và duyệt ngay' : 'Lưu và gửi duyệt';
 @endphp
@@ -73,24 +86,32 @@
                             <div class="card-body p-4">
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Tài nguyên chính</label>
-                                    <select name="tai_nguyen_chinh_id" class="form-select @error('tai_nguyen_chinh_id') is-invalid @enderror">
-                                        <option value="">-- Chọn --</option>
-                                        @foreach($thuVien as $tn)
-                                            <option value="{{ $tn->id }}" @selected((int) $selectedMainResource === (int) $tn->id)>{{ $tn->tieu_de }} ({{ $tn->loai_label }})</option>
-                                        @endforeach
-                                    </select>
+                                    <div class="input-group">
+                                        <select name="tai_nguyen_chinh_id" id="tai_nguyen_chinh_id" class="form-select @error('tai_nguyen_chinh_id') is-invalid @enderror">
+                                            <option value="" data-url="">-- Chọn --</option>
+                                            @foreach($thuVien as $tn)
+                                                <option value="{{ $tn->id }}" data-url="{{ $tn->file_url }}" @selected((int) $selectedMainResource === (int) $tn->id)>{{ $tn->tieu_de }} ({{ $tn->loai_label }})</option>
+                                            @endforeach
+                                        </select>
+                                        <a id="preview-main-resource" href="{{ $baiGiang?->taiNguyenChinh?->file_url ?? '#' }}" target="_blank" class="btn btn-outline-secondary {{ $selectedMainResource ? '' : 'disabled' }}">
+                                            <i class="fas fa-eye"></i> Xem
+                                        </a>
+                                    </div>
                                     @error('tai_nguyen_chinh_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                 </div>
                                 <label class="form-label fw-bold">Tài nguyên phụ</label>
                                 <div class="row g-2">
                                     @foreach($thuVien as $tn)
                                         <div class="col-md-6">
-                                            <label class="card border-0 bg-light p-3 h-100">
+                                            <label class="card border-0 bg-light p-3 h-100 position-relative">
                                                 <span class="d-flex gap-2">
                                                     <input type="checkbox" class="form-check-input mt-0" name="tai_nguyen_phu_ids[]" value="{{ $tn->id }}" @checked(in_array((int) $tn->id, $selectedExtraResources, true))>
                                                     <span>{{ $tn->tieu_de }}</span>
                                                 </span>
                                                 <small class="text-muted mt-2">{{ $tn->loai_label }}</small>
+                                                <a href="{{ $tn->file_url }}" target="_blank" class="position-absolute top-0 end-0 p-2 text-decoration-none" title="Xem tài nguyên">
+                                                    <i class="fas fa-external-link-alt fa-xs"></i>
+                                                </a>
                                             </label>
                                         </div>
                                     @endforeach
@@ -99,15 +120,79 @@
                             </div>
                         </div>
 
+                        @if($isAdmin && $baiGiang)
+                        <div class="card border-0 shadow-sm mt-4 border-start border-primary border-4">
+                            <div class="card-header bg-white"><strong class="text-primary">Thông tin tài liệu phục vụ phê duyệt</strong></div>
+                            <div class="card-body p-4">
+                                @if($baiGiang->taiNguyenChinh)
+                                    <div class="mb-4">
+                                        <h6 class="fw-bold mb-2">Tài nguyên chính:</h6>
+                                        <div class="d-flex align-items-start p-3 bg-light rounded shadow-sm">
+                                            <div class="bg-{{ $baiGiang->taiNguyenChinh->loai_color }} text-white rounded p-3 me-3">
+                                                <i class="fas {{ $baiGiang->taiNguyenChinh->loai_icon }} fa-2x"></i>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h5 class="mb-1 fw-bold text-dark">{{ $baiGiang->taiNguyenChinh->tieu_de }}</h5>
+                                                <p class="text-muted small mb-2">{{ $baiGiang->taiNguyenChinh->mo_ta ?: 'Không có mô tả' }}</p>
+                                                <div class="d-flex gap-2">
+                                                    <span class="badge bg-{{ $baiGiang->taiNguyenChinh->loai_color }}">{{ $baiGiang->taiNguyenChinh->loai_label }}</span>
+                                                    @if($baiGiang->taiNguyenChinh->file_size)
+                                                        <span class="badge bg-secondary text-white">{{ number_format($baiGiang->taiNguyenChinh->file_size / 1024 / 1024, 2) }} MB</span>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                            <div class="ms-3">
+                                                <a href="{{ $baiGiang->taiNguyenChinh->file_url }}" target="_blank" class="btn btn-primary btn-sm">
+                                                    <i class="fas fa-external-link-alt me-1"></i> Xem tài liệu
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+
+                                @if($baiGiang->taiNguyenPhu->isNotEmpty())
+                                    <div>
+                                        <h6 class="fw-bold mb-2">Tài nguyên phụ ({{ $baiGiang->taiNguyenPhu->count() }}):</h6>
+                                        <div class="list-group list-group-flush border rounded overflow-hidden">
+                                            @foreach($baiGiang->taiNguyenPhu as $tnPhu)
+                                                <div class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-3">
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="text-{{ $tnPhu->loai_color }} me-3">
+                                                            <i class="fas {{ $tnPhu->loai_icon }} fa-lg"></i>
+                                                        </div>
+                                                        <div>
+                                                            <div class="fw-bold text-dark mb-0">{{ $tnPhu->tieu_de }}</div>
+                                                            <small class="text-muted">{{ $tnPhu->loai_label }}</small>
+                                                        </div>
+                                                    </div>
+                                                    <a href="{{ $tnPhu->file_url }}" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                                                        <i class="fas fa-eye me-1"></i> Xem
+                                                    </a>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
+
+                                @if(!$baiGiang->taiNguyenChinh && $baiGiang->taiNguyenPhu->isEmpty())
+                                    <div class="text-center py-4 bg-light rounded border border-dashed">
+                                        <i class="fas fa-file-excel fa-3x text-muted mb-3"></i>
+                                        <p class="text-muted mb-0">Bài giảng này không đính kèm tài nguyên nào.</p>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                        @endif
+
                         <div id="live-config-card" class="card border-0 shadow-sm mt-4 {{ $selectedLoai === 'live' ? '' : 'd-none' }}">
                             <div class="card-header bg-white"><strong>Phòng học live</strong></div>
                             <div class="card-body p-4">
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold">Nền tảng</label>
-                                        <select name="live[nen_tang_live]" class="form-select @error('live.nen_tang_live') is-invalid @enderror">
+                                        <select name="live[nen_tang_live]" id="live_nen_tang_live" class="form-select @error('live.nen_tang_live') is-invalid @enderror">
                                             @foreach(config('live_room.platforms', []) as $platformKey => $platformConfig)
-                                                <option value="{{ $platformKey }}" @selected(old('live.nen_tang_live', $liveRoom->nen_tang_live ?? 'zoom') === $platformKey)>{{ $platformConfig['label'] }}</option>
+                                                <option value="{{ $platformKey }}" @selected(old('live.nen_tang_live', $liveRoom->nen_tang_live ?? $defaultLivePlatform) === $platformKey)>{{ $platformConfig['label'] }}</option>
                                             @endforeach
                                         </select>
                                         @error('live.nen_tang_live') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -127,7 +212,8 @@
                                         <select name="live[moderator_id]" id="live_moderator_id" class="form-select @error('live.moderator_id') is-invalid @enderror">
                                             <option value="">-- Chọn --</option>
                                             @foreach($moderatorOptions as $user)
-                                                <option value="{{ $user->ma_nguoi_dung }}" @selected((int) $selectedModeratorId === (int) $user->ma_nguoi_dung)>{{ $user->ho_ten }} ({{ $user->vai_tro }})</option>
+                                                @php $moderatorUserId = $user->ma_nguoi_dung ?? $user->id; @endphp
+                                                <option value="{{ $moderatorUserId }}" @selected((int) $selectedModeratorId === (int) $moderatorUserId)>{{ $user->ho_ten }} ({{ $user->vai_tro }})</option>
                                             @endforeach
                                         </select>
                                         @error('live.moderator_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -137,7 +223,8 @@
                                         <select name="live[tro_giang_id]" class="form-select @error('live.tro_giang_id') is-invalid @enderror">
                                             <option value="">-- Không có --</option>
                                             @foreach($assistantOptions as $user)
-                                                <option value="{{ $user->ma_nguoi_dung }}" @selected((int) $selectedAssistantId === (int) $user->ma_nguoi_dung)>{{ $user->ho_ten }} ({{ $user->vai_tro }})</option>
+                                                @php $assistantUserId = $user->ma_nguoi_dung ?? $user->id; @endphp
+                                                <option value="{{ $assistantUserId }}" @selected((int) $selectedAssistantId === (int) $assistantUserId)>{{ $user->ho_ten }} ({{ $user->vai_tro }})</option>
                                             @endforeach
                                         </select>
                                         @error('live.tro_giang_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -145,12 +232,12 @@
 
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold">Bắt đầu</label>
-                                        <input type="datetime-local" name="live[thoi_gian_bat_dau]" class="form-control @error('live.thoi_gian_bat_dau') is-invalid @enderror" value="{{ old('live.thoi_gian_bat_dau', optional($liveRoom?->thoi_gian_bat_dau)->format('Y-m-d\TH:i')) }}">
+                                        <input type="datetime-local" name="live[thoi_gian_bat_dau]" id="live_thoi_gian_bat_dau" class="form-control @error('live.thoi_gian_bat_dau') is-invalid @enderror" value="{{ old('live.thoi_gian_bat_dau', $defaultLiveStart) }}">
                                         @error('live.thoi_gian_bat_dau') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label fw-bold">Thời lượng</label>
-                                        <input type="number" min="15" max="480" name="live[thoi_luong_phut]" class="form-control @error('live.thoi_luong_phut') is-invalid @enderror" value="{{ old('live.thoi_luong_phut', $liveRoom->thoi_luong_phut ?? 90) }}">
+                                        <input type="number" min="15" max="480" name="live[thoi_luong_phut]" id="live_thoi_luong_phut" class="form-control @error('live.thoi_luong_phut') is-invalid @enderror" value="{{ old('live.thoi_luong_phut', $defaultLiveDuration) }}">
                                         @error('live.thoi_luong_phut') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-md-3">
@@ -161,26 +248,26 @@
 
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold">Join URL</label>
-                                        <input type="url" name="live[join_url]" class="form-control @error('live.join_url') is-invalid @enderror" value="{{ old('live.join_url', $liveRoom->du_lieu_nen_tang_json['join_url'] ?? '') }}">
+                                        <input type="url" name="live[join_url]" id="live_join_url" class="form-control @error('live.join_url') is-invalid @enderror" value="{{ old('live.join_url', $defaultLiveJoinUrl) }}">
                                         @error('live.join_url') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold">Start URL</label>
-                                        <input type="url" name="live[start_url]" class="form-control @error('live.start_url') is-invalid @enderror" value="{{ old('live.start_url', $liveRoom->du_lieu_nen_tang_json['start_url'] ?? '') }}">
+                                        <input type="url" name="live[start_url]" id="live_start_url" class="form-control @error('live.start_url') is-invalid @enderror" value="{{ old('live.start_url', $defaultLiveStartUrl) }}">
                                         @error('live.start_url') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
 
                                     <div class="col-md-4">
                                         <label class="form-label fw-bold">Meeting ID</label>
-                                        <input type="text" name="live[meeting_id]" class="form-control" value="{{ old('live.meeting_id', $liveRoom->du_lieu_nen_tang_json['meeting_id'] ?? '') }}">
+                                        <input type="text" name="live[meeting_id]" id="live_meeting_id" class="form-control" value="{{ old('live.meeting_id', $defaultMeetingId) }}">
                                     </div>
                                     <div class="col-md-4">
                                         <label class="form-label fw-bold">Meeting code</label>
-                                        <input type="text" name="live[meeting_code]" class="form-control" value="{{ old('live.meeting_code', $liveRoom->du_lieu_nen_tang_json['meeting_code'] ?? '') }}">
+                                        <input type="text" name="live[meeting_code]" id="live_meeting_code" class="form-control" value="{{ old('live.meeting_code', $defaultMeetingCode) }}">
                                     </div>
                                     <div class="col-md-4">
                                         <label class="form-label fw-bold">Passcode</label>
-                                        <input type="text" name="live[passcode]" class="form-control" value="{{ old('live.passcode', $liveRoom->du_lieu_nen_tang_json['passcode'] ?? '') }}">
+                                        <input type="text" name="live[passcode]" id="live_passcode" class="form-control" value="{{ old('live.passcode', $defaultPasscode) }}">
                                     </div>
 
                                     <div class="col-md-4">
@@ -282,8 +369,32 @@ document.addEventListener('DOMContentLoaded', function () {
     const loaiBaiGiangSelect = document.getElementById('loai_bai_giang');
     const liveConfigCard = document.getElementById('live-config-card');
     const moderatorSelect = document.getElementById('live_moderator_id');
+    const livePlatformSelect = document.getElementById('live_nen_tang_live');
+    const liveStartInput = document.getElementById('live_thoi_gian_bat_dau');
+    const liveDurationInput = document.getElementById('live_thoi_luong_phut');
+    const liveJoinUrlInput = document.getElementById('live_join_url');
+    const liveStartUrlInput = document.getElementById('live_start_url');
+    const liveMeetingIdInput = document.getElementById('live_meeting_id');
+    const liveMeetingCodeInput = document.getElementById('live_meeting_code');
+    const livePasscodeInput = document.getElementById('live_passcode');
     const initialLichHocId = @json($selectedLichHocId);
+    const mainResourceSelect = document.getElementById('tai_nguyen_chinh_id');
+    const previewMainBtn = document.getElementById('preview-main-resource');
     let moderatorTouched = false;
+
+    if (mainResourceSelect && previewMainBtn) {
+        mainResourceSelect.addEventListener('change', function () {
+            const selectedOption = this.options[this.selectedIndex];
+            const url = selectedOption.dataset.url;
+            if (url) {
+                previewMainBtn.href = url;
+                previewMainBtn.classList.remove('disabled');
+            } else {
+                previewMainBtn.href = '#';
+                previewMainBtn.classList.add('disabled');
+            }
+        });
+    }
 
     if (moderatorSelect) {
         moderatorSelect.addEventListener('change', function () {
@@ -303,6 +414,34 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function setValue(input, value, force = false) {
+        if (!input || value === undefined || value === null || value === '') {
+            return;
+        }
+
+        if (force || !input.value) {
+            input.value = value;
+        }
+    }
+
+    function applyScheduleDefaults(option, force = false) {
+        if (!option) {
+            return;
+        }
+
+        setValue(liveStartInput, option.dataset.startsAt, force);
+        setValue(liveDurationInput, option.dataset.durationMinutes, force);
+        setValue(liveJoinUrlInput, option.dataset.linkOnline, force);
+        setValue(liveStartUrlInput, option.dataset.linkOnline, force);
+        setValue(liveMeetingIdInput, option.dataset.meetingId, force);
+        setValue(liveMeetingCodeInput, option.dataset.meetingCode, force);
+        setValue(livePasscodeInput, option.dataset.passcode, force);
+
+        if (livePlatformSelect && option.dataset.platform && (force || !livePlatformSelect.value)) {
+            livePlatformSelect.value = option.dataset.platform;
+        }
+    }
+
     function loadLichHoc(selectedId = null) {
         lichHocSelect.innerHTML = '<option value="">-- Chọn buổi học --</option>';
         if (!phanCongSelect.value) return;
@@ -313,11 +452,20 @@ document.addEventListener('DOMContentLoaded', function () {
                     const option = document.createElement('option');
                     option.value = item.id;
                     option.textContent = `Buổi ${item.buoi_so} (${item.ngay_hoc || 'Chưa xếp lịch'})`;
+                    option.dataset.startsAt = item.starts_at || '';
+                    option.dataset.durationMinutes = item.duration_minutes || '';
+                    option.dataset.platform = item.platform || '';
+                    option.dataset.linkOnline = item.link_online || '';
+                    option.dataset.meetingId = item.meeting_id || '';
+                    option.dataset.meetingCode = item.meeting_code || '';
+                    option.dataset.passcode = item.passcode || '';
                     if (selectedId && String(item.id) === String(selectedId)) {
                         option.selected = true;
                     }
                     lichHocSelect.appendChild(option);
                 });
+
+                applyScheduleDefaults(lichHocSelect.options[lichHocSelect.selectedIndex], false);
             });
     }
 
@@ -329,6 +477,9 @@ document.addEventListener('DOMContentLoaded', function () {
     phanCongSelect.addEventListener('change', function () {
         syncModerator();
         loadLichHoc();
+    });
+    lichHocSelect.addEventListener('change', function () {
+        applyScheduleDefaults(lichHocSelect.options[lichHocSelect.selectedIndex], true);
     });
 });
 </script>

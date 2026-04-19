@@ -171,6 +171,12 @@ class KhoaHoc extends Model
         return $this->hasMany(KetQuaHocTap::class, 'khoa_hoc_id');
     }
 
+    public function phieuXetDuyetKetQuas(): HasMany
+    {
+        return $this->hasMany(PhieuXetDuyetKetQua::class, 'khoa_hoc_id')
+            ->latest('created_at');
+    }
+
     public function teacherAttendanceLogs(): HasMany
     {
         return $this->hasMany(DiemDanhGiangVien::class, 'khoa_hoc_id')

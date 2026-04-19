@@ -115,6 +115,9 @@
                         </button>
                     </h5>
                     <div class="d-flex gap-2">
+                        <a href="{{ route('giang-vien.xet-duyet-ket-qua.show', $khoaHoc->id) }}" class="btn btn-sm btn-success shadow-sm px-3">
+                            <i class="fas fa-file-signature me-1"></i> Xet duyet cuoi khoa
+                        </a>
                         <a href="{{ route('giang-vien.khoa-hoc.ket-qua', $phanCong->id) }}" class="btn btn-sm btn-primary shadow-sm px-3">
                             <i class="fas fa-poll-h me-1"></i> Quản lý kết quả
                         </a>

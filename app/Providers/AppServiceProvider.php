@@ -13,6 +13,7 @@ use App\Models\TaiNguyenBuoiHoc;
 use App\Models\ThongBao;
 use App\Models\ModuleHoc;
 use App\Models\YeuCauHocVien;
+use App\Models\PhieuXetDuyetKetQua;
 use App\Observers\ModuleHocObserver;
 
 use Illuminate\Pagination\Paginator;
@@ -44,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
                 'tai_nguyen' => 0,
                 'bai_giang' => 0,
                 'de_thi' => 0,
+                'xet_duyet_ket_qua' => 0,
                 'don_nghi' => 0,
                 'yeu_cau_hoc_vien' => 0,
             ];
@@ -73,6 +75,15 @@ class AppServiceProvider extends ServiceProvider
                         'bai_kiem_tra',
                         'trang_thai_duyet',
                         'cho_duyet'
+                    ),
+                    'xet_duyet_ket_qua' => $this->countWhereIfTableReady(
+                        PhieuXetDuyetKetQua::class,
+                        'phieu_xet_duyet_ket_qua',
+                        'trang_thai',
+                        [
+                            PhieuXetDuyetKetQua::TRANG_THAI_SUBMITTED,
+                            PhieuXetDuyetKetQua::TRANG_THAI_REVIEWING,
+                        ]
                     ),
                     'don_nghi' => $this->countWhereIfTableReady(
                         GiangVienDonXinNghi::class,
@@ -136,8 +147,12 @@ class AppServiceProvider extends ServiceProvider
             return 0;
         }
 
-        return $modelClass::query()
-            ->where($column, $value)
-            ->count();
+        $query = $modelClass::query();
+
+        if (is_array($value)) {
+            return $query->whereIn($column, $value)->count();
+        }
+
+        return $query->where($column, $value)->count();
     }
 }

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
+use App\Support\OnlineMeetingUrl;
 
 class PhongHocLive extends Model
 {
@@ -45,6 +46,11 @@ class PhongHocLive extends Model
         'tieu_de',
         'nen_tang',
         'nen_tang_live',
+        'platform_type',
+        'external_meeting_url',
+        'external_meeting_code',
+        'external_link_updated_at',
+        'external_link_updated_by',
         'phong_id',
         'mat_khau',
         'bat_dau_du_kien',
@@ -69,6 +75,7 @@ class PhongHocLive extends Model
         'ket_thuc_du_kien' => 'datetime',
         'bat_dau_thuc_te' => 'datetime',
         'ket_thuc_thuc_te' => 'datetime',
+        'external_link_updated_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
@@ -121,9 +128,44 @@ class PhongHocLive extends Model
         return $this->hasMany(PhongHocLiveBanGhi::class, 'phong_hoc_live_id');
     }
 
+    public function linkHistories()
+    {
+        return $this->hasMany(LiveRoomLinkHistory::class, 'phong_hoc_live_id')->latest();
+    }
+
     public function getPlatformLabelAttribute(): string
     {
-        return app(\App\Services\LiveRoomPlatformService::class)->platformLabel($this->nen_tang);
+        return app(\App\Services\LiveRoomPlatformService::class)->platformLabel($this->platform_type);
+    }
+
+    public function getPlatformTypeAttribute($value): string
+    {
+        if (filled($value)) {
+            return $value;
+        }
+
+        $platform = $this->attributes['nen_tang_live'] ?? $this->attributes['nen_tang'] ?? null;
+
+        if (filled($platform)) {
+            return $platform;
+        }
+
+        $externalUrl = $this->attributes['external_meeting_url'] ?? null;
+        if (OnlineMeetingUrl::isGoogleMeetUrl($externalUrl)) {
+            return self::PLATFORM_GOOGLE_MEET;
+        }
+
+        return self::PLATFORM_INTERNAL;
+    }
+
+    public function setPlatformTypeAttribute($value): void
+    {
+        $this->attributes['platform_type'] = $value;
+
+        if (filled($value)) {
+            $this->attributes['nen_tang'] = $value;
+            $this->attributes['nen_tang_live'] = $value;
+        }
     }
 
     public function getNenTangLiveAttribute($value): ?string
@@ -278,6 +320,47 @@ class PhongHocLive extends Model
         return app(\App\Services\LiveRoomPlatformService::class)->getEmbedUrl($this);
     }
 
+    public function getEffectiveExternalMeetingUrlAttribute(): ?string
+    {
+        $payload = $this->du_lieu_nen_tang_json;
+
+        $url = $this->attributes['external_meeting_url'] ?? null;
+        $url = $url ?: ($payload['join_url'] ?? null);
+        $url = $url ?: ($payload['start_url'] ?? null);
+
+        if (! $url && $this->bai_giang_id) {
+            $url = $this->baiGiang?->lichHoc?->link_online;
+        }
+
+        return OnlineMeetingUrl::normalize($url);
+    }
+
+    public function getResolvedExternalMeetingCodeAttribute(): ?string
+    {
+        $payload = $this->du_lieu_nen_tang_json;
+        $code = $this->attributes['external_meeting_code'] ?? null;
+        $code = $code ?: ($payload['meeting_code'] ?? null);
+        $code = $code ?: ($payload['meeting_id'] ?? null);
+
+        return $code ?: OnlineMeetingUrl::meetingCode($this->effective_external_meeting_url);
+    }
+
+    public function isExternalProviderRoom(): bool
+    {
+        return in_array($this->platform_type, [self::PLATFORM_GOOGLE_MEET, self::PLATFORM_ZOOM], true);
+    }
+
+    public function hasExternalMeetingLaunch(): bool
+    {
+        return filled($this->effective_external_meeting_url);
+    }
+
+    public function isGoogleMeetLaunch(): bool
+    {
+        return $this->platform_type === self::PLATFORM_GOOGLE_MEET
+            || OnlineMeetingUrl::isGoogleMeetUrl($this->effective_external_meeting_url);
+    }
+
     public function getJoinOpensAtAttribute(): Carbon
     {
         // Fallback if null
@@ -363,6 +446,10 @@ class PhongHocLive extends Model
 
     public function getCanStudentJoinAttribute(): bool
     {
+        if ($this->hasExternalMeetingLaunch() && $this->isGoogleMeetLaunch()) {
+            return in_array($this->timeline_trang_thai, ['sap_bat_dau', 'cho_moderator', 'dang_dien_ra'], true);
+        }
+
         if (config('live_room.defaults.student_join_requires_moderator_started', true)) {
             return $this->timeline_trang_thai === 'dang_dien_ra' && filled($this->join_url);
         }

@@ -4,11 +4,9 @@ namespace App\Services;
 
 use App\Models\BaiKiemTra;
 use App\Models\BaiLamBaiKiemTra;
-use App\Models\DiemDanh;
 use App\Models\HocVienKhoaHoc;
 use App\Models\KetQuaHocTap;
 use App\Models\KhoaHoc;
-use App\Models\LichHoc;
 use App\Models\ModuleHoc;
 
 class KetQuaHocTapService
@@ -18,6 +16,7 @@ class KetQuaHocTapService
         private readonly ModuleResultAggregationService $moduleAggregationService,
         private readonly CourseResultAggregationService $courseAggregationService,
         private readonly ModuleFinalScoreService $moduleFinalScoreService,
+        private readonly CourseAttendanceScoreService $attendanceScoreService,
     ) {
     }
 
@@ -188,13 +187,16 @@ class KetQuaHocTapService
                 'diem_diem_danh' => $breakdown['attendance']['diem_diem_danh'],
                 'diem_kiem_tra' => $summary['module_exam_score'],
                 'diem_tong_ket' => $diemTongKet,
+                'aggregation_strategy_used' => $summary['aggregation_strategy'] ?? null,
+                'source_attempt_id' => ($summary['source_attempt_ids'][0] ?? null),
+                'source_attempt_ids' => $summary['source_attempt_ids'] ?? [],
                 'tong_so_buoi' => $breakdown['attendance']['tong_so_buoi'],
                 'so_buoi_tham_du' => $breakdown['attendance']['so_buoi_tham_du'],
                 'ty_le_tham_du' => $breakdown['attendance']['ty_le_tham_du'],
                 'so_bai_kiem_tra_hoan_thanh' => collect($breakdown['exam_results'])->where('diem', '!==', null)->count(),
                 'trang_thai' => $trangThai,
                 'chi_tiet' => [
-                    'aggregation_strategy' => 'two_tier_average',
+                    'aggregation_strategy' => $summary['aggregation_strategy'] ?? 'module_exam_with_session_average',
                     'breakdown' => $breakdown,
                 ],
                 'calculation_metadata' => $breakdown,
@@ -257,12 +259,7 @@ class KetQuaHocTapService
      */
     private function calculateAttendanceForModule(int $moduleHocId, int $hocVienId): array
     {
-        $scheduleIds = LichHoc::query()
-            ->where('module_hoc_id', $moduleHocId)
-            ->where('trang_thai', '!=', 'huy')
-            ->pluck('id');
-
-        return $this->calculateAttendanceScore($scheduleIds, $hocVienId);
+        return $this->attendanceScoreService->calculateForModule($moduleHocId, $hocVienId);
     }
 
     /**
@@ -270,45 +267,6 @@ class KetQuaHocTapService
      */
     private function calculateAttendanceForCourse(int $khoaHocId, int $hocVienId): array
     {
-        $scheduleIds = LichHoc::query()
-            ->where('khoa_hoc_id', $khoaHocId)
-            ->where('trang_thai', '!=', 'huy')
-            ->pluck('id');
-
-        return $this->calculateAttendanceScore($scheduleIds, $hocVienId);
-    }
-
-    /**
-     * @param  \Illuminate\Support\Collection<int, int>  $scheduleIds
-     * @return array{tong_so_buoi: int, so_buoi_tham_du: int, ty_le_tham_du: float|null, diem_diem_danh: float|null}
-     */
-    private function calculateAttendanceScore($scheduleIds, int $hocVienId): array
-    {
-        $tongSoBuoi = $scheduleIds->count();
-
-        if ($tongSoBuoi === 0) {
-            return [
-                'tong_so_buoi' => 0,
-                'so_buoi_tham_du' => 0,
-                'ty_le_tham_du' => null,
-                'diem_diem_danh' => null,
-            ];
-        }
-
-        $soBuoiThamDu = DiemDanh::query()
-            ->where('hoc_vien_id', $hocVienId)
-            ->whereIn('lich_hoc_id', $scheduleIds->all())
-            ->whereIn('trang_thai', ['co_mat', 'vao_tre'])
-            ->distinct('lich_hoc_id')
-            ->count('lich_hoc_id');
-
-        $tyLeThamDu = round(($soBuoiThamDu / $tongSoBuoi) * 100, 2);
-
-        return [
-            'tong_so_buoi' => $tongSoBuoi,
-            'so_buoi_tham_du' => $soBuoiThamDu,
-            'ty_le_tham_du' => $tyLeThamDu,
-            'diem_diem_danh' => round(($tyLeThamDu / 100) * 10, 2),
-        ];
+        return $this->attendanceScoreService->calculateForCourse($khoaHocId, $hocVienId);
     }
 }

@@ -8,6 +8,8 @@ use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\KhoaHocManagementController;
 use App\Http\Controllers\Admin\KetQuaHocTapController as AdminKetQuaHocTapController;
+use App\Http\Controllers\Admin\PhieuXetDuyetKetQuaController as AdminPhieuXetDuyetKetQuaController;
+use App\Http\Controllers\Admin\LiveRoomController as AdminLiveRoomController;
 use App\Http\Controllers\Admin\HocVienKhoaHocController;
 use App\Http\Controllers\Admin\ModuleHocController;
 use App\Http\Controllers\Admin\LichHocController;
@@ -25,6 +27,7 @@ use App\Http\Controllers\GiangVien\DiemDanhController;
 use App\Http\Controllers\GiangVien\TeacherAttendanceController;
 use App\Http\Controllers\GiangVien\BaiKiemTraController;
 use App\Http\Controllers\GiangVien\BaiGiangController;
+use App\Http\Controllers\GiangVien\PhieuXetDuyetKetQuaController as GiangVienPhieuXetDuyetKetQuaController;
 use App\Http\Controllers\GiangVien\LiveRoomController as GiangVienLiveRoomController;
 use App\Http\Controllers\HocVien\BaiKiemTraController as HocVienBaiKiemTraController;
 use App\Http\Controllers\HocVien\LiveRoomController as HocVienLiveRoomController;
@@ -100,9 +103,22 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     Route::get('/ket-qua-hoc-tap/khoa-hoc/{khoaHocId}', [AdminKetQuaHocTapController::class, 'show'])->name('ket-qua.show');
     Route::post('/ket-qua-hoc-tap/{resultId}/duyet', [AdminKetQuaHocTapController::class, 'approve'])->name('ket-qua.approve');
     Route::post('/ket-qua-hoc-tap/{resultId}/tu-choi', [AdminKetQuaHocTapController::class, 'reject'])->name('ket-qua.reject');
+    Route::prefix('xet-duyet-ket-qua')->name('xet-duyet-ket-qua.')->group(function () {
+        Route::get('/', [AdminPhieuXetDuyetKetQuaController::class, 'index'])->name('index');
+        Route::get('/{phieu}', [AdminPhieuXetDuyetKetQuaController::class, 'show'])->name('show');
+        Route::post('/{phieu}/reviewing', [AdminPhieuXetDuyetKetQuaController::class, 'startReview'])->name('reviewing');
+        Route::post('/{phieu}/duyet', [AdminPhieuXetDuyetKetQuaController::class, 'approve'])->name('approve');
+        Route::post('/{phieu}/tu-choi', [AdminPhieuXetDuyetKetQuaController::class, 'reject'])->name('reject');
+        Route::post('/{phieu}/chot', [AdminPhieuXetDuyetKetQuaController::class, 'finalize'])->name('finalize');
+    });
     Route::get('/diem-danh', [AdminAttendanceController::class, 'index'])->name('diem-danh.index');
     Route::get('/diem-danh/giang-vien/{lichHoc}/{giangVien}', [AdminAttendanceController::class, 'showTeacherAttendance'])->name('diem-danh.giang-vien.show');
     Route::post('/diem-danh/giang-vien/{lichHoc}/resolve', [AdminAttendanceController::class, 'resolveMonitoring'])->name('diem-danh.giang-vien.resolve');
+    Route::prefix('live-room')->name('live-room.')->group(function () {
+        Route::get('/{id}', [AdminLiveRoomController::class, 'show'])->name('show');
+        Route::post('/{id}/join', [AdminLiveRoomController::class, 'join'])->name('join');
+        Route::post('/{id}/leave', [AdminLiveRoomController::class, 'leave'])->name('leave');
+    });
 
     // Quản lý nhóm ngành
     Route::prefix('nhom-nganh')->name('nhom-nganh.')->group(function () {
@@ -294,6 +310,9 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
     Route::post('/khoa-hoc/phan-cong/{id}/ket-qua/update', [PhanCongController::class, 'updateKetQua'])->name('khoa-hoc.ket-qua.update');
     Route::post('/khoa-hoc/phan-cong/{id}/ket-qua/chot', [PhanCongController::class, 'chotKetQua'])->name('khoa-hoc.ket-qua.chot');
     Route::post('/khoa-hoc/phan-cong/{id}/ket-qua/mo-chot', [PhanCongController::class, 'moChotKetQua'])->name('khoa-hoc.ket-qua.mo-chot');
+    Route::get('/khoa-hoc/{id}/xet-duyet', [GiangVienPhieuXetDuyetKetQuaController::class, 'show'])->name('xet-duyet-ket-qua.show');
+    Route::post('/khoa-hoc/{id}/xet-duyet/luu-nhap', [GiangVienPhieuXetDuyetKetQuaController::class, 'storeDraft'])->name('xet-duyet-ket-qua.store-draft');
+    Route::post('/khoa-hoc/{id}/xet-duyet/gui-duyet', [GiangVienPhieuXetDuyetKetQuaController::class, 'submit'])->name('xet-duyet-ket-qua.submit');
 
     Route::post('/buoi-hoc/{id}/bat-dau', [PhanCongController::class, 'startTeachingSession'])->name('buoi-hoc.start');
     Route::post('/buoi-hoc/{id}/ket-thuc', [PhanCongController::class, 'finishTeachingSession'])->name('buoi-hoc.finish');
@@ -342,6 +361,7 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
         Route::post('/{id}/join', [GiangVienLiveRoomController::class, 'join'])->name('join');
         Route::post('/{id}/leave', [GiangVienLiveRoomController::class, 'leave'])->name('leave');
         Route::post('/{id}/end', [GiangVienLiveRoomController::class, 'end'])->name('end');
+        Route::post('/{id}/google-meet-link', [GiangVienLiveRoomController::class, 'updateGoogleMeetLink'])->name('google-meet-link.update');
         Route::post('/{id}/recordings', [GiangVienLiveRoomController::class, 'storeRecording'])->name('recordings.store');
         Route::delete('/{id}/recordings/{recordingId}', [GiangVienLiveRoomController::class, 'destroyRecording'])->name('recordings.destroy');
     });

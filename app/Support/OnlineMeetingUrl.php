@@ -37,7 +37,18 @@ class OnlineMeetingUrl
         return $code !== '' ? $code : null;
     }
 
-    private static function isGoogleMeetHost(?string $host): bool
+    public static function isGoogleMeetUrl(?string $url): bool
+    {
+        if (! filled($url)) {
+            return false;
+        }
+
+        $parts = parse_url(trim($url));
+
+        return is_array($parts) && self::isGoogleMeetHost($parts['host'] ?? null);
+    }
+
+    public static function isGoogleMeetHost(?string $host): bool
     {
         return strtolower((string) $host) === 'meet.google.com';
     }

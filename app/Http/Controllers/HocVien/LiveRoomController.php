@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BaiGiang;
 use App\Models\HocVienKhoaHoc;
 use App\Services\LiveRoomParticipationService;
+use App\Support\OnlineMeetingUrl;
 
 class LiveRoomController extends Controller
 {
@@ -36,10 +37,15 @@ class LiveRoomController extends Controller
 
     public function join(int $id)
     {
-        [, $phongHocLive] = $this->resolveAccessibleLectureAndRoom($id);
+        [$baiGiang, $phongHocLive] = $this->resolveAccessibleLectureAndRoom($id);
         abort_unless($phongHocLive->can_student_join, 403, 'Phong hoc live chua san sang cho hoc vien tham gia.');
 
         $this->participationService->joinRoom($phongHocLive, auth()->user(), 'student');
+
+        $externalUrl = $this->resolveExternalLaunchUrl($phongHocLive, $baiGiang);
+        if ($externalUrl && $phongHocLive->isGoogleMeetLaunch()) {
+            return redirect()->away($externalUrl);
+        }
 
         return redirect()
             ->route('hoc-vien.live-room.show', ['id' => $id, 'player' => 'participant'])
@@ -84,6 +90,14 @@ class LiveRoomController extends Controller
         abort_unless($enrolled, 403, 'Bạn không có quyền truy cập phòng học trực tuyến này.');
 
         return [$baiGiang, $baiGiang->phongHocLive];
+    }
+
+    private function resolveExternalLaunchUrl($phongHocLive, BaiGiang $baiGiang): ?string
+    {
+        return OnlineMeetingUrl::normalize(
+            $phongHocLive->effective_external_meeting_url
+                ?: ($phongHocLive->join_url ?: ($phongHocLive->start_url ?: $baiGiang->lichHoc?->link_online))
+        );
     }
 
     /**

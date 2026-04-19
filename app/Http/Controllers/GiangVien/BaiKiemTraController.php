@@ -149,9 +149,9 @@ class BaiKiemTraController extends Controller
             ->route('giang-vien.bai-kiem-tra.edit', [
                 'id' => $baiKiemTra->id,
                 'preferred_mode' => $preferredContentMode,
-                'tab' => $preferredContentMode === 'tu_luan_tu_do' ? 'info' : 'questions',
+                'tab' => 'info',
             ])
-            ->with('success', 'Đã tạo khung bài kiểm tra. Hãy cấu hình câu hỏi và gửi duyệt.');
+            ->with('success', 'Đã tạo khung bài kiểm tra. Hãy cấu hình thông tin chi tiết, câu hỏi và gửi duyệt.');
     }
 
     public function edit(Request $request, int $id)
@@ -626,18 +626,7 @@ class BaiKiemTraController extends Controller
 
         try {
             $result = $this->importService->importToBank($preview, $baiKiemTra, auth()->id());
-            $attachableQuestionIds = NganHangCauHoi::query()
-                ->whereIn('id', $result['ids'] ?? [])
-                ->where('trang_thai', NganHangCauHoi::TRANG_THAI_SAN_SANG)
-                ->where('co_the_tai_su_dung', true)
-                ->pluck('id')
-                ->map(fn ($id) => (int) $id)
-                ->all();
-
-            if ($attachableQuestionIds !== []) {
-                $this->attachQuestionsToExam($baiKiemTra, $attachableQuestionIds);
-            }
-
+            
             session()->forget('exam_import_preview_' . $request->preview_id);
             $baiKiemTra->refresh();
 
@@ -648,7 +637,6 @@ class BaiKiemTraController extends Controller
                     'preferred_mode' => $baiKiemTra->content_mode_key,
                 ])
                 ->with('success', "Đã import thành công {$result['created']} câu hỏi vào ngân hàng. Bạn có thể chọn chúng cho đề thi ngay bây giờ.")
-                ->with('success', 'Da import thanh cong ' . $result['created'] . ' cau hoi va tu dong gan ' . count($attachableQuestionIds) . ' cau vao de.')
                 ->with('exam_imported_question_ids', $result['ids'] ?? []);
         } catch (\Exception $e) {
             report($e);

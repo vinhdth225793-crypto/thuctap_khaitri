@@ -36,6 +36,7 @@
                 'admin.thu-vien.*',
                 'admin.bai-giang.*',
                 'admin.kiem-tra-online.phe-duyet.*',
+                'admin.xet-duyet-ket-qua.*',
                 'admin.yeu-cau-hoc-vien.*'
             );
             $systemGroupOpen = request()->routeIs('admin.settings*');
@@ -44,6 +45,7 @@
                 'tai_nguyen' => 0,
                 'bai_giang' => 0,
                 'de_thi' => 0,
+                'xet_duyet_ket_qua' => 0,
                 'don_nghi' => 0,
                 'yeu_cau_hoc_vien' => 0,
             ];
@@ -148,6 +150,12 @@
                         <i class="fas fa-clipboard-check me-2"></i> Đề thi
                         @if(($approvalCounts['de_thi'] ?? 0) > 0)
                             <span class="badge bg-danger rounded-pill ms-auto edu-submenu-badge">{{ $approvalCounts['de_thi'] }}</span>
+                        @endif
+                    </a>
+                    <a href="{{ route('admin.xet-duyet-ket-qua.index') }}" class="edu-submenu-item {{ request()->routeIs('admin.xet-duyet-ket-qua.*') ? 'active' : '' }}">
+                        <i class="fas fa-file-signature me-2"></i> Xet duyet ket qua
+                        @if(($approvalCounts['xet_duyet_ket_qua'] ?? 0) > 0)
+                            <span class="badge bg-danger rounded-pill ms-auto edu-submenu-badge">{{ $approvalCounts['xet_duyet_ket_qua'] }}</span>
                         @endif
                     </a>
                     <a href="{{ route('admin.giang-vien-don-xin-nghi.index') }}" class="edu-submenu-item {{ request()->routeIs('admin.giang-vien-don-xin-nghi.*') ? 'active' : '' }}">

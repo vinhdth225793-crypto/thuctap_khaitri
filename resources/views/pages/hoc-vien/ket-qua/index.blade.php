@@ -36,6 +36,8 @@
             $moduleResults = $data['module_results'];
             $examResults = $data['exam_results'];
             $displayFinalScore = $courseResult?->diem_giang_vien_chot ?? $courseResult?->diem_tong_ket;
+            $officialApproval = data_get($courseResult?->calculation_metadata, 'course_approval_ticket');
+            $hasOfficialApproval = $officialApproval && $courseResult?->trang_thai_duyet === \App\Models\KetQuaHocTap::TRANG_THAI_DUYET_DA_DUYET;
         @endphp
 
         <div class="card vip-card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
@@ -125,6 +127,22 @@
                                 </div>
                             </div>
 
+                            @if($hasOfficialApproval)
+                                <div class="bg-success bg-opacity-10 p-3 rounded-3 border border-success border-opacity-25">
+                                    <div class="fw-bold small text-success mb-2">
+                                        <i class="fas fa-certificate me-2"></i>Diem xet duyet chinh thuc
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="text-muted small">Admin da chot ho so</span>
+                                        <span class="fw-extrabold text-success fs-5">{{ number_format((float) $displayFinalScore, 2) }}</span>
+                                    </div>
+                                    <div class="smaller text-muted mt-1">
+                                        Mode: {{ data_get($officialApproval, 'mode') }} -
+                                        {{ $courseResult->trang_thai === 'dat' ? 'Dat' : ($courseResult->trang_thai === 'khong_dat' ? 'Khong dat' : 'Dang cap nhat') }}
+                                    </div>
+                                </div>
+                            @endif
+
                             @if($courseResult && $courseResult->nhan_xet_giang_vien)
                                 <div class="bg-white p-3 rounded-3 border border-dashed mt-2">
                                     <div class="fw-bold small text-dark mb-2"><i class="fas fa-comment-dots text-warning me-2"></i>Nhận xét từ hệ thống/giảng viên:</div>
@@ -210,6 +228,41 @@
 
                             {{-- Tab Exams --}}
                             <div class="tab-pane fade" id="exams-{{ $khoaHoc->id }}" role="tabpanel">
+                                @php
+                                    $examGroups = [
+                                        'cuoi_khoa' => [
+                                            'label' => 'Bai kiem tra cuoi khoa',
+                                            'items' => $examResults->filter(fn ($result) => $result->baiKiemTra?->loai_bai_kiem_tra === 'cuoi_khoa' || $result->baiKiemTra?->pham_vi === 'cuoi_khoa'),
+                                        ],
+                                        'module' => [
+                                            'label' => 'Bai kiem tra module',
+                                            'items' => $examResults->filter(fn ($result) => in_array($result->baiKiemTra?->loai_bai_kiem_tra, ['module', 'cuoi_module'], true)),
+                                        ],
+                                        'buoi_hoc' => [
+                                            'label' => 'Bai kiem tra buoi hoc',
+                                            'items' => $examResults->filter(fn ($result) => $result->baiKiemTra?->loai_bai_kiem_tra === 'buoi_hoc' || $result->baiKiemTra?->pham_vi === 'buoi_hoc'),
+                                        ],
+                                    ];
+                                @endphp
+                                <div class="p-4 border-bottom bg-light-subtle">
+                                    <div class="row g-3">
+                                        @foreach($examGroups as $group)
+                                            <div class="col-lg-4">
+                                                <div class="bg-white border rounded-3 p-3 h-100">
+                                                    <div class="fw-bold small text-dark mb-2">{{ $group['label'] }}</div>
+                                                    @forelse($group['items'] as $groupResult)
+                                                        <div class="d-flex justify-content-between gap-2 border-bottom py-1 smaller">
+                                                            <span>{{ $groupResult->baiKiemTra?->tieu_de }}</span>
+                                                            <strong>{{ $groupResult->diem_kiem_tra !== null ? number_format((float) $groupResult->diem_kiem_tra, 2) : '--' }}</strong>
+                                                        </div>
+                                                    @empty
+                                                        <div class="text-muted smaller">Chua co du lieu.</div>
+                                                    @endforelse
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
                                 <div class="table-responsive">
                                     <table class="table table-hover align-middle mb-0">
                                         <thead class="bg-light border-0">

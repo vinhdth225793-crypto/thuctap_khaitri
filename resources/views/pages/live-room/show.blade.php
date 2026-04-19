@@ -33,18 +33,19 @@
             @endif
 
             @php
+                $mode = $mode ?? 'student';
                 $platformPayload = $phongHocLive->du_lieu_nen_tang_json ?? [];
                 $scheduleOnlineUrl = \App\Support\OnlineMeetingUrl::normalize($baiGiang->lichHoc?->link_online);
                 $schedulePlatform = strtolower((string) $baiGiang->lichHoc?->nen_tang);
-                $externalLaunchUrl = \App\Support\OnlineMeetingUrl::normalize($playerUrl ?: ($phongHocLive->join_url ?: ($phongHocLive->start_url ?: $scheduleOnlineUrl)));
+                $externalLaunchUrl = \App\Support\OnlineMeetingUrl::normalize($playerUrl ?: ($phongHocLive->effective_external_meeting_url ?: ($phongHocLive->join_url ?: ($phongHocLive->start_url ?: $scheduleOnlineUrl))));
                 $roomTimelineStatus = $phongHocLive->timeline_trang_thai;
                 $isRoomClosed = in_array($roomTimelineStatus, ['da_ket_thuc', 'da_huy'], true);
-                $canOpenExternalLaunch = filled($externalLaunchUrl) && $canJoinRoom && ! $isRoomClosed;
-                $isExternalLaunch = $canOpenExternalLaunch && !$playerSupportsEmbed;
                 $isGoogleMeetLaunch = $phongHocLive->nen_tang_live === \App\Models\PhongHocLive::PLATFORM_GOOGLE_MEET
                     || str_contains(strtolower((string) $externalLaunchUrl), 'meet.google.com')
                     || str_contains($schedulePlatform, 'google')
                     || str_contains($schedulePlatform, 'meet');
+                $canOpenExternalLaunch = filled($externalLaunchUrl) && ! $isRoomClosed && ($canJoinRoom || $isGoogleMeetLaunch);
+                $isExternalLaunch = $canOpenExternalLaunch && !$playerSupportsEmbed;
                 $meetingIdentifier = $platformPayload['meeting_id'] ?? $platformPayload['meeting_code'] ?? $baiGiang->lichHoc?->meeting_id ?? null;
                 $meetingPasscode = $platformPayload['passcode'] ?? $baiGiang->lichHoc?->mat_khau_cuoc_hop ?? null;
                 if (!$meetingIdentifier && $isGoogleMeetLaunch && $externalLaunchUrl) {
@@ -54,9 +55,11 @@
                 $joinManageActionLabel = $playerSupportsEmbed ? 'Mở phòng học trực tiếp' : 'Mở ' . $platformLaunchLabel;
                 $joinStudentActionLabel = $playerSupportsEmbed ? 'Tham gia trực tiếp' : 'Tham gia ' . $platformLaunchLabel;
                 $platformThemeClass = $isGoogleMeetLaunch ? 'live-room-launcher--google-meet' : 'live-room-launcher--zoom';
-                $showRoute = route('hoc-vien.live-room.show', $baiGiang->id);
-                $joinRoute = route('hoc-vien.live-room.join', $baiGiang->id);
-                $leaveRoute = route('hoc-vien.live-room.leave', $baiGiang->id);
+                $showRoute = $showRoute ?? route('hoc-vien.live-room.show', $baiGiang->id);
+                $joinRoute = $joinRoute ?? route('hoc-vien.live-room.join', $baiGiang->id);
+                $leaveRoute = $leaveRoute ?? route('hoc-vien.live-room.leave', $baiGiang->id);
+                $actionTitle = $mode === 'admin' ? 'Giam sat phong hoc' : 'Hanh dong cua ban';
+                $joinButtonLabel = $mode === 'admin' ? 'Vao phong voi vai tro giam sat' : $joinStudentActionLabel;
             @endphp
 
             <div class="row g-4">
@@ -123,6 +126,14 @@
                                         referrerpolicy="strict-origin-when-cross-origin"
                                         allowfullscreen
                                         style="width: 100%; height: 600px; border: 0;"></iframe>
+                                @elseif($playerMode === 'participant' && $phongHocLive->nen_tang_live === \App\Models\PhongHocLive::PLATFORM_INTERNAL)
+                                    <div class="p-5 text-center bg-dark text-white">
+                                        <i class="fas fa-user-shield fa-4x mb-4 opacity-75"></i>
+                                        <h4 class="fw-bold mb-2">{{ $mode === 'admin' ? 'Dang giam sat phong noi bo' : 'Dang tham gia phong noi bo' }}</h4>
+                                        <p class="text-white-50 mb-0">
+                                            He thong da ghi nhan phien tham gia. Phong noi bo hien dung khung dieu hanh local cua he thong.
+                                        </p>
+                                    </div>
                                 @elseif($canOpenExternalLaunch)
                                     <div class="live-room-launcher {{ $platformThemeClass }} p-5 text-center bg-dark text-white">
                                         <div class="live-room-launcher__copy mb-4">
@@ -157,14 +168,14 @@
                 <div class="col-lg-4">
                     <div class="card border-0 shadow-sm mb-4 sticky-top" style="top: 1.5rem;">
                         <div class="card-body p-4">
-                            <h5 class="fw-bold mb-4">Hành động của bạn</h5>
+                            <h5 class="fw-bold mb-4">{{ $actionTitle }}</h5>
 
                             <div class="d-grid gap-3">
                                 @if(!$playerMode && $canJoinRoom)
                                     <form action="{{ $joinRoute }}" method="POST">
                                         @csrf
                                         <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">
-                                            <i class="fas fa-door-open me-2"></i> {{ $joinStudentActionLabel }}
+                                            <i class="fas fa-door-open me-2"></i> {{ $joinButtonLabel }}
                                         </button>
                                     </form>
                                 @endif

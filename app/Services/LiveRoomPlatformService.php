@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\PhongHocLive;
+use App\Support\OnlineMeetingUrl;
 
 class LiveRoomPlatformService
 {
@@ -57,15 +58,17 @@ class LiveRoomPlatformService
 
     public function getJoinUrl(PhongHocLive $phongHocLive): ?string
     {
-        return $phongHocLive->du_lieu_nen_tang_json['join_url']
-            ?? $phongHocLive->du_lieu_nen_tang_json['start_url']
+        return OnlineMeetingUrl::normalize($phongHocLive->external_meeting_url)
+            ?? OnlineMeetingUrl::normalize($phongHocLive->du_lieu_nen_tang_json['join_url'] ?? null)
+            ?? OnlineMeetingUrl::normalize($phongHocLive->du_lieu_nen_tang_json['start_url'] ?? null)
             ?? null;
     }
 
     public function getStartUrl(PhongHocLive $phongHocLive): ?string
     {
-        return $phongHocLive->du_lieu_nen_tang_json['start_url']
-            ?? $phongHocLive->du_lieu_nen_tang_json['join_url']
+        return OnlineMeetingUrl::normalize($phongHocLive->external_meeting_url)
+            ?? OnlineMeetingUrl::normalize($phongHocLive->du_lieu_nen_tang_json['start_url'] ?? null)
+            ?? OnlineMeetingUrl::normalize($phongHocLive->du_lieu_nen_tang_json['join_url'] ?? null)
             ?? null;
     }
 

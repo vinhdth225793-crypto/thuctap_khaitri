@@ -3,16 +3,16 @@
 namespace App\Services;
 
 use App\Models\BaiKiemTra;
-use App\Models\DiemDanh;
 use App\Models\KetQuaHocTap;
-use App\Models\LichHoc;
 use App\Models\ModuleHoc;
-use App\Models\PhanCongModuleGiangVien;
 use Illuminate\Support\Collection;
 
 class ModuleFinalScoreService
 {
-    public function __construct()
+    public function __construct(
+        private readonly CourseAttendanceScoreService $attendanceScoreService,
+        private readonly ModuleResultAggregationService $moduleResultAggregationService,
+    )
     {
     }
 
@@ -46,14 +46,8 @@ class ModuleFinalScoreService
         $largeScore = $largeExams->count() > 0 ? (float) $largeExams->first()->diem_kiem_tra : null;
 
         // 5. Tính trung bình kiểm tra (2 tầng)
-        $moduleExamScore = null;
-        if ($avgSmallScore !== null && $largeScore !== null) {
-            $moduleExamScore = ($avgSmallScore + $largeScore) / 2;
-        } elseif ($avgSmallScore !== null) {
-            $moduleExamScore = $avgSmallScore;
-        } elseif ($largeScore !== null) {
-            $moduleExamScore = $largeScore;
-        }
+        $aggregation = $this->moduleResultAggregationService->aggregate($module, $examResults);
+        $moduleExamScore = $aggregation['score'];
 
         // 6. Điểm danh / Điểm quá trình
         $attendanceData = $this->calculateAttendance($moduleId, $hocVienId);
@@ -85,7 +79,11 @@ class ModuleFinalScoreService
                 'module_exam_score' => $moduleExamScore !== null ? round($moduleExamScore, 2) : null,
                 'process_score' => $processScore !== null ? round($processScore, 2) : null,
                 'final_score' => $finalScore !== null ? round($finalScore, 2) : null,
+                'aggregation_strategy' => $aggregation['strategy'],
+                'source_result_ids' => $aggregation['source_result_ids'],
+                'source_attempt_ids' => $aggregation['source_attempt_ids'],
             ],
+            'aggregation' => $aggregation,
             'attendance' => $attendanceData,
             'weights' => [
                 'attendance' => (float) $khoaHoc->ty_trong_diem_danh,
@@ -97,37 +95,7 @@ class ModuleFinalScoreService
 
     private function calculateAttendance(int $moduleId, int $hocVienId): array
     {
-        $scheduleIds = LichHoc::query()
-            ->where('module_hoc_id', $moduleId)
-            ->where('trang_thai', '!=', 'huy')
-            ->pluck('id');
-
-        $tongSoBuoi = $scheduleIds->count();
-        if ($tongSoBuoi === 0) {
-            return [
-                'tong_so_buoi' => 0,
-                'so_buoi_tham_du' => 0,
-                'ty_le_tham_du' => null,
-                'diem_diem_danh' => null,
-            ];
-        }
-
-        $soBuoiThamDu = DiemDanh::query()
-            ->where('hoc_vien_id', $hocVienId)
-            ->whereIn('lich_hoc_id', $scheduleIds->all())
-            ->whereIn('trang_thai', ['co_mat', 'vao_tre'])
-            ->distinct('lich_hoc_id')
-            ->count('lich_hoc_id');
-
-        $tyLeThamDu = round(($soBuoiThamDu / $tongSoBuoi) * 100, 2);
-        $diemDiemDanh = round(($tyLeThamDu / 100) * 10, 2);
-
-        return [
-            'tong_so_buoi' => $tongSoBuoi,
-            'so_buoi_tham_du' => $soBuoiThamDu,
-            'ty_le_tham_du' => $tyLeThamDu,
-            'diem_diem_danh' => $diemDiemDanh,
-        ];
+        return $this->attendanceScoreService->calculateForModule($moduleId, $hocVienId);
     }
 
     private function checkCanFinalize(Collection $examResults): bool

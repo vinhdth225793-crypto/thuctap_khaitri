@@ -8,6 +8,7 @@ use App\Models\BaiGiang;
 use App\Models\LichHoc;
 use App\Models\NguoiDung;
 use App\Models\PhanCongModuleGiangVien;
+use App\Models\PhongHocLive;
 use App\Models\TaiNguyenBuoiHoc;
 use App\Services\LiveLectureService;
 use Illuminate\Http\Request;
@@ -118,7 +119,7 @@ class BaiGiangController extends Controller
 
     public function edit($id)
     {
-        $baiGiang = BaiGiang::with(['taiNguyenPhu', 'phongHocLive'])->findOrFail($id);
+        $baiGiang = BaiGiang::with(['taiNguyenChinh', 'taiNguyenPhu', 'phongHocLive'])->findOrFail($id);
         $phanCongs = $this->getAssignmentOptions();
         $thuVien = TaiNguyenBuoiHoc::query()->daDuyet()->get();
         $moderatorOptions = $this->getModeratorOptions();
@@ -251,9 +252,33 @@ class BaiGiangController extends Controller
             ->where('khoa_hoc_id', $phanCong->khoa_hoc_id)
             ->where('module_hoc_id', $phanCong->module_hoc_id)
             ->orderBy('buoi_so')
-            ->get(['id', 'buoi_so', 'ngay_hoc']);
+            ->get()
+            ->map(fn (LichHoc $lichHoc) => $this->formatScheduleForLectureForm($lichHoc));
 
         return response()->json($lichHocs);
+    }
+
+    private function formatScheduleForLectureForm(LichHoc $lichHoc): array
+    {
+        $signal = strtolower((string) $lichHoc->nen_tang . ' ' . (string) $lichHoc->link_online);
+        $platform = str_contains($signal, 'google') || str_contains($signal, 'meet.google.com')
+            ? PhongHocLive::PLATFORM_GOOGLE_MEET
+            : (str_contains($signal, 'zoom') || filled($lichHoc->link_online) ? PhongHocLive::PLATFORM_ZOOM : PhongHocLive::PLATFORM_INTERNAL);
+
+        return [
+            'id' => $lichHoc->id,
+            'buoi_so' => $lichHoc->buoi_so,
+            'ngay_hoc' => optional($lichHoc->ngay_hoc)->toDateString(),
+            'starts_at' => optional($lichHoc->starts_at)->format('Y-m-d\TH:i'),
+            'duration_minutes' => $lichHoc->starts_at && $lichHoc->ends_at
+                ? max(15, $lichHoc->starts_at->diffInMinutes($lichHoc->ends_at))
+                : 90,
+            'platform' => $platform,
+            'link_online' => \App\Support\OnlineMeetingUrl::normalize($lichHoc->link_online),
+            'meeting_id' => $lichHoc->meeting_id,
+            'meeting_code' => \App\Support\OnlineMeetingUrl::meetingCode($lichHoc->link_online),
+            'passcode' => $lichHoc->mat_khau_cuoc_hop,
+        ];
     }
 
     private function findAssignedPhanCong(int $phanCongId): PhanCongModuleGiangVien
