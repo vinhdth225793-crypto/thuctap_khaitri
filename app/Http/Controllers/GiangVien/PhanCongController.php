@@ -25,6 +25,7 @@ class PhanCongController extends Controller
         private readonly TeacherAttendanceService $teacherAttendanceService,
         private readonly KetQuaHocTapService $ketQuaHocTapService,
         private readonly LearningResultFinalizationService $finalizationService,
+        private readonly \App\Services\ModuleFinalScoreService $moduleFinalScoreService,
     ) {
     }
 
@@ -313,6 +314,7 @@ class PhanCongController extends Controller
                 'module_result' => $currentModuleResult,
                 'module_results' => $moduleResults,
                 'exam_results' => $examResults,
+                'breakdown' => $this->moduleFinalScoreService->calculateForStudent((int) $phanCong->module_hoc_id, $enrollment->hoc_vien_id),
                 'attempts_by_exam' => $examResults->mapWithKeys(function (KetQuaHocTap $result) use ($attemptsByStudentExam, $enrollment) {
                     return [
                         $result->bai_kiem_tra_id => $attemptsByStudentExam->get($enrollment->hoc_vien_id . ':' . $result->bai_kiem_tra_id, collect()),
@@ -375,7 +377,31 @@ class PhanCongController extends Controller
             $validated['ghi_chu_chot'] ?? null
         );
 
-        return back()->with('success', 'Da chot diem module va gui sang admin cho duyet.');
+        return back()->with('success', 'Đã chốt điểm module và gửi sang admin chờ duyệt.');
+    }
+
+    public function moChotKetQua(Request $request, $id)
+    {
+        $giangVien = auth()->user()->giangVien;
+        $phanCong = $this->resolveTeacherAssignment($giangVien->id, (int) $id);
+
+        $validated = $request->validate([
+            'result_id' => 'required|exists:ket_qua_hoc_tap,id',
+            'ly_do' => 'required|string|max:1000',
+        ]);
+
+        $kq = KetQuaHocTap::where('id', $validated['result_id'])
+            ->where('module_hoc_id', $phanCong->module_hoc_id)
+            ->where('da_chot', true)
+            ->firstOrFail();
+
+        $this->finalizationService->unlockModuleResult(
+            $kq,
+            (int) auth()->user()->ma_nguoi_dung,
+            $validated['ly_do']
+        );
+
+        return back()->with('success', 'Đã mở khóa chốt điểm để cập nhật lại.');
     }
 
     /**

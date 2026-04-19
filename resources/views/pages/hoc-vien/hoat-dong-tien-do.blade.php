@@ -507,11 +507,80 @@
                                     </div>
                                 @endif
 
-                                <div class="mt-3">
+                                <div class="mt-3 d-flex gap-2">
                                     <a href="{{ route('hoc-vien.chi-tiet-khoa-hoc', $khoaHoc->id) }}" class="btn btn-sm btn-outline-primary">
                                         Xem chi tiết khóa học
                                     </a>
+                                    @if($dong['module_breakdowns']->isNotEmpty())
+                                        <button class="btn btn-sm btn-soft-info" type="button" data-bs-toggle="collapse" data-bs-target="#module-scores-{{ $khoaHoc->id }}">
+                                            <i class="fas fa-list-ol me-1"></i> Bảng điểm chi tiết
+                                        </button>
+                                    @endif
                                 </div>
+
+                                {{-- Bảng điểm chi tiết cho học viên --}}
+                                @if($dong['module_breakdowns']->isNotEmpty())
+                                    <div class="collapse mt-3" id="module-scores-{{ $khoaHoc->id }}">
+                                        <div class="p-3 bg-white rounded-4 border shadow-xs">
+                                            <h6 class="fw-bold smaller text-muted text-uppercase mb-3">Kết quả chi tiết theo Module</h6>
+                                            @foreach($dong['module_breakdowns'] as $mb)
+                                                @php
+                                                    $bd = $mb['breakdown'];
+                                                    $sm = $bd['summary'];
+                                                @endphp
+                                                <div class="module-score-card mb-3 p-3 rounded-3 border-start border-4 border-{{ $mb['is_finalized'] ? 'success' : 'primary' }} bg-light bg-opacity-10">
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                                        <div class="fw-bold text-dark">{{ $mb['module_name'] }}</div>
+                                                        <span class="badge bg-{{ $mb['is_finalized'] ? 'success' : 'secondary' }}-soft text-{{ $mb['is_finalized'] ? 'success' : 'secondary' }} rounded-pill">
+                                                            {{ $mb['is_finalized'] ? 'ĐÃ CHỐT ĐIỂM' : 'TẠM TÍNH' }}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    <div class="row g-2 text-center mt-2">
+                                                        <div class="col-4">
+                                                            <div class="p-2 bg-white rounded border">
+                                                                <div class="smaller text-muted">Quá trình (A)</div>
+                                                                <div class="fw-bold">{{ number_format($sm['process_score'] ?: 0, 2) }}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-4">
+                                                            <div class="p-2 bg-white rounded border">
+                                                                <div class="smaller text-muted">Thi (B)</div>
+                                                                <div class="fw-bold">{{ number_format($sm['module_exam_score'] ?: 0, 2) }}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-4">
+                                                            <div class="p-2 bg-white rounded border border-primary">
+                                                                <div class="smaller text-muted">Tổng kết</div>
+                                                                <div class="fw-extrabold text-primary">{{ number_format($mb['final_score'] ?: 0, 2) }}</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <button class="btn btn-link btn-xs w-100 text-muted mt-2 text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#exam-list-{{ $khoaHoc->id }}-{{ $mb['module_id'] }}">
+                                                        Chi tiết bài thi & chuyên cần <i class="fas fa-chevron-down ms-1"></i>
+                                                    </button>
+
+                                                    <div class="collapse mt-2" id="exam-list-{{ $khoaHoc->id }}-{{ $mb['module_id'] }}">
+                                                        <div class="smaller p-2 bg-white rounded border border-dashed">
+                                                            <div class="d-flex justify-content-between mb-1">
+                                                                <span>Điểm danh:</span>
+                                                                <span class="fw-bold">{{ $bd['attendance']['so_buoi_tham_du'] }}/{{ $bd['attendance']['tong_so_buoi'] }} buổi</span>
+                                                            </div>
+                                                            <hr class="my-1">
+                                                            @foreach($bd['exam_results'] as $er)
+                                                                <div class="d-flex justify-content-between mb-1">
+                                                                    <span class="text-truncate me-2" style="max-width: 70%;">{{ $er['tieu_de'] }}:</span>
+                                                                    <span class="fw-bold text-primary">{{ number_format($er['diem'], 2) }}</span>
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     @endforeach

@@ -16,6 +16,11 @@ use Illuminate\Support\Collection;
 
 class StudentLearningDashboardService
 {
+    public function __construct(
+        private readonly ModuleFinalScoreService $moduleFinalScoreService
+    ) {
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -247,6 +252,16 @@ class StudentLearningDashboardService
             $moduleKq = $allKq->whereNotNull('module_hoc_id')->whereNull('bai_kiem_tra_id');
             $examKq = $allKq->whereNotNull('bai_kiem_tra_id');
 
+            $moduleBreakdowns = $moduleKq->map(function ($kq) use ($ghiDanh) {
+                return [
+                    'module_id' => $kq->module_hoc_id,
+                    'module_name' => optional($kq->moduleHoc)->ten_module,
+                    'is_finalized' => (bool) $kq->da_chot,
+                    'final_score' => $kq->da_chot ? (float) $kq->diem_giang_vien_chot : (float) $kq->diem_tong_ket,
+                    'breakdown' => $this->moduleFinalScoreService->calculateForStudent((int) $kq->module_hoc_id, (int) $ghiDanh->hoc_vien_id),
+                ];
+            })->values();
+
             return [
                 'ghi_danh' => $ghiDanh,
                 'khoa_hoc' => $ghiDanh->khoaHoc,
@@ -264,6 +279,7 @@ class StudentLearningDashboardService
                 'ket_qua_module_count' => $moduleKq->count(),
                 'ket_qua_module_hoan_thanh' => $moduleKq->where('trang_thai', 'hoan_thanh')->count(),
                 'bai_thi_dat_count' => $examKq->where('trang_thai', 'dat')->count(),
+                'module_breakdowns' => $moduleBreakdowns,
             ];
         });
 

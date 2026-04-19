@@ -74,55 +74,94 @@
                             </td>
                             <td style="min-width: 420px;">
                                 <div class="accordion" id="admin-result-{{ $student?->ma_nguoi_dung ?? $loop->index }}">
-                                    <div class="accordion-item">
+                                    <div class="accordion-item border-0 shadow-xs mb-2">
                                         <h2 class="accordion-header">
-                                            <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#modules-{{ $student?->ma_nguoi_dung ?? $loop->index }}">
-                                                Module ({{ $moduleResults->count() }})
+                                            <button class="accordion-button collapsed py-2 bg-light bg-opacity-50" type="button" data-bs-toggle="collapse" data-bs-target="#modules-{{ $student?->ma_nguoi_dung ?? $loop->index }}">
+                                                <i class="fas fa-layer-group me-2 text-primary"></i> Module ({{ $moduleResults->count() }})
                                             </button>
                                         </h2>
                                         <div id="modules-{{ $student?->ma_nguoi_dung ?? $loop->index }}" class="accordion-collapse collapse">
-                                            <div class="accordion-body small">
-                                                @forelse($moduleResults as $moduleResult)
-                                                    <div class="border-bottom py-2">
-                                                        <div class="fw-bold">{{ $moduleResult->moduleHoc?->ten_module ?? 'Module' }}</div>
-                                                        <div>Diem: {{ $moduleResult->diem_tong_ket !== null ? number_format((float) $moduleResult->diem_tong_ket, 2) : '--' }}</div>
-                                                        @if($moduleResult->diem_giang_vien_chot !== null)
-                                                            <div class="text-success">Diem GV chot: {{ number_format((float) $moduleResult->diem_giang_vien_chot, 2) }}</div>
-                                                        @endif
-                                                        <div class="text-muted">Strategy: {{ $moduleResult->aggregation_strategy_used ?? 'all_exams_average' }}</div>
-                                                        <div class="mt-1">
-                                                            <span class="badge text-bg-light border">{{ $moduleResult->trang_thai_chot_label }}</span>
-                                                            <span class="badge text-bg-light border">{{ $moduleResult->trang_thai_duyet_label }}</span>
-                                                            @if($moduleResult->luu_ho_so_luc)
-                                                                <span class="badge text-bg-success">Ho so: {{ $moduleResult->luu_ho_so_luc->format('d/m/Y H:i') }}</span>
-                                                            @endif
+                                            <div class="accordion-body p-0">
+                                                @forelse($row['module_breakdowns'] as $mb)
+                                                    @php
+                                                        $mResult = $mb['result'];
+                                                        $bd = $mb['breakdown'];
+                                                        $sm = $bd['summary'];
+                                                    @endphp
+                                                    <div class="border-bottom p-3">
+                                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                                            <div>
+                                                                <div class="fw-bold text-dark">{{ $mResult->moduleHoc?->ten_module ?? 'Module' }}</div>
+                                                                <div class="smaller text-muted italic">Chốt bởi: {{ $mResult->chotBoi?->ho_ten ?? '--' }} lúc {{ $mResult->chot_luc ? $mResult->chot_luc->format('d/m/Y H:i') : '--' }}</div>
+                                                            </div>
+                                                            <div class="text-end">
+                                                                <span class="badge bg-{{ $mResult->da_chot ? 'success' : 'secondary' }}-soft text-{{ $mResult->da_chot ? 'success' : 'secondary' }} mb-1">
+                                                                    {{ $mResult->da_chot ? 'ĐÃ CHỐT' : 'CHƯA CHỐT' }}
+                                                                </span>
+                                                                <div class="fw-extrabold text-primary fs-6">{{ number_format($mb['result']->diem_giang_vien_chot ?: $mb['result']->diem_tong_ket ?: 0, 2) }}</div>
+                                                            </div>
                                                         </div>
-                                                        @if($moduleResult->trang_thai_duyet === 'cho_duyet')
-                                                            <div class="d-flex gap-2 flex-wrap mt-2">
-                                                                <form method="POST" action="{{ route('admin.ket-qua.approve', $moduleResult->id) }}" class="d-flex gap-1">
+                                                        
+                                                        {{-- Breakdown mini table --}}
+                                                        <div class="row g-2 text-center mb-3">
+                                                            <div class="col-4">
+                                                                <div class="smaller p-1 bg-white border rounded">
+                                                                    <div class="text-muted">Quá trình (A)</div>
+                                                                    <div class="fw-bold">{{ number_format($sm['process_score'] ?: 0, 2) }}</div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-4">
+                                                                <div class="smaller p-1 bg-white border rounded">
+                                                                    <div class="text-muted">Điểm thi (B)</div>
+                                                                    <div class="fw-bold">{{ number_format($sm['module_exam_score'] ?: 0, 2) }}</div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-4">
+                                                                <div class="smaller p-1 bg-white border rounded">
+                                                                    <div class="text-muted">Chuyên cần</div>
+                                                                    <div class="fw-bold">{{ $bd['attendance']['so_buoi_tham_du'] }}/{{ $bd['attendance']['tong_so_buoi'] }}</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        @if($mResult->trang_thai_duyet === 'cho_duyet')
+                                                            <div class="bg-warning bg-opacity-10 p-2 rounded border border-warning border-opacity-25 mb-2">
+                                                                <div class="smaller fw-bold text-warning mb-1"><i class="fas fa-exclamation-triangle me-1"></i> ADMIN PHÊ DUYỆT:</div>
+                                                                <form method="POST" action="{{ route('admin.ket-qua.approve', $mResult->id) }}" class="mb-1">
                                                                     @csrf
-                                                                    <input type="text" name="ghi_chu_duyet" class="form-control form-control-sm" placeholder="Ghi chu admin">
-                                                                    <button class="btn btn-sm btn-success" type="submit">Duyet</button>
+                                                                    <div class="input-group input-group-sm">
+                                                                        <input type="text" name="ghi_chu_duyet" class="form-control" placeholder="Ghi chú duyệt...">
+                                                                        <button class="btn btn-success" type="submit">Duyệt & Lưu hồ sơ</button>
+                                                                    </div>
                                                                 </form>
-                                                                <form method="POST" action="{{ route('admin.ket-qua.reject', $moduleResult->id) }}" class="d-flex gap-1">
+                                                                <form method="POST" action="{{ route('admin.ket-qua.reject', $mResult->id) }}">
                                                                     @csrf
-                                                                    <input type="text" name="ghi_chu_duyet" class="form-control form-control-sm" placeholder="Ly do tra ve">
-                                                                    <button class="btn btn-sm btn-outline-danger" type="submit">Tra ve</button>
+                                                                    <div class="input-group input-group-sm">
+                                                                        <input type="text" name="ghi_chu_duyet" class="form-control" placeholder="Lý do trả về...">
+                                                                        <button class="btn btn-outline-danger" type="submit">Trả về giảng viên</button>
+                                                                    </div>
                                                                 </form>
+                                                            </div>
+                                                        @else
+                                                            <div class="mt-1 d-flex gap-1">
+                                                                <span class="badge text-bg-light border text-dark">{{ $mResult->trang_thai_duyet_label }}</span>
+                                                                @if($mResult->luu_ho_so_luc)
+                                                                    <span class="badge bg-success-soft text-success border border-success-subtle">Hồ sơ: {{ $mResult->luu_ho_so_luc->format('d/m/Y H:i') }}</span>
+                                                                @endif
                                                             </div>
                                                         @endif
                                                     </div>
                                                 @empty
-                                                    <div class="text-muted">Chua co ket qua module.</div>
+                                                    <div class="p-3 text-muted">Chua co ket qua module.</div>
                                                 @endforelse
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div class="accordion-item">
+                                    <div class="accordion-item border-0 shadow-xs">
                                         <h2 class="accordion-header">
-                                            <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#exams-{{ $student?->ma_nguoi_dung ?? $loop->index }}">
-                                                Bai kiem tra ({{ $examResults->count() }})
+                                            <button class="accordion-button collapsed py-2 bg-light bg-opacity-50" type="button" data-bs-toggle="collapse" data-bs-target="#exams-{{ $student?->ma_nguoi_dung ?? $loop->index }}">
+                                                <i class="fas fa-file-invoice me-2 text-info"></i> Bài kiểm tra ({{ $examResults->count() }})
                                             </button>
                                         </h2>
                                         <div id="exams-{{ $student?->ma_nguoi_dung ?? $loop->index }}" class="accordion-collapse collapse">
@@ -131,19 +170,11 @@
                                                     <div class="border-bottom py-2">
                                                         <div class="fw-bold">{{ $examResult->baiKiemTra?->tieu_de ?? 'Bai kiem tra' }}</div>
                                                         <div>Diem chinh thuc: {{ $examResult->diem_kiem_tra !== null ? number_format((float) $examResult->diem_kiem_tra, 2) : '--' }}</div>
-                                                        <div class="text-muted">Attempt strategy: {{ $examResult->attempt_strategy_used ?? 'highest_score' }}</div>
                                                         @foreach(($attemptsByExam[$examResult->bai_kiem_tra_id] ?? collect()) as $attempt)
-                                                            @php
-                                                                $officialIds = collect($examResult->source_attempt_ids ?: []);
-                                                                if ($examResult->source_attempt_id) {
-                                                                    $officialIds->push((int) $examResult->source_attempt_id);
-                                                                }
-                                                            @endphp
-                                                            <div class="ms-3 text-muted">
+                                                            <div class="ms-3 text-muted smaller">
                                                                 Lan {{ $attempt->lan_lam_thu }}:
                                                                 {{ $attempt->diem_so !== null ? number_format((float) $attempt->diem_so, 2) : 'cho cham' }}
-                                                                - {{ $attempt->trang_thai_cham }}
-                                                                @if($officialIds->map(fn ($id) => (int) $id)->contains((int) $attempt->id))
+                                                                @if((int) $attempt->id === (int) $examResult->source_attempt_id)
                                                                     <span class="badge text-bg-primary">chinh thuc</span>
                                                                 @endif
                                                             </div>

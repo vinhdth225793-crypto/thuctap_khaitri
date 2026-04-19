@@ -17,6 +17,7 @@ class KetQuaHocTapService
         private readonly ExamResultAggregationService $examAggregationService,
         private readonly ModuleResultAggregationService $moduleAggregationService,
         private readonly CourseResultAggregationService $courseAggregationService,
+        private readonly ModuleFinalScoreService $moduleFinalScoreService,
     ) {
     }
 
@@ -145,81 +146,58 @@ class KetQuaHocTapService
 
     public function refreshForModuleStudent(int $moduleHocId, int $hocVienId): KetQuaHocTap
     {
+        $existing = KetQuaHocTap::where('module_hoc_id', $moduleHocId)
+            ->where('hoc_vien_id', $hocVienId)
+            ->whereNull('bai_kiem_tra_id')
+            ->first();
+
+        // CƠ CHẾ KHÓA: Nếu giảng viên đã chốt hoặc Admin đã duyệt thì không tự động tính toán đè lên dữ liệu chính thức
+        if ($existing && ($existing->da_chot || $existing->trang_thai_duyet === KetQuaHocTap::TRANG_THAI_DUYET_DA_DUYET)) {
+            return $existing;
+        }
+
         $module = ModuleHoc::with('khoaHoc')->findOrFail($moduleHocId);
 
+        // 1. Refresh từng bài thi trước
         BaiKiemTra::where('module_hoc_id', $moduleHocId)
             ->where('trang_thai_duyet', 'da_duyet')
             ->where('trang_thai_phat_hanh', 'phat_hanh')
             ->get(['id'])
             ->each(fn (BaiKiemTra $baiKiemTra) => $this->refreshForExamStudent($baiKiemTra->id, $hocVienId));
 
-        $kqExams = KetQuaHocTap::with('baiKiemTra')
-            ->where('module_hoc_id', $moduleHocId)
-            ->where('hoc_vien_id', $hocVienId)
-            ->whereNotNull('bai_kiem_tra_id')
-            ->get();
+        // 2. Sử dụng Service chuyên biệt để tính bảng điểm 4 lớp chuẩn nghiệp vụ
+        $breakdown = $this->moduleFinalScoreService->calculateForStudent($moduleHocId, $hocVienId);
+        $summary = $breakdown['summary'];
 
-        $aggregation = $this->moduleAggregationService->aggregate($module, $kqExams);
-        $diemKiemTra = $aggregation['score'];
-
-        $attendance = $this->calculateAttendanceForModule($moduleHocId, $hocVienId);
-        $tongSoBuoi = $attendance['tong_so_buoi'];
-        $soBuoiThamDu = $attendance['so_buoi_tham_du'];
-        $tyLeThamDu = $attendance['ty_le_tham_du'];
-        $diemDiemDanh = $attendance['diem_diem_danh'];
-
-        $diemTongKet = null;
-        if ($diemDiemDanh !== null && $diemKiemTra !== null) {
-            $diemTongKet = round(
-                ($diemDiemDanh * ((float) $module->khoaHoc->ty_trong_diem_danh / 100))
-                + ($diemKiemTra * ((float) $module->khoaHoc->ty_trong_kiem_tra / 100)),
-                2
-            );
-        } elseif ($diemKiemTra !== null) {
-            $diemTongKet = $diemKiemTra;
-        }
-
+        $diemTongKet = $summary['final_score'];
         $trangThai = 'dang_hoc';
         if ($diemTongKet !== null) {
-            $trangThai = $diemTongKet >= 5.0 ? 'hoan_thanh' : 'dang_hoc';
+            $trangThai = $diemTongKet >= 5.0 ? 'dat' : 'khong_dat';
         }
 
         return KetQuaHocTap::updateOrCreate(
             [
-                'khoa_hoc_id' => $module->khoa_hoc_id,
+                'khoa_hoc_id' => (int) $module->khoa_hoc_id,
                 'hoc_vien_id' => $hocVienId,
                 'module_hoc_id' => $moduleHocId,
                 'bai_kiem_tra_id' => null,
             ],
             [
-                'aggregation_strategy_used' => $aggregation['strategy'],
-                'source_attempt_ids' => $aggregation['source_attempt_ids'],
-                'diem_diem_danh' => $diemDiemDanh,
-                'diem_kiem_tra' => $diemKiemTra,
+                'diem_trung_binh_bai_kiem_tra' => $summary['module_exam_score'],
+                'diem_qua_trinh' => $summary['process_score'],
+                'diem_diem_danh' => $breakdown['attendance']['diem_diem_danh'],
+                'diem_kiem_tra' => $summary['module_exam_score'],
                 'diem_tong_ket' => $diemTongKet,
-                'tong_so_buoi' => $tongSoBuoi,
-                'so_buoi_tham_du' => $soBuoiThamDu,
-                'ty_le_tham_du' => $tyLeThamDu,
-                'so_bai_kiem_tra_hoan_thanh' => $kqExams->count(),
+                'tong_so_buoi' => $breakdown['attendance']['tong_so_buoi'],
+                'so_buoi_tham_du' => $breakdown['attendance']['so_buoi_tham_du'],
+                'ty_le_tham_du' => $breakdown['attendance']['ty_le_tham_du'],
+                'so_bai_kiem_tra_hoan_thanh' => collect($breakdown['exam_results'])->where('diem', '!==', null)->count(),
                 'trang_thai' => $trangThai,
                 'chi_tiet' => [
-                    'aggregation_strategy' => $aggregation['strategy'],
-                    'source_result_ids' => $aggregation['source_result_ids'],
-                    'exams' => $aggregation['metadata']['exams'] ?? [],
+                    'aggregation_strategy' => 'two_tier_average',
+                    'breakdown' => $breakdown,
                 ],
-                'calculation_metadata' => [
-                    'attendance' => [
-                        'tong_so_buoi' => $tongSoBuoi,
-                        'so_buoi_tham_du' => $soBuoiThamDu,
-                        'ty_le_tham_du' => $tyLeThamDu,
-                        'diem_diem_danh' => $diemDiemDanh,
-                    ],
-                    'assessment' => $aggregation['metadata'],
-                    'weights' => [
-                        'ty_trong_diem_danh' => (float) $module->khoaHoc->ty_trong_diem_danh,
-                        'ty_trong_kiem_tra' => (float) $module->khoaHoc->ty_trong_kiem_tra,
-                    ],
-                ],
+                'calculation_metadata' => $breakdown,
                 'cap_nhat_luc' => now(),
             ]
         );

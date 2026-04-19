@@ -291,8 +291,10 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
     Route::get('/khoa-hoc/{id}', [PhanCongController::class, 'show'])->name('khoa-hoc.show');
     Route::post('/khoa-hoc/{id}/xac-nhan', [PhanCongController::class, 'xacNhan'])->name('khoa-hoc.xac-nhan');
     Route::get('/khoa-hoc/{id}/ket-qua', [PhanCongController::class, 'ketQuaHocTap'])->name('khoa-hoc.ket-qua');
-    Route::post('/khoa-hoc/{id}/ket-qua/update', [PhanCongController::class, 'updateKetQua'])->name('khoa-hoc.ket-qua.update');
-    Route::post('/khoa-hoc/{id}/ket-qua/chot', [PhanCongController::class, 'chotKetQua'])->name('khoa-hoc.ket-qua.chot');
+    Route::post('/khoa-hoc/phan-cong/{id}/ket-qua/update', [PhanCongController::class, 'updateKetQua'])->name('khoa-hoc.ket-qua.update');
+    Route::post('/khoa-hoc/phan-cong/{id}/ket-qua/chot', [PhanCongController::class, 'chotKetQua'])->name('khoa-hoc.ket-qua.chot');
+    Route::post('/khoa-hoc/phan-cong/{id}/ket-qua/mo-chot', [PhanCongController::class, 'moChotKetQua'])->name('khoa-hoc.ket-qua.mo-chot');
+
     Route::post('/buoi-hoc/{id}/bat-dau', [PhanCongController::class, 'startTeachingSession'])->name('buoi-hoc.start');
     Route::post('/buoi-hoc/{id}/ket-thuc', [PhanCongController::class, 'finishTeachingSession'])->name('buoi-hoc.finish');
     Route::put('/buoi-hoc/{id}/link', [PhanCongController::class, 'updateLinkOnline'])->name('buoi-hoc.update-link');

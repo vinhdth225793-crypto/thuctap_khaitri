@@ -47,22 +47,20 @@
                 <thead class="bg-light border-0">
                     <tr>
                         <th class="ps-4 py-3 border-0 smaller text-muted text-uppercase">Học viên</th>
-                        <th class="py-3 border-0 smaller text-muted text-uppercase text-center">Chuyên cần</th>
-                        <th class="py-3 border-0 smaller text-muted text-uppercase text-center">Điểm thi</th>
-                        <th class="py-3 border-0 smaller text-muted text-uppercase text-center">Tổng kết</th>
-                        <th class="py-3 border-0 smaller text-muted text-uppercase">Trạng thái (Giảng viên chốt)</th>
-                        <th class="pe-4 py-3 border-0 smaller text-muted text-uppercase">Nhận xét & Lưu ý</th>
+                        <th class="py-3 border-0 smaller text-muted text-uppercase text-center" title="Điểm danh quy đổi thang 10">Điểm quá trình (A)</th>
+                        <th class="py-3 border-0 smaller text-muted text-uppercase text-center" title="Trung bình cộng bài nhỏ và bài lớn">Điểm thi (B)</th>
+                        <th class="py-3 border-0 smaller text-muted text-uppercase text-center" title="(A * Trọng số A) + (B * Trọng số B)">Tổng kết Module</th>
+                        <th class="py-3 border-0 smaller text-muted text-uppercase text-center">Trạng thái chốt</th>
+                        <th class="pe-4 py-3 border-0 smaller text-muted text-uppercase">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($studentResults as $data)
                         @php
                             $student = $data['student'];
-                            $cResult = $data['course_result'];
                             $moduleResult = $data['module_result'] ?? null;
-                            $mResults = $data['module_results'];
-                            $eResults = $data['exam_results'];
-                            $attemptsByExam = $data['attempts_by_exam'] ?? collect();
+                            $breakdown = $data['breakdown'];
+                            $summary = $breakdown['summary'];
                         @endphp
                         <tr class="student-row" data-student-id="{{ $student->ma_nguoi_dung }}">
                             <td class="ps-4">
@@ -76,73 +74,81 @@
                                     </div>
                                 </div>
                                 <button class="btn btn-link btn-xs text-primary p-0 mt-1 btn-toggle-details" type="button" data-bs-toggle="collapse" data-bs-target="#details-{{ $student->ma_nguoi_dung }}">
-                                    <i class="fas fa-chevron-down me-1"></i> Xem chi tiết bài thi
+                                    <i class="fas fa-chevron-down me-1"></i> Xem chi tiết bảng điểm
                                 </button>
                             </td>
                             <td class="text-center">
-                                @if($moduleResult)
-                                    <div class="fw-bold">{{ number_format($moduleResult->diem_diem_danh ?: 0, 1) }}</div>
-                                    <div class="smaller text-muted">{{ $moduleResult->ty_le_tham_du }}% ({{ $moduleResult->so_buoi_tham_du }}/{{ $moduleResult->tong_so_buoi }})</div>
-                                @else
-                                    <span class="text-muted">--</span>
+                                <div class="fw-bold text-dark">{{ number_format($summary['process_score'] ?: 0, 2) }}</div>
+                                <div class="smaller text-muted">TS: {{ $breakdown['weights']['attendance'] }}%</div>
+                            </td>
+                            <td class="text-center">
+                                <div class="fw-bold text-dark">{{ number_format($summary['module_exam_score'] ?: 0, 2) }}</div>
+                                <div class="smaller text-muted">TS: {{ $breakdown['weights']['assessment'] }}%</div>
+                                @if($summary['avg_small_exam_score'] !== null || $summary['large_exam_score'] !== null)
+                                    <button class="btn btn-xs btn-outline-info rounded-pill py-0 px-2 mt-1" 
+                                            data-bs-toggle="tooltip" 
+                                            title="TB bài nhỏ: {{ $summary['avg_small_exam_score'] ?: '--' }} | Bài lớn: {{ $summary['large_exam_score'] ?: '--' }}">
+                                        <i class="fas fa-info-circle"></i>
+                                    </button>
+                                @endif
+                            </td>
+                            <td class="text-center">
+                                <div class="fw-extrabold text-primary fs-5">{{ number_format($summary['final_score'] ?: 0, 2) }}</div>
+                                @if($moduleResult && $moduleResult->da_chot)
+                                    <div class="smaller text-success"><i class="fas fa-check-double me-1"></i>Đã chốt: {{ number_format((float) $moduleResult->diem_giang_vien_chot, 2) }}</div>
                                 @endif
                             </td>
                             <td class="text-center">
                                 @if($moduleResult)
-                                    <div class="fw-bold">{{ number_format($moduleResult->diem_kiem_tra ?: 0, 1) }}</div>
-                                    <div class="smaller text-muted">{{ $moduleResult->so_bai_kiem_tra_hoan_thanh }} bai</div>
-                                @else
-                                    <span class="text-muted">--</span>
-                                @endif
-                            </td>
-                            <td class="text-center">
-                                @if($moduleResult)
-                                    <div class="fw-extrabold text-primary fs-5">{{ number_format($moduleResult->diem_tong_ket ?: 0, 2) }}</div>
-                                    @if($moduleResult->diem_giang_vien_chot !== null)
-                                        <div class="smaller text-success">Da chot: {{ number_format((float) $moduleResult->diem_giang_vien_chot, 2) }}</div>
-                                    @endif
-                                @else
-                                    <span class="text-muted">--</span>
-                                @endif
-                            </td>
-                            <td>
-                                @if($moduleResult)
-                                    <div class="d-grid gap-1">
-                                        <span class="badge bg-{{ $moduleResult->trang_thai_chot === 'da_chot' ? 'success' : 'secondary' }}-soft text-{{ $moduleResult->trang_thai_chot === 'da_chot' ? 'success' : 'secondary' }}">
-                                            {{ $moduleResult->trang_thai_chot_label }}
+                                    <div class="d-flex flex-column align-items-center gap-1">
+                                        <span class="badge bg-{{ $moduleResult->da_chot ? 'success' : 'secondary' }}-soft text-{{ $moduleResult->da_chot ? 'success' : 'secondary' }} rounded-pill px-3">
+                                            {{ $moduleResult->da_chot ? 'ĐÃ CHỐT ĐIỂM' : 'CHƯA CHỐT' }}
                                         </span>
-                                        <span class="badge bg-light text-dark border">{{ $moduleResult->trang_thai_duyet_label }}</span>
-                                        <select class="form-select form-select-sm rounded-pill select-status" data-result-id="{{ $moduleResult->id }}">
-                                            <option value="dang_hoc" {{ $moduleResult->trang_thai === 'dang_hoc' ? 'selected' : '' }}>Dang hoc</option>
-                                            <option value="hoan_thanh" {{ $moduleResult->trang_thai === 'hoan_thanh' ? 'selected' : '' }}>Hoan thanh</option>
-                                            <option value="dat" {{ $moduleResult->trang_thai === 'dat' ? 'selected' : '' }}>Dat</option>
-                                            <option value="khong_dat" {{ $moduleResult->trang_thai === 'khong_dat' ? 'selected' : '' }}>Chua dat</option>
-                                        </select>
+                                        @if($moduleResult->da_chot)
+                                            <span class="smaller text-muted italic">Duyệt: {{ $moduleResult->trang_thai_duyet_label }}</span>
+                                            
+                                            @if($moduleResult->trang_thai_duyet !== \App\Models\KetQuaHocTap::TRANG_THAI_DUYET_DA_DUYET)
+                                                <button type="button" class="btn btn-xs btn-outline-danger rounded-pill px-2 py-0 mt-1 btn-mo-chot" 
+                                                        data-result-id="{{ $moduleResult->id }}"
+                                                        data-student-name="{{ $student->ho_ten }}">
+                                                    <i class="fas fa-unlock me-1"></i> Mở chốt
+                                                </button>
+                                            @endif
+                                        @endif
                                     </div>
                                 @else
                                     <span class="badge bg-secondary-soft text-secondary">Chưa khởi tạo</span>
                                 @endif
                             </td>
                             <td class="pe-4">
-                                @if($moduleResult)
-                                    <div class="input-group input-group-sm">
-                                        <input type="text" class="form-control rounded-start-pill input-comment"
-                                               value="{{ $moduleResult->nhan_xet_giang_vien }}"
-                                               placeholder="Nhập nhận xét..."
-                                               data-result-id="{{ $moduleResult->id }}">
-                                        <button class="btn btn-primary rounded-end-pill btn-save-comment" data-result-id="{{ $moduleResult->id }}">
-                                            <i class="fas fa-save"></i>
-                                        </button>
-                                    </div>
-                                @endif
-                                <form method="POST" action="{{ route('giang-vien.khoa-hoc.ket-qua.chot', $phanCong->id) }}" class="mt-2">
-                                    @csrf
-                                    <input type="hidden" name="hoc_vien_id" value="{{ $student->ma_nguoi_dung }}">
-                                    <input type="text" name="ghi_chu_chot" class="form-control form-control-sm mb-2" placeholder="Ghi chu chot diem..." value="{{ $moduleResult?->ghi_chu_chot }}">
-                                    <button type="submit" class="btn btn-success btn-sm w-100" onclick="return confirm('Chot diem module nay va gui admin duyet?')">
-                                        <i class="fas fa-lock me-1"></i>{{ $moduleResult?->trang_thai_chot === 'da_chot' ? 'Chot lai diem module' : 'Chot diem module' }}
-                                    </button>
-                                </form>
+                                <div class="d-flex flex-column gap-2">
+                                    <form method="POST" action="{{ route('giang-vien.khoa-hoc.ket-qua.chot', $phanCong->id) }}">
+                                        @csrf
+                                        <input type="hidden" name="hoc_vien_id" value="{{ $student->ma_nguoi_dung }}">
+                                        <div class="input-group input-group-sm mb-1">
+                                            <input type="text" name="ghi_chu_chot" class="form-control" placeholder="Ghi chú chốt..." value="{{ $moduleResult?->ghi_chu_chot }}">
+                                            <button type="submit" class="btn {{ $moduleResult?->da_chot ? 'btn-warning' : 'btn-success' }}" 
+                                                    onclick="return confirm('{{ $moduleResult?->da_chot ? 'Cập nhật lại điểm đã chốt và gửi admin duyệt lại?' : 'Xác nhận chốt bảng điểm này và gửi Admin phê duyệt?' }}')">
+                                                <i class="fas {{ $moduleResult?->da_chot ? 'fa-sync-alt' : 'fa-lock' }}"></i>
+                                            </button>
+                                        </div>
+                                    </form>
+                                    
+                                    @if($moduleResult)
+                                        <div class="d-flex gap-1">
+                                            <select class="form-select form-select-sm rounded-pill select-status" data-result-id="{{ $moduleResult->id }}" style="max-width: 110px;">
+                                                <option value="dang_hoc" {{ $moduleResult->trang_thai === 'dang_hoc' ? 'selected' : '' }}>Đang học</option>
+                                                <option value="hoan_thanh" {{ $moduleResult->trang_thai === 'hoan_thanh' ? 'selected' : '' }}>Hoàn thành</option>
+                                                <option value="dat" {{ $moduleResult->trang_thai === 'dat' ? 'selected' : '' }}>Đạt</option>
+                                                <option value="khong_dat" {{ $moduleResult->trang_thai === 'khong_dat' ? 'selected' : '' }}>Không đạt</option>
+                                            </select>
+                                            <button class="btn btn-sm btn-outline-primary rounded-pill btn-save-comment-row" data-result-id="{{ $moduleResult->id }}" title="Lưu nhận xét">
+                                                <i class="fas fa-comment-dots"></i>
+                                            </button>
+                                        </div>
+                                        <input type="hidden" class="input-comment-hidden" id="comment-{{ $moduleResult->id }}" value="{{ $moduleResult->nhan_xet_giang_vien }}">
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                         {{-- Collapsible Details Row --}}
@@ -151,57 +157,76 @@
                                 <div class="collapse bg-light-subtle" id="details-{{ $student->ma_nguoi_dung }}">
                                     <div class="p-4 border-bottom">
                                         <div class="row">
-                                            {{-- Modules breakdown --}}
-                                            <div class="col-md-6 border-end">
-                                                <h6 class="fw-bold smaller text-muted text-uppercase mb-3">Kết quả theo Module</h6>
-                                                <div class="list-group list-group-flush bg-transparent">
-                                                    @forelse($mResults as $mr)
-                                                        <div class="list-group-item bg-transparent px-0 border-0 d-flex justify-content-between align-items-center">
-                                                            <div>
-                                                                <div class="small fw-bold text-dark">{{ $mr->moduleHoc->ten_module ?? 'Module' }}</div>
-                                                                <div class="smaller text-muted">TB: {{ number_format($mr->diem_tong_ket ?: 0, 2) }}</div>
-                                                            </div>
-                                                            <span class="badge bg-{{ $mr->trang_thai === 'hoan_thanh' ? 'success' : 'info' }}-soft text-{{ $mr->trang_thai === 'hoan_thanh' ? 'success' : 'info' }} rounded-pill">
-                                                                {{ $mr->trang_thai === 'hoan_thanh' ? 'Hoàn thành' : 'Đang học' }}
-                                                            </span>
-                                                        </div>
-                                                    @empty
-                                                        <div class="smaller text-muted italic">Chưa có dữ liệu module.</div>
-                                                    @endforelse
+                                            {{-- Attendance breakdown --}}
+                                            <div class="col-md-4 border-end">
+                                                <h6 class="fw-bold smaller text-muted text-uppercase mb-3"><i class="fas fa-calendar-check me-2"></i>Chi tiết chuyên cần</h6>
+                                                <div class="p-3 bg-white rounded-3 border shadow-xs">
+                                                    <div class="d-flex justify-content-between mb-2">
+                                                        <span class="text-muted">Tổng số buổi:</span>
+                                                        <span class="fw-bold">{{ $breakdown['attendance']['tong_so_buoi'] }}</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between mb-2">
+                                                        <span class="text-muted">Số buổi tham gia:</span>
+                                                        <span class="fw-bold text-success">{{ $breakdown['attendance']['so_buoi_tham_du'] }}</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between mb-2">
+                                                        <span class="text-muted">Tỷ lệ hiện diện:</span>
+                                                        <span class="fw-bold text-primary">{{ $breakdown['attendance']['ty_le_tham_du'] }}%</span>
+                                                    </div>
+                                                    <hr class="my-2">
+                                                    <div class="d-flex justify-content-between">
+                                                        <span class="fw-bold">Điểm quá trình (thang 10):</span>
+                                                        <span class="fw-bold text-danger fs-5">{{ number_format($breakdown['attendance']['diem_diem_danh'] ?: 0, 2) }}</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                             {{-- Exams breakdown --}}
-                                            <div class="col-md-6 ps-4">
-                                                <h6 class="fw-bold smaller text-muted text-uppercase mb-3">Điểm các bài thi</h6>
-                                                <div class="list-group list-group-flush bg-transparent">
-                                                    @forelse($eResults as $er)
-                                                        <div class="list-group-item bg-transparent px-0 border-0 d-flex justify-content-between align-items-center">
-                                                            <div>
-                                                                <div class="small fw-bold text-dark">{{ $er->baiKiemTra->tieu_de }}</div>
-                                                                <div class="smaller text-muted">Phạm vi: {{ $er->baiKiemTra->pham_vi_label }}</div>
-                                                                @if($er->attempt_strategy_used)
-                                                                    <div class="smaller text-primary">Cach tinh: {{ $er->attempt_strategy_used }}</div>
-                                                                @endif
-                                                                @foreach(($attemptsByExam[$er->bai_kiem_tra_id] ?? collect()) as $attempt)
-                                                                    <div class="smaller text-muted">
-                                                                        Lan {{ $attempt->lan_lam_thu }}:
-                                                                        {{ $attempt->diem_so !== null ? number_format((float) $attempt->diem_so, 2) : 'cho cham' }}
-                                                                        @if(in_array((int) $attempt->id, array_map('intval', $er->source_attempt_ids ?: []), true) || (int) $attempt->id === (int) $er->source_attempt_id)
-                                                                            <span class="badge bg-primary-soft text-primary">chinh thuc</span>
+                                            <div class="col-md-8 ps-4">
+                                                <h6 class="fw-bold smaller text-muted text-uppercase mb-3"><i class="fas fa-file-invoice me-2"></i>Điểm các bài kiểm tra</h6>
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm table-bordered bg-white mb-0">
+                                                        <thead class="bg-light">
+                                                            <tr>
+                                                                <th>Tên bài kiểm tra</th>
+                                                                <th class="text-center">Loại</th>
+                                                                <th class="text-center">Điểm số</th>
+                                                                <th class="text-center">Trạng thái</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach($breakdown['exam_results'] as $er)
+                                                                <tr>
+                                                                    <td>{{ $er['tieu_de'] }}</td>
+                                                                    <td class="text-center small">
+                                                                        @if($er['loai'] === 'cuoi_module')
+                                                                            <span class="badge bg-danger">Bài lớn</span>
+                                                                        @else
+                                                                            <span class="badge bg-info">Bài nhỏ</span>
                                                                         @endif
-                                                                    </div>
-                                                                @endforeach
-                                                            </div>
-                                                            <div class="text-end">
-                                                                <div class="fw-bold text-primary">{{ number_format($er->diem_kiem_tra ?: 0, 2) }}</div>
-                                                                <span class="smaller badge bg-{{ $er->trang_thai === 'dat' ? 'success' : 'danger' }}-soft text-{{ $er->trang_thai === 'dat' ? 'success' : 'danger' }}">
-                                                                    {{ $er->trang_thai === 'dat' ? 'Đạt' : 'Trượt' }}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    @empty
-                                                        <div class="smaller text-muted italic">Chưa có bài thi nào được hoàn thành.</div>
-                                                    @endforelse
+                                                                    </td>
+                                                                    <td class="text-center fw-bold text-primary">{{ number_format($er['diem'], 2) }}</td>
+                                                                    <td class="text-center small">{{ $er['trang_thai'] }}</td>
+                                                                </tr>
+                                                            @endforeach
+                                                        </tbody>
+                                                        <tfoot class="bg-light fw-bold">
+                                                            <tr>
+                                                                <td colspan="2" class="text-end text-muted small">Trung bình bài nhỏ:</td>
+                                                                <td class="text-center">{{ number_format($summary['avg_small_exam_score'] ?: 0, 2) }}</td>
+                                                                <td></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td colspan="2" class="text-end text-muted small">Điểm bài lớn:</td>
+                                                                <td class="text-center">{{ number_format($summary['large_exam_score'] ?: 0, 2) }}</td>
+                                                                <td></td>
+                                                            </tr>
+                                                            <tr class="table-primary text-primary">
+                                                                <td colspan="2" class="text-end">TRUNG BÌNH KIỂM TRẠ (B):</td>
+                                                                <td class="text-center fs-6">{{ number_format($summary['module_exam_score'] ?: 0, 2) }}</td>
+                                                                <td></td>
+                                                            </tr>
+                                                        </tfoot>
+                                                    </table>
                                                 </div>
                                             </div>
                                         </div>
@@ -221,27 +246,110 @@
 </div>
 
 @push('scripts')
+{{-- Modal Nhận xét --}}
+<div class="modal fade" id="commentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="fw-bold">Nhận xét giảng viên</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="modal-result-id">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted">Nội dung nhận xét</label>
+                    <textarea class="form-control rounded-3" id="modal-comment-text" rows="4" placeholder="Nhập nhận xét về quá trình học tập của học viên..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary rounded-pill px-4" id="btn-modal-save-comment">
+                    <i class="fas fa-save me-1"></i> Lưu nhận xét
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Modal Mở chốt --}}
+<div class="modal fade" id="unlockModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form id="form-mo-chot" method="POST" action="{{ route('giang-vien.khoa-hoc.ket-qua.mo-chot', $phanCong->id) }}" class="modal-content border-0 shadow-lg rounded-4">
+            @csrf
+            <div class="modal-header border-0 pb-0">
+                <h5 class="fw-bold">Mở khóa chốt điểm</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="result_id" id="unlock-result-id">
+                <div class="alert alert-info smaller">
+                    <i class="fas fa-info-circle me-2"></i> Mở khóa chốt điểm cho học viên <strong id="unlock-student-name"></strong>. Sau khi mở khóa, giảng viên có thể cập nhật lại điểm và chốt lại để gửi admin duyệt.
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted">Lý do mở chốt <span class="text-danger">*</span></label>
+                    <textarea class="form-control rounded-3" name="ly_do" id="unlock-reason" rows="3" placeholder="Nhập lý do cần mở chốt điểm..." required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+                <button type="submit" class="btn btn-danger rounded-pill px-4">
+                    <i class="fas fa-unlock me-1"></i> Xác nhận mở chốt
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 $(function() {
+    const commentModal = new bootstrap.Modal(document.getElementById('commentModal'));
+    const unlockModal = new bootstrap.Modal(document.getElementById('unlockModal'));
+    
+    // Mở modal mở chốt
+    $('.btn-mo-chot').on('click', function() {
+        const resultId = $(this).data('result-id');
+        const studentName = $(this).data('student-name');
+        
+        $('#unlock-result-id').val(resultId);
+        $('#unlock-student-name').text(studentName);
+        $('#unlock-reason').val('');
+        unlockModal.show();
+    });
+
+    // Mở modal nhận xét
+    $('.btn-save-comment-row').on('click', function() {
+        const resultId = $(this).data('result-id');
+        const currentComment = $(`#comment-${resultId}`).val();
+        
+        $('#modal-result-id').val(resultId);
+        $('#modal-comment-text').val(currentComment);
+        commentModal.show();
+    });
+
+    // Lưu nhận xét từ modal
+    $('#btn-modal-save-comment').on('click', function() {
+        const $btn = $(this);
+        const resultId = $('#modal-result-id').val();
+        const comment = $('#modal-comment-text').val();
+        
+        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang lưu...');
+        
+        updateResult(resultId, { nhan_xet: comment }, function() {
+            $btn.prop('disabled', false).html('<i class="fas fa-save me-1"></i> Lưu nhận xét');
+            $(`#comment-${resultId}`).val(comment); // Cập nhật input hidden
+            commentModal.hide();
+            
+            // Thông báo (tùy chọn)
+            alert('Đã lưu nhận xét thành công.');
+        });
+    });
+
     // Lưu trạng thái khi thay đổi
     $('.select-status').on('change', function() {
         const $el = $(this);
         const resultId = $el.data('result-id');
         const status = $el.val();
         updateResult(resultId, { trang_thai: status });
-    });
-
-    // Lưu nhận xét khi nhấn nút
-    $('.btn-save-comment').on('click', function() {
-        const $btn = $(this);
-        const resultId = $btn.data('result-id');
-        const $input = $(`.input-comment[data-result-id="${resultId}"]`);
-        const comment = $input.val();
-        
-        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
-        updateResult(resultId, { nhan_xet: comment }, function() {
-            $btn.prop('disabled', false).html('<i class="fas fa-save"></i>');
-        });
     });
 
     function updateResult(resultId, data, callback) {
@@ -254,7 +362,6 @@ $(function() {
                 ...data
             },
             success: function(response) {
-                // Có thể show toast thông báo thành công
                 if (callback) callback();
             },
             error: function(xhr) {
@@ -266,8 +373,7 @@ $(function() {
 
     $('#btn-refresh-all').on('click', function() {
         if (confirm('Hệ thống sẽ tính toán lại toàn bộ điểm dựa trên dữ liệu bài thi mới nhất. Tiếp tục?')) {
-            location.reload(); // Tạm thời reload để trigger refresh từ controller nếu cần, 
-            // hoặc ta gọi một route refresh riêng.
+            location.reload();
         }
     });
 });

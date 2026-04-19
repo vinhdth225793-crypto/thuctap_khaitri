@@ -17,6 +17,11 @@ class BaiKiemTra extends Model
     public const CHE_DO_TU_LUAN_THEO_CAU = 'tu_luan_theo_cau';
     public const CHE_DO_HON_HOP = 'hon_hop';
 
+    public const LOAI_CUOI_KHOA = 'cuoi_khoa';
+    public const LOAI_CUOI_MODULE = 'cuoi_module';
+    public const LOAI_BUOI_HOC = 'buoi_hoc';
+    public const LOAI_MODULE = 'module';
+
     protected $table = 'bai_kiem_tra';
 
     protected $fillable = [

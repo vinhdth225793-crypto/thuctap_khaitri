@@ -10,6 +10,11 @@ use Illuminate\Support\Collection;
 
 class ExamResultReportDataService
 {
+    public function __construct(
+        private readonly ModuleFinalScoreService $moduleFinalScoreService
+    ) {
+    }
+
     /**
      * @return array{khoa_hoc: KhoaHoc, student_results: array<int, array<string, mixed>>, summary: array<string, mixed>}
      */
@@ -46,11 +51,19 @@ class ExamResultReportDataService
             $moduleResults = $allResults->whereNotNull('module_hoc_id')->whereNull('bai_kiem_tra_id')->values();
             $examResults = $allResults->whereNotNull('bai_kiem_tra_id')->values();
 
+            $moduleBreakdowns = $moduleResults->map(function ($kq) use ($enrollment) {
+                return [
+                    'result' => $kq,
+                    'breakdown' => $this->moduleFinalScoreService->calculateForStudent((int) $kq->module_hoc_id, (int) $enrollment->hoc_vien_id),
+                ];
+            })->values();
+
             return [
                 'enrollment' => $enrollment,
                 'student' => $enrollment->hocVien?->nguoiDung,
                 'course_result' => $courseResult,
                 'module_results' => $moduleResults,
+                'module_breakdowns' => $moduleBreakdowns,
                 'exam_results' => $examResults,
                 'attempts_by_exam' => $examResults->mapWithKeys(function (KetQuaHocTap $result) use ($attemptsByStudentExam, $enrollment) {
                     return [
