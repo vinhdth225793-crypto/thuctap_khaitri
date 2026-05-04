@@ -33,3 +33,6 @@ Thumbs.db
 *nhom_25.pptx*
 *.docx
 *.wps
+
+# File chuẩn bị Q&A defense — không push lên repo công khai
+/docs/cau-hoi-bao-cao.md
