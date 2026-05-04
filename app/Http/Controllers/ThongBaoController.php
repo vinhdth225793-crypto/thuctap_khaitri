@@ -7,34 +7,72 @@ use Illuminate\Http\Request;
 
 class ThongBaoController extends Controller
 {
-    /**
-     * Danh sách thông báo của người dùng hiện tại
-     */
-    public function index()
+    public function index(Request $request)
     {
-        $thongBaos = ThongBao::where('nguoi_nhan_id', auth()->id())
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        $userId = auth()->id();
+        $filter = $request->query('loc'); // 'chua_doc' | null
 
-        // Đánh dấu tất cả là đã đọc khi vào trang danh sách
-        ThongBao::where('nguoi_nhan_id', auth()->id())
-            ->where('da_doc', 0)
-            ->update(['da_doc' => 1]);
+        $query = ThongBao::ofUser($userId)->moiNhat();
+        if ($filter === 'chua_doc') {
+            $query->chuaDoc();
+        }
 
-        return view('pages.thong-bao.index', compact('thongBaos'));
+        $thongBaos = $query->paginate(20)->withQueryString();
+        $tongChua  = ThongBao::ofUser($userId)->chuaDoc()->count();
+        $tongTatCa = ThongBao::ofUser($userId)->count();
+
+        return view('pages.thong-bao.index', compact('thongBaos', 'tongChua', 'tongTatCa', 'filter'));
     }
 
-    /**
-     * Đọc một thông báo và chuyển hướng
-     */
+    /** Đánh dấu đã đọc + redirect (giữ tương thích route cũ docMot) */
     public function docMot($id)
     {
-        $tb = ThongBao::where('id', $id)
-            ->where('nguoi_nhan_id', auth()->id())
-            ->firstOrFail();
-            
-        $tb->update(['da_doc' => 1]);
+        return $this->markRead((int) $id);
+    }
 
-        return redirect($tb->url ?? route('thong-bao.index'));
+    public function markRead(int $id)
+    {
+        $userId = auth()->id();
+        $tb = ThongBao::ofUser($userId)->findOrFail($id);
+        $tb->update(['da_doc' => true]);
+
+        if ($tb->url) {
+            return redirect()->to($tb->url);
+        }
+        return redirect()->route('thong-bao.index');
+    }
+
+    public function markAllRead()
+    {
+        ThongBao::ofUser(auth()->id())->chuaDoc()->update(['da_doc' => true]);
+        return back()->with('success', 'Đã đánh dấu tất cả thông báo là đã đọc.');
+    }
+
+    public function destroy(int $id)
+    {
+        ThongBao::ofUser(auth()->id())->where('id', $id)->delete();
+        return back()->with('success', 'Đã xóa thông báo.');
+    }
+
+    /** API JSON cho dropdown bell */
+    public function jsonRecent()
+    {
+        $userId = auth()->id();
+        $items  = ThongBao::ofUser($userId)->moiNhat()->limit(8)->get();
+        $tongChua = ThongBao::ofUser($userId)->chuaDoc()->count();
+
+        return response()->json([
+            'unread_count' => $tongChua,
+            'items' => $items->map(fn ($tb) => [
+                'id'        => $tb->id,
+                'tieu_de'   => $tb->tieu_de,
+                'noi_dung'  => $tb->noi_dung,
+                'level'     => $tb->level,
+                'icon'      => $tb->icon_class,
+                'url'       => $tb->url ? route('thong-bao.read', $tb->id) : null,
+                'da_doc'    => (bool) $tb->da_doc,
+                'time_ago'  => optional($tb->created_at)->diffForHumans(),
+            ]),
+        ]);
     }
 }
