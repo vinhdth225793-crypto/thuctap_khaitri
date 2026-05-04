@@ -56,200 +56,105 @@
 
     {{-- Navigation --}}
     <nav class="sidebar-nav custom-scrollbar" id="sidebarScrollContainer" aria-label="Điều hướng quản trị">
-        {{-- Bảng điều khiển --}}
-        <div class="nav-item">
-            <a href="{{ route('admin.dashboard') }}" class="edu-link-parent {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" data-tooltip="Bảng điều khiển">
-                <div class="edu-icon-circle bg-soft-primary"><i class="fas fa-gauge-high"></i></div>
-                <span class="edu-link-label">Bảng điều khiển</span>
-            </a>
-        </div>
+        <x-sidebar-link route="admin.dashboard" icon="fas fa-gauge-high" tone="primary" tooltip="Bảng điều khiển">
+            Bảng điều khiển
+        </x-sidebar-link>
 
-        {{-- ===== Section: NGƯỜI DÙNG ===== --}}
-        <div class="edu-section-label"><i class="fas fa-users"></i> Người dùng</div>
+        <x-sidebar-section icon="fas fa-users">Người dùng</x-sidebar-section>
 
-        <div class="nav-item">
-            <a class="edu-link-parent {{ $accountGroupOpen ? '' : 'collapsed' }}"
-               data-bs-toggle="collapse" data-bs-target="#accountGroup" role="button"
-               aria-expanded="{{ $accountGroupOpen ? 'true' : 'false' }}" data-tooltip="Tài khoản">
-                <div class="edu-icon-circle bg-soft-info"><i class="fas fa-users-gear"></i></div>
-                <span class="edu-link-label">Tài khoản</span>
-                <i class="fas fa-chevron-right ms-auto arrow-toggle"></i>
-            </a>
-            <div class="collapse {{ $accountGroupOpen ? 'show' : '' }}" id="accountGroup">
-                <div class="edu-submenu-container">
-                    <a href="{{ route('admin.hoc-vien.index') }}" class="edu-submenu-item {{ request()->routeIs('admin.hoc-vien.*') ? 'active' : '' }}">
-                        <i class="fas fa-user-graduate"></i> <span>Học viên</span>
-                    </a>
-                    <a href="{{ route('admin.giang-vien.index') }}" class="edu-submenu-item {{ request()->routeIs('admin.giang-vien.*') ? 'active' : '' }}">
-                        <i class="fas fa-chalkboard-user"></i> <span>Giảng viên</span>
-                    </a>
-                </div>
-            </div>
-        </div>
+        <x-sidebar-group id="accountGroup" :open="$accountGroupOpen" icon="fas fa-users-gear" tone="info" tooltip="Tài khoản">
+            Tài khoản
+            <x-slot:items>
+                <x-sidebar-submenu-item route="admin.hoc-vien.index" pattern="admin.hoc-vien.*" icon="fas fa-user-graduate">
+                    Học viên
+                </x-sidebar-submenu-item>
+                <x-sidebar-submenu-item route="admin.giang-vien.index" pattern="admin.giang-vien.*" icon="fas fa-chalkboard-user">
+                    Giảng viên
+                </x-sidebar-submenu-item>
+            </x-slot:items>
+        </x-sidebar-group>
 
-        {{-- ===== Section: ĐÀO TẠO ===== --}}
-        <div class="edu-section-label"><i class="fas fa-graduation-cap"></i> Đào tạo</div>
+        <x-sidebar-section icon="fas fa-graduation-cap">Đào tạo</x-sidebar-section>
 
-        <div class="nav-item">
-            <a class="edu-link-parent {{ $structureGroupOpen ? '' : 'collapsed' }}"
-               data-bs-toggle="collapse" data-bs-target="#structureGroup" role="button"
-               aria-expanded="{{ $structureGroupOpen ? 'true' : 'false' }}" data-tooltip="Cấu trúc đào tạo">
-                <div class="edu-icon-circle bg-soft-warning"><i class="fas fa-layer-group"></i></div>
-                <span class="edu-link-label">Cấu trúc đào tạo</span>
-                <i class="fas fa-chevron-right ms-auto arrow-toggle"></i>
-            </a>
-            <div class="collapse {{ $structureGroupOpen ? 'show' : '' }}" id="structureGroup">
-                <div class="edu-submenu-container">
-                    <a href="{{ route('admin.nhom-nganh.index') }}" class="edu-submenu-item {{ request()->routeIs('admin.nhom-nganh.*') ? 'active' : '' }}">
-                        <i class="fas fa-tags"></i> <span>Nhóm ngành</span>
-                    </a>
-                    <a href="{{ route('admin.khoa-hoc.index') }}" class="edu-submenu-item {{ request()->routeIs('admin.khoa-hoc.*') ? 'active' : '' }}">
-                        <i class="fas fa-book"></i> <span>Khóa học</span>
-                    </a>
-                    <a href="{{ route('admin.module-hoc.index') }}" class="edu-submenu-item {{ request()->routeIs('admin.module-hoc.*') ? 'active' : '' }}">
-                        <i class="fas fa-cubes"></i> <span>Module học</span>
-                    </a>
-                    <a href="{{ route('admin.phan-cong.index') }}" class="edu-submenu-item {{ request()->routeIs('admin.phan-cong.*') ? 'active' : '' }}">
-                        <i class="fas fa-people-arrows"></i> <span>Phân công GV</span>
-                    </a>
-                </div>
-            </div>
-        </div>
+        <x-sidebar-group id="structureGroup" :open="$structureGroupOpen" icon="fas fa-layer-group" tone="warning" tooltip="Cấu trúc đào tạo">
+            Cấu trúc đào tạo
+            <x-slot:items>
+                <x-sidebar-submenu-item route="admin.nhom-nganh.index" pattern="admin.nhom-nganh.*" icon="fas fa-tags">Nhóm ngành</x-sidebar-submenu-item>
+                <x-sidebar-submenu-item route="admin.khoa-hoc.index" pattern="admin.khoa-hoc.*" icon="fas fa-book">Khóa học</x-sidebar-submenu-item>
+                <x-sidebar-submenu-item route="admin.module-hoc.index" pattern="admin.module-hoc.*" icon="fas fa-cubes">Module học</x-sidebar-submenu-item>
+                <x-sidebar-submenu-item route="admin.phan-cong.index" pattern="admin.phan-cong.*" icon="fas fa-people-arrows">Phân công GV</x-sidebar-submenu-item>
+            </x-slot:items>
+        </x-sidebar-group>
 
-        <div class="nav-item">
-            <a class="edu-link-parent {{ $opsGroupOpen ? '' : 'collapsed' }}"
-               data-bs-toggle="collapse" data-bs-target="#opsGroup" role="button"
-               aria-expanded="{{ $opsGroupOpen ? 'true' : 'false' }}" data-tooltip="Vận hành lớp">
-                <div class="edu-icon-circle bg-soft-success"><i class="fas fa-chalkboard"></i></div>
-                <span class="edu-link-label">Vận hành lớp</span>
-                <i class="fas fa-chevron-right ms-auto arrow-toggle"></i>
-            </a>
-            <div class="collapse {{ $opsGroupOpen ? 'show' : '' }}" id="opsGroup">
-                <div class="edu-submenu-container">
-                    <a href="{{ route('admin.diem-danh.index') }}" class="edu-submenu-item {{ request()->routeIs('admin.diem-danh.*') ? 'active' : '' }}">
-                        <i class="fas fa-user-check"></i> <span>Điểm danh</span>
-                    </a>
-                    <a href="{{ route('admin.ket-qua.index') }}" class="edu-submenu-item {{ request()->routeIs('admin.ket-qua.*') ? 'active' : '' }}">
-                        <i class="fas fa-chart-line"></i> <span>Kết quả học tập</span>
-                    </a>
-                </div>
-            </div>
-        </div>
+        <x-sidebar-group id="opsGroup" :open="$opsGroupOpen" icon="fas fa-chalkboard" tone="success" tooltip="Vận hành lớp">
+            Vận hành lớp
+            <x-slot:items>
+                <x-sidebar-submenu-item route="admin.diem-danh.index" pattern="admin.diem-danh.*" icon="fas fa-user-check">Điểm danh</x-sidebar-submenu-item>
+                <x-sidebar-submenu-item route="admin.ket-qua.index" pattern="admin.ket-qua.*" icon="fas fa-chart-line">Kết quả học tập</x-sidebar-submenu-item>
+            </x-slot:items>
+        </x-sidebar-group>
 
-        <div class="nav-item">
-            <a href="{{ route('admin.kiem-tra-online.cau-hoi.index') }}" class="edu-link-parent {{ $questionBankActive ? 'active' : '' }}" data-tooltip="Ngân hàng câu hỏi">
-                <div class="edu-icon-circle bg-soft-primary"><i class="fas fa-database"></i></div>
-                <span class="edu-link-label">Ngân hàng câu hỏi</span>
-            </a>
-        </div>
+        <x-sidebar-link route="admin.kiem-tra-online.cau-hoi.index"
+                        :pattern="'admin.kiem-tra-online.cau-hoi.*'"
+                        icon="fas fa-database" tone="primary" tooltip="Ngân hàng câu hỏi">
+            Ngân hàng câu hỏi
+        </x-sidebar-link>
 
-        {{-- ===== Section: CHỜ XỬ LÝ ===== --}}
-        <div class="edu-section-label">
-            <i class="fas fa-clock-rotate-left"></i> Chờ xử lý
-            @if($approvalTotal > 0)
-                <span class="edu-section-badge">{{ $approvalTotal }}</span>
-            @endif
-        </div>
+        <x-sidebar-section icon="fas fa-clock-rotate-left" :badge="$approvalTotal">Chờ xử lý</x-sidebar-section>
 
-        <div class="nav-item">
-            <a class="edu-link-parent {{ $approvalGroupOpen ? '' : 'collapsed' }}"
-               data-bs-toggle="collapse" data-bs-target="#approvalGroup" role="button"
-               aria-expanded="{{ $approvalGroupOpen ? 'true' : 'false' }}" data-tooltip="Phê duyệt">
-                <div class="edu-icon-circle bg-soft-danger"><i class="fas fa-stamp"></i></div>
-                <span class="edu-link-label">Phê duyệt</span>
-                @if($approvalTotal > 0)
-                    <span class="edu-menu-badge edu-badge-pulse">{{ $approvalTotal }}</span>
-                @endif
-                <i class="fas fa-chevron-right arrow-toggle {{ $approvalTotal > 0 ? '' : 'ms-auto' }}"></i>
-            </a>
-            <div class="collapse {{ $approvalGroupOpen ? 'show' : '' }}" id="approvalGroup">
-                <div class="edu-submenu-container">
-                    <a href="{{ route('admin.phe-duyet-tai-khoan.index') }}" class="edu-submenu-item {{ request()->routeIs('admin.phe-duyet-tai-khoan.*') ? 'active' : '' }}">
-                        <i class="fas fa-user-check"></i>
-                        <span>Tài khoản</span>
-                        @if(($approvalCounts['tai_khoan'] ?? 0) > 0)
-                            <span class="edu-submenu-badge">{{ $approvalCounts['tai_khoan'] }}</span>
-                        @endif
-                    </a>
-                    <a href="{{ route('admin.bai-giang.index') }}" class="edu-submenu-item {{ request()->routeIs('admin.bai-giang.*') ? 'active' : '' }}">
-                        <i class="fas fa-file-circle-check"></i>
-                        <span>Bài giảng</span>
-                        @if(($approvalCounts['bai_giang'] ?? 0) > 0)
-                            <span class="edu-submenu-badge">{{ $approvalCounts['bai_giang'] }}</span>
-                        @endif
-                    </a>
-                    <a href="{{ route('admin.thu-vien.index') }}" class="edu-submenu-item {{ request()->routeIs('admin.thu-vien.*') ? 'active' : '' }}">
-                        <i class="fas fa-folder-tree"></i>
-                        <span>Tài nguyên thư viện</span>
-                        @if(($approvalCounts['tai_nguyen'] ?? 0) > 0)
-                            <span class="edu-submenu-badge">{{ $approvalCounts['tai_nguyen'] }}</span>
-                        @endif
-                    </a>
-                    <a href="{{ route('admin.kiem-tra-online.phe-duyet.index') }}" class="edu-submenu-item {{ request()->routeIs('admin.kiem-tra-online.phe-duyet.*') ? 'active' : '' }}">
-                        <i class="fas fa-clipboard-check"></i>
-                        <span>Đề thi</span>
-                        @if(($approvalCounts['de_thi'] ?? 0) > 0)
-                            <span class="edu-submenu-badge">{{ $approvalCounts['de_thi'] }}</span>
-                        @endif
-                    </a>
-                    <a href="{{ route('admin.xet-duyet-ket-qua.index') }}" class="edu-submenu-item {{ request()->routeIs('admin.xet-duyet-ket-qua.*') ? 'active' : '' }}">
-                        <i class="fas fa-file-signature"></i>
-                        <span>Xét duyệt kết quả</span>
-                        @if(($approvalCounts['xet_duyet_ket_qua'] ?? 0) > 0)
-                            <span class="edu-submenu-badge">{{ $approvalCounts['xet_duyet_ket_qua'] }}</span>
-                        @endif
-                    </a>
-                    <a href="{{ route('admin.giang-vien-don-xin-nghi.index') }}" class="edu-submenu-item {{ request()->routeIs('admin.giang-vien-don-xin-nghi.*') ? 'active' : '' }}">
-                        <i class="fas fa-calendar-minus"></i>
-                        <span>Đơn nghỉ giảng viên</span>
-                        @if(($approvalCounts['don_nghi'] ?? 0) > 0)
-                            <span class="edu-submenu-badge">{{ $approvalCounts['don_nghi'] }}</span>
-                        @endif
-                    </a>
-                    <a href="{{ route('admin.yeu-cau-hoc-vien.index') }}" class="edu-submenu-item {{ request()->routeIs('admin.yeu-cau-hoc-vien.*') ? 'active' : '' }}">
-                        <i class="fas fa-comment-dots"></i>
-                        <span>Yêu cầu học viên</span>
-                        @if(($approvalCounts['yeu_cau_hoc_vien'] ?? 0) > 0)
-                            <span class="edu-submenu-badge">{{ $approvalCounts['yeu_cau_hoc_vien'] }}</span>
-                        @endif
-                    </a>
-                </div>
-            </div>
-        </div>
+        <x-sidebar-group id="approvalGroup" :open="$approvalGroupOpen" icon="fas fa-stamp" tone="danger" tooltip="Phê duyệt"
+                         :badge="$approvalTotal" :badgePulse="true">
+            Phê duyệt
+            <x-slot:items>
+                <x-sidebar-submenu-item route="admin.phe-duyet-tai-khoan.index" pattern="admin.phe-duyet-tai-khoan.*"
+                                        icon="fas fa-user-check" :badge="$approvalCounts['tai_khoan'] ?? 0">
+                    Tài khoản
+                </x-sidebar-submenu-item>
+                <x-sidebar-submenu-item route="admin.bai-giang.index" pattern="admin.bai-giang.*"
+                                        icon="fas fa-file-circle-check" :badge="$approvalCounts['bai_giang'] ?? 0">
+                    Bài giảng
+                </x-sidebar-submenu-item>
+                <x-sidebar-submenu-item route="admin.thu-vien.index" pattern="admin.thu-vien.*"
+                                        icon="fas fa-folder-tree" :badge="$approvalCounts['tai_nguyen'] ?? 0">
+                    Tài nguyên thư viện
+                </x-sidebar-submenu-item>
+                <x-sidebar-submenu-item route="admin.kiem-tra-online.phe-duyet.index" pattern="admin.kiem-tra-online.phe-duyet.*"
+                                        icon="fas fa-clipboard-check" :badge="$approvalCounts['de_thi'] ?? 0">
+                    Đề thi
+                </x-sidebar-submenu-item>
+                <x-sidebar-submenu-item route="admin.xet-duyet-ket-qua.index" pattern="admin.xet-duyet-ket-qua.*"
+                                        icon="fas fa-file-signature" :badge="$approvalCounts['xet_duyet_ket_qua'] ?? 0">
+                    Xét duyệt kết quả
+                </x-sidebar-submenu-item>
+                <x-sidebar-submenu-item route="admin.giang-vien-don-xin-nghi.index" pattern="admin.giang-vien-don-xin-nghi.*"
+                                        icon="fas fa-calendar-minus" :badge="$approvalCounts['don_nghi'] ?? 0">
+                    Đơn nghỉ giảng viên
+                </x-sidebar-submenu-item>
+                <x-sidebar-submenu-item route="admin.yeu-cau-hoc-vien.index" pattern="admin.yeu-cau-hoc-vien.*"
+                                        icon="fas fa-comment-dots" :badge="$approvalCounts['yeu_cau_hoc_vien'] ?? 0">
+                    Yêu cầu học viên
+                </x-sidebar-submenu-item>
+            </x-slot:items>
+        </x-sidebar-group>
 
-        {{-- ===== Section: HỆ THỐNG ===== --}}
-        <div class="edu-section-label"><i class="fas fa-gear"></i> Hệ thống</div>
+        <x-sidebar-section icon="fas fa-gear">Hệ thống</x-sidebar-section>
 
-        <div class="nav-item">
-            <a class="edu-link-parent {{ $systemGroupOpen ? '' : 'collapsed' }}"
-               data-bs-toggle="collapse" data-bs-target="#systemGroup" role="button"
-               aria-expanded="{{ $systemGroupOpen ? 'true' : 'false' }}" data-tooltip="Cài đặt">
-                <div class="edu-icon-circle bg-soft-secondary"><i class="fas fa-sliders"></i></div>
-                <span class="edu-link-label">Cài đặt</span>
-                <i class="fas fa-chevron-right ms-auto arrow-toggle"></i>
-            </a>
-            <div class="collapse {{ $systemGroupOpen ? 'show' : '' }}" id="systemGroup">
-                <div class="edu-submenu-container">
-                    <a href="{{ route('admin.settings') }}" class="edu-submenu-item {{ request()->routeIs('admin.settings') ? 'active' : '' }}">
-                        <i class="fas fa-toolbox"></i> <span>Cấu hình chung</span>
-                    </a>
-                    <a href="{{ route('admin.settings.banners.index') }}" class="edu-submenu-item {{ request()->routeIs('admin.settings.banners.*') ? 'active' : '' }}">
-                        <i class="fas fa-images"></i> <span>Banner trang chủ</span>
-                    </a>
-                </div>
-            </div>
-        </div>
+        <x-sidebar-group id="systemGroup" :open="$systemGroupOpen" icon="fas fa-sliders" tone="secondary" tooltip="Cài đặt">
+            Cài đặt
+            <x-slot:items>
+                <x-sidebar-submenu-item route="admin.settings" pattern="admin.settings" icon="fas fa-toolbox">Cấu hình chung</x-sidebar-submenu-item>
+                <x-sidebar-submenu-item route="admin.settings.banners.index" pattern="admin.settings.banners.*" icon="fas fa-images">Banner trang chủ</x-sidebar-submenu-item>
+            </x-slot:items>
+        </x-sidebar-group>
 
         {{-- Footer: profile + home + logout --}}
         <div class="edu-sidebar-footer">
-            <a href="{{ route('profile') }}" class="edu-link-parent edu-link-mini {{ request()->routeIs('profile') ? 'active' : '' }}" data-tooltip="Hồ sơ cá nhân">
-                <div class="edu-icon-circle bg-soft-secondary"><i class="fas fa-id-card"></i></div>
-                <span class="edu-link-label">Hồ sơ cá nhân</span>
-            </a>
-            <a href="{{ route('home') }}" class="edu-link-parent edu-link-mini" data-tooltip="Về trang chủ">
-                <div class="edu-icon-circle bg-soft-dark"><i class="fas fa-house"></i></div>
-                <span class="edu-link-label">Về trang chủ</span>
-            </a>
+            <x-sidebar-link route="profile" icon="fas fa-id-card" tone="secondary" tooltip="Hồ sơ cá nhân" :mini="true">
+                Hồ sơ cá nhân
+            </x-sidebar-link>
+            <x-sidebar-link route="home" icon="fas fa-house" tone="dark" tooltip="Về trang chủ" :mini="true">
+                Về trang chủ
+            </x-sidebar-link>
 
             <form action="{{ route('dang-xuat') }}" method="POST" class="edu-logout-form">
                 @csrf
