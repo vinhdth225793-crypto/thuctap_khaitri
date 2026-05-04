@@ -3,242 +3,372 @@
 @section('title', 'Quản lý lịch học — ' . $khoaHoc->ten_khoa_hoc)
 
 @section('content')
-<div class="container-fluid">
-    <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb" class="mb-3">
-        <ol class="breadcrumb small">
+@php
+    $allSchedules = $khoaHoc->moduleHocs->flatMap(fn ($module) => $module->lichHocs);
+    $totalModules = $khoaHoc->moduleHocs->count();
+    $totalSessions = $allSchedules->count();
+    $pendingSessions = $allSchedules->where('trang_thai', 'cho')->count();
+    $assignedTeacherCount = $khoaHoc->moduleHocs
+        ->flatMap(fn ($module) => $module->assignedTeachers->pluck('giang_vien_id'))
+        ->filter()
+        ->unique()
+        ->count();
+@endphp
+
+<div class="container-fluid admin-page-x lh-page">
+    <nav aria-label="breadcrumb" class="lh-breadcrumb">
+        <ol class="breadcrumb mb-0 small">
             <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Trang chủ</a></li>
             <li class="breadcrumb-item"><a href="{{ route('admin.khoa-hoc.index') }}">Khóa học</a></li>
             <li class="breadcrumb-item"><a href="{{ route('admin.khoa-hoc.show', $khoaHoc->id) }}">{{ $khoaHoc->ma_khoa_hoc }}</a></li>
-            <li class="breadcrumb-item active">Lịch học</li>
+            <li class="breadcrumb-item active" aria-current="page">Lịch học</li>
         </ol>
     </nav>
 
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div class="d-flex align-items-center gap-3">
-            <div class="form-check p-0 ms-2">
-                <input type="checkbox" id="checkAllGlobal" class="form-check-input ms-0" style="width: 1.2rem; height: 1.2rem; cursor: pointer;" title="Chọn tất cả các buổi học đang chờ">
-            </div>
-            <div>
-                <h4 class="fw-bold mb-1">
-                    <i class="fas fa-calendar-alt me-2 text-info"></i>
-                    Quản lý lịch học — {{ $khoaHoc->ten_khoa_hoc }}
-                </h4>
-                <span class="badge bg-{{ $khoaHoc->badge_trang_thai }}">{{ $khoaHoc->label_trang_thai_van_hanh }}</span>
+    <div class="apx-welcome lh-welcome">
+        <div class="apx-welcome-icon"><i class="fas fa-calendar-check"></i></div>
+        <div class="apx-welcome-text">
+            <h4>Planner lịch học cho {{ $khoaHoc->ten_khoa_hoc }}</h4>
+            <p>
+                Theo dõi tiến độ mở buổi, phân công giảng viên và kiểm soát các buổi đang chờ trên cùng một màn hình.
+                Khóa học hiện có <strong>{{ $totalModules }} module</strong>, đã tạo <strong>{{ $totalSessions }} buổi</strong>
+                và còn <strong>{{ $pendingSessions }} buổi chờ triển khai</strong>.
+            </p>
+            <div class="lh-welcome-badges">
+                <span class="badge bg-{{ $khoaHoc->badge_trang_thai }} lh-course-status">{{ $khoaHoc->label_trang_thai_van_hanh }}</span>
+                <span class="lh-inline-note"><i class="fas fa-layer-group"></i> {{ $khoaHoc->nhomNganh?->ten_nhom_nganh ?? 'Chưa gán nhóm ngành' }}</span>
             </div>
         </div>
-        <div class="d-flex gap-2">
-            <button id="btnBulkDelete" class="btn btn-danger btn-sm shadow-sm fw-bold d-none" onclick="submitBulkDelete()">
-                <i class="fas fa-trash-alt me-1"></i> Xóa <span id="selectedCount">0</span> buổi
-            </button>
-            <a href="{{ route('admin.khoa-hoc.show', $khoaHoc->id) }}" class="btn btn-outline-secondary btn-sm">
-                <i class="fas fa-arrow-left me-1"></i> Quay lại
+        <div class="apx-welcome-cta">
+            <a href="{{ route('admin.khoa-hoc.show', $khoaHoc->id) }}" class="btn btn-light text-primary fw-bold shadow-sm">
+                <i class="fas fa-arrow-left me-1"></i> Chi tiết khóa học
+            </a>
+            <a href="{{ route('admin.khoa-hoc.index') }}" class="apx-view-toggle">
+                <i class="fas fa-table-list"></i>
+                <span>Danh sách khóa học</span>
             </a>
         </div>
     </div>
 
     @include('components.alert')
 
-    <!-- Form Xóa Hàng Loạt -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="apx-stat tone-primary">
+                <div class="aps-icon"><i class="fas fa-cubes"></i></div>
+                <div class="aps-text">
+                    <strong>{{ $totalModules }}</strong>
+                    <small>Module đang quản lý</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="apx-stat tone-info">
+                <div class="aps-icon"><i class="fas fa-calendar-days"></i></div>
+                <div class="aps-text">
+                    <strong>{{ $totalSessions }}</strong>
+                    <small>Buổi học đã tạo</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="apx-stat tone-warning">
+                <div class="aps-icon"><i class="fas fa-hourglass-half"></i></div>
+                <div class="aps-text">
+                    <strong>{{ $pendingSessions }}</strong>
+                    <small>Buổi đang chờ</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="apx-stat tone-success">
+                <div class="aps-icon"><i class="fas fa-user-check"></i></div>
+                <div class="aps-text">
+                    <strong>{{ $assignedTeacherCount }}</strong>
+                    <small>Giảng viên đã nhận lớp</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="lh-toolbar">
+        <div class="lh-toolbar-main">
+            <div class="lh-toolbar-copy">
+                <strong>Chọn nhanh các buổi có trạng thái "Chờ"</strong>
+                <span>Xóa hàng loạt chỉ áp dụng cho các buổi chưa diễn ra để tránh tác động tới dữ liệu đang vận hành.</span>
+            </div>
+            <label class="lh-global-toggle" for="checkAllGlobal">
+                <input type="checkbox" id="checkAllGlobal" class="form-check-input ms-0" title="Chọn tất cả các buổi học đang chờ">
+                <span>Chọn tất cả buổi chờ</span>
+            </label>
+        </div>
+        <div class="lh-toolbar-actions">
+            <div class="lh-bulk-counter">
+                Đang chọn <strong id="selectedCount">0</strong> buổi
+            </div>
+            <button id="btnBulkDelete" class="btn btn-danger btn-sm shadow-sm fw-bold d-none" onclick="submitBulkDelete()">
+                <i class="fas fa-trash-alt me-1"></i> Xóa các buổi đã chọn
+            </button>
+        </div>
+    </div>
+
     <form id="bulkDeleteForm" action="{{ route('admin.khoa-hoc.lich-hoc.destroy-bulk', $khoaHoc->id) }}" method="POST">
         @csrf @method('DELETE')
     </form>
 
-    <!-- Loop qua từng module -->
-    @foreach($khoaHoc->moduleHocs as $index => $module)
+    @forelse($khoaHoc->moduleHocs as $index => $module)
         @php
             $prevModule = $index > 0 ? $khoaHoc->moduleHocs[$index - 1] : null;
             $minDate = $prevModule ? $prevModule->ngay_ket_thuc_thuc_te : date('Y-m-d');
-            
-            // Lấy danh sách giảng viên đã được phân công cho module này
-            $assignedTeachers = $module->phanCongGiangViens->map(function($pc) {
+            $teacherOptions = $module->phanCongGiangViens->map(function ($pc) {
                 $gv = $pc->giangVien;
+
                 return [
                     'id' => $pc->giang_vien_id,
                     'name' => $gv?->nguoiDung?->ho_ten ?? 'N/A',
-                    'pending_leave_count' => $gv?->donXinNghis?->where('trang_thai', 'cho_duyet')->count() ?? 0
+                    'pending_leave_count' => $gv?->donXinNghis?->where('trang_thai', 'cho_duyet')->count() ?? 0,
                 ];
             })->values();
+            $assignedTeacherNames = $module->assignedTeachers
+                ->map(fn ($assignment) => $assignment->giangVien?->nguoiDung?->ho_ten)
+                ->filter()
+                ->values();
+            $sessionCount = $module->lichHocs->count();
+            $pendingCount = $module->lichHocs->where('trang_thai', 'cho')->count();
+            $activeCount = $module->lichHocs->where('trang_thai', 'dang_hoc')->count();
+            $doneCount = $module->lichHocs->where('trang_thai', 'hoan_thanh')->count();
+            $progressPercent = $module->so_buoi > 0 ? min(100, round(($sessionCount / $module->so_buoi) * 100)) : 0;
+            $moduleLectureCount = $module->lichHocs->sum(fn ($schedule) => $schedule->baiGiangs->count());
+            $moduleResourceCount = $module->lichHocs->sum(fn ($schedule) => $schedule->taiNguyen->count());
+            $nextPlanningDate = \Carbon\Carbon::parse($minDate)->format('d/m/Y');
         @endphp
-        <div class="vip-card mb-4 border-0 shadow-sm overflow-hidden">
-            <div class="vip-card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-3">
-                <div style="flex: 1;">
-                    <h5 class="small fw-bold text-uppercase mb-1 text-primary">
-                        <i class="fas fa-cube me-2"></i> Module {{ $module->thu_tu_module }}: {{ $module->ten_module }}
-                    </h5>
-                    <div class="d-flex align-items-center gap-3 small">
-                        <span>Quy định: <strong>{{ $module->so_buoi }}</strong> | Đã lên: <strong class="{{ $module->lichHocs->count() < $module->so_buoi ? 'text-danger' : 'text-success' }}">{{ $module->lichHocs->count() }}</strong></span>
-                        @if($module->so_buoi > 0)
-                            <div class="progress" style="width: 80px; height: 5px;">
-                                <div class="progress-bar bg-success" style="width: {{ min(100, ($module->lichHocs->count() / $module->so_buoi) * 100) }}%"></div>
-                            </div>
-                        @endif
+        <section class="apx-section lh-module-section" id="module-{{ $module->id }}">
+            <header class="apx-section-head lh-module-head">
+                <div class="apx-section-title">
+                    <span class="apx-section-num">{{ str_pad($module->thu_tu_module, 2, '0', STR_PAD_LEFT) }}</span>
+                    <div>
+                        <h2><i class="fas fa-cube"></i> {{ $module->ten_module }}</h2>
+                        <p>{{ \Illuminate\Support\Str::limit($module->mo_ta ?: 'Chưa có mô tả chi tiết cho module này.', 140) }}</p>
                     </div>
                 </div>
-                <div class="d-flex flex-wrap gap-2 align-items-center">
-                    <!-- Form lưu số buổi (ĐÃ KHÔI PHỤC) -->
-                    <div class="d-flex gap-1 align-items-center me-2 border-end pe-3">
-                        <form action="{{ route('admin.khoa-hoc.lich-hoc.update-so-buoi', [$khoaHoc->id, $module->id]) }}" method="POST" class="d-flex gap-1 align-items-center">
+                <div class="apx-section-meta lh-module-pills">
+                    <span class="apx-meta-pill"><strong>{{ $sessionCount }}/{{ $module->so_buoi }}</strong> buổi</span>
+                    <span class="apx-meta-pill"><strong>{{ $pendingCount }}</strong> chờ</span>
+                    <span class="apx-meta-pill"><strong>{{ $doneCount }}</strong> hoàn thành</span>
+                </div>
+            </header>
+
+            <div class="lh-module-card">
+                <div class="lh-module-toolbar">
+                    <div class="lh-progress-card">
+                        <div class="lh-progress-copy">
+                            <span class="lh-progress-label">Tiến độ planner</span>
+                            <strong>{{ $sessionCount }} / {{ $module->so_buoi }} buổi đã lên lịch</strong>
+                            <small>
+                                {{ $pendingCount }} buổi chờ duyệt, {{ $activeCount }} buổi đang học
+                                @if($module->thoi_luong_du_kien_label)
+                                    · Thời lượng dự kiến {{ $module->thoi_luong_du_kien_label }}
+                                @endif
+                            </small>
+                        </div>
+                        <div class="lh-progress-track" aria-hidden="true">
+                            <span class="lh-progress-fill" style="width: {{ $progressPercent }}%"></span>
+                        </div>
+                    </div>
+
+                    <div class="lh-module-actions">
+                        <form action="{{ route('admin.khoa-hoc.lich-hoc.update-so-buoi', [$khoaHoc->id, $module->id]) }}" method="POST" class="lh-session-target-form">
                             @csrf
+                            <label for="so-buoi-{{ $module->id }}" class="lh-field-inline">Số buổi mục tiêu</label>
                             <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-white border-0 smaller fw-bold text-muted">SỐ BUỔI:</span>
-                                <input type="number" name="so_buoi" value="{{ $module->so_buoi }}" class="form-control text-center fw-bold text-primary border-0 bg-light" style="width: 50px;" min="1">
-                                <button type="submit" class="btn btn-primary border-0" title="Lưu số buổi">
+                                <span class="input-group-text">Target</span>
+                                <input type="number" id="so-buoi-{{ $module->id }}" name="so_buoi" value="{{ $module->so_buoi }}" class="form-control text-center fw-bold" min="1">
+                                <button type="submit" class="btn btn-primary" title="Lưu số buổi">
                                     <i class="fas fa-save"></i>
                                 </button>
                             </div>
                         </form>
-                    </div>
 
-                    <!-- Nút Xóa nhanh (ĐÃ KHÔI PHỤC) -->
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-danger dropdown-toggle fw-bold" type="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-trash-alt me-1"></i> Xóa
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-danger fw-bold lh-action-btn" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-trash-alt me-1"></i> Xóa nhanh
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 lh-dropdown">
+                                <li>
+                                    <button type="button" class="dropdown-item text-danger small py-2" onclick='confirmDeleteModule({{ $module->id }}, @json($module->ten_module))'>
+                                        <i class="fas fa-eraser me-2"></i> Xóa tất cả buổi "Chờ"
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <button type="button" class="btn btn-sm btn-success fw-bold px-3 btn-auto-schedule lh-action-btn lh-action-success"
+                                data-module-id="{{ $module->id }}"
+                                data-module-name="{{ $module->ten_module }}"
+                                data-so-buoi="{{ $module->so_buoi }}"
+                                data-min-date="{{ $minDate }}"
+                                data-teachers='@json($teacherOptions)'
+                                data-existing-days='@json($module->lichHocs->map(fn ($l) => $l->ngay_hoc->dayOfWeek === 0 ? 8 : $l->ngay_hoc->dayOfWeek + 1)->unique()->values())'>
+                            <i class="fas fa-magic me-1"></i> Sinh lịch tự động
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow border-0">
-                            <li>
-                                <button type="button" class="dropdown-item text-danger small py-2" onclick="confirmDeleteModule('{{ $module->id }}', '{{ $module->ten_module }}')">
-                                    <i class="fas fa-eraser me-2"></i> Xóa tất cả các buổi "Chờ"
-                                </button>
-                            </li>
-                        </ul>
+                        <button type="button" class="btn btn-sm btn-primary fw-bold px-3 btn-add-single lh-action-btn lh-action-primary"
+                                data-module-id="{{ $module->id }}"
+                                data-module-name="{{ $module->ten_module }}"
+                                data-min-date="{{ $minDate }}"
+                                data-teachers='@json($teacherOptions)'>
+                            <i class="fas fa-plus me-1"></i> Thêm buổi lẻ
+                        </button>
                     </div>
+                </div>
 
-                    <button type="button" class="btn btn-sm btn-success fw-bold px-3 btn-auto-schedule" 
-                            data-module-id="{{ $module->id }}" 
-                            data-module-name="{{ $module->ten_module }}"
-                            data-so-buoi="{{ $module->so_buoi }}"
-                            data-min-date="{{ $minDate }}"
-                            data-teachers="{{ json_encode($assignedTeachers) }}"
-                            data-existing-days="{{ json_encode($module->lichHocs->map(fn($l) => $l->ngay_hoc->dayOfWeek === 0 ? 8 : $l->ngay_hoc->dayOfWeek + 1)->unique()->values()) }}">
-                        <i class="fas fa-magic me-1"></i> Sinh lịch tự động
-                    </button>
-                    <button type="button" class="btn btn-sm btn-primary fw-bold px-3 btn-add-single" 
-                            data-module-id="{{ $module->id }}" 
-                            data-module-name="{{ $module->ten_module }}"
-                            data-min-date="{{ $minDate }}"
-                            data-teachers="{{ json_encode($assignedTeachers) }}">
-                        <i class="fas fa-plus me-1"></i> Buổi lẻ
-                    </button>
+                <div class="lh-module-insights">
+                    <div class="lh-info-tile">
+                        <span class="lh-info-label">Giảng viên đã nhận</span>
+                        <strong>{{ $assignedTeacherNames->count() }}</strong>
+                        <small>{{ $assignedTeacherNames->isNotEmpty() ? $assignedTeacherNames->take(2)->implode(', ') . ($assignedTeacherNames->count() > 2 ? ' +' . ($assignedTeacherNames->count() - 2) : '') : 'Chưa có giảng viên xác nhận' }}</small>
+                    </div>
+                    <div class="lh-info-tile">
+                        <span class="lh-info-label">Tài nguyên theo module</span>
+                        <strong>{{ $moduleLectureCount }} bài giảng · {{ $moduleResourceCount }} tài liệu</strong>
+                        <small>Dùng để kiểm tra mức độ hoàn thiện nội dung trước khi khóa học chạy chính thức.</small>
+                    </div>
+                    <div class="lh-info-tile">
+                        <span class="lh-info-label">Ngày có thể xếp tiếp</span>
+                        <strong>{{ $nextPlanningDate }}</strong>
+                        <small>{{ $index === 0 ? 'Module đầu tiên có thể lên lịch từ hôm nay.' : 'Mốc này nối tiếp module trước để hạn chế chồng lịch.' }}</small>
+                    </div>
                 </div>
-            </div>
-            <div class="vip-card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0 small">
-                        <thead class="bg-light smaller">
-                            <tr>
-                                <th class="ps-4" width="40"><input type="checkbox" class="form-check-input check-all-module" data-module="{{ $module->id }}"></th>
-                                <th width="70">Buổi</th>
-                                <th width="140">Thời gian</th>
-                                <th width="180">Nội dung & Tài nguyên</th>
-                                <th>Địa điểm / Giảng viên</th>
-                                <th class="text-center" width="120">Tiến trình</th>
-                                <th class="text-center" width="110">Trạng thái</th>
-                                <th class="pe-4 text-center" width="80">Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($module->lichHocs as $lich)
-                                @php
-                                    $hasAttendance = $lich->diemDanhs->isNotEmpty();
-                                    $lectureCount = $lich->baiGiangs->count();
-                                    $resourceCount = $lich->taiNguyen->count();
-                                @endphp
-                                <tr class="{{ $lich->trang_thai === 'cho' ? '' : 'table-light' }}">
-                                    <td class="ps-4">
-                                        @if($lich->trang_thai === 'cho')
-                                            <input type="checkbox" name="ids[]" value="{{ $lich->id }}" form="bulkDeleteForm" class="form-check-input check-item module-{{ $module->id }}">
-                                        @else
-                                            <i class="fas fa-lock text-muted smaller" title="Buổi học đã bắt đầu hoặc kết thúc, không thể chọn xóa nhanh"></i>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <div class="fw-bold text-dark">#{{ $lich->buoi_so }}</div>
-                                        <div class="smaller text-muted">{{ $lich->thu_label }}</div>
-                                    </td>
-                                    <td>
-                                        <div class="fw-bold"><i class="far fa-calendar-alt me-1 text-primary"></i>{{ $lich->ngay_hoc->format('d/m/Y') }}</div>
-                                        <div class="smaller text-muted mt-1">
-                                            <i class="far fa-clock me-1"></i>{{ \Carbon\Carbon::parse($lich->gio_bat_dau)->format('H:i') }}-{{ \Carbon\Carbon::parse($lich->gio_ket_thuc)->format('H:i') }}
-                                            <span class="ms-1">({{ $lich->buoi_hoc_label }})</span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex flex-column gap-1">
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span class="badge {{ $lectureCount > 0 ? 'bg-info-subtle text-info border border-info-subtle' : 'bg-light text-muted border' }} px-2 py-1">
-                                                    <i class="fas fa-book-open me-1"></i>{{ $lectureCount }} bài giảng
-                                                </span>
-                                            </div>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span class="badge {{ $resourceCount > 0 ? 'bg-warning-subtle text-warning border border-warning-subtle' : 'bg-light text-muted border' }} px-2 py-1">
-                                                    <i class="fas fa-paperclip me-1"></i>{{ $resourceCount }} tài liệu
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="mb-1">
-                                            @if($lich->hinh_thuc === 'online')
-                                                <span class="text-info fw-bold"><i class="fas fa-video me-1"></i>Online</span>
-                                                @if($lich->link_online)
-                                                    <a href="{{ $lich->link_online }}" target="_blank" class="smaller text-decoration-none ms-1"><i class="fas fa-external-link-alt"></i></a>
-                                                @endif
-                                            @else
-                                                <span class="text-success fw-bold"><i class="fas fa-map-marker-alt me-1"></i>{{ $lich->phong_hoc ?: 'Chưa gán phòng' }}</span>
-                                            @endif
-                                        </div>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <div class="avatar-xs bg-light rounded-circle text-center border" style="width: 24px; height: 24px; line-height: 22px;">
-                                                <i class="fas fa-user-tie text-muted smaller"></i>
-                                            </div>
-                                            <span class="text-dark">{{ $lich->giangVien?->nguoiDung?->ho_ten ?? 'Chưa gán giảng viên' }}</span>
-                                        </div>
-                                    </td>
-                                    <td class="text-center">
-                                        @if($hasAttendance)
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" title="Đã thực hiện điểm danh">
-                                                <i class="fas fa-check-circle me-1"></i>Đã điểm danh
-                                            </span>
-                                        @else
-                                            <span class="badge bg-light text-muted border px-2 py-1">
-                                                <i class="far fa-circle me-1"></i>Chưa điểm danh
-                                            </span>
-                                        @endif
-                                    </td>
-                                    <td class="text-center">
-                                        <div class="d-flex flex-column gap-1">
-                                            <span class="badge bg-{{ match($lich->trang_thai){'cho'=>'secondary','dang_hoc'=>'info','hoan_thanh'=>'success','huy'=>'danger',default=>'light'} }} w-100 py-2">
-                                                {{ $lich->trang_thai_label }}
-                                            </span>
-                                            @if($lich->giang_vien_id && $lich->trang_thai !== 'cho')
-                                                <a href="{{ route('admin.diem-danh.giang-vien.show', [$lich->id, $lich->giang_vien_id]) }}" class="smaller text-primary text-decoration-none fw-bold mt-1">
-                                                    <i class="fas fa-search-plus me-1"></i>Log dạy
-                                                </a>
-                                            @endif
-                                        </div>
-                                    </td>
-                                    <td class="pe-4 text-center">
-                                        <div class="d-flex gap-1 justify-content-center">
-                                            <a href="{{ route('admin.khoa-hoc.lich-hoc.edit', [$khoaHoc->id, $lich->id]) }}" class="btn btn-sm btn-outline-primary border-0" title="Chỉnh sửa">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="confirmDeleteSingle('{{ route('admin.khoa-hoc.lich-hoc.destroy', [$khoaHoc->id, $lich->id]) }}')" title="Xóa">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </td>
+
+                <div class="lh-table-shell">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0 lh-table">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4" width="46">
+                                        <input type="checkbox" class="form-check-input check-all-module" data-module="{{ $module->id }}">
+                                    </th>
+                                    <th width="82">Buổi</th>
+                                    <th width="168">Thời gian</th>
+                                    <th width="210">Nội dung</th>
+                                    <th>Địa điểm / Giảng viên</th>
+                                    <th class="text-center" width="138">Điểm danh</th>
+                                    <th class="text-center" width="136">Trạng thái</th>
+                                    <th class="pe-4 text-center" width="90">Thao tác</th>
                                 </tr>
-                            @empty
-                                <tr><td colspan="9" class="text-center py-4 text-muted italic">Chưa có lịch.</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                @forelse($module->lichHocs as $lich)
+                                    @php
+                                        $hasAttendance = $lich->diemDanhs->isNotEmpty();
+                                        $sessionLectureCount = $lich->baiGiangs->count();
+                                        $sessionResourceCount = $lich->taiNguyen->count();
+                                        $statusTone = match($lich->trang_thai) {
+                                            'dang_hoc' => 'info',
+                                            'hoan_thanh' => 'success',
+                                            'huy' => 'danger',
+                                            default => 'neutral',
+                                        };
+                                    @endphp
+                                    <tr class="lh-session-row {{ $lich->trang_thai === 'cho' ? 'is-pending' : 'is-muted' }}">
+                                        <td class="ps-4">
+                                            @if($lich->trang_thai === 'cho')
+                                                <input type="checkbox" name="ids[]" value="{{ $lich->id }}" form="bulkDeleteForm" class="form-check-input check-item module-{{ $module->id }}">
+                                            @else
+                                                <i class="fas fa-lock text-muted smaller" title="Buổi học đã bắt đầu hoặc kết thúc, không thể chọn xóa nhanh"></i>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <div class="lh-session-order">#{{ $lich->buoi_so }}</div>
+                                            <div class="lh-session-sub">{{ $lich->thu_label }}</div>
+                                        </td>
+                                        <td>
+                                            <div class="lh-session-date"><i class="far fa-calendar-alt"></i>{{ $lich->ngay_hoc->format('d/m/Y') }}</div>
+                                            <div class="lh-session-time">
+                                                <i class="far fa-clock"></i>{{ \Carbon\Carbon::parse($lich->gio_bat_dau)->format('H:i') }} - {{ \Carbon\Carbon::parse($lich->gio_ket_thuc)->format('H:i') }}
+                                                <span>{{ $lich->buoi_hoc_label }}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="lh-chip-stack">
+                                                <span class="lh-data-chip {{ $sessionLectureCount > 0 ? 'tone-info' : 'tone-neutral' }}">
+                                                    <i class="fas fa-book-open"></i>{{ $sessionLectureCount }} bài giảng
+                                                </span>
+                                                <span class="lh-data-chip {{ $sessionResourceCount > 0 ? 'tone-warning' : 'tone-neutral' }}">
+                                                    <i class="fas fa-paperclip"></i>{{ $sessionResourceCount }} tài liệu
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="lh-location-line">
+                                                @if($lich->hinh_thuc === 'online')
+                                                    <span class="lh-mode-badge tone-info"><i class="fas fa-video"></i>Online</span>
+                                                    @if($lich->link_online)
+                                                        <a href="{{ $lich->link_online }}" target="_blank" class="lh-inline-link">
+                                                            <i class="fas fa-external-link-alt"></i> Mở link
+                                                        </a>
+                                                    @endif
+                                                @else
+                                                    <span class="lh-mode-badge tone-success"><i class="fas fa-location-dot"></i>{{ $lich->phong_hoc ?: 'Chưa gán phòng' }}</span>
+                                                @endif
+                                            </div>
+                                            <div class="lh-teacher-line">
+                                                <span class="lh-avatar-mini"><i class="fas fa-user-tie"></i></span>
+                                                <span>{{ $lich->giangVien?->nguoiDung?->ho_ten ?? 'Chưa gán giảng viên' }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="lh-state-pill {{ $hasAttendance ? 'tone-success' : 'tone-neutral' }}">
+                                                <i class="fas {{ $hasAttendance ? 'fa-check-circle' : 'fa-circle' }}"></i>
+                                                {{ $hasAttendance ? 'Đã điểm danh' : 'Chưa điểm danh' }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="lh-status-wrap">
+                                                <span class="lh-status-pill tone-{{ $statusTone }}">{{ $lich->trang_thai_label }}</span>
+                                                @if($lich->giang_vien_id && $lich->trang_thai !== 'cho')
+                                                    <a href="{{ route('admin.diem-danh.giang-vien.show', [$lich->id, $lich->giang_vien_id]) }}" class="lh-inline-link">
+                                                        <i class="fas fa-search-plus"></i> Log dạy
+                                                    </a>
+                                                @endif
+                                            </div>
+                                        </td>
+                                        <td class="pe-4 text-center">
+                                            <div class="lh-row-actions">
+                                                <a href="{{ route('admin.khoa-hoc.lich-hoc.edit', [$khoaHoc->id, $lich->id]) }}" class="btn btn-sm btn-outline-primary border-0" title="Chỉnh sửa">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="confirmDeleteSingle('{{ route('admin.khoa-hoc.lich-hoc.destroy', [$khoaHoc->id, $lich->id]) }}')" title="Xóa">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="8" class="text-center py-5 text-muted lh-empty-row">
+                                            <i class="fas fa-calendar-xmark mb-2 d-block"></i>
+                                            Chưa có buổi học nào cho module này.
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-        </div>
-    @endforeach
+        </section>
+    @empty
+        <section class="apx-section">
+            <div class="lh-empty-state">
+                <i class="fas fa-cubes"></i>
+                <h3>Khóa học này chưa có module để lên lịch</h3>
+                <p>Hãy quay lại trang chi tiết khóa học và tạo module trước khi dùng planner lịch học.</p>
+                <a href="{{ route('admin.khoa-hoc.show', $khoaHoc->id) }}" class="btn btn-primary fw-bold px-4">
+                    <i class="fas fa-arrow-left me-1"></i> Quay lại khóa học
+                </a>
+            </div>
+        </section>
+    @endforelse
 </div>
 
 <form id="deleteSingleForm" method="POST" style="display: none;">@csrf @method('DELETE')</form>
@@ -283,6 +413,12 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentConflictDays = [];
 
     btnConfirmAutoSave.disabled = true;
+
+    function updateSessionButtonState(prefix, sessionKey) {
+        document.querySelectorAll(`.schedule-session-btn[data-prefix="${prefix}"]`).forEach(button => {
+            button.classList.toggle('is-active', button.dataset.session === sessionKey);
+        });
+    }
 
     function populateTeachers(selectId, data) {
         const select = document.getElementById(selectId);
@@ -736,6 +872,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('auto-time-preview').value = `${def.label} | Tiết ${def.start}-${def.end}`;
             document.getElementById('auto-start-time').value = def.start_time || '';
             document.getElementById('auto-end-time').value = def.end_time || '';
+            updateSessionButtonState('auto', 'toi');
             
             // Đánh dấu các Thứ đã có lịch học
             currentExistingDays = normalizeThuValues(JSON.parse(this.dataset.existingDays || '[]'));
@@ -800,6 +937,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('single-tiet-ket-thuc').value = def.end;
             document.getElementById('single-buoi-hoc').value = 'toi';
             document.getElementById('single-time-preview').value = `${def.label} | Tiết ${def.start}-${def.end}`;
+            updateSessionButtonState('single', 'toi');
 
             modalSingle.show();
         });
@@ -853,6 +991,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById(`${prefix}-tiet-ket-thuc`).value = def.end;
             document.getElementById(`${prefix}-buoi-hoc`).value = this.dataset.session;
             document.getElementById(`${prefix}-time-preview`).value = `${def.label} | Tiết ${def.start}-${def.end}`;
+            updateSessionButtonState(prefix, this.dataset.session);
             if (prefix === 'auto') {
                 document.getElementById('auto-start-time').value = def.start_time || '';
                 document.getElementById('auto-end-time').value = def.end_time || '';
@@ -951,11 +1090,626 @@ function submitBulkDelete() {
 </script>
 @endpush
 
+@include('pages.admin.partials._admin-page-styles')
+
 <style>
-    .smaller { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
-    .vip-card { border-radius: 12px; margin-bottom: 1.5rem; transition: transform 0.2s; }
-    .vip-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.08) !important; }
-    .planning-panel { min-height: 80px; }
+    .smaller {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.55px;
+    }
+
+    .lh-page { padding-bottom: 12px; }
+
+    .lh-breadcrumb {
+        margin-bottom: 14px;
+    }
+
+    .lh-breadcrumb .breadcrumb {
+        margin: 0;
+        padding: 12px 16px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+    }
+
+    .lh-breadcrumb .breadcrumb-item,
+    .lh-breadcrumb .breadcrumb-item a {
+        color: #64748b;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .lh-breadcrumb .breadcrumb-item.active {
+        color: #0f172a;
+        font-weight: 700;
+    }
+
+    .lh-welcome {
+        margin-bottom: 16px;
+    }
+
+    .lh-welcome-badges {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+    }
+
+    .lh-course-status {
+        border-radius: 999px;
+        padding: 7px 12px;
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.4px;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+    }
+
+    .lh-inline-note {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 12px;
+        background: rgba(255, 255, 255, 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 999px;
+        font-size: 0.76rem;
+        font-weight: 700;
+        color: #fff;
+        backdrop-filter: blur(6px);
+    }
+
+    .lh-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        padding: 18px 20px;
+        margin-bottom: 18px;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+        border: 1px solid #dbeafe;
+        border-radius: 14px;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+        flex-wrap: wrap;
+    }
+
+    .lh-toolbar-main,
+    .lh-toolbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+
+    .lh-toolbar-copy {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .lh-toolbar-copy strong {
+        color: #0f172a;
+        font-size: 0.95rem;
+        font-weight: 800;
+    }
+
+    .lh-toolbar-copy span {
+        color: #64748b;
+        font-size: 0.8rem;
+        line-height: 1.45;
+    }
+
+    .lh-global-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 12px;
+        color: #1e40af;
+        font-size: 0.82rem;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .lh-global-toggle .form-check-input {
+        width: 1.15rem;
+        height: 1.15rem;
+        cursor: pointer;
+        margin-top: 0;
+    }
+
+    .lh-bulk-counter {
+        padding: 8px 12px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        color: #475569;
+        font-size: 0.82rem;
+        font-weight: 700;
+    }
+
+    .lh-bulk-counter strong {
+        color: #0f172a;
+        font-weight: 900;
+    }
+
+    .lh-module-section {
+        margin-bottom: 22px;
+    }
+
+    .lh-module-head {
+        align-items: flex-start;
+    }
+
+    .lh-module-pills {
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .lh-module-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 18px 36px rgba(15, 23, 42, 0.04);
+    }
+
+    .lh-module-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 18px;
+        padding: 22px 22px 18px;
+        border-bottom: 1px solid #eef2ff;
+        flex-wrap: wrap;
+    }
+
+    .lh-progress-card {
+        flex: 1 1 320px;
+        min-width: 280px;
+    }
+
+    .lh-progress-copy {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-bottom: 12px;
+    }
+
+    .lh-progress-label {
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+    }
+
+    .lh-progress-copy strong {
+        font-size: 1.03rem;
+        line-height: 1.3;
+        color: #0f172a;
+        font-weight: 900;
+    }
+
+    .lh-progress-copy small {
+        color: #64748b;
+        font-size: 0.8rem;
+        line-height: 1.5;
+    }
+
+    .lh-progress-track {
+        position: relative;
+        width: 100%;
+        height: 10px;
+        background: #e2e8f0;
+        border-radius: 999px;
+        overflow: hidden;
+    }
+
+    .lh-progress-fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        background: linear-gradient(135deg, #16a34a 0%, #0ea5e9 100%);
+        border-radius: inherit;
+    }
+
+    .lh-module-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+        flex: 1 1 420px;
+    }
+
+    .lh-session-target-form {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 12px 14px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+    }
+
+    .lh-field-inline {
+        margin: 0;
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.55px;
+    }
+
+    .lh-session-target-form .input-group {
+        flex-wrap: nowrap;
+    }
+
+    .lh-session-target-form .input-group-text,
+    .lh-session-target-form .form-control,
+    .lh-session-target-form .btn {
+        border-color: #dbeafe;
+        box-shadow: none;
+    }
+
+    .lh-session-target-form .input-group-text {
+        background: #fff;
+        color: #1d4ed8;
+        font-weight: 800;
+    }
+
+    .lh-session-target-form .form-control {
+        min-width: 72px;
+        background: #fff;
+    }
+
+    .lh-action-btn {
+        min-height: 40px;
+        border-radius: 12px;
+        padding-inline: 16px;
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+    }
+
+    .lh-action-primary {
+        background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%) !important;
+        border: 0 !important;
+    }
+
+    .lh-action-success {
+        background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
+        border: 0 !important;
+    }
+
+    .lh-dropdown {
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .lh-module-insights {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        padding: 0 22px 20px;
+    }
+
+    .lh-info-tile {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 16px 18px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        min-height: 120px;
+    }
+
+    .lh-info-label {
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.55px;
+    }
+
+    .lh-info-tile strong {
+        color: #0f172a;
+        font-size: 0.95rem;
+        font-weight: 800;
+        line-height: 1.4;
+    }
+
+    .lh-info-tile small {
+        color: #64748b;
+        line-height: 1.5;
+        font-size: 0.8rem;
+    }
+
+    .lh-table-shell {
+        padding: 0 14px 14px;
+    }
+
+    .lh-table {
+        min-width: 980px;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .lh-table thead th {
+        padding: 14px 12px;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        color: #64748b;
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.65px;
+        white-space: nowrap;
+    }
+
+    .lh-table thead th:first-child {
+        border-top-left-radius: 14px;
+    }
+
+    .lh-table thead th:last-child {
+        border-top-right-radius: 14px;
+    }
+
+    .lh-table tbody td {
+        padding: 15px 12px;
+        border-bottom: 1px solid #eef2f7;
+        vertical-align: middle;
+        background: #fff;
+    }
+
+    .lh-session-row.is-muted td {
+        background: #fcfdff;
+    }
+
+    .lh-session-row:hover td {
+        background: #f8fbff;
+    }
+
+    .lh-session-order {
+        font-size: 1rem;
+        font-weight: 900;
+        color: #0f172a;
+        line-height: 1.1;
+    }
+
+    .lh-session-sub {
+        margin-top: 4px;
+        color: #64748b;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.55px;
+    }
+
+    .lh-session-date,
+    .lh-session-time {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1.45;
+    }
+
+    .lh-session-time {
+        margin-top: 6px;
+        color: #64748b;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .lh-session-time span {
+        padding: 3px 8px;
+        background: #eef2ff;
+        border-radius: 999px;
+        color: #1d4ed8;
+        font-size: 0.72rem;
+        font-weight: 800;
+    }
+
+    .lh-chip-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .lh-data-chip,
+    .lh-mode-badge,
+    .lh-state-pill,
+    .lh-status-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 7px 11px;
+        border-radius: 999px;
+        font-size: 0.76rem;
+        font-weight: 800;
+        line-height: 1.2;
+        border: 1px solid transparent;
+    }
+
+    .lh-data-chip {
+        justify-content: flex-start;
+        width: fit-content;
+    }
+
+    .lh-data-chip.tone-info {
+        background: #eff6ff;
+        border-color: #bfdbfe;
+        color: #1d4ed8;
+    }
+
+    .lh-data-chip.tone-warning {
+        background: #fff7ed;
+        border-color: #fed7aa;
+        color: #c2410c;
+    }
+
+    .lh-data-chip.tone-neutral,
+    .lh-state-pill.tone-neutral,
+    .lh-status-pill.tone-neutral {
+        background: #f8fafc;
+        border-color: #e2e8f0;
+        color: #64748b;
+    }
+
+    .lh-mode-badge.tone-info {
+        background: #ecfeff;
+        border-color: #a5f3fc;
+        color: #0f766e;
+    }
+
+    .lh-mode-badge.tone-success,
+    .lh-state-pill.tone-success,
+    .lh-status-pill.tone-success {
+        background: #f0fdf4;
+        border-color: #bbf7d0;
+        color: #15803d;
+    }
+
+    .lh-status-pill.tone-info {
+        background: #eff6ff;
+        border-color: #bfdbfe;
+        color: #1d4ed8;
+    }
+
+    .lh-status-pill.tone-danger {
+        background: #fff1f2;
+        border-color: #fecdd3;
+        color: #be123c;
+    }
+
+    .lh-location-line {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+    }
+
+    .lh-teacher-line {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #0f172a;
+        font-size: 0.84rem;
+        font-weight: 700;
+        line-height: 1.45;
+    }
+
+    .lh-avatar-mini {
+        width: 30px;
+        height: 30px;
+        border-radius: 10px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        display: inline-grid;
+        place-items: center;
+        border: 1px solid #bfdbfe;
+        flex-shrink: 0;
+    }
+
+    .lh-status-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .lh-inline-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: #1d4ed8;
+        font-size: 0.76rem;
+        font-weight: 800;
+        text-decoration: none;
+    }
+
+    .lh-inline-link:hover {
+        color: #1e3a8a;
+    }
+
+    .lh-row-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+    }
+
+    .lh-row-actions .btn {
+        width: 34px;
+        height: 34px;
+        display: inline-grid;
+        place-items: center;
+        border-radius: 10px;
+    }
+
+    .lh-empty-row {
+        font-size: 0.92rem;
+        background: #fff;
+    }
+
+    .lh-empty-row i {
+        font-size: 1.6rem;
+        color: #94a3b8;
+    }
+
+    .lh-empty-state {
+        padding: 34px 26px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        text-align: center;
+        box-shadow: 0 18px 36px rgba(15, 23, 42, 0.04);
+    }
+
+    .lh-empty-state i {
+        font-size: 2rem;
+        color: #1d4ed8;
+        margin-bottom: 14px;
+    }
+
+    .lh-empty-state h3 {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 8px;
+    }
+
+    .lh-empty-state p {
+        color: #64748b;
+        max-width: 480px;
+        margin: 0 auto 18px;
+        line-height: 1.6;
+    }
+
+    .planning-panel {
+        min-height: 80px;
+        background: linear-gradient(135deg, #f8fbff 0%, #eff6ff 100%) !important;
+        border: 1px solid #dbeafe !important;
+        border-radius: 14px !important;
+        color: #334155;
+    }
+
+    .planning-panel .badge {
+        font-weight: 800;
+        border-radius: 999px;
+    }
+
     .thu-label-box {
         position: relative;
         display: inline-flex;
@@ -1046,5 +1800,586 @@ function submitBulkDelete() {
     .shadow-xs { box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     #auto-existing-days-note { line-height: 1.5; }
     .preview-conflict-note { line-height: 1.35; }
+
+    #modalThemBuoi .modal-dialog,
+    #modalSinhTuDong .modal-dialog {
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    #modalThemBuoi .modal-content,
+    #modalSinhTuDong .modal-content {
+        border-radius: 22px;
+        overflow: hidden;
+        box-shadow: 0 28px 60px rgba(15, 23, 42, 0.2);
+    }
+
+    #modalThemBuoi .modal-header,
+    #modalSinhTuDong .modal-header {
+        padding: 18px 24px;
+    }
+
+    #modalThemBuoi .modal-header {
+        background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%) !important;
+    }
+
+    #modalSinhTuDong .modal-header {
+        background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
+    }
+
+    #modalThemBuoi .modal-body,
+    #modalSinhTuDong .modal-body {
+        background: #f8fbff;
+    }
+
+    #modalSinhTuDong .col-lg-5 {
+        background: linear-gradient(180deg, #f8fbff 0%, #f8fafc 100%) !important;
+    }
+
+    #modalThemBuoi .form-control,
+    #modalThemBuoi .form-select,
+    #modalSinhTuDong .form-control,
+    #modalSinhTuDong .form-select {
+        border: 1px solid #dbeafe !important;
+        border-radius: 12px;
+        background: #fff !important;
+        box-shadow: none !important;
+        min-height: 44px;
+    }
+
+    #modalThemBuoi .form-control:focus,
+    #modalThemBuoi .form-select:focus,
+    #modalSinhTuDong .form-control:focus,
+    #modalSinhTuDong .form-select:focus {
+        border-color: #60a5fa !important;
+        box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.16) !important;
+    }
+
+    #modalThemBuoi .schedule-session-btn,
+    #modalSinhTuDong .schedule-session-btn {
+        border-radius: 999px;
+        font-weight: 800;
+        border-width: 1px;
+        background: #fff;
+        transition: all 0.2s ease;
+    }
+
+    #modalThemBuoi .schedule-session-btn {
+        color: #1d4ed8;
+        border-color: #bfdbfe;
+    }
+
+    #modalSinhTuDong .schedule-session-btn {
+        color: #15803d;
+        border-color: #bbf7d0;
+    }
+
+    #modalThemBuoi .schedule-session-btn.is-active,
+    #modalThemBuoi .schedule-session-btn:hover {
+        background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 10px 20px rgba(37, 99, 235, 0.25);
+    }
+
+    #modalSinhTuDong .schedule-session-btn.is-active,
+    #modalSinhTuDong .schedule-session-btn:hover {
+        background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 10px 20px rgba(22, 163, 74, 0.24);
+    }
+
+    #single-time-preview,
+    #auto-time-preview {
+        border: 1px solid #dbeafe !important;
+        border-radius: 12px;
+        padding-inline: 14px;
+        background: #f8fbff !important;
+    }
+
+    #modalThemBuoi .modal-footer,
+    #modalSinhTuDong .border-top.bg-light {
+        background: #f8fafc !important;
+    }
+
+    #modalSinhTuDong #tablePreviewAuto thead th {
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.55px;
+        color: #64748b;
+    }
+
+    #modalSinhTuDong #tablePreviewAuto tbody td,
+    #modalThemBuoi .modal-body {
+        color: #334155;
+    }
+
+    #modalSinhTuDong .lh-auto-dialog {
+        max-width: min(1280px, calc(100vw - 32px));
+    }
+
+    #modalSinhTuDong .lh-auto-content {
+        border-radius: 18px;
+        background: #fff;
+    }
+
+    #modalSinhTuDong .lh-auto-header {
+        position: relative;
+        padding: 18px 24px;
+        background: linear-gradient(135deg, #16a34a 0%, #0f766e 48%, #4361ee 100%) !important;
+    }
+
+    .lh-auto-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+    }
+
+    .lh-auto-header-icon {
+        width: 44px;
+        height: 44px;
+        display: inline-grid;
+        place-items: center;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.18);
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        color: #fff;
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.18);
+        flex-shrink: 0;
+    }
+
+    .lh-auto-kicker {
+        display: block;
+        margin-bottom: 2px;
+        color: rgba(255, 255, 255, 0.78);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+    }
+
+    .lh-auto-body {
+        background: #f8fbff !important;
+    }
+
+    .lh-auto-layout {
+        min-height: min(76vh, 760px);
+    }
+
+    #modalSinhTuDong .lh-auto-config {
+        background: linear-gradient(180deg, #f8fbff 0%, #f8fafc 100%) !important;
+        border-right: 1px solid #e2e8f0;
+    }
+
+    .lh-auto-scroll,
+    .lh-auto-preview-scroll {
+        max-height: 76vh;
+        overflow-y: auto;
+    }
+
+    .lh-auto-scroll {
+        padding: 20px;
+    }
+
+    .lh-auto-preview-scroll {
+        flex: 1;
+        padding: 20px 22px;
+    }
+
+    .lh-auto-block {
+        padding: 16px;
+        margin-bottom: 14px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+    }
+
+    .lh-auto-module-block {
+        background: linear-gradient(135deg, #ffffff 0%, #eef2ff 100%);
+        border-color: #c7d2fe;
+    }
+
+    .lh-auto-block-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .lh-auto-step {
+        width: 32px;
+        height: 32px;
+        display: inline-grid;
+        place-items: center;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #4361ee 0%, #1d4ed8 100%);
+        color: #fff;
+        font-size: 0.74rem;
+        font-weight: 900;
+        box-shadow: 0 8px 16px rgba(67, 97, 238, 0.24);
+        flex-shrink: 0;
+    }
+
+    .lh-auto-block-head h6,
+    .lh-auto-preview-head h6 {
+        margin: 0;
+        color: #0f172a;
+        font-size: 0.95rem;
+        font-weight: 900;
+        line-height: 1.25;
+    }
+
+    .lh-auto-block-head p {
+        margin: 3px 0 0;
+        color: #64748b;
+        font-size: 0.78rem;
+        line-height: 1.45;
+    }
+
+    .lh-auto-label,
+    .lh-auto-field-label {
+        display: block;
+        color: #64748b;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.55px;
+        text-transform: uppercase;
+    }
+
+    .lh-auto-module-name {
+        margin-top: 4px;
+        color: #0f172a;
+        font-size: 1.05rem;
+        font-weight: 900;
+        line-height: 1.35;
+    }
+
+    .lh-auto-metrics {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .lh-auto-metric {
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.86);
+        border: 1px solid #dbeafe;
+        border-radius: 10px;
+    }
+
+    .lh-auto-metric span {
+        display: block;
+        margin-bottom: 4px;
+        color: #64748b;
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+
+    .lh-auto-metric strong {
+        color: #1d4ed8;
+        font-size: 1.3rem;
+        line-height: 1;
+        font-weight: 900;
+    }
+
+    .lh-day-tools,
+    .lh-session-tools {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .lh-day-tools .btn {
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 800;
+    }
+
+    .lh-lock-row {
+        display: flex;
+        justify-content: flex-end;
+        margin: -4px 0 12px;
+        color: #64748b;
+    }
+
+    .lh-auto-days-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+        gap: 8px;
+    }
+
+    #modalSinhTuDong .lh-auto-days-grid .thu-label-box {
+        width: 100%;
+        min-height: 62px;
+        border-radius: 10px;
+    }
+
+    .lh-auto-legend {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+        color: #64748b;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.45px;
+        text-transform: uppercase;
+    }
+
+    .lh-auto-note {
+        margin-top: 10px;
+        padding: 10px 12px;
+        background: #f8fafc;
+        border-left: 3px solid #4361ee;
+        border-radius: 8px;
+        color: #475569;
+        font-size: 0.78rem;
+        line-height: 1.5;
+    }
+
+    #modalSinhTuDong #auto-time-preview {
+        margin-top: 10px;
+        color: #15803d;
+    }
+
+    .lh-auto-preview-btn {
+        min-height: 48px;
+        border: 0;
+        border-radius: 12px;
+        color: #fff;
+        background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%);
+        box-shadow: 0 14px 28px rgba(29, 78, 216, 0.24);
+    }
+
+    .lh-auto-preview-btn:hover {
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 18px 34px rgba(29, 78, 216, 0.32);
+    }
+
+    .lh-auto-preview {
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+    }
+
+    .lh-auto-preview-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding-bottom: 14px;
+        margin-bottom: 14px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .lh-auto-preview-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 11px;
+        background: #ecfdf5;
+        border: 1px solid #bbf7d0;
+        border-radius: 999px;
+        color: #15803d;
+        font-size: 0.72rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .lh-auto-table-wrap {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+    }
+
+    #modalSinhTuDong #tablePreviewAuto thead {
+        background: #f8fafc;
+    }
+
+    #modalSinhTuDong #tablePreviewAuto td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .lh-auto-empty-preview {
+        min-height: 430px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        text-align: center;
+        padding: 32px;
+        color: #64748b;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+        border: 1px dashed #cbd5e1;
+        border-radius: 14px;
+    }
+
+    .lh-auto-empty-icon {
+        width: 58px;
+        height: 58px;
+        display: inline-grid;
+        place-items: center;
+        margin-bottom: 14px;
+        border-radius: 16px;
+        background: #eff6ff;
+        color: #4361ee;
+        font-size: 1.35rem;
+    }
+
+    .lh-auto-empty-preview strong {
+        color: #0f172a;
+        font-size: 1rem;
+        font-weight: 900;
+    }
+
+    .lh-auto-empty-preview p {
+        max-width: 420px;
+        margin: 8px auto 0;
+        font-size: 0.84rem;
+        line-height: 1.55;
+    }
+
+    .lh-auto-footer {
+        padding: 18px 22px;
+        border-top: 1px solid #e2e8f0;
+        background: #f8fafc;
+    }
+
+    .lh-auto-save-btn {
+        min-height: 48px;
+        border: 0;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
+        box-shadow: 0 14px 28px rgba(22, 163, 74, 0.22);
+        text-transform: none;
+    }
+
+    .lh-auto-save-btn.disabled,
+    .lh-auto-save-btn:disabled {
+        opacity: 0.58;
+        box-shadow: none;
+    }
+
+    @media (max-width: 1199.98px) {
+        .lh-module-insights {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 991.98px) {
+        .lh-toolbar {
+            align-items: stretch;
+        }
+
+        .lh-toolbar-main,
+        .lh-toolbar-actions {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .lh-module-toolbar {
+            padding-bottom: 16px;
+        }
+
+        .lh-module-actions {
+            justify-content: flex-start;
+        }
+
+        .lh-table-shell {
+            padding-inline: 0;
+        }
+
+        #modalSinhTuDong .lh-auto-config {
+            border-right: 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .lh-auto-layout {
+            min-height: auto;
+        }
+
+        .lh-auto-scroll,
+        .lh-auto-preview-scroll {
+            max-height: none;
+        }
+
+        .lh-auto-preview-head {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .lh-auto-empty-preview {
+            min-height: 260px;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .lh-breadcrumb .breadcrumb {
+            padding: 10px 12px;
+        }
+
+        .lh-toolbar-main,
+        .lh-toolbar-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .lh-global-toggle,
+        .lh-bulk-counter,
+        .lh-toolbar-actions #btnBulkDelete {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .lh-module-head {
+            flex-direction: column;
+        }
+
+        .lh-module-pills {
+            justify-content: flex-start;
+        }
+
+        .lh-session-target-form,
+        .lh-progress-card {
+            min-width: 100%;
+        }
+
+        #modalSinhTuDong .lh-auto-dialog {
+            max-width: calc(100vw - 16px);
+            margin-inline: 8px;
+        }
+
+        #modalSinhTuDong .lh-auto-config {
+            border-right: 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .lh-auto-layout,
+        .lh-auto-scroll,
+        .lh-auto-preview-scroll {
+            max-height: none;
+        }
+
+        .lh-auto-preview-head {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .lh-auto-empty-preview {
+            min-height: 260px;
+        }
+    }
 </style>
 @endsection

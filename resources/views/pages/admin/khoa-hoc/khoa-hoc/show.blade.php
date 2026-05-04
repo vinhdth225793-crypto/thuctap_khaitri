@@ -3,574 +3,548 @@
 @section('title', 'Chi tiết: ' . $khoaHoc->ma_khoa_hoc)
 
 @section('content')
-<div class="container-fluid">
-    <!-- Breadcrumb -->
-    <div class="row mb-4">
-        <div class="col-12 text-muted small">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Trang chủ</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('admin.khoa-hoc.index') }}">Khóa học</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">{{ $khoaHoc->ma_khoa_hoc }}</li>
-                </ol>
-            </nav>
-        </div>
-    </div>
+@php
+    $isMau = $khoaHoc->loai === 'mau';
+    $isHoatDong = $khoaHoc->loai === 'hoat_dong';
+    $hocVienDangHoc = $isHoatDong ? $khoaHoc->hocVienKhoaHocs()->where('trang_thai','dang_hoc')->count() : 0;
+    $hocVienHoanThanh = $isHoatDong ? $khoaHoc->hocVienKhoaHocs()->where('trang_thai','hoan_thanh')->count() : 0;
+    $hocVienNghi = $isHoatDong ? $khoaHoc->hocVienKhoaHocs()->where('trang_thai','ngung_hoc')->count() : 0;
+    $tongLich = $isHoatDong ? $khoaHoc->lichHocs()->count() : 0;
+    $tongBuoiReq = $isHoatDong ? $khoaHoc->moduleHocs()->sum('so_buoi') : 0;
+    $progLichPercent = $tongBuoiReq > 0 ? min(100, ($tongLich / $tongBuoiReq) * 100) : 0;
+@endphp
 
-    <!-- Header & Actions -->
-    <div class="row mb-4 align-items-center">
-        <div class="col-md-7">
-            <div class="d-flex align-items-center">
-                <span class="badge bg-{{ $khoaHoc->loai === 'mau' ? 'info' : 'primary' }} me-3 px-3 py-2">
-                    {{ $khoaHoc->loai === 'mau' ? 'KHÓA MẪU' : 'LỚP HOẠT ĐỘNG' }}
-                </span>
-                <h3 class="fw-bold mb-0">{{ $khoaHoc->ten_khoa_hoc }}</h3>
-                <span class="badge bg-{{ $khoaHoc->trang_thai_hoc_tap_badge }}-soft text-{{ $khoaHoc->trang_thai_hoc_tap_badge }} border border-{{ $khoaHoc->trang_thai_hoc_tap_badge }} ms-3 px-3 py-2">
-                    {{ $khoaHoc->trang_thai_hoc_tap_label }}
-                </span>
-            </div>
-            <div class="mt-2 text-muted small">
-                <i class="fas fa-barcode me-1"></i> Mã: <code class="fw-bold">{{ $khoaHoc->ma_khoa_hoc }}</code>
-                <span class="mx-2">|</span>
-                <i class="fas fa-layer-group me-1"></i> Nhóm ngành: <span class="fw-bold text-dark">{{ $khoaHoc->nhomNganh->ten_nhom_nganh ?? 'N/A' }}</span>
-            </div>
+<div class="container-fluid admin-page-x kh-detail-page">
+    {{-- ========== Welcome banner: title + badges + actions ========== --}}
+    <div class="apx-welcome kh-welcome {{ $isMau ? 'is-mau' : 'is-hoat-dong' }}">
+        <div class="apx-welcome-icon">
+            <i class="fas {{ $isMau ? 'fa-clone' : 'fa-graduation-cap' }}"></i>
         </div>
-        <div class="col-md-5 text-md-end mt-3 mt-md-0">
-            @if($khoaHoc->loai === 'mau')
-                <a href="{{ route('admin.khoa-hoc.mo-lop', $khoaHoc->id) }}" class="btn btn-success fw-bold shadow-sm px-4">
-                    <i class="fas fa-rocket me-2"></i> MỞ LỚP TỪ MẪU NÀY
+        <div class="apx-welcome-text">
+            <div class="kh-tag-row">
+                <span class="kh-loai-badge {{ $isMau ? 'is-mau' : 'is-hoat-dong' }}">
+                    <i class="fas {{ $isMau ? 'fa-copy' : 'fa-play-circle' }}"></i>
+                    {{ $isMau ? 'KHÓA MẪU' : 'LỚP HOẠT ĐỘNG' }}
+                </span>
+                <span class="kh-status-badge">
+                    <i class="fas fa-circle"></i>
+                    {{ $khoaHoc->label_trang_thai_van_hanh ?: $khoaHoc->trang_thai_hoc_tap_label }}
+                </span>
+                @if($isHoatDong)
+                    <span class="kh-status-badge">
+                        <i class="fas fa-hashtag"></i>
+                        Khóa lần thứ {{ $khoaHoc->lan_mo_thu }}
+                    </span>
+                @endif
+            </div>
+            <h4>{{ $khoaHoc->ten_khoa_hoc }}</h4>
+            <p>
+                <span><i class="fas fa-barcode"></i> Mã: <code>{{ $khoaHoc->ma_khoa_hoc }}</code></span>
+                <span class="kh-sep">·</span>
+                <span><i class="fas fa-shapes"></i> {{ $khoaHoc->nhomNganh->ten_nhom_nganh ?? 'N/A' }}</span>
+                <span class="kh-sep">·</span>
+                <span><i class="fas fa-cubes"></i> {{ $tongModule }} module</span>
+                <span class="kh-sep">·</span>
+                <span><i class="fas fa-signal"></i> {{ ['co_ban'=>'Cơ bản','trung_binh'=>'Trung bình','nang_cao'=>'Nâng cao'][$khoaHoc->cap_do] ?? 'Tổng hợp' }}</span>
+            </p>
+        </div>
+        <div class="apx-welcome-cta">
+            @if($isMau)
+                <a href="{{ route('admin.khoa-hoc.index', ['tab' => 'mau']) }}" class="apx-view-toggle">
+                    <i class="fas fa-arrow-left"></i> <span>Về danh sách</span>
                 </a>
-                <a href="{{ route('admin.khoa-hoc.edit', $khoaHoc->id) }}" class="btn btn-outline-warning fw-bold ms-2">
+                <a href="{{ route('admin.khoa-hoc.edit', $khoaHoc->id) }}" class="btn btn-light text-warning fw-bold shadow-sm">
                     <i class="fas fa-edit me-1"></i> Sửa mẫu
                 </a>
+                <a href="{{ route('admin.khoa-hoc.mo-lop', $khoaHoc->id) }}"
+                   class="btn btn-success fw-bold shadow-sm px-4 btn-create-class">
+                    <i class="fas fa-rocket me-2"></i> Tạo lớp ngay
+                </a>
             @else
-                <button class="btn btn-outline-secondary fw-bold shadow-sm" disabled>
-                    <i class="fas fa-lock me-2"></i> Đã mở lớp (K{{ str_pad($khoaHoc->lan_mo_thu, 2, '0', STR_PAD_LEFT) }})
-                </button>
+                <a href="{{ route('admin.khoa-hoc.index', ['tab' => 'mau']) }}" class="apx-view-toggle">
+                    <i class="fas fa-arrow-left"></i> <span>Về danh sách</span>
+                </a>
+                @if($khoaHoc->khoaHocMau)
+                    <a href="{{ route('admin.khoa-hoc.show', $khoaHoc->khoaHocMau->id) }}" class="apx-view-toggle">
+                        <i class="fas fa-clone"></i> <span>Xem mẫu gốc</span>
+                    </a>
+                @endif
+                @if($khoaHoc->trang_thai_van_hanh === 'san_sang')
+                    <form action="{{ route('admin.khoa-hoc.xac-nhan-mo-lop', $khoaHoc->id) }}" method="POST" class="d-inline">
+                        @csrf
+                        <button type="submit" class="btn btn-warning fw-bold shadow-sm px-4 btn-activate-class">
+                            <i class="fas fa-play me-2"></i> Kích hoạt dạy ngay
+                        </button>
+                    </form>
+                @else
+                    <span class="btn btn-light fw-bold shadow-sm disabled">
+                        <i class="fas fa-lock me-1"></i> K{{ str_pad($khoaHoc->lan_mo_thu, 2, '0', STR_PAD_LEFT) }} đang chạy
+                    </span>
+                @endif
             @endif
         </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="row g-4 main-content-wrapper">
-        <!-- Left: Core Info & Modules -->
-        <div class="col-lg-8 scroll-column">
-            {{-- THÔNG TIN CHI TIẾT --}}
-            <div class="vip-card mb-4 shadow-sm border-0">
-                <div class="vip-card-body p-4">
-                    <div class="row g-4">
-                        <div class="col-md-4">
-                            <div class="image-box rounded border bg-light overflow-hidden shadow-xs" style="height: 180px;">
-                                <img src="{{ $khoaHoc->hinh_anh ? asset($khoaHoc->hinh_anh) : asset('images/default-course.svg') }}" 
-                                     class="img-fluid w-100 h-100 object-fit-cover">
-                            </div>
-                        </div>
-                        <div class="col-md-8">
-                            <div class="mb-3">
-                                <h6 class="smaller fw-bold text-muted text-uppercase mb-2">Mô tả ngắn chương trình</h6>
-                                <p class="mb-0 text-dark">{{ $khoaHoc->mo_ta_ngan ?: 'Chưa có mô tả ngắn.' }}</p>
-                            </div>
-                            <div class="row g-3">
-                                <div class="col-6 col-md-4">
-                                    <span class="smaller text-muted d-block">Cấp độ</span>
-                                    <span class="fw-bold">{{ ['co_ban'=>'Cơ bản','trung_binh'=>'Trung bình','nang_cao'=>'Nâng cao'][$khoaHoc->cap_do] ?? 'N/A' }}</span>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <span class="smaller text-muted d-block">Tổng Module</span>
-                                    <span class="fw-bold">{{ $khoaHoc->tong_so_module }} bài học</span>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <span class="smaller text-muted d-block">Trạng thái</span>
-                                    <span class="badge bg-{{ $khoaHoc->badge_trang_thai }}">{{ $khoaHoc->label_trang_thai_van_hanh }}</span>
-                                </div>
-                            </div>
-                            <div class="row g-3 mt-1 pt-3 border-top">
-                                <div class="col-6 col-md-4">
-                                    <span class="smaller text-muted d-block">Module hoàn thành</span>
-                                    <span class="fw-bold">{{ $khoaHoc->so_module_hoan_thanh }}/{{ $khoaHoc->moduleHocs->count() }}</span>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <span class="smaller text-muted d-block">Tiến độ học tập</span>
-                                    <span class="fw-bold text-primary">{{ $khoaHoc->tien_do_hoc_tap }}%</span>
-                                </div>
-                                <div class="col-12 col-md-4">
-                                    <span class="smaller text-muted d-block">Trạng thái học tập</span>
-                                    <span class="badge bg-{{ $khoaHoc->trang_thai_hoc_tap_badge }}">{{ $khoaHoc->trang_thai_hoc_tap_label }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    @if($khoaHoc->mo_ta_chi_tiet)
-                        <hr class="my-4">
-                        <h6 class="smaller fw-bold text-muted text-uppercase mb-2">Nội dung chi tiết & Lộ trình</h6>
-                        <div class="text-dark small lh-lg">{!! nl2br(e($khoaHoc->mo_ta_chi_tiet)) !!}</div>
-                    @endif
-                </div>
-            </div>
+    @include('components.alert')
 
-            {{-- QUẢN LÝ HỌC VIÊN & LỊCH HỌC (Dời lên đây cho lớp hoạt động) --}}
-            @if($khoaHoc->loai === 'hoat_dong')
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        {{-- CARD QUẢN LÝ HỌC VIÊN --}}
-                        <div class="vip-card shadow-sm border-0 h-100">
-                            <div class="vip-card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
-                                <h5 class="vip-card-title small fw-bold text-uppercase mb-0 text-success">
-                                    <i class="fas fa-users me-2"></i> Học viên
-                                </h5>
-                                <a href="{{ route('admin.khoa-hoc.hoc-vien.index', $khoaHoc->id) }}" class="btn btn-success btn-sm fw-bold">
-                                    <i class="fas fa-cog me-1"></i> Quản lý
-                                </a>
-                            </div>
-                            <div class="vip-card-body p-4">
-                                <div class="row text-center g-2">
-                                    <div class="col-4">
-                                        <div class="fw-bold fs-4 text-success">
-                                            {{ $khoaHoc->hocVienKhoaHocs()->where('trang_thai','dang_hoc')->count() }}
-                                        </div>
-                                        <div class="smaller text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Đang học</div>
-                                    </div>
-                                    <div class="col-4 border-start border-end">
-                                        <div class="fw-bold fs-4 text-primary">
-                                            {{ $khoaHoc->hocVienKhoaHocs()->where('trang_thai','hoan_thanh')->count() }}
-                                        </div>
-                                        <div class="smaller text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Xong</div>
-                                    </div>
-                                    <div class="col-4">
-                                        <div class="fw-bold fs-4 text-danger">
-                                            {{ $khoaHoc->hocVienKhoaHocs()->where('trang_thai','ngung_hoc')->count() }}
-                                        </div>
-                                        <div class="smaller text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Nghỉ</div>
-                                    </div>
-                                </div>
-                            </div>
+    <div class="row g-4">
+        {{-- ============== CỘT TRÁI: Nội dung chính ============== --}}
+        <div class="col-lg-8">
+
+            {{-- ① Thông tin khóa học --}}
+            <section class="apx-section">
+                <header class="apx-section-head">
+                    <div class="apx-section-title">
+                        <span class="apx-section-num">1</span>
+                        <div>
+                            <h2><i class="fas fa-circle-info"></i> Thông tin khóa học</h2>
+                            <p>Ảnh đại diện, mô tả chương trình và các thông số cơ bản.</p>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        {{-- CARD QUẢN LÝ LỊCH HỌC --}}
-                        <div class="vip-card shadow-sm border-0 h-100">
-                            <div class="vip-card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
-                                <h5 class="vip-card-title small fw-bold text-uppercase mb-0 text-info">
-                                    <i class="fas fa-calendar-alt me-2"></i> Lịch học
-                                </h5>
-                                <a href="{{ route('admin.khoa-hoc.lich-hoc.index', $khoaHoc->id) }}" class="btn btn-info btn-sm fw-bold text-white">
-                                    <i class="fas fa-edit me-1"></i> Quản lý
-                                </a>
+                </header>
+
+                <div class="kh-info-card">
+                    <div class="kh-info-image">
+                        <img src="{{ $khoaHoc->hinh_anh ? asset($khoaHoc->hinh_anh) : asset('images/default-course.svg') }}"
+                             alt="{{ $khoaHoc->ten_khoa_hoc }}">
+                    </div>
+                    <div class="kh-info-body">
+                        <div class="kh-desc">
+                            <span class="kh-label">Mô tả ngắn</span>
+                            <p>{{ $khoaHoc->mo_ta_ngan ?: 'Chưa có mô tả ngắn cho khóa học này.' }}</p>
+                        </div>
+                        <div class="kh-info-stats">
+                            <div class="kh-info-stat">
+                                <span class="kh-label">Cấp độ</span>
+                                <strong>{{ ['co_ban'=>'Cơ bản','trung_binh'=>'Trung bình','nang_cao'=>'Nâng cao'][$khoaHoc->cap_do] ?? 'Tổng hợp' }}</strong>
                             </div>
-                            <div class="vip-card-body p-4">
-                                @php 
-                                    $tongLich = $khoaHoc->lichHocs()->count(); 
-                                    $tongBuoiReq = $khoaHoc->moduleHocs()->sum('so_buoi'); 
-                                    $assignedTeachersForPlanning = $khoaHoc->moduleHocs
-                                        ->flatMap(function ($module) {
-                                            return $module->phanCongGiangViens
-                                                ->where('trang_thai', 'da_nhan')
-                                                ->map(function ($assignment) {
-                                                    return $assignment->giangVien;
-                                                });
-                                        })
-                                        ->filter()
-                                        ->unique('id')
-                                        ->values();
-                                    $pendingLeaveRequests = $assignedTeachersForPlanning->sum(function ($teacher) {
-                                        return $teacher->donXinNghis->where('trang_thai', 'cho_duyet')->count();
-                                    });
-                                @endphp
-                                <div class="d-flex align-items-center justify-content-between">
+                            <div class="kh-info-stat">
+                                <span class="kh-label">Tổng module</span>
+                                <strong>{{ $khoaHoc->tong_so_module }} bài</strong>
+                            </div>
+                            <div class="kh-info-stat">
+                                <span class="kh-label">Tiến độ học tập</span>
+                                <strong class="text-primary">{{ $khoaHoc->tien_do_hoc_tap }}%</strong>
+                            </div>
+                            <div class="kh-info-stat">
+                                <span class="kh-label">Module hoàn thành</span>
+                                <strong>{{ $khoaHoc->so_module_hoan_thanh }}/{{ $khoaHoc->moduleHocs->count() }}</strong>
+                            </div>
+                        </div>
+                        @if($khoaHoc->mo_ta_chi_tiet)
+                            <details class="kh-detail-collapse">
+                                <summary>
+                                    <i class="fas fa-book-open"></i> Mô tả chi tiết & lộ trình
+                                    <i class="fas fa-chevron-down kh-collapse-toggle"></i>
+                                </summary>
+                                <div class="kh-detail-content">
+                                    {!! nl2br(e($khoaHoc->mo_ta_chi_tiet)) !!}
+                                </div>
+                            </details>
+                        @endif
+                    </div>
+                </div>
+            </section>
+
+            {{-- ② Học viên & Lịch học (chỉ lớp hoạt động) --}}
+            @if($isHoatDong)
+                <section class="apx-section">
+                    <header class="apx-section-head">
+                        <div class="apx-section-title">
+                            <span class="apx-section-num">2</span>
+                            <div>
+                                <h2><i class="fas fa-users"></i> Học viên & Lịch học</h2>
+                                <p>Quản lý học viên ghi danh và lập lịch các buổi học của lớp.</p>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="kh-mini-card">
+                                <div class="kh-mini-head">
+                                    <span class="kh-mini-icon" style="background: #dcfce7; color: #16a34a;">
+                                        <i class="fas fa-users"></i>
+                                    </span>
                                     <div>
-                                        <div class="small text-muted mb-1">Tiến độ: <strong>{{ $tongLich }} / {{ $tongBuoiReq }} buổi</strong></div>
+                                        <strong>Học viên</strong>
+                                        <small>{{ $hocVienDangHoc + $hocVienHoanThanh + $hocVienNghi }} ghi danh</small>
                                     </div>
-                                    <div>
-                                        @if($tongLich < $tongBuoiReq)
-                                            <span class="badge bg-warning text-dark px-2" style="font-size: 0.65rem;">Thiếu {{ $tongBuoiReq - $tongLich }} buổi</span>
-                                        @else
-                                            <span class="badge bg-success px-2" style="font-size: 0.65rem;">Đã đủ</span>
-                                        @endif
-                                    </div>
-                                </div>
-                                <div class="progress mt-2" style="height: 6px;">
-                                    @php $prog = $tongBuoiReq > 0 ? min(100, ($tongLich / $tongBuoiReq) * 100) : 0; @endphp
-                                    <div class="progress-bar bg-info" role="progressbar" style="width: {{ $prog }}%"></div>
-                                </div>
-                                <div class="mt-3 p-3 bg-light rounded-3 border border-dashed">
-                                    <h6 class="smaller fw-bold text-muted text-uppercase mb-2"><i class="fas fa-robot me-1"></i> Hệ thống tự động kiểm tra:</h6>
-                                    <div class="row g-2">
-                                        <div class="col-6">
-                                            <div class="smaller text-dark"><i class="fas fa-check-circle text-success me-1"></i> Đã phân công GV</div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="smaller text-dark"><i class="fas fa-check-circle text-success me-1"></i> Khung giờ 07:30-20:45</div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="smaller text-dark"><i class="fas fa-check-circle text-success me-1"></i> Đơn xin nghỉ của GV</div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="smaller text-dark"><i class="fas fa-check-circle text-success me-1"></i> Xung đột lịch dạy khác</div>
-                                        </div>
-                                    </div>
-                                    <div class="mt-2 pt-2 border-top small text-muted italic">
-                                        Giúp Admin tránh sai sót khi sắp xếp hàng chục lớp học cùng lúc.
-                                    </div>
-                                </div>
-                                <div class="mt-3">
-                                    <a href="{{ route('admin.khoa-hoc.lich-hoc.index', $khoaHoc->id) }}" class="btn btn-info w-100 fw-bold text-white shadow-sm">
-                                        <i class="fas fa-calendar-check me-2"></i> TRUY CẬP BỘ SẮP LỊCH THÔNG MINH
+                                    <a href="{{ route('admin.khoa-hoc.hoc-vien.index', $khoaHoc->id) }}" class="btn btn-success btn-sm fw-bold">
+                                        <i class="fas fa-cog me-1"></i> Quản lý
                                     </a>
                                 </div>
+                                <div class="kh-mini-stats">
+                                    <div class="kh-mini-stat">
+                                        <strong class="text-success">{{ $hocVienDangHoc }}</strong>
+                                        <small>Đang học</small>
+                                    </div>
+                                    <div class="kh-mini-stat">
+                                        <strong class="text-primary">{{ $hocVienHoanThanh }}</strong>
+                                        <small>Hoàn thành</small>
+                                    </div>
+                                    <div class="kh-mini-stat">
+                                        <strong class="text-danger">{{ $hocVienNghi }}</strong>
+                                        <small>Nghỉ học</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="kh-mini-card">
+                                <div class="kh-mini-head">
+                                    <span class="kh-mini-icon" style="background: #e0f2fe; color: #0ea5e9;">
+                                        <i class="fas fa-calendar-alt"></i>
+                                    </span>
+                                    <div>
+                                        <strong>Lịch học</strong>
+                                        <small>Tiến độ {{ $tongLich }}/{{ $tongBuoiReq }} buổi</small>
+                                    </div>
+                                    <a href="{{ route('admin.khoa-hoc.lich-hoc.index', $khoaHoc->id) }}" class="btn btn-info btn-sm fw-bold text-white">
+                                        <i class="fas fa-edit me-1"></i> Lập lịch
+                                    </a>
+                                </div>
+                                <div class="kh-mini-progress">
+                                    @if($tongLich < $tongBuoiReq)
+                                        <span class="badge bg-warning text-dark">Còn thiếu {{ $tongBuoiReq - $tongLich }} buổi</span>
+                                    @else
+                                        <span class="badge bg-success">Đã đủ buổi</span>
+                                    @endif
+                                    <div class="progress mt-2" style="height: 8px;">
+                                        <div class="progress-bar bg-info" style="width: {{ $progLichPercent }}%"></div>
+                                    </div>
+                                    <small class="text-muted d-block mt-2">
+                                        <i class="fas fa-robot text-info me-1"></i>
+                                        Tự kiểm tra: phân công GV · khung 07:30–20:45 · đơn nghỉ · xung đột lịch
+                                    </small>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </section>
             @endif
 
-            {{-- DANH SÁCH MODULE & GIẢNG VIÊN --}}
-            <div class="vip-card mb-4 shadow-sm border-0">
-                <div class="vip-card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="vip-card-title small fw-bold text-uppercase mb-0">📋 Cấu trúc Module học tập</h5>
-                    @if($khoaHoc->loai === 'mau')
-                        <a href="{{ route('admin.module-hoc.create', ['khoa_hoc_id' => $khoaHoc->id]) }}" class="btn btn-primary btn-sm px-3 fw-bold shadow-xs">
-                            <i class="fas fa-plus me-1"></i> Thêm module
-                        </a>
-                    @endif
-                </div>
-                <div class="vip-card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light smaller">
-                                <tr>
-                                    <th class="ps-4 text-center" width="60">STT</th>
-                                    <th>Tên Module học</th>
-                                    <th class="text-center">TL (phút)</th>
-                                    <th class="text-center">Tiến độ học</th>
-                                    @if($khoaHoc->loai === 'hoat_dong')
-                                        <th>Giảng viên phụ trách</th>
-                                        <th class="text-center">Xác nhận</th>
+            {{-- ③ Cấu trúc module --}}
+            <section class="apx-section">
+                <header class="apx-section-head">
+                    <div class="apx-section-title">
+                        <span class="apx-section-num">{{ $isHoatDong ? 3 : 2 }}</span>
+                        <div>
+                            <h2><i class="fas fa-cubes"></i> Cấu trúc {{ $tongModule }} module</h2>
+                            <p>{{ $isMau ? 'Khung chương trình của khóa mẫu — sẽ được sao chép khi mở lớp.' : 'Module và phân công giảng viên cho lớp này.' }}</p>
+                        </div>
+                    </div>
+                    <div class="apx-section-meta">
+                        @if($isHoatDong)
+                            <span class="apx-meta-pill"><strong>{{ $moduleCoGv }}/{{ $tongModule }}</strong> đã có GV</span>
+                        @endif
+                        @if($isMau)
+                            <a href="{{ route('admin.module-hoc.create', ['khoa_hoc_id' => $khoaHoc->id]) }}" class="btn btn-primary btn-sm fw-bold shadow-sm">
+                                <i class="fas fa-plus me-1"></i> Thêm module
+                            </a>
+                        @endif
+                    </div>
+                </header>
+
+                <div class="kh-module-list">
+                    @forelse($khoaHoc->moduleHocs as $index => $module)
+                        @php
+                            $pc = $module->phanCongGiangViens->first();
+                            $statusMap = [
+                                'cho_xac_nhan' => ['bg'=>'warning','text'=>'Chờ GV','icon'=>'clock'],
+                                'da_nhan'      => ['bg'=>'success','text'=>'Đã nhận','icon'=>'check-circle'],
+                                'tu_choi'      => ['bg'=>'danger','text'=>'Từ chối','icon'=>'times-circle'],
+                            ];
+                            $st = $pc ? ($statusMap[$pc->trang_thai] ?? null) : null;
+                            $gvInit = $pc ? mb_strtoupper(mb_substr($pc->giangVien->nguoiDung->ho_ten, 0, 1)) : null;
+                        @endphp
+                        <div class="kh-module-row">
+                            <div class="kh-module-num">M{{ str_pad($module->thu_tu_module ?? ($index + 1), 2, '0', STR_PAD_LEFT) }}</div>
+                            <div class="kh-module-info">
+                                <strong class="kh-module-name">{{ $module->ten_module }}</strong>
+                                <small class="kh-module-meta">
+                                    <span><i class="fas fa-clock"></i> {{ $module->thoi_luong_du_kien_label }}</span>
+                                    <span class="dot-sep">·</span>
+                                    <span class="badge bg-{{ $module->trang_thai_hoc_tap_badge }}-soft text-{{ $module->trang_thai_hoc_tap_badge }} border-0">
+                                        {{ $module->so_buoi_hoan_thanh }}/{{ $module->so_buoi_hop_le }} buổi
+                                    </span>
+                                </small>
+                                @if($module->mo_ta)
+                                    <p class="kh-module-desc">{{ \Illuminate\Support\Str::limit($module->mo_ta, 80) }}</p>
+                                @endif
+                            </div>
+
+                            @if($isHoatDong)
+                                <div class="kh-module-gv">
+                                    @if($pc)
+                                        <span class="kh-gv-avatar" data-gv-id="{{ $pc->giangVien->id }}">{{ $gvInit }}</span>
+                                        <div class="kh-gv-info">
+                                            <strong>{{ $pc->giangVien->nguoiDung->ho_ten }}</strong>
+                                            <small>{{ $pc->giangVien->chuyen_nganh ?: 'Giảng viên' }}</small>
+                                        </div>
+                                        <span class="kh-gv-status status-{{ $st['bg'] }}">
+                                            <i class="fas fa-{{ $st['icon'] }}"></i> {{ $st['text'] }}
+                                        </span>
+                                    @else
+                                        <span class="kh-gv-empty">
+                                            <i class="fas fa-user-slash"></i> Chưa có GV
+                                        </span>
                                     @endif
-                                    <th class="pe-4 text-center" width="100">Hành động</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($khoaHoc->moduleHocs as $index => $module)
-                                    <tr>
-                                        <td class="text-center ps-4 text-muted small fw-bold">{{ $index + 1 }}</td>
-                                        <td>
-                                            <div class="fw-bold text-dark">{{ $module->ten_module }}</div>
-                                            <div class="smaller text-muted italic">{{ Str::limit($module->mo_ta, 60) }}</div>
-                                        </td>
-                                        <td class="text-center">{{ $module->thoi_luong_du_kien_label }}</td>
-                                        <td class="text-center">
-                                            <div class="d-flex flex-column align-items-center gap-1">
-                                                <span class="badge bg-{{ $module->trang_thai_hoc_tap_badge }}-soft text-{{ $module->trang_thai_hoc_tap_badge }} border border-{{ $module->trang_thai_hoc_tap_badge }}">
-                                                    {{ $module->trang_thai_hoc_tap_label }}
-                                                </span>
-                                                <span class="small text-muted">
-                                                    {{ $module->so_buoi_hoan_thanh }}/{{ $module->so_buoi_hop_le }} buổi
-                                                </span>
-                                                @if($module->so_buoi_bi_huy > 0)
-                                                    <span class="smaller text-warning">Hủy: {{ $module->so_buoi_bi_huy }}</span>
-                                                @endif
-                                            </div>
-                                        </td>
-                                        
-                                        @if($khoaHoc->loai === 'hoat_dong')
-                                            @php $pc = $module->phanCongGiangViens->first(); @endphp
-                                            <td>
-                                                @if($pc)
-                                                    <div class="d-flex align-items-center justify-content-between">
-                                                        <div class="d-flex align-items-center">
-                                                            <div class="avatar-mini rounded-circle bg-light me-2 border text-center" style="width: 30px; height: 30px; line-height: 30px;">
-                                                                <i class="fas fa-user-tie text-primary small"></i>
-                                                            </div>
-                                                            <div class="lh-1">
-                                                                <div class="small fw-bold text-primary">{{ $pc->giangVien->nguoiDung->ho_ten }}</div>
-                                                                <div class="smaller text-muted mt-1">{{ $pc->giangVien->chuyen_nganh ?: 'Chuyên gia' }}</div>
-                                                            </div>
-                                                        </div>
-                                                        {{-- Nút thay đổi nhanh --}}
-                                                        <button type="button" class="btn btn-xs btn-outline-warning border-0 btn-replace-gv" 
-                                                                data-pc-id="{{ $pc->id }}" 
-                                                                data-module-name="{{ $module->ten_module }}"
-                                                                data-current-gv="{{ $pc->giangVien->nguoiDung->ho_ten }}"
-                                                                title="Thay đổi GV">
-                                                            <i class="fas fa-exchange-alt"></i>
-                                                        </button>
-                                                    </div>
-                                                @else
-                                                    <span class="badge bg-light text-muted border">Chưa gán GV</span>
-                                                @endif
-                                            </td>
-                                            <td class="text-center">
-                                                @if($pc)
-                                                    @php
-                                                        $statusMap = [
-                                                            'cho_xac_nhan' => ['bg'=>'warning','text'=>'Chờ'],
-                                                            'da_nhan'     => ['bg'=>'success','text'=>'Đồng ý'],
-                                                            'tu_choi'     => ['bg'=>'danger','text'=>'Từ chối']
-                                                        ];
-                                                        $s = $statusMap[$pc->trang_thai] ?? ['bg'=>'secondary','text'=>'?'];
-                                                    @endphp
-                                                    <span class="badge bg-{{ $s['bg'] }} smaller shadow-xs">{{ $s['text'] }}</span>
-                                                @else — @endif
-                                            </td>
-                                        @endif
+                                </div>
+                            @endif
 
-                                        <td class="pe-4 text-center">
-                                            <div class="d-flex justify-content-center gap-1">
-                                                <a href="{{ route('admin.module-hoc.show', $module->id) }}" class="btn btn-sm btn-outline-info border-0" title="Chi tiết"><i class="fas fa-info-circle"></i></a>
-                                                @if($khoaHoc->loai === 'mau')
-                                                    <a href="{{ route('admin.module-hoc.edit', $module->id) }}" class="btn btn-sm btn-outline-warning border-0" title="Sửa"><i class="fas fa-edit"></i></a>
-                                                    <form action="{{ route('admin.module-hoc.destroy', $module->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa module này?')">
-                                                        @csrf @method('DELETE')
-                                                        <button type="submit" class="btn btn-sm btn-outline-danger border-0"><i class="fas fa-trash"></i></button>
-                                                    </form>
-                                                @else
-                                                    <button type="button" class="btn btn-sm btn-outline-primary border-0 btn-phan-cong" 
-                                                            data-module-id="{{ $module->id }}" 
-                                                            data-module-name="{{ $module->ten_module }}"
-                                                            title="Phân công GV">
-                                                        <i class="fas fa-user-plus"></i>
-                                                    </button>
-                                                @endif
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="10" class="text-center py-5 text-muted small">Chưa có module nào.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                            <div class="kh-module-actions">
+                                <a href="{{ route('admin.module-hoc.show', $module->id) }}" class="kh-action-btn" title="Chi tiết module">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                @if($isMau)
+                                    <a href="{{ route('admin.module-hoc.edit', $module->id) }}" class="kh-action-btn warning" title="Sửa">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form action="{{ route('admin.module-hoc.destroy', $module->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa module này?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="kh-action-btn danger" title="Xóa"><i class="fas fa-trash"></i></button>
+                                    </form>
+                                @else
+                                    @if($pc)
+                                        <button type="button" class="kh-action-btn warning btn-replace-gv"
+                                                data-pc-id="{{ $pc->id }}"
+                                                data-module-name="{{ $module->ten_module }}"
+                                                data-current-gv="{{ $pc->giangVien->nguoiDung->ho_ten }}"
+                                                title="Thay đổi GV">
+                                            <i class="fas fa-exchange-alt"></i>
+                                        </button>
+                                    @else
+                                        <button type="button" class="kh-action-btn primary btn-phan-cong"
+                                                data-module-id="{{ $module->id }}"
+                                                data-module-name="{{ $module->ten_module }}"
+                                                title="Phân công GV">
+                                            <i class="fas fa-user-plus"></i>
+                                        </button>
+                                    @endif
+                                @endif
+                            </div>
+                        </div>
+                    @empty
+                        <div class="kh-empty-state">
+                            <i class="fas fa-cubes"></i>
+                            <strong>Chưa có module nào</strong>
+                            <p>{{ $isMau ? 'Hãy bắt đầu bằng cách thêm module đầu tiên cho khóa mẫu.' : 'Lớp này chưa có cấu trúc module.' }}</p>
+                            @if($isMau)
+                                <a href="{{ route('admin.module-hoc.create', ['khoa_hoc_id' => $khoaHoc->id]) }}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus me-1"></i> Thêm module đầu tiên
+                                </a>
+                            @endif
+                        </div>
+                    @endforelse
                 </div>
-            </div>
+            </section>
 
-            {{-- LỊCH HỌC CHI TIẾT (CHỈ CHO LỚP HOẠT ĐỘNG) --}}
-            @if($khoaHoc->loai === 'hoat_dong')
-                <div class="vip-card mb-4 shadow-sm border-0">
-                    <div class="vip-card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
-                        <h5 class="vip-card-title small fw-bold text-uppercase mb-0">📅 Lịch học chi tiết các Module</h5>
-                        <a href="{{ route('admin.khoa-hoc.lich-hoc.index', $khoaHoc->id) }}" class="btn btn-info btn-sm px-3 fw-bold text-white shadow-xs">
-                            <i class="fas fa-calendar-alt me-1"></i> Quản lý lịch
-                        </a>
-                    </div>
-                    <div class="vip-card-body p-0">
+            {{-- ④ Lịch học chi tiết (lớp hoạt động) --}}
+            @if($isHoatDong)
+                <section class="apx-section">
+                    <header class="apx-section-head">
+                        <div class="apx-section-title">
+                            <span class="apx-section-num">4</span>
+                            <div>
+                                <h2><i class="fas fa-calendar-week"></i> Lịch học chi tiết theo module</h2>
+                                <p>Tổng hợp các buổi học đã được lập lịch — bao gồm điểm danh, bài giảng và tài nguyên.</p>
+                            </div>
+                        </div>
+                        <div class="apx-section-meta">
+                            <a href="{{ route('admin.khoa-hoc.lich-hoc.index', $khoaHoc->id) }}" class="btn btn-info btn-sm fw-bold text-white shadow-sm">
+                                <i class="fas fa-calendar-alt me-1"></i> Quản lý lịch
+                            </a>
+                        </div>
+                    </header>
+
+                    @if($khoaHoc->lichHocs->isEmpty())
+                        <div class="kh-empty-state">
+                            <i class="fas fa-calendar-times"></i>
+                            <strong>Lớp chưa được lập lịch</strong>
+                            <p>Bắt đầu lập lịch để xem chi tiết các buổi học theo từng module.</p>
+                            <a href="{{ route('admin.khoa-hoc.lich-hoc.index', $khoaHoc->id) }}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-calendar-plus me-1"></i> Lập lịch ngay
+                            </a>
+                        </div>
+                    @else
                         @foreach($khoaHoc->moduleHocs as $module)
                             @if($module->lichHocs->isNotEmpty())
-                                <div class="bg-light px-4 py-2 border-bottom border-top small fw-bold text-primary">
-                                    MODULE {{ $module->thu_tu_module }}: {{ $module->ten_module }}
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table table-hover align-middle mb-0">
-                                        <thead class="bg-white smaller">
-                                            <tr>
-                                                <th class="ps-4" width="60">Buổi</th>
-                                                <th width="140">Thời gian</th>
-                                                <th width="180">Nội dung & Tài nguyên</th>
-                                                <th>Địa điểm / Giảng viên</th>
-                                                <th class="text-center" width="120">Tiến trình</th>
-                                                <th class="text-center" width="110">Trạng thái</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach($module->lichHocs as $lich)
-                                                @php
-                                                    $hasAttendance = $lich->diemDanhs->isNotEmpty();
-                                                    $lectureCount = $lich->baiGiangs->count();
-                                                    $resourceCount = $lich->taiNguyen->count();
-                                                @endphp
-                                                <tr class="{{ $lich->trang_thai === 'cho' ? '' : 'table-light' }}">
-                                                    <td class="ps-4">
-                                                        <div class="fw-bold text-dark">#{{ $lich->buoi_so }}</div>
-                                                        <div class="smaller text-muted">{{ $lich->thu_label }}</div>
-                                                    </td>
-                                                    <td>
-                                                        <div class="fw-bold"><i class="far fa-calendar-alt me-1 text-primary"></i>{{ $lich->ngay_hoc->format('d/m/Y') }}</div>
-                                                        <div class="smaller text-muted mt-1">
-                                                            <i class="far fa-clock me-1"></i>{{ \Carbon\Carbon::parse($lich->gio_bat_dau)->format('H:i') }}-{{ \Carbon\Carbon::parse($lich->gio_ket_thuc)->format('H:i') }}
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <div class="d-flex flex-column gap-1">
-                                                            <div class="d-flex align-items-center gap-2">
-                                                                <span class="badge {{ $lectureCount > 0 ? 'bg-info-subtle text-info border border-info-subtle' : 'bg-light text-muted border' }} px-2 py-1" style="font-size: 0.65rem;">
-                                                                    <i class="fas fa-book-open me-1"></i>{{ $lectureCount }} bài giảng
-                                                                </span>
-                                                            </div>
-                                                            <div class="d-flex align-items-center gap-2">
-                                                                <span class="badge {{ $resourceCount > 0 ? 'bg-warning-subtle text-warning border border-warning-subtle' : 'bg-light text-muted border' }} px-2 py-1" style="font-size: 0.65rem;">
-                                                                    <i class="fas fa-paperclip me-1"></i>{{ $resourceCount }} tài liệu
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <div class="mb-1">
+                                <details class="kh-module-schedule" {{ $loop->first ? 'open' : '' }}>
+                                    <summary>
+                                        <span class="kh-mod-tag">M{{ str_pad($module->thu_tu_module, 2, '0', STR_PAD_LEFT) }}</span>
+                                        <strong>{{ $module->ten_module }}</strong>
+                                        <small>{{ $module->lichHocs->count() }} buổi đã lập</small>
+                                        <i class="fas fa-chevron-down kh-collapse-toggle"></i>
+                                    </summary>
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle mb-0 kh-schedule-table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="text-center">Buổi</th>
+                                                    <th>Thời gian</th>
+                                                    <th>Nội dung</th>
+                                                    <th>Địa điểm / GV</th>
+                                                    <th class="text-center">Tiến trình</th>
+                                                    <th class="text-center">Trạng thái</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($module->lichHocs as $lich)
+                                                    @php
+                                                        $hasAttendance = $lich->diemDanhs->isNotEmpty();
+                                                        $lectureCount = $lich->baiGiangs->count();
+                                                        $resourceCount = $lich->taiNguyen->count();
+                                                    @endphp
+                                                    <tr>
+                                                        <td class="text-center">
+                                                            <strong>#{{ $lich->buoi_so }}</strong>
+                                                            <small class="d-block text-muted">{{ $lich->thu_label }}</small>
+                                                        </td>
+                                                        <td>
+                                                            <strong><i class="far fa-calendar-alt text-primary me-1"></i>{{ $lich->ngay_hoc->format('d/m/Y') }}</strong>
+                                                            <small class="d-block text-muted"><i class="far fa-clock me-1"></i>{{ \Carbon\Carbon::parse($lich->gio_bat_dau)->format('H:i') }}–{{ \Carbon\Carbon::parse($lich->gio_ket_thuc)->format('H:i') }}</small>
+                                                        </td>
+                                                        <td>
+                                                            <span class="badge bg-info-subtle text-info border me-1"><i class="fas fa-book-open me-1"></i>{{ $lectureCount }}</span>
+                                                            <span class="badge bg-warning-subtle text-warning border"><i class="fas fa-paperclip me-1"></i>{{ $resourceCount }}</span>
+                                                        </td>
+                                                        <td>
                                                             @if($lich->hinh_thuc === 'online')
                                                                 <span class="text-info small fw-bold"><i class="fas fa-video me-1"></i>Online</span>
                                                             @else
                                                                 <span class="text-success small fw-bold"><i class="fas fa-map-marker-alt me-1"></i>{{ $lich->phong_hoc ?: 'Chưa gán' }}</span>
                                                             @endif
-                                                        </div>
-                                                        <div class="d-flex align-items-center gap-2">
-                                                            <div class="avatar-xs bg-light rounded-circle text-center border" style="width: 22px; height: 22px; line-height: 20px;">
-                                                                <i class="fas fa-user-tie text-muted" style="font-size: 0.6rem;"></i>
-                                                            </div>
-                                                            <span class="small text-dark">{{ $lich->giangVien?->nguoiDung?->ho_ten ?? 'Chưa gán' }}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td class="text-center">
-                                                        @if($hasAttendance)
-                                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 0.65rem;">
-                                                                <i class="fas fa-check-circle me-1"></i>Xong
-                                                            </span>
-                                                        @else
-                                                            <span class="badge bg-light text-muted border px-2 py-1" style="font-size: 0.65rem;">
-                                                                <i class="far fa-circle me-1"></i>Chưa
-                                                            </span>
-                                                        @endif
-                                                    </td>
-                                                    <td class="text-center">
-                                                        <div class="d-flex flex-column gap-1">
-                                                            <span class="badge bg-{{ match($lich->trang_thai){'cho'=>'secondary','dang_hoc'=>'info','hoan_thanh'=>'success','huy'=>'danger',default=>'light'} }} w-100 py-1" style="font-size: 0.65rem;">
+                                                            <small class="d-block text-muted">{{ $lich->giangVien?->nguoiDung?->ho_ten ?? 'Chưa gán GV' }}</small>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            @if($hasAttendance)
+                                                                <span class="badge bg-success-subtle text-success border">
+                                                                    <i class="fas fa-check-circle me-1"></i>Đã điểm danh
+                                                                </span>
+                                                            @else
+                                                                <span class="badge bg-light text-muted border"><i class="far fa-circle me-1"></i>Chưa</span>
+                                                            @endif
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <span class="badge bg-{{ match($lich->trang_thai){'cho'=>'secondary','dang_hoc'=>'info','hoan_thanh'=>'success','huy'=>'danger',default=>'light'} }}">
                                                                 {{ $lich->trang_thai_label }}
                                                             </span>
-                                                            @if($lich->giang_vien_id && $lich->trang_thai !== 'cho')
-                                                                <a href="{{ route('admin.diem-danh.giang-vien.show', [$lich->id, $lich->giang_vien_id]) }}" class="smaller text-primary text-decoration-none fw-bold mt-1">
-                                                                    <i class="fas fa-search-plus me-1"></i>Chi tiết log
-                                                                </a>
-                                                            @endif
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </details>
                             @endif
                         @endforeach
-                        
-                        @if($khoaHoc->lichHocs->isEmpty())
-                            <div class="p-5 text-center text-muted">
-                                <i class="fas fa-calendar-times fa-3x mb-3 opacity-25"></i>
-                                <p class="mb-0">Khóa học này chưa được lập lịch.</p>
-                                <a href="{{ route('admin.khoa-hoc.lich-hoc.index', $khoaHoc->id) }}" class="btn btn-primary btn-sm mt-3">Lập lịch ngay</a>
-                            </div>
-                        @endif
-                    </div>
-                </div>
+                    @endif
+                </section>
             @endif
         </div>
 
-        <!-- Right: Lifecycle & Meta -->
-        <div class="col-lg-4 scroll-column">
-            @if($khoaHoc->loai === 'hoat_dong')
-                @if($khoaHoc->trang_thai_van_hanh === 'san_sang')
-                    <div class="mb-4" id="kich-hoat-khoa-hoc">
-                        <form action="{{ route('admin.khoa-hoc.xac-nhan-mo-lop', $khoaHoc->id) }}" method="POST">
-                            @csrf
-                            <button type="submit" class="btn btn-danger w-100 py-3 fw-bold shadow-sm">
-                                <i class="fas fa-play me-2"></i> KÍCH HOẠT DẠY NGAY
-                            </button>
-                            <div class="p-2 mt-2 bg-success-soft rounded border border-success-soft text-center smaller text-success fw-bold">
-                                <i class="fas fa-check-circle me-1"></i> Tất cả giảng viên đã xác nhận đồng ý
-                            </div>
-                        </form>
-                    </div>
-                @endif
-
-                {{-- CARD LỊCH TRÌNH LỚP --}}
-                <div class="vip-card mb-4 border-0 shadow-sm">
-                    <div class="vip-card-header bg-primary text-white py-3">
-                        <h5 class="vip-card-title small fw-bold text-uppercase mb-0">📅 Lịch trình lớp học</h5>
-                    </div>
-                    <div class="vip-card-body p-4">
-                        <div class="timeline-simple">
-                            <div class="timeline-item mb-4 pb-1 border-start ps-4 position-relative">
-                                <div class="timeline-point bg-info"></div>
-                                <span class="smaller text-muted text-uppercase fw-bold d-block">Ngày khai giảng</span>
-                                <span class="fw-bold fs-5">{{ optional($khoaHoc->ngay_khai_giang)->format('d/m/Y') ?: '--/--/----' }}</span>
-                            </div>
-                            <div class="timeline-item mb-4 pb-1 border-start ps-4 position-relative">
-                                <div class="timeline-point bg-success"></div>
-                                <span class="smaller text-muted text-uppercase fw-bold d-block">Ngày chính thức mở lớp</span>
-                                <span class="fw-bold fs-5">{{ optional($khoaHoc->ngay_mo_lop)->format('d/m/Y') ?: '--/--/----' }}</span>
-                            </div>
-                            <div class="timeline-item pb-1 border-start ps-4 position-relative">
-                                <div class="timeline-point bg-danger"></div>
-                                <span class="smaller text-muted text-uppercase fw-bold d-block">Dự kiến kết thúc</span>
-                                <span class="fw-bold fs-5">{{ optional($khoaHoc->ngay_ket_thuc)->format('d/m/Y') ?: '--/--/----' }}</span>
-                            </div>
+        {{-- ============== CỘT PHẢI: Sidebar ============== --}}
+        <div class="col-lg-4">
+            <div class="kh-sidebar">
+                {{-- Lịch trình --}}
+                @if($isHoatDong)
+                    <div class="kh-side-card">
+                        <div class="kh-side-head">
+                            <i class="fas fa-stream"></i>
+                            <strong>Mốc thời gian</strong>
                         </div>
-                    </div>
-                </div>
-
-                {{-- NGUỒN GỐC --}}
-                <div class="vip-card mb-4 shadow-sm border-0 bg-light">
-                    <div class="vip-card-body p-3">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-link fa-2x text-muted me-3 opacity-50"></i>
-                            <div>
-                                <span class="smaller text-muted fw-bold d-block text-uppercase">Gốc từ khóa mẫu</span>
-                                @if($khoaHoc->khoaHocMau)
-                                    <a href="{{ route('admin.khoa-hoc.show', $khoaHoc->khoa_hoc_mau_id) }}" class="fw-bold text-decoration-none">
-                                        {{ $khoaHoc->khoaHocMau->ten_khoa_hoc }}
-                                    </a>
-                                @else
-                                    <span class="fw-bold text-dark">Khóa trực tiếp</span>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            @else
-                {{-- STATS CHO KHÓA MẪU --}}
-                <div class="vip-card mb-4 shadow-sm border-0">
-                    <div class="vip-card-header py-3">
-                        <h5 class="vip-card-title small fw-bold text-uppercase mb-0">📊 Hiệu quả đào tạo</h5>
-                    </div>
-                    <div class="vip-card-body p-4 text-center">
-                        <div class="row g-0">
-                            <div class="col-12 mb-3">
-                                <div class="p-3 border rounded bg-light">
-                                    <h2 class="fw-bold text-success mb-0">{{ $khoaHoc->lop_da_mo_count }}</h2>
-                                    <span class="smaller text-muted text-uppercase fw-bold">Lần mở lớp thực tế</span>
+                        <div class="kh-side-body">
+                            <div class="kh-timeline">
+                                <div class="kh-tl-item">
+                                    <span class="kh-tl-dot bg-info"></span>
+                                    <span class="kh-tl-label">Khai giảng</span>
+                                    <strong>{{ optional($khoaHoc->ngay_khai_giang)->format('d/m/Y') ?: '—' }}</strong>
+                                </div>
+                                <div class="kh-tl-item">
+                                    <span class="kh-tl-dot bg-success"></span>
+                                    <span class="kh-tl-label">Mở lớp</span>
+                                    <strong>{{ optional($khoaHoc->ngay_mo_lop)->format('d/m/Y') ?: '—' }}</strong>
+                                </div>
+                                <div class="kh-tl-item">
+                                    <span class="kh-tl-dot bg-danger"></span>
+                                    <span class="kh-tl-label">Kết thúc</span>
+                                    <strong>{{ optional($khoaHoc->ngay_ket_thuc)->format('d/m/Y') ?: '—' }}</strong>
                                 </div>
                             </div>
                         </div>
-                        <div class="alert alert-info border-0 small text-start mb-0">
-                            <i class="fas fa-info-circle me-1"></i> Khóa mẫu giúp chuẩn hóa quy trình dạy cho tất cả các lớp sau này.
+                    </div>
+                @else
+                    {{-- Hiệu quả khóa mẫu --}}
+                    <div class="kh-side-card kh-impact-card">
+                        <div class="kh-side-head">
+                            <i class="fas fa-chart-bar"></i>
+                            <strong>Hiệu quả đào tạo</strong>
+                        </div>
+                        <div class="kh-side-body">
+                            <div class="kh-impact-num">{{ $khoaHoc->lop_da_mo_count ?? 0 }}</div>
+                            <div class="kh-impact-label">lần mở lớp đã thực hiện</div>
+                            <small class="d-block mt-3 text-muted">
+                                <i class="fas fa-circle-info"></i>
+                                Khóa mẫu giúp chuẩn hoá quy trình dạy cho mọi lớp được mở từ nó.
+                            </small>
                         </div>
                     </div>
-                </div>
-            @endif
+                @endif
 
-            {{-- GHI CHÚ NỘI BỘ --}}
-            <div class="vip-card mb-4 shadow-sm border-0">
-                <div class="vip-card-header py-3">
-                    <h5 class="vip-card-title small fw-bold text-uppercase mb-0">📝 Ghi chú nội bộ</h5>
-                </div>
-                <div class="vip-card-body p-4">
-                    <p class="text-dark small lh-base mb-0 italic">
-                        {{ $khoaHoc->ghi_chu_noi_bo ?: 'Không có ghi chú nào dành cho quản trị viên.' }}
-                    </p>
-                </div>
-            </div>
+                {{-- Nguồn gốc --}}
+                @if($isHoatDong && $khoaHoc->khoaHocMau)
+                    <div class="kh-side-card">
+                        <div class="kh-side-head">
+                            <i class="fas fa-link"></i>
+                            <strong>Khóa mẫu gốc</strong>
+                        </div>
+                        <div class="kh-side-body">
+                            <a href="{{ route('admin.khoa-hoc.show', $khoaHoc->khoa_hoc_mau_id) }}" class="kh-source-link">
+                                <i class="fas fa-clone"></i>
+                                <div>
+                                    <strong>{{ $khoaHoc->khoaHocMau->ten_khoa_hoc }}</strong>
+                                    <small>{{ $khoaHoc->khoaHocMau->ma_khoa_hoc }}</small>
+                                </div>
+                                <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                @endif
 
-            {{-- META INFO --}}
-            <div class="vip-card shadow-sm border-0 mb-4 bg-light">
-                <div class="vip-card-body p-3 smaller">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Ngày khởi tạo:</span>
-                        <span class="fw-bold">{{ $khoaHoc->created_at->format('d/m/Y H:i') }}</span>
+                {{-- Ghi chú nội bộ --}}
+                <div class="kh-side-card">
+                    <div class="kh-side-head">
+                        <i class="fas fa-pen-to-square"></i>
+                        <strong>Ghi chú nội bộ</strong>
                     </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Cập nhật cuối:</span>
-                        <span class="fw-bold">{{ $khoaHoc->updated_at->format('d/m/Y H:i') }}</span>
+                    <div class="kh-side-body">
+                        <p class="kh-note-text {{ $khoaHoc->ghi_chu_noi_bo ? '' : 'kh-note-empty' }}">
+                            {{ $khoaHoc->ghi_chu_noi_bo ?: 'Chưa có ghi chú dành cho admin.' }}
+                        </p>
                     </div>
-                    <div class="d-flex justify-content-between">
-                        <span class="text-muted">Người tạo:</span>
-                        <span class="fw-bold text-primary">{{ $khoaHoc->creator->ho_ten ?? 'Admin' }}</span>
+                </div>
+
+                {{-- Meta info --}}
+                <div class="kh-side-card kh-meta-card">
+                    <div class="kh-side-head">
+                        <i class="fas fa-info"></i>
+                        <strong>Thông tin hệ thống</strong>
+                    </div>
+                    <div class="kh-side-body">
+                        <div class="kh-meta-row">
+                            <span><i class="fas fa-calendar-plus"></i> Tạo lúc</span>
+                            <strong>{{ $khoaHoc->created_at->format('d/m/Y H:i') }}</strong>
+                        </div>
+                        <div class="kh-meta-row">
+                            <span><i class="fas fa-clock-rotate-left"></i> Cập nhật</span>
+                            <strong>{{ $khoaHoc->updated_at->format('d/m/Y H:i') }}</strong>
+                        </div>
+                        <div class="kh-meta-row">
+                            <span><i class="fas fa-user-pen"></i> Người tạo</span>
+                            <strong class="text-primary">{{ $khoaHoc->creator->ho_ten ?? 'Admin' }}</strong>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -578,10 +552,10 @@
     </div>
 </div>
 
-{{-- MODAL PHÂN CÔNG GIẢNG VIÊN --}}
-<div class="modal fade shadow" id="modalPhanCong" tabindex="-1">
+{{-- ============== Modal Phân công GV ============== --}}
+<div class="modal fade" id="modalPhanCong" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0">
+        <div class="modal-content border-0 shadow">
             <div class="modal-header bg-primary text-white border-0">
                 <h5 class="modal-title fw-bold"><i class="fas fa-user-plus me-2"></i> Phân công giảng viên</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -590,38 +564,38 @@
                 @csrf
                 <div class="modal-body p-4">
                     <div class="mb-3">
-                        <label class="small text-muted text-uppercase fw-bold mb-1">Module đang chọn:</label>
+                        <label class="small text-muted text-uppercase fw-bold mb-1">Module:</label>
                         <div id="phanCong-moduleName" class="fw-bold fs-5 text-dark"></div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Chọn giảng viên *</label>
                         <select name="giang_vien_id" class="form-select vip-form-control" required>
-                            <option value="">-- Chọn giảng viên --</option>
+                            <option value="">— Chọn giảng viên —</option>
                             @foreach($giangViens as $gv)
                                 <option value="{{ $gv->id }}">
-                                    {{ $gv->nguoiDung->ho_ten }} ({{ $gv->chuyen_nganh ?: 'Chuyên gia' }})
+                                    {{ $gv->nguoiDung->ho_ten }}{{ $gv->chuyen_nganh ? ' · ' . $gv->chuyen_nganh : '' }}
                                 </option>
                             @endforeach
                         </select>
                     </div>
                     <div class="mb-0">
                         <label class="form-label small fw-bold">Ghi chú phân công</label>
-                        <textarea name="ghi_chu" class="form-control vip-form-control" rows="3" placeholder="Ghi chú về yêu cầu dạy, tài liệu..."></textarea>
+                        <textarea name="ghi_chu" class="form-control vip-form-control" rows="3" placeholder="Yêu cầu dạy, tài liệu cần chuẩn bị..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer border-0 p-3 justify-content-center gap-2">
-                    <button type="button" class="btn btn-light px-4 fw-bold" data-bs-dismiss="modal">Hủy bỏ</button>
-                    <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm">Gửi yêu cầu</button>
+                    <button type="button" class="btn btn-light px-4 fw-bold" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary px-4 fw-bold">Gửi yêu cầu</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-{{-- MODAL THAY THẾ GIẢNG VIÊN --}}
-<div class="modal fade shadow" id="modalReplaceGV" tabindex="-1">
+{{-- ============== Modal Thay thế GV ============== --}}
+<div class="modal fade" id="modalReplaceGV" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0">
+        <div class="modal-content border-0 shadow">
             <div class="modal-header bg-warning text-white border-0">
                 <h5 class="modal-title fw-bold"><i class="fas fa-exchange-alt me-2"></i> Thay đổi giảng viên</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -629,29 +603,29 @@
             <form id="modalReplaceGVForm" method="POST" action="">
                 @csrf
                 <div class="modal-body p-4">
-                    <div class="alert alert-warning border-0 smaller mb-4">
-                        Bạn đang thay thế giảng viên cho module: <strong id="replace-moduleName"></strong>.
-                        <br>Giảng viên hiện tại: <strong id="replace-currentGV"></strong>.
+                    <div class="alert alert-warning border-0 small mb-4">
+                        Module: <strong id="replace-moduleName"></strong>
+                        <br>GV hiện tại: <strong id="replace-currentGV"></strong>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Chọn giảng viên thay thế *</label>
+                        <label class="form-label small fw-bold">GV thay thế *</label>
                         <select name="giang_vien_id" class="form-select vip-form-control" required>
-                            <option value="">-- Chọn giảng viên mới --</option>
+                            <option value="">— Chọn giảng viên mới —</option>
                             @foreach($giangViens as $gv)
                                 <option value="{{ $gv->id }}">
-                                    {{ $gv->nguoiDung->ho_ten }} ({{ $gv->chuyen_nganh ?: 'Chuyên gia' }})
+                                    {{ $gv->nguoiDung->ho_ten }}{{ $gv->chuyen_nganh ? ' · ' . $gv->chuyen_nganh : '' }}
                                 </option>
                             @endforeach
                         </select>
                     </div>
                     <div class="mb-0">
-                        <label class="form-label small fw-bold">Lý do thay đổi / Ghi chú</label>
-                        <textarea name="ghi_chu" class="form-control vip-form-control" rows="3" placeholder="Ghi chú cho GV mới..."></textarea>
+                        <label class="form-label small fw-bold">Lý do / Ghi chú</label>
+                        <textarea name="ghi_chu" class="form-control vip-form-control" rows="3"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer border-0 p-3 justify-content-center gap-2">
-                    <button type="button" class="btn btn-light px-4 fw-bold" data-bs-dismiss="modal">Hủy bỏ</button>
-                    <button type="submit" class="btn btn-warning px-4 fw-bold shadow-sm text-white">Xác nhận thay thế</button>
+                    <button type="button" class="btn btn-light px-4 fw-bold" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-warning px-4 fw-bold text-white">Xác nhận thay</button>
                 </div>
             </form>
         </div>
@@ -660,87 +634,615 @@
 
 @push('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Modal Phân công
-        const modalPC = new bootstrap.Modal(document.getElementById('modalPhanCong'));
-        const formPC = document.getElementById('modalPhanCongForm');
-        const moduleNamePC = document.getElementById('phanCong-moduleName');
-
-        document.querySelectorAll('.btn-phan-cong').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const moduleId = this.dataset.moduleId;
-                moduleNamePC.textContent = this.dataset.moduleName;
-                formPC.action = `/admin/module-hoc/${moduleId}/assign`;
-                modalPC.show();
-            });
-        });
-
-        // Modal Thay thế
-        const modalRep = new bootstrap.Modal(document.getElementById('modalReplaceGV'));
-        const formRep = document.getElementById('modalReplaceGVForm');
-        const moduleNameRep = document.getElementById('replace-moduleName');
-        const currentGVRep = document.getElementById('replace-currentGV');
-
-        document.querySelectorAll('.btn-replace-gv').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const pcId = this.dataset.pcId;
-                moduleNameRep.textContent = this.dataset.moduleName;
-                currentGVRep.textContent = this.dataset.currentGv;
-                formRep.action = `/admin/phan-cong/${pcId}/replace`;
-                modalRep.show();
-            });
+document.addEventListener('DOMContentLoaded', function() {
+    // Modal phân công
+    const modalPC = new bootstrap.Modal(document.getElementById('modalPhanCong'));
+    const formPC = document.getElementById('modalPhanCongForm');
+    const moduleNamePC = document.getElementById('phanCong-moduleName');
+    document.querySelectorAll('.btn-phan-cong').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const moduleId = this.dataset.moduleId;
+            moduleNamePC.textContent = this.dataset.moduleName;
+            formPC.action = `/admin/module-hoc/${moduleId}/assign`;
+            modalPC.show();
         });
     });
+
+    // Modal thay thế GV
+    const modalRep = new bootstrap.Modal(document.getElementById('modalReplaceGV'));
+    const formRep = document.getElementById('modalReplaceGVForm');
+    const moduleNameRep = document.getElementById('replace-moduleName');
+    const currentGVRep = document.getElementById('replace-currentGV');
+    document.querySelectorAll('.btn-replace-gv').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const pcId = this.dataset.pcId;
+            moduleNameRep.textContent = this.dataset.moduleName;
+            currentGVRep.textContent = this.dataset.currentGv;
+            formRep.action = `/admin/phan-cong/${pcId}/replace`;
+            modalRep.show();
+        });
+    });
+
+    // Auto-color avatar GV theo ID
+    const gradients = [
+        'linear-gradient(135deg, #4361ee 0%, #2f46c9 100%)',
+        'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+        'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+        'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)',
+        'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+        'linear-gradient(135deg, #db2777 0%, #be185d 100%)',
+    ];
+    document.querySelectorAll('.kh-gv-avatar[data-gv-id]').forEach(el => {
+        const id = parseInt(el.dataset.gvId, 10) || 0;
+        el.style.background = gradients[id % gradients.length];
+    });
+});
 </script>
 @endpush
 
+@include('pages.admin.partials._admin-page-styles')
+
 <style>
+    /* ===== Welcome banner — variant cho khóa hoạt động vs mẫu ===== */
+    .kh-welcome.is-mau {
+        background: linear-gradient(135deg, #4361ee 0%, #1d4ed8 52%, #1e40af 100%) !important;
+        box-shadow: 0 16px 36px rgba(67, 97, 238, 0.24) !important;
+    }
+    .kh-welcome.is-hoat-dong {
+        background: linear-gradient(135deg, #4361ee 0%, #1d4ed8 50%, #2f46c9 100%) !important;
+        box-shadow: 0 16px 36px rgba(67, 97, 238, 0.24) !important;
+    }
+
+    .kh-tag-row {
+        display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+        flex-wrap: wrap;
+    }
+
+    .kh-loai-badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 12px;
+        background: rgba(255,255,255,0.2);
+        border: 1px solid rgba(255,255,255,0.35);
+        backdrop-filter: blur(6px);
+        color: #fff;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 1px;
+        border-radius: 999px;
+    }
+
+    .kh-status-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 10px;
+        background: rgba(255,255,255,0.14);
+        color: #fff;
+        font-size: 0.72rem;
+        font-weight: 700;
+        border-radius: 999px;
+    }
+    .kh-status-badge i { font-size: 0.55rem; opacity: 0.85; }
+
+    .apx-welcome.kh-welcome p {
+        display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+        font-size: 0.85rem;
+    }
+    .apx-welcome.kh-welcome p i { color: #fef3c7; margin-right: 4px; }
+    .apx-welcome.kh-welcome p code { background: rgba(255,255,255,0.18); color: #fff; padding: 1px 8px; border-radius: 5px; font-size: 0.82rem; }
+    .kh-sep { opacity: 0.5; }
+
+    /* Action buttons — đặc thù cho khóa */
+    .btn-create-class {
+        position: relative;
+        background: linear-gradient(135deg, #4361ee 0%, #1d4ed8 100%) !important;
+        border: 0 !important;
+        color: #fff !important;
+        overflow: hidden;
+    }
+    .btn-create-class:hover {
+        background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 14px 30px rgba(67, 97, 238, 0.36);
+        color: #fff !important;
+    }
+
+    .btn-activate-class {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+        border: 0 !important;
+        color: #fff !important;
+    }
+    .btn-activate-class:hover {
+        background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 14px 30px rgba(245, 158, 11, 0.4);
+        color: #fff !important;
+    }
+
+    .kh-detail-page .apx-welcome-cta .btn-light:not(.disabled) {
+        color: #4361ee !important;
+    }
+
+    .kh-detail-page .btn-success:not(.btn-activate-class),
+    .kh-detail-page .btn-info {
+        background: linear-gradient(135deg, #4361ee 0%, #1d4ed8 100%) !important;
+        border-color: transparent !important;
+        color: #fff !important;
+        box-shadow: 0 8px 18px rgba(67, 97, 238, 0.2);
+    }
+
+    .kh-detail-page .btn-success:not(.btn-activate-class):hover,
+    .kh-detail-page .btn-info:hover {
+        background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%) !important;
+        color: #fff !important;
+        transform: translateY(-1px);
+        box-shadow: 0 12px 24px rgba(67, 97, 238, 0.28);
+    }
+
+    /* ===== Info card — Section 1 ===== */
+    .kh-info-card {
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        gap: 20px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px;
+    }
+
+    .kh-info-image {
+        border-radius: 10px;
+        overflow: hidden;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        aspect-ratio: 4/3;
+    }
+    .kh-info-image img { width: 100%; height: 100%; object-fit: cover; }
+
+    .kh-info-body { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+    .kh-label {
+        display: inline-block;
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+
+    .kh-desc p { margin: 0; color: #0f172a; line-height: 1.6; font-size: 0.9rem; }
+
+    .kh-info-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        padding-top: 12px;
+        border-top: 1px dashed #e2e8f0;
+    }
+
+    .kh-info-stat { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .kh-info-stat strong { font-size: 0.95rem; font-weight: 800; color: #0f172a; }
+
+    .kh-detail-collapse { margin-top: 6px; }
+    .kh-detail-collapse summary {
+        list-style: none; cursor: pointer;
+        padding: 8px 12px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        display: flex; align-items: center; gap: 8px;
+        font-size: 0.85rem;
+        color: #1d4ed8;
+        font-weight: 700;
+    }
+    .kh-detail-collapse summary::-webkit-details-marker { display: none; }
+    .kh-detail-collapse summary > i:first-child { color: #1d4ed8; }
+    .kh-collapse-toggle { margin-left: auto; transition: transform 0.25s ease; font-size: 0.72rem; }
+    .kh-detail-collapse[open] .kh-collapse-toggle { transform: rotate(180deg); }
+    .kh-detail-content {
+        padding: 12px 14px; margin-top: 8px;
+        background: #f8fafc; border-radius: 8px;
+        font-size: 0.88rem; line-height: 1.7; color: #334155;
+    }
+
+    /* ===== Mini cards — Section 2 ===== */
+    .kh-mini-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px;
+        height: 100%;
+        transition: all 0.2s ease;
+    }
+    .kh-mini-card:hover { box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06); }
+
+    .kh-mini-head {
+        display: flex; align-items: center; gap: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px dashed #e2e8f0;
+        margin-bottom: 12px;
+    }
+    .kh-mini-icon {
+        width: 38px; height: 38px;
+        border-radius: 10px;
+        display: grid; place-items: center;
+        font-size: 1rem;
+        flex-shrink: 0;
+        background: #eef2ff !important;
+        color: #4361ee !important;
+    }
+    .kh-mini-head > div { flex: 1; min-width: 0; }
+    .kh-mini-head strong { display: block; font-size: 0.95rem; color: #0f172a; }
+    .kh-mini-head small { display: block; color: #64748b; font-size: 0.74rem; }
+
+    .kh-mini-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        text-align: center;
+        gap: 8px;
+    }
+    .kh-mini-stat strong { display: block; font-size: 1.4rem; font-weight: 800; line-height: 1; }
+    .kh-mini-stat strong.text-success,
+    .kh-mini-stat strong.text-primary { color: #4361ee !important; }
+    .kh-mini-stat small { display: block; font-size: 0.7rem; color: #64748b; font-weight: 600; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .kh-mini-stat:nth-child(2) { border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; }
+
+    .kh-mini-progress { padding: 4px 0; }
+    .kh-mini-progress .progress-bar.bg-info {
+        background: linear-gradient(135deg, #4361ee 0%, #1d4ed8 100%) !important;
+    }
+    .kh-mini-progress .badge.bg-success {
+        background: #4361ee !important;
+        color: #fff !important;
+    }
+
+    /* ===== Module list — Section 3 ===== */
+    .kh-module-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .kh-module-row {
+        display: grid;
+        grid-template-columns: auto 1fr auto auto;
+        gap: 14px;
+        align-items: center;
+        padding: 14px 16px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+    }
+    .kh-module-row:hover {
+        border-color: #93c5fd;
+        box-shadow: 0 8px 20px rgba(29, 78, 216, 0.08);
+        transform: translateX(2px);
+    }
+
+    .kh-module-num {
+        flex-shrink: 0;
+        padding: 6px 12px;
+        background: linear-gradient(135deg, #1d4ed8 0%, #2f46c9 100%);
+        color: #fff;
+        border-radius: 8px;
+        font-size: 0.78rem;
+        font-weight: 900;
+        letter-spacing: 0.5px;
+        box-shadow: 0 4px 10px rgba(29, 78, 216, 0.25);
+        min-width: 50px;
+        text-align: center;
+    }
+
+    .kh-module-info { min-width: 0; }
+    .kh-module-name {
+        display: block;
+        font-size: 0.95rem;
+        color: #0f172a;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+    .kh-module-meta {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 0.75rem; color: #64748b; font-weight: 600;
+        flex-wrap: wrap;
+    }
+    .kh-module-meta i { color: #1d4ed8; margin-right: 3px; }
+    .kh-module-meta .badge { font-size: 0.68rem; padding: 2px 8px; }
+    .dot-sep { opacity: 0.4; }
+
+    .kh-module-desc {
+        margin: 6px 0 0;
+        font-size: 0.78rem;
+        color: #94a3b8;
+        font-style: italic;
+        line-height: 1.4;
+    }
+
+    .kh-module-gv {
+        display: flex; align-items: center; gap: 10px;
+        padding: 6px 10px;
+        background: #f8fafc;
+        border-radius: 10px;
+        min-width: 220px;
+    }
+
+    .kh-gv-avatar {
+        width: 32px; height: 32px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #4361ee 0%, #2f46c9 100%);
+        color: #fff;
+        display: grid; place-items: center;
+        font-weight: 800;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+    }
+
+    .kh-gv-info { flex: 1; min-width: 0; }
+    .kh-gv-info strong {
+        display: block;
+        font-size: 0.82rem; color: #0f172a; font-weight: 700;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .kh-gv-info small {
+        display: block;
+        font-size: 0.7rem; color: #64748b; font-weight: 600;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .kh-gv-status {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 3px 10px;
+        font-size: 0.68rem; font-weight: 700;
+        border-radius: 999px;
+        flex-shrink: 0;
+    }
+    .kh-gv-status.status-success { background: #dcfce7; color: #16a34a; }
+    .kh-gv-status.status-warning { background: #fef3c7; color: #c2410c; }
+    .kh-gv-status.status-danger  { background: #fee2e2; color: #b91c1c; }
+
+    .kh-gv-empty {
+        padding: 8px 12px;
+        background: #fef3c7;
+        color: #c2410c;
+        border-radius: 8px;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+    .kh-gv-empty i { margin-right: 4px; }
+
+    .kh-module-actions {
+        display: flex; gap: 4px;
+        flex-shrink: 0;
+    }
+
+    .kh-action-btn {
+        width: 32px; height: 32px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        color: #64748b;
+        display: grid; place-items: center;
+        font-size: 0.78rem;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    .kh-action-btn:hover { border-color: #1d4ed8; color: #1d4ed8; transform: translateY(-1px); }
+    .kh-action-btn.warning:hover { border-color: #d97706; color: #d97706; }
+    .kh-action-btn.danger:hover { border-color: #dc2626; color: #dc2626; }
+    .kh-action-btn.primary { border-color: #1d4ed8; color: #1d4ed8; background: #eff6ff; }
+    .kh-action-btn.primary:hover { background: #1d4ed8; color: #fff; }
+
+    /* Empty state */
+    .kh-empty-state {
+        text-align: center;
+        padding: 40px 24px;
+        background: #fff;
+        border: 1px dashed #cbd5e1;
+        border-radius: 12px;
+    }
+    .kh-empty-state i { font-size: 2.5rem; color: #cbd5e1; margin-bottom: 12px; }
+    .kh-empty-state strong { display: block; font-size: 1rem; color: #0f172a; margin-bottom: 4px; }
+    .kh-empty-state p { font-size: 0.85rem; color: #94a3b8; margin: 0 0 14px; }
+
+    /* ===== Schedule details per module — Section 4 ===== */
+    .kh-module-schedule {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        margin-bottom: 12px;
+        overflow: hidden;
+    }
+    .kh-module-schedule[open] { border-color: #93c5fd; box-shadow: 0 6px 16px rgba(29, 78, 216, 0.05); }
+
+    .kh-module-schedule summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 12px 16px;
+        display: flex; align-items: center; gap: 12px;
+        background: #f8fafc;
+        border-bottom: 1px solid transparent;
+        transition: all 0.2s ease;
+    }
+    .kh-module-schedule summary::-webkit-details-marker { display: none; }
+    .kh-module-schedule[open] summary { border-bottom-color: #e2e8f0; background: #eff6ff; }
+    .kh-module-schedule summary:hover { background: #eff6ff; }
+
+    .kh-mod-tag {
+        padding: 4px 10px;
+        background: linear-gradient(135deg, #1d4ed8 0%, #2f46c9 100%);
+        color: #fff;
+        font-size: 0.7rem;
+        font-weight: 800;
+        border-radius: 6px;
+        letter-spacing: 0.5px;
+    }
+    .kh-module-schedule summary strong { font-size: 0.92rem; color: #0f172a; flex: 1; min-width: 0; }
+    .kh-module-schedule summary small { color: #64748b; font-size: 0.75rem; font-weight: 600; }
+    .kh-module-schedule[open] .kh-collapse-toggle { transform: rotate(180deg); }
+
+    .kh-schedule-table { font-size: 0.85rem; }
+    .kh-schedule-table thead { background: #f8fafc; font-size: 0.7rem; text-transform: uppercase; color: #64748b; }
+    .kh-schedule-table th { padding: 8px 10px; }
+    .kh-schedule-table td { padding: 10px; }
+
+    /* ===== Sidebar phải ===== */
+    .kh-sidebar {
+        position: sticky; top: 20px;
+        display: flex; flex-direction: column; gap: 14px;
+    }
+
+    .kh-side-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .kh-side-head {
+        display: flex; align-items: center; gap: 10px;
+        padding: 12px 16px;
+        background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 0.85rem;
+    }
+    .kh-side-head i:first-child {
+        width: 24px; height: 24px;
+        border-radius: 6px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        display: grid; place-items: center;
+        font-size: 0.78rem;
+    }
+    .kh-side-head strong { color: #0f172a; font-weight: 800; }
+
+    .kh-side-body { padding: 16px; }
+
+    /* Timeline */
+    .kh-timeline {
+        position: relative;
+        padding-left: 14px;
+    }
+    .kh-timeline::before {
+        content: '';
+        position: absolute;
+        left: 4px; top: 8px; bottom: 8px;
+        width: 2px;
+        background: linear-gradient(180deg, #93c5fd 0%, #4361ee 50%, #1d4ed8 100%);
+    }
+    .kh-tl-item {
+        position: relative;
+        padding: 6px 0 14px;
+    }
+    .kh-tl-item:last-child { padding-bottom: 0; }
+    .kh-tl-dot {
+        position: absolute;
+        left: -14px; top: 8px;
+        width: 10px; height: 10px;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        box-shadow: 0 0 0 2px #e2e8f0;
+    }
+    .kh-tl-dot.bg-info,
+    .kh-tl-dot.bg-success,
+    .kh-tl-dot.bg-danger { background: #4361ee; }
+    .kh-tl-label { display: block; font-size: 0.7rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .kh-tl-item strong { display: block; font-size: 1.05rem; color: #0f172a; font-weight: 800; margin-top: 2px; }
+
+    /* Impact card */
+    .kh-impact-card .kh-side-body { text-align: center; padding: 24px 16px; }
+    .kh-impact-num {
+        font-size: 2.6rem;
+        font-weight: 900;
+        color: #4361ee;
+        line-height: 1;
+        background: linear-gradient(135deg, #4361ee 0%, #1d4ed8 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .kh-impact-label { font-size: 0.78rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+
+    /* Source link */
+    .kh-source-link {
+        display: flex; align-items: center; gap: 12px;
+        padding: 12px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        text-decoration: none;
+        color: #0f172a;
+        transition: all 0.2s ease;
+    }
+    .kh-source-link:hover {
+        background: #eff6ff;
+        border-color: #93c5fd;
+        color: #0f172a;
+        transform: translateX(2px);
+    }
+    .kh-source-link > i:first-child {
+        width: 36px; height: 36px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #4361ee 0%, #1d4ed8 100%);
+        color: #fff;
+        display: grid; place-items: center;
+        flex-shrink: 0;
+    }
+    .kh-source-link > div { flex: 1; min-width: 0; }
+    .kh-source-link strong { display: block; font-size: 0.88rem; color: #0f172a; }
+    .kh-source-link small { display: block; font-size: 0.72rem; color: #64748b; font-weight: 600; }
+    .kh-source-link > i:last-child { color: #94a3b8; }
+
+    /* Note text */
+    .kh-note-text {
+        font-size: 0.85rem;
+        color: #334155;
+        line-height: 1.6;
+        margin: 0;
+    }
+    .kh-note-empty { color: #94a3b8; font-style: italic; }
+
+    /* Meta rows */
+    .kh-meta-row {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 8px 0;
+        font-size: 0.82rem;
+        border-bottom: 1px dashed #f1f5f9;
+    }
+    .kh-meta-row:last-child { border-bottom: 0; }
+    .kh-meta-row span { color: #64748b; font-weight: 600; }
+    .kh-meta-row span i { color: #1d4ed8; margin-right: 4px; font-size: 0.78rem; }
+    .kh-meta-row strong { color: #0f172a; font-weight: 800; }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 991.98px) {
+        .kh-info-card { grid-template-columns: 1fr; }
+        .kh-info-image { max-width: 320px; margin: 0 auto; }
+        .kh-info-stats { grid-template-columns: repeat(2, 1fr); }
+        .kh-module-row {
+            grid-template-columns: auto 1fr;
+            gap: 10px;
+        }
+        .kh-module-gv, .kh-module-actions {
+            grid-column: 1 / -1;
+            margin-top: 6px;
+        }
+        .kh-sidebar { position: static; }
+    }
+
+    @media (max-width: 720px) {
+        .kh-info-stats { grid-template-columns: 1fr 1fr; gap: 10px; }
+        .apx-welcome.kh-welcome p { font-size: 0.78rem; }
+    }
+
+    /* Bootstrap subtle backgrounds (đảm bảo có) */
+    .bg-info-subtle    { background-color: rgba(8, 145, 178, 0.12); }
+    .bg-warning-subtle { background-color: rgba(217, 119, 6, 0.12); }
+    .bg-success-subtle { background-color: rgba(22, 163, 74, 0.12); }
+    .bg-danger-subtle  { background-color: rgba(220, 38, 38, 0.12); }
     .bg-primary-soft { background-color: rgba(13, 110, 253, 0.1); }
     .bg-success-soft { background-color: rgba(25, 135, 84, 0.1); }
     .bg-warning-soft { background-color: rgba(255, 193, 7, 0.1); }
-    .bg-info-soft { background-color: rgba(13, 202, 240, 0.1); }
     .bg-secondary-soft { background-color: rgba(108, 117, 125, 0.1); }
-    .shadow-xs { box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.05) !important; }
-    .timeline-point {
-        position: absolute; left: -5px; top: 0;
-        width: 10px; height: 10px; border-radius: 50%;
-    }
-    .avatar-mini { font-size: 14px; }
-    .object-fit-cover { object-fit: cover; }
-    .italic { font-style: italic; }
-
-    /* Split-Scroll Layout cho Desktop */
-    @media (min-width: 992px) {
-        body {
-            overflow: hidden; /* Ẩn thanh cuộn chính của trang */
-        }
-        .main-content-wrapper {
-            height: calc(100vh - 180px); /* Tính toán chiều cao còn lại của màn hình */
-            margin-top: 0;
-        }
-        .scroll-column {
-            height: 100%;
-            overflow-y: auto;
-            scrollbar-width: thin; /* Cho Firefox */
-            padding-bottom: 50px;
-        }
-        /* Tùy chỉnh thanh cuộn cho Chrome/Safari/Edge */
-        .scroll-column::-webkit-scrollbar {
-            width: 6px;
-        }
-        .scroll-column::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        .scroll-column::-webkit-scrollbar-thumb {
-            background: #ccc;
-            border-radius: 10px;
-        }
-        .scroll-column::-webkit-scrollbar-thumb:hover {
-            background: #999;
-        }
-    }
+    .border-info-subtle { border-color: rgba(8, 145, 178, 0.3) !important; }
+    .border-warning-subtle { border-color: rgba(217, 119, 6, 0.3) !important; }
+    .border-success-subtle { border-color: rgba(22, 163, 74, 0.3) !important; }
 </style>
 @endsection
-
-
-

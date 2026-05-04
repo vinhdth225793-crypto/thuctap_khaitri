@@ -56,7 +56,9 @@ class AdminController extends Controller
             'tong_module'         => ModuleHoc::count(),
             'module_chua_co_gv'   => ModuleHoc::whereDoesntHave('phanCongGiangViens', function($q) {
                                         $q->whereIn('trang_thai', ['da_nhan', 'cho_xac_nhan']);
-                                     })->count(),
+                                     })
+                                     ->whereHas('khoaHoc', fn($q) => $q->where('loai', 'hoat_dong'))
+                                     ->count(),
             'phan_cong_cho_xn'    => PhanCongModuleGiangVien::where('trang_thai', 'cho_xac_nhan')->count(),
             'tai_khoan_cho_duyet'  => TaiKhoanChoPheDuyet::where('trang_thai', 'cho_phe_duyet')->count(),
             'yeu_cau_hoc_vien_cho_duyet' => YeuCauHocVien::where('trang_thai', 'cho_duyet')->count(),
@@ -93,7 +95,8 @@ class AdminController extends Controller
             ->whereDoesntHave('phanCongGiangViens', function($q) {
                 $q->whereIn('trang_thai', ['da_nhan', 'cho_xac_nhan']);
             })
-            ->where('trang_thai', true) // Ch? l?y module dang active
+            ->whereHas('khoaHoc', fn($q) => $q->where('loai', 'hoat_dong'))
+            ->where('trang_thai', true)
             ->take(5)
             ->get();
 
@@ -536,6 +539,56 @@ class AdminController extends Controller
         ];
 
         return view('pages.admin.quan-ly-tai-khoan.giang-vien.index', compact('giangVien', 'teacherSummary'));
+    }
+
+    /**
+     * Hồ sơ cá nhân của admin (đăng nhập)
+     */
+    public function profile()
+    {
+        $user = auth()->user();
+        return view('pages.admin.profile', compact('user'));
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $user = auth()->user();
+
+        $validator = Validator::make($request->all(), [
+            'ho_ten'        => 'required|string|max:255',
+            'email'         => 'required|email|unique:nguoi_dung,email,' . $user->ma_nguoi_dung . ',ma_nguoi_dung',
+            'so_dien_thoai' => 'nullable|string|max:15',
+            'ngay_sinh'     => 'nullable|date|before:today',
+            'dia_chi'       => 'nullable|string|max:500',
+            'anh_dai_dien'  => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'mat_khau'      => 'nullable|min:8|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        $payload = $request->only(['ho_ten', 'email', 'so_dien_thoai', 'ngay_sinh', 'dia_chi']);
+
+        if ($request->boolean('xoa_anh_dai_dien') && $user->anh_dai_dien) {
+            Storage::disk('public')->delete($user->anh_dai_dien);
+            $payload['anh_dai_dien'] = null;
+        }
+
+        if ($request->hasFile('anh_dai_dien')) {
+            if ($user->anh_dai_dien) {
+                Storage::disk('public')->delete($user->anh_dai_dien);
+            }
+            $payload['anh_dai_dien'] = $request->file('anh_dai_dien')->store('avatars', 'public');
+        }
+
+        if ($request->filled('mat_khau')) {
+            $payload['mat_khau'] = Hash::make($request->mat_khau);
+        }
+
+        $user->update($payload);
+
+        return redirect()->route('admin.profile')->with('success', 'Đã cập nhật hồ sơ cá nhân.');
     }
 
     /**
@@ -1143,13 +1196,20 @@ class AdminController extends Controller
 
         $taiKhoan->update(['trang_thai' => 'da_phe_duyet']);
 
-        $redirectUrl = $taiKhoan->vai_tro === 'giang_vien' 
-            ? route('admin.giang-vien.index') 
+        try {
+            app(\App\Services\NotificationService::class)->notifyAccountDecided(
+                (int) $nguoiDung->ma_nguoi_dung,
+                true
+            );
+        } catch (\Throwable $e) { report($e); }
+
+        $redirectUrl = $taiKhoan->vai_tro === 'giang_vien'
+            ? route('admin.giang-vien.index')
             : route('admin.hoc-vien.index');
 
         return response()->json([
             'success' => true,
-            'message' => '�� ph� duy?t t�i kho?n ' . $taiKhoan->ho_ten . '.',
+            'message' => 'Đã phê duyệt tài khoản ' . $taiKhoan->ho_ten . '.',
             'redirect' => $redirectUrl,
             'vai_tro' => $taiKhoan->vai_tro
         ]);

@@ -1,361 +1,429 @@
-﻿@extends('layouts.app', ['title' => 'Chi tiết bài kiểm tra'])
+@extends('layouts.app', ['title' => 'Chi tiết bài kiểm tra'])
 
 @section('content')
-<div class="container-fluid">
-    <!-- Header -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-        <div>
-            <h2 class="fw-bold mb-1"><i class="fas fa-file-invoice me-2 text-primary"></i>Chi tiết đề thi</h2>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('admin.kiem-tra-online.phe-duyet.index') }}">Phê duyệt đề thi</a></li>
-                    <li class="breadcrumb-item active">Chi tiết đề</li>
-                </ol>
-            </nav>
+@php
+    $isFreeEssayApproval = $baiKiemTra->content_mode_key === 'tu_luan_tu_do';
+    $approvalQuestionCount = $isFreeEssayApproval && filled($baiKiemTra->mo_ta)
+        ? 1
+        : $baiKiemTra->chiTietCauHois->count();
+
+    $submissionCount = $baiKiemTra->baiLams->count();
+    $completedSubmissionCount = $baiKiemTra->baiLams->where('trang_thai', 'hoan_thanh')->count();
+    $gradedSubmissionCount = $baiKiemTra->baiLams->filter(fn ($baiLam) => $baiLam->diem_so !== null)->count();
+
+    $approvalStatusClass = match($baiKiemTra->trang_thai_duyet) {
+        'da_duyet' => 'is-success',
+        'cho_duyet' => 'is-warning',
+        'tu_choi' => 'is-danger',
+        default => 'is-secondary',
+    };
+
+    $publishStatusClass = match($baiKiemTra->trang_thai_phat_hanh) {
+        'phat_hanh' => 'is-success',
+        'dong' => 'is-danger',
+        default => 'is-secondary',
+    };
+
+    $contentStatusClass = $isFreeEssayApproval ? 'is-info' : 'is-blue';
+@endphp
+
+<div class="container-fluid admin-page-x approval-page">
+    <div class="apx-welcome approval-welcome">
+        <div class="apx-welcome-icon"><i class="fas fa-file-invoice"></i></div>
+        <div class="apx-welcome-text">
+            <div class="approval-tag-row">
+                <span class="approval-chip">
+                    <i class="fas fa-shield-alt"></i> PHÊ DUYỆT ĐỀ THI
+                </span>
+                <span class="approval-status-pill {{ $approvalStatusClass }}">
+                    <i class="fas fa-circle-check"></i> {{ $baiKiemTra->trang_thai_duyet_label }}
+                </span>
+                <span class="approval-status-pill {{ $publishStatusClass }}">
+                    <i class="fas fa-paper-plane"></i> {{ $baiKiemTra->trang_thai_phat_hanh_label }}
+                </span>
+                <span class="approval-status-pill {{ $contentStatusClass }}">
+                    <i class="fas {{ $isFreeEssayApproval ? 'fa-pen-nib' : 'fa-list-check' }}"></i> {{ $baiKiemTra->loai_noi_dung_label }}
+                </span>
+            </div>
+            <h4>{{ $baiKiemTra->tieu_de }}</h4>
+            <p>
+                <span><i class="fas fa-graduation-cap"></i> {{ $baiKiemTra->khoaHoc->ten_khoa_hoc ?? 'Chưa gán khóa học' }}</span>
+                <span class="approval-sep">·</span>
+                <span><i class="fas fa-cubes"></i> {{ $baiKiemTra->moduleHoc->ten_module ?? 'Dùng chung toàn khóa' }}</span>
+                <span class="approval-sep">·</span>
+                <span><i class="fas fa-user-tie"></i> {{ $baiKiemTra->nguoiTao->ho_ten ?? 'N/A' }}</span>
+                <span class="approval-sep">·</span>
+                <span><i class="far fa-clock"></i> {{ $baiKiemTra->thoi_gian_lam_bai }} phút</span>
+            </p>
         </div>
-        <a href="{{ route('admin.kiem-tra-online.phe-duyet.index') }}" class="btn btn-light border-0 shadow-sm rounded-pill px-4 fw-bold">
-            <i class="fas fa-arrow-left me-2"></i> Quay lại danh sách
-        </a>
+        <div class="apx-welcome-cta">
+            <a href="{{ route('admin.kiem-tra-online.phe-duyet.index') }}" class="apx-view-toggle">
+                <i class="fas fa-arrow-left"></i> <span>Về danh sách duyệt</span>
+            </a>
+        </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success border-0 shadow-sm rounded-4 mb-4">
-            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+    @include('components.alert')
+
+    <section class="apx-section">
+        <header class="apx-section-head">
+            <div class="apx-section-title">
+                <span class="apx-section-num">1</span>
+                <div>
+                    <h2><i class="fas fa-chart-pie"></i> Tổng quan đề thi</h2>
+                    <p>Nhìn nhanh cấu trúc đề, mức độ hoàn thiện và lượng bài làm để quyết định duyệt hoặc yêu cầu chỉnh sửa.</p>
+                </div>
+            </div>
+            <div class="apx-section-meta">
+                <span class="apx-meta-pill"><strong>{{ $completedSubmissionCount }}</strong> bài đã nộp</span>
+                <span class="apx-meta-pill"><strong>{{ $gradedSubmissionCount }}</strong> bài đã chấm</span>
+            </div>
+        </header>
+
+        <div class="apx-section-body">
+            <div class="row g-3">
+                <div class="col-md-3 col-6">
+                    <div class="apx-stat tone-primary">
+                        <div class="aps-icon"><i class="fas fa-list-ol"></i></div>
+                        <div class="aps-text">
+                            <strong>{{ $approvalQuestionCount }}</strong>
+                            <small>{{ $isFreeEssayApproval ? 'Nội dung chính' : 'Câu hỏi' }}</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="apx-stat tone-success">
+                        <div class="aps-icon"><i class="fas fa-star"></i></div>
+                        <div class="aps-text">
+                            <strong>{{ number_format((float) $baiKiemTra->tong_diem, 2) }}</strong>
+                            <small>Tổng điểm</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="apx-stat tone-warning">
+                        <div class="aps-icon"><i class="fas fa-hourglass-half"></i></div>
+                        <div class="aps-text">
+                            <strong>{{ $baiKiemTra->thoi_gian_lam_bai }}</strong>
+                            <small>Phút làm bài</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="apx-stat tone-info">
+                        <div class="aps-icon"><i class="fas fa-file-signature"></i></div>
+                        <div class="aps-text">
+                            <strong>{{ $submissionCount }}</strong>
+                            <small>Lượt làm bài</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    @endif
+    </section>
 
     <div class="row g-4">
-        <!-- Sidebar: Information & Actions -->
-        <div class="col-lg-4">
-            <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
-                <div class="card-header bg-primary text-white py-3">
-                    <h5 class="mb-0 fw-bold"><i class="fas fa-info-circle me-2"></i>Thông tin chung</h5>
-                </div>
-                <div class="card-body p-4">
-                    <div class="mb-4">
-                        <h6 class="text-dark fw-bold mb-3">{{ $baiKiemTra->tieu_de }}</h6>
-                        <div class="d-flex flex-column gap-3">
-                            <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
-                                <span class="text-muted small">Khóa học</span>
-                                <span class="fw-bold small text-end" style="max-width: 200px;">{{ $baiKiemTra->khoaHoc->ten_khoa_hoc ?? 'N/A' }}</span>
+        <div class="col-xl-4">
+            <section class="apx-section">
+                <header class="apx-section-head">
+                    <div class="apx-section-title">
+                        <span class="apx-section-num">2</span>
+                        <div>
+                            <h2><i class="fas fa-clipboard-check"></i> Thông tin và phê duyệt</h2>
+                            <p>Kiểm tra metadata, theo dõi trạng thái hiện tại và xử lý duyệt, từ chối hoặc phát hành.</p>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="apx-section-body">
+                    <div class="approval-info-card">
+                        <h3 class="approval-card-title">Thông tin chung</h3>
+                        <div class="approval-kv-list">
+                            <div class="approval-kv">
+                                <span>Khóa học</span>
+                                <strong>{{ $baiKiemTra->khoaHoc->ten_khoa_hoc ?? 'N/A' }}</strong>
                             </div>
-                            <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
-                                <span class="text-muted small">Module</span>
-                                <span class="fw-bold small text-end" style="max-width: 200px;">{{ $baiKiemTra->moduleHoc->ten_module ?? 'Dùng chung' }}</span>
+                            <div class="approval-kv">
+                                <span>Module</span>
+                                <strong>{{ $baiKiemTra->moduleHoc->ten_module ?? 'Dùng chung' }}</strong>
                             </div>
-                            <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
-                                <span class="text-muted small">Người tạo</span>
-                                <span class="badge bg-soft-primary text-primary px-2">{{ $baiKiemTra->nguoiTao->ho_ten ?? 'N/A' }}</span>
+                            <div class="approval-kv">
+                                <span>Người tạo</span>
+                                <strong>{{ $baiKiemTra->nguoiTao->ho_ten ?? 'N/A' }}</strong>
                             </div>
-                            <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
-                                <span class="text-muted small">Thời gian</span>
-                                <span class="fw-bold text-dark"><i class="far fa-clock me-1 text-muted"></i>{{ $baiKiemTra->thoi_gian_lam_bai }} phút</span>
+                            <div class="approval-kv">
+                                <span>Số lần làm bài</span>
+                                <strong>{{ $baiKiemTra->so_lan_duoc_lam }} lần</strong>
                             </div>
-                            <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
-                                <span class="text-muted small">Tổng điểm</span>
-                                <span class="fw-bold text-success fs-5">{{ number_format((float) $baiKiemTra->tong_diem, 2) }}</span>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
-                                <span class="text-muted small">Số lần làm bài</span>
-                                <span class="fw-bold text-dark">{{ $baiKiemTra->so_lan_duoc_lam }} lần</span>
+                            <div class="approval-kv">
+                                <span>Ngày tạo</span>
+                                <strong>{{ $baiKiemTra->created_at?->format('d/m/Y H:i') ?? 'N/A' }}</strong>
                             </div>
                         </div>
                     </div>
 
-                    <div class="mb-4">
-                        <label class="form-label small fw-bold text-muted text-uppercase mb-2">Trạng thái hiện tại</label>
-                        <div class="row g-2">
-                            <div class="col-6">
-                                <div class="p-3 bg-light rounded-3 text-center">
-                                    <div class="text-muted smaller mb-1">Duyệt</div>
-                                    @php
-                                        $duyetBadge = match($baiKiemTra->trang_thai_duyet) {
-                                            'da_duyet' => 'text-success',
-                                            'cho_duyet' => 'text-warning',
-                                            'tu_choi' => 'text-danger',
-                                            default => 'text-muted'
-                                        };
-                                    @endphp
-                                    <div class="fw-bold {{ $duyetBadge }}">{{ $baiKiemTra->trang_thai_duyet_label }}</div>
-                                </div>
+                    <div class="approval-info-card">
+                        <h3 class="approval-card-title">Trạng thái hiện tại</h3>
+                        <div class="approval-status-grid">
+                            <div class="approval-status-box {{ $approvalStatusClass }}">
+                                <small>Duyệt</small>
+                                <strong>{{ $baiKiemTra->trang_thai_duyet_label }}</strong>
                             </div>
-                            <div class="col-6">
-                                <div class="p-3 bg-light rounded-3 text-center">
-                                    <div class="text-muted smaller mb-1">Phát hành</div>
-                                    @php
-                                        $phatHanhBadge = match($baiKiemTra->trang_thai_phat_hanh) {
-                                            'phat_hanh' => 'text-success',
-                                            'dong' => 'text-danger',
-                                            default => 'text-muted'
-                                        };
-                                    @endphp
-                                    <div class="fw-bold {{ $phatHanhBadge }}">{{ $baiKiemTra->trang_thai_phat_hanh_label }}</div>
-                                </div>
+                            <div class="approval-status-box {{ $publishStatusClass }}">
+                                <small>Phát hành</small>
+                                <strong>{{ $baiKiemTra->trang_thai_phat_hanh_label }}</strong>
                             </div>
                         </div>
                     </div>
 
-                    <hr class="my-4">
+                    <div class="approval-action-card">
+                        <h3 class="approval-card-title">Thao tác phê duyệt</h3>
 
-                    <!-- Actions Area -->
-                    <div class="actions-area">
-                        <h6 class="fw-bold mb-3"><i class="fas fa-tasks me-2 text-primary"></i>Thao tác phê duyệt</h6>
-                        
                         @if($baiKiemTra->trang_thai_duyet === 'da_duyet')
                             <div class="mb-3">
-                                <div class="mb-3">
-                                    <label class="form-label small fw-bold text-muted">GHI CHÚ DUYỆT</label>
-                                    <textarea rows="3" class="form-control bg-light border-0" readonly>{{ $baiKiemTra->ghi_chu_duyet }}</textarea>
-                                </div>
-                                <button type="button" class="btn btn-success w-100 fw-bold py-2 rounded-3 shadow-sm" disabled>
-                                    <i class="fas fa-check-double me-2"></i> ĐÃ DUYỆT
-                                </button>
+                                <label class="approval-form-label">Ghi chú duyệt</label>
+                                <textarea rows="3" class="form-control" readonly>{{ $baiKiemTra->ghi_chu_duyet }}</textarea>
                             </div>
+                            <button type="button" class="btn btn-success w-100 fw-bold py-2 rounded-3 shadow-sm" disabled>
+                                <i class="fas fa-check-double me-2"></i> Đã duyệt đề thi
+                            </button>
                         @else
                             <form action="{{ route('admin.kiem-tra-online.phe-duyet.approve', $baiKiemTra->id) }}" method="POST" class="mb-3" onsubmit="return confirm('Bạn chắc chắn muốn duyệt đề thi này?')">
                                 @csrf
                                 <div class="mb-3">
-                                    <label class="form-label small fw-bold text-muted">GHI CHÚ DUYỆT (NẾU CÓ)</label>
-                                    <textarea name="ghi_chu_duyet" rows="3" class="form-control bg-light border-0" placeholder="Nội dung nhắn gửi đến giảng viên...">{{ old('ghi_chu_duyet', $baiKiemTra->ghi_chu_duyet) }}</textarea>
+                                    <label class="approval-form-label">Ghi chú duyệt (nếu có)</label>
+                                    <textarea name="ghi_chu_duyet"
+                                              rows="3"
+                                              class="form-control"
+                                              placeholder="Nội dung nhắn gửi đến giảng viên...">{{ old('ghi_chu_duyet', $baiKiemTra->ghi_chu_duyet) }}</textarea>
                                 </div>
                                 <button type="submit" class="btn btn-success w-100 fw-bold py-2 rounded-3 shadow-sm">
-                                    <i class="fas fa-check-circle me-2"></i> DUYỆT ĐỀ THI
+                                    <i class="fas fa-check-circle me-2"></i> Duyệt đề thi
                                 </button>
                             </form>
                         @endif
 
-                        <button class="btn btn-outline-danger w-100 fw-bold py-2 rounded-3 mb-4" data-bs-toggle="collapse" data-bs-target="#rejectCollapse">
-                            <i class="fas fa-times-circle me-2"></i> TỪ CHỐI ĐỀ THI
+                        <button class="btn btn-outline-danger w-100 fw-bold py-2 rounded-3 mb-3" data-bs-toggle="collapse" data-bs-target="#rejectCollapse">
+                            <i class="fas fa-times-circle me-2"></i> Từ chối đề thi
                         </button>
 
-                        <div class="collapse mb-4" id="rejectCollapse">
+                        <div class="collapse" id="rejectCollapse">
                             <form action="{{ route('admin.kiem-tra-online.phe-duyet.reject', $baiKiemTra->id) }}" method="POST" onsubmit="return confirm('Bạn chắc chắn muốn từ chối đề thi này?')">
                                 @csrf
-                                <div class="card card-body bg-soft-danger border-danger border-opacity-25 rounded-3 p-3">
-                                    <label class="form-label small fw-bold text-danger">LÝ DO TỪ CHỐI (BẮT BUỘC)</label>
-                                    <textarea name="ghi_chu_duyet" rows="3" class="form-control border-danger border-opacity-25 mb-3" placeholder="Nhập lý do cần sửa đổi..." required>{{ old('ghi_chu_duyet', $baiKiemTra->ghi_chu_duyet) }}</textarea>
-                                    <button type="submit" class="btn btn-danger w-100 fw-bold">XÁC NHẬN TỪ CHỐI</button>
+                                <div class="approval-reject-shell">
+                                    <label class="approval-form-label text-danger">Lý do từ chối (bắt buộc)</label>
+                                    <textarea name="ghi_chu_duyet"
+                                              rows="3"
+                                              class="form-control border-danger border-opacity-25 mb-3"
+                                              placeholder="Nhập lý do cần sửa đổi..."
+                                              required>{{ old('ghi_chu_duyet', $baiKiemTra->ghi_chu_duyet) }}</textarea>
+                                    <button type="submit" class="btn btn-danger w-100 fw-bold">
+                                        Xác nhận từ chối
+                                    </button>
                                 </div>
                             </form>
                         </div>
 
-                        <div class="d-grid gap-2 border-top pt-4">
+                        <div class="approval-action-divider">
                             @if($baiKiemTra->trang_thai_duyet === 'da_duyet' && $baiKiemTra->trang_thai_phat_hanh !== 'phat_hanh')
-                                <form action="{{ route('admin.kiem-tra-online.phe-duyet.publish', $baiKiemTra->id) }}" method="POST">
+                                <form action="{{ route('admin.kiem-tra-online.phe-duyet.publish', $baiKiemTra->id) }}" method="POST" class="mb-2">
                                     @csrf
                                     <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm rounded-3">
-                                        <i class="fas fa-paper-plane me-2"></i> PHÁT HÀNH ĐẾN HỌC VIÊN
+                                        <i class="fas fa-paper-plane me-2"></i> Phát hành đến học viên
                                     </button>
                                 </form>
                             @endif
-                            
+
                             @if($baiKiemTra->trang_thai_phat_hanh === 'phat_hanh')
-                                <form action="{{ route('admin.kiem-tra-online.phe-duyet.close', $baiKiemTra->id) }}" method="POST">
+                                <form action="{{ route('admin.kiem-tra-online.phe-duyet.close', $baiKiemTra->id) }}" method="POST" onsubmit="return confirm('Bạn muốn đóng đề thi này? Học viên sẽ không thể làm bài nữa.');">
                                     @csrf
-                                    <button type="submit" class="btn btn-dark w-100 fw-bold py-2 rounded-3 shadow-sm" onsubmit="return confirm('Bạn muốn đóng đề thi này? Học viên sẽ không thể làm bài nữa.')">
-                                        <i class="fas fa-lock me-2"></i> ĐÓNG ĐỀ THI
+                                    <button type="submit" class="btn btn-dark w-100 fw-bold py-2 rounded-3 shadow-sm">
+                                        <i class="fas fa-lock me-2"></i> Đóng đề thi
                                     </button>
                                 </form>
                             @endif
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
         </div>
 
-        <!-- Main Area: Questions and History -->
-        <div class="col-lg-8">
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
-                @php
-                    $isFreeEssayApproval = $baiKiemTra->content_mode_key === 'tu_luan_tu_do';
-                    $approvalQuestionCount = $isFreeEssayApproval && filled($baiKiemTra->mo_ta)
-                        ? 1
-                        : $baiKiemTra->chiTietCauHois->count();
-                @endphp
-                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold text-dark">
-                        <i class="fas {{ $isFreeEssayApproval ? 'fa-pen-nib' : 'fa-list-ol' }} me-2 text-primary"></i>
-                        {{ $isFreeEssayApproval ? 'Đề tự luận tự do' : 'Danh sách câu hỏi (' . $approvalQuestionCount . ')' }}
-                    </h5>
-                    <span class="badge bg-soft-info text-info rounded-pill px-3 fw-bold">{{ $baiKiemTra->loai_noi_dung_label }}</span>
-                </div>
-                <div class="card-body p-4 question-list-scroll">
-                    @if($baiKiemTra->content_mode_key === 'tu_luan_tu_do')
-                        <div class="border rounded-4 p-4 bg-light mb-4">
-                            <div class="d-flex align-items-center gap-3 mb-3">
-                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; flex-shrink: 0;">
+        <div class="col-xl-8">
+            <section class="apx-section">
+                <header class="apx-section-head">
+                    <div class="apx-section-title">
+                        <span class="apx-section-num">3</span>
+                        <div>
+                            <h2><i class="fas {{ $isFreeEssayApproval ? 'fa-pen-nib' : 'fa-list-ol' }}"></i> Nội dung đề thi</h2>
+                            <p>Xem nhanh cấu trúc câu hỏi, đáp án đúng và độ khó trước khi ra quyết định phê duyệt.</p>
+                        </div>
+                    </div>
+                    <div class="apx-section-meta">
+                        <span class="apx-meta-pill"><strong>{{ $approvalQuestionCount }}</strong> {{ $isFreeEssayApproval ? 'nội dung' : 'câu hỏi' }}</span>
+                    </div>
+                </header>
+
+                <div class="apx-section-body">
+                    @if($isFreeEssayApproval)
+                        <div class="approval-free-essay">
+                            <div class="approval-free-head">
+                                <div class="approval-free-icon">
                                     <i class="fas fa-pen-nib"></i>
                                 </div>
-                                <h5 class="fw-bold mb-0 text-primary">Nội dung đề tự luận tự do</h5>
-                            </div>
-                            
-                            <div class="p-4 bg-white rounded-4 border shadow-sm mb-3">
-                                <label class="form-label small fw-bold text-muted text-uppercase mb-2">ĐỀ BÀI / HƯỚNG DẪN</label>
-                                <div class="fs-6 text-dark" style="white-space: pre-wrap; line-height: 1.8;">{!! nl2br(e($baiKiemTra->mo_ta ?: 'Không có nội dung hướng dẫn.')) !!}</div>
+                                <div>
+                                    <h3>Nội dung đề tự luận tự do</h3>
+                                    <p>Đây là đề tự luận không tách thành danh sách câu hỏi trắc nghiệm.</p>
+                                </div>
                             </div>
 
-                            <div class="alert alert-soft-success border-0 rounded-4 d-flex align-items-center gap-3 mb-0">
-                                <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; flex-shrink: 0;">
-                                    <i class="fas fa-check"></i>
-                                </div>
+                            <div class="approval-free-body">
+                                <label class="approval-form-label">Đề bài / hướng dẫn</label>
+                                <div class="approval-free-content">{!! nl2br(e($baiKiemTra->mo_ta ?: 'Không có nội dung hướng dẫn.')) !!}</div>
+                            </div>
+
+                            <div class="approval-note is-success">
+                                <i class="fas fa-star"></i>
                                 <div>
-                                    <span class="text-muted small fw-bold">TỔNG ĐIỂM CHẤM BÀI:</span>
-                                    <span class="ms-2 fw-bold text-success fs-5">{{ number_format((float) $baiKiemTra->tong_diem, 2) }} điểm</span>
+                                    <strong>{{ number_format((float) $baiKiemTra->tong_diem, 2) }} điểm</strong>
+                                    <span>Tổng điểm chấm cho bài tự luận tự do.</span>
                                 </div>
                             </div>
                         </div>
-                    @endif
+                    @else
+                        <div class="approval-question-list approval-scroll">
+                            @forelse($baiKiemTra->chiTietCauHois as $index => $chiTiet)
+                                @php
+                                    $difficultyClass = match(optional($chiTiet->cauHoi)->muc_do) {
+                                        'de' => 'is-success',
+                                        'trung_binh' => 'is-warning',
+                                        default => 'is-danger',
+                                    };
+                                @endphp
 
-                    @forelse($baiKiemTra->chiTietCauHois as $index => $chiTiet)
-                        <div class="question-item mb-4 pb-4 border-bottom last-child-no-border">
-                            <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
-                                <div class="d-flex gap-3">
-                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; flex-shrink: 0;">
-                                        {{ $index + 1 }}
-                                    </div>
-                                    <div>
-                                        <div class="fw-bold text-dark mb-2 fs-6">{!! nl2br(e($chiTiet->cauHoi->noi_dung ?? 'Nội dung không xác định')) !!}</div>
-                                        <div class="d-flex gap-2">
-                                            <span class="badge bg-light text-muted border px-2 py-1" style="font-size: 0.7rem;">
-                                                <i class="fas fa-layer-group me-1"></i>{{ $chiTiet->cauHoi->loai_cau_hoi_label ?? 'N/A' }}
-                                            </span>
-                                            <span class="badge bg-light text-primary border px-2 py-1" style="font-size: 0.7rem;">
-                                                <i class="fas fa-star me-1"></i>{{ number_format((float) $chiTiet->diem_so, 2) }} điểm
-                                            </span>
-                                            <span class="badge bg-soft-{{ $chiTiet->cauHoi->muc_do === 'de' ? 'success' : ($chiTiet->cauHoi->muc_do === 'trung_binh' ? 'warning' : 'danger') }} text-{{ $chiTiet->cauHoi->muc_do === 'de' ? 'success' : ($chiTiet->cauHoi->muc_do === 'trung_binh' ? 'warning' : 'danger') }} px-2 py-1" style="font-size: 0.7rem;">
-                                                {{ $chiTiet->cauHoi->muc_do_label }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            @if(optional($chiTiet->cauHoi)->loai_cau_hoi === 'trac_nghiem')
-                                <div class="row g-2 mt-2 ms-md-5">
-                                    @foreach($chiTiet->cauHoi->dapAns as $dapAn)
-                                        <div class="col-md-6">
-                                            <div class="approval-answer-card p-3 rounded-3 border d-flex align-items-center gap-3 {{ $dapAn->is_dap_an_dung ? 'border-success bg-soft-success' : 'bg-light border-0' }}">
-                                                <div class="bg-white border rounded-circle d-flex align-items-center justify-content-center fw-bold text-muted" style="width: 28px; height: 28px; flex-shrink: 0;">
-                                                    {{ $dapAn->ky_hieu }}
-                                                </div>
-                                                <div class="flex-grow-1 small {{ $dapAn->is_dap_an_dung ? 'fw-bold text-success' : '' }}">
-                                                    {{ $dapAn->noi_dung }}
-                                                </div>
-                                                @if($dapAn->is_dap_an_dung)
-                                                    <i class="fas fa-check-circle text-success fs-5"></i>
-                                                @endif
+                                <article class="approval-question-card">
+                                    <div class="approval-question-head">
+                                        <div class="approval-question-num">{{ $index + 1 }}</div>
+                                        <div class="approval-question-main">
+                                            <h3 class="approval-question-title">{!! nl2br(e($chiTiet->cauHoi->noi_dung ?? 'Nội dung không xác định')) !!}</h3>
+                                            <div class="approval-question-badges">
+                                                <span class="approval-status-pill is-secondary">
+                                                    <i class="fas fa-layer-group"></i> {{ $chiTiet->cauHoi->loai_cau_hoi_label ?? 'N/A' }}
+                                                </span>
+                                                <span class="approval-status-pill is-blue">
+                                                    <i class="fas fa-star"></i> {{ number_format((float) $chiTiet->diem_so, 2) }} điểm
+                                                </span>
+                                                <span class="approval-status-pill {{ $difficultyClass }}">
+                                                    <i class="fas fa-signal"></i> {{ $chiTiet->cauHoi->muc_do_label }}
+                                                </span>
                                             </div>
                                         </div>
-                                    @endforeach
-                                </div>
-                            @elseif(optional($chiTiet->cauHoi)->loai_cau_hoi === 'tu_luan')
-                                <div class="ms-md-5 mt-2">
-                                    <div class="alert alert-soft-info border-0 rounded-3 py-2 px-3 small mb-0">
-                                        <i class="fas fa-info-circle me-2"></i> Câu hỏi tự luận: Học viên sẽ trả lời bằng văn bản và giảng viên chấm sau.
                                     </div>
-                                </div>
-                            @endif
-                        </div>
-                    @empty
-                        <div class="text-center py-5 text-muted bg-light rounded-4">
-                            <i class="fas fa-exclamation-circle fa-3x mb-3 opacity-25"></i>
-                            <p class="mb-0">Đề thi này hiện chưa có nội dung câu hỏi.</p>
-                        </div>
-                    @endforelse
-                </div>
-            </div>
 
-            <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-header bg-white py-3 border-bottom">
-                    <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-history me-2 text-info"></i>Thống kê & Bài làm</h5>
+                                    @if(optional($chiTiet->cauHoi)->loai_cau_hoi === 'trac_nghiem')
+                                        <div class="row g-2 mt-1">
+                                            @foreach($chiTiet->cauHoi->dapAns as $dapAn)
+                                                <div class="col-md-6">
+                                                    <div class="approval-answer-card {{ $dapAn->is_dap_an_dung ? 'is-correct' : '' }}">
+                                                        <div class="approval-answer-key">{{ $dapAn->ky_hieu }}</div>
+                                                        <div class="approval-answer-body">
+                                                            <div class="approval-answer-text">{{ $dapAn->noi_dung }}</div>
+                                                        </div>
+                                                        @if($dapAn->is_dap_an_dung)
+                                                            <i class="fas fa-check-circle text-success fs-5"></i>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @elseif(optional($chiTiet->cauHoi)->loai_cau_hoi === 'tu_luan')
+                                        <div class="approval-note is-info mt-3">
+                                            <i class="fas fa-info-circle"></i>
+                                            <div>
+                                                <strong>Câu hỏi tự luận</strong>
+                                                <span>Học viên sẽ trả lời bằng văn bản và giảng viên chấm sau.</span>
+                                            </div>
+                                        </div>
+                                    @endif
+                                </article>
+                            @empty
+                                <div class="approval-empty">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                    <h3>Đề thi này hiện chưa có nội dung câu hỏi</h3>
+                                    <p>Hãy kiểm tra lại cấu hình đề hoặc yêu cầu giảng viên bổ sung nội dung trước khi duyệt.</p>
+                                </div>
+                            @endforelse
+                        </div>
+                    @endif
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light text-muted small text-uppercase">
-                                <tr>
-                                    <th class="ps-4 py-3">Học viên</th>
-                                    <th class="py-3 text-center">Lần thi</th>
-                                    <th class="py-3 text-center">Nộp lúc</th>
-                                    <th class="py-3 text-center">Trạng thái</th>
-                                    <th class="pe-4 py-3 text-end">Điểm số</th>
-                                </tr>
-                            </thead>
-                            <tbody class="border-top-0">
-                                @forelse($baiKiemTra->baiLams as $baiLam)
+            </section>
+
+            <section class="apx-section">
+                <header class="apx-section-head">
+                    <div class="apx-section-title">
+                        <span class="apx-section-num">4</span>
+                        <div>
+                            <h2><i class="fas fa-chart-column"></i> Thống kê và bài làm</h2>
+                            <p>Theo dõi danh sách học viên đã làm bài, trạng thái nộp và mức độ hoàn thành chấm điểm.</p>
+                        </div>
+                    </div>
+                    <div class="apx-section-meta">
+                        <span class="apx-meta-pill"><strong>{{ $submissionCount }}</strong> lượt làm</span>
+                    </div>
+                </header>
+
+                <div class="apx-section-body">
+                    <div class="approval-table-wrap">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light text-muted small text-uppercase">
                                     <tr>
-                                        <td class="ps-4">
-                                            <div class="fw-bold text-dark small">{{ $baiLam->hocVien->ho_ten ?? 'Học viên' }}</div>
-                                            <div class="text-muted smaller">{{ $baiLam->hocVien->email ?? 'N/A' }}</div>
-                                        </td>
-                                        <td class="text-center">
-                                            <span class="badge bg-light text-dark border rounded-pill px-2 fw-bold">#{{ $baiLam->lan_lam_thu }}</span>
-                                        </td>
-                                        <td class="text-center small text-muted">
-                                            {{ $baiLam->nop_luc?->format('d/m/Y H:i') ?? '—' }}
-                                        </td>
-                                        <td class="text-center">
-                                            <span class="badge bg-{{ $baiLam->trang_thai === 'hoan_thanh' ? 'success' : 'warning' }} rounded-pill px-2">
-                                                {{ $baiLam->trang_thai_label }}
-                                            </span>
-                                        </td>
-                                        <td class="pe-4 text-end">
-                                            <span class="fw-bold fs-6 {{ $baiLam->diem_so !== null ? 'text-primary' : 'text-muted' }}">
-                                                {{ $baiLam->diem_so !== null ? number_format((float) $baiLam->diem_so, 2) : 'Chưa chấm' }}
-                                            </span>
-                                        </td>
+                                        <th class="ps-4 py-3">Học viên</th>
+                                        <th class="py-3 text-center">Lần thi</th>
+                                        <th class="py-3 text-center">Nộp lúc</th>
+                                        <th class="py-3 text-center">Trạng thái</th>
+                                        <th class="pe-4 py-3 text-end">Điểm số</th>
                                     </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="5" class="text-center py-4 text-muted small">
-                                            Chưa có dữ liệu bài làm cho đề thi này.
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody class="border-top-0">
+                                    @forelse($baiKiemTra->baiLams as $baiLam)
+                                        <tr>
+                                            <td class="ps-4">
+                                                <div class="fw-bold text-dark small">{{ $baiLam->hocVien->ho_ten ?? 'Học viên' }}</div>
+                                                <div class="text-muted smaller">{{ $baiLam->hocVien->email ?? 'N/A' }}</div>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-light text-dark border rounded-pill px-2 fw-bold">#{{ $baiLam->lan_lam_thu }}</span>
+                                            </td>
+                                            <td class="text-center small text-muted">
+                                                {{ $baiLam->nop_luc?->format('d/m/Y H:i') ?? '—' }}
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-{{ $baiLam->trang_thai === 'hoan_thanh' ? 'success' : 'warning' }} rounded-pill px-2">
+                                                    {{ $baiLam->trang_thai_label }}
+                                                </span>
+                                            </td>
+                                            <td class="pe-4 text-end">
+                                                <span class="fw-bold fs-6 {{ $baiLam->diem_so !== null ? 'text-primary' : 'text-muted' }}">
+                                                    {{ $baiLam->diem_so !== null ? number_format((float) $baiLam->diem_so, 2) : 'Chưa chấm' }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="5" class="text-center py-5 text-muted small">
+                                                Chưa có dữ liệu bài làm cho đề thi này.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </section>
         </div>
     </div>
 </div>
 
-<style>
-    .bg-soft-primary { background-color: rgba(13, 110, 253, 0.1); }
-    .bg-soft-success { background-color: rgba(25, 135, 84, 0.1); }
-    .bg-soft-info { background-color: rgba(13, 202, 240, 0.1); }
-    .bg-soft-warning { background-color: rgba(255, 193, 7, 0.1); }
-    .bg-soft-danger { background-color: rgba(231, 74, 59, 0.1); }
-    .shadow-xs { box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    
-    .last-child-no-border:last-child { border-bottom: none !important; margin-bottom: 0 !important; padding-bottom: 0 !important; }
-    
-    .approval-answer-card { transition: all 0.2s ease; cursor: default; }
-    .approval-answer-card:hover { transform: scale(1.01); }
-
-    .question-list-scroll {
-        max-height: 72vh;
-        overflow-y: auto;
-        scroll-behavior: smooth;
-    }
-
-    .question-list-scroll::-webkit-scrollbar {
-        width: 6px;
-    }
-
-    .question-list-scroll::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 999px;
-    }
-    
-    .breadcrumb-item + .breadcrumb-item::before { content: "\f105"; font-family: "Font Awesome 6 Free"; font-weight: 900; font-size: 0.7rem; color: #adb5bd; }
-    
-    .badge { font-weight: 600; }
-    .smaller { font-size: 0.75rem; }
-    
-    textarea:focus { box-shadow: none !important; border-color: var(--bs-primary) !important; }
-</style>
+@include('pages.admin.kiem-tra-online.phe-duyet.partials.shared-styles')
 @endsection
-

@@ -125,6 +125,18 @@ class BaiKiemTraPheDuyetController extends Controller
             'ghi_chu_duyet' => $request->input('ghi_chu_duyet'),
         ]);
 
+        try {
+            if ($baiKiemTra->nguoi_tao_id) {
+                app(\App\Services\NotificationService::class)->notifyExamApproved(
+                    (int) $baiKiemTra->nguoi_tao_id,
+                    $baiKiemTra->tieu_de,
+                    $baiKiemTra->id,
+                    true,
+                    $request->input('ghi_chu_duyet')
+                );
+            }
+        } catch (\Throwable $e) { report($e); }
+
         return back()->with('success', 'Đã duyệt bài kiểm tra.');
     }
 
@@ -142,6 +154,18 @@ class BaiKiemTraPheDuyetController extends Controller
             'ghi_chu_duyet' => $request->input('ghi_chu_duyet'),
             'trang_thai_phat_hanh' => 'nhap',
         ]);
+
+        try {
+            if ($baiKiemTra->nguoi_tao_id) {
+                app(\App\Services\NotificationService::class)->notifyExamApproved(
+                    (int) $baiKiemTra->nguoi_tao_id,
+                    $baiKiemTra->tieu_de,
+                    $baiKiemTra->id,
+                    false,
+                    $request->input('ghi_chu_duyet')
+                );
+            }
+        } catch (\Throwable $e) { report($e); }
 
         return back()->with('success', 'Đã từ chối bài kiểm tra.');
     }
@@ -161,6 +185,16 @@ class BaiKiemTraPheDuyetController extends Controller
             'phat_hanh_luc' => now(),
             'trang_thai' => true,
         ]);
+
+        try {
+            if ($baiKiemTra->khoa_hoc_id) {
+                app(\App\Services\NotificationService::class)->notifyExamPublishedToCourse(
+                    (int) $baiKiemTra->khoa_hoc_id,
+                    $baiKiemTra->tieu_de,
+                    $baiKiemTra->id
+                );
+            }
+        } catch (\Throwable $e) { report($e); }
 
         return back()->with('success', 'Đã phát hành bài kiểm tra cho học viên.');
     }

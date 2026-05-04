@@ -58,8 +58,17 @@ class TeacherLeaveRequestController extends Controller
 
     public function approve(ReviewTeacherLeaveRequest $request, int $id)
     {
-        $leaveRequest = GiangVienDonXinNghi::findOrFail($id);
-        $this->leaveRequestService->approve($leaveRequest, auth()->user(), $request->validated('ghi_chu_phan_hoi'));
+        $leaveRequest = GiangVienDonXinNghi::with('giangVien.nguoiDung')->findOrFail($id);
+        $note = $request->validated('ghi_chu_phan_hoi');
+        $this->leaveRequestService->approve($leaveRequest, auth()->user(), $note);
+
+        try {
+            $teacherUserId = $leaveRequest->giangVien?->nguoiDung?->ma_nguoi_dung;
+            if ($teacherUserId) {
+                app(\App\Services\NotificationService::class)
+                    ->notifyLeaveDecided((int) $teacherUserId, $leaveRequest->id, true, $note);
+            }
+        } catch (\Throwable $e) { report($e); }
 
         return redirect()
             ->route('admin.giang-vien-don-xin-nghi.show', $leaveRequest->id)
@@ -68,8 +77,17 @@ class TeacherLeaveRequestController extends Controller
 
     public function reject(ReviewTeacherLeaveRequest $request, int $id)
     {
-        $leaveRequest = GiangVienDonXinNghi::findOrFail($id);
-        $this->leaveRequestService->reject($leaveRequest, auth()->user(), $request->validated('ghi_chu_phan_hoi'));
+        $leaveRequest = GiangVienDonXinNghi::with('giangVien.nguoiDung')->findOrFail($id);
+        $note = $request->validated('ghi_chu_phan_hoi');
+        $this->leaveRequestService->reject($leaveRequest, auth()->user(), $note);
+
+        try {
+            $teacherUserId = $leaveRequest->giangVien?->nguoiDung?->ma_nguoi_dung;
+            if ($teacherUserId) {
+                app(\App\Services\NotificationService::class)
+                    ->notifyLeaveDecided((int) $teacherUserId, $leaveRequest->id, false, $note);
+            }
+        } catch (\Throwable $e) { report($e); }
 
         return redirect()
             ->route('admin.giang-vien-don-xin-nghi.show', $leaveRequest->id)

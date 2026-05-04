@@ -3,83 +3,198 @@
 @section('title', 'Quản lý học viên — ' . $khoaHoc->ten_khoa_hoc)
 
 @section('content')
-<div class="container-fluid">
-    <nav aria-label="breadcrumb" class="mb-3">
-        <ol class="breadcrumb small">
-            <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Trang chủ</a></li>
-            <li class="breadcrumb-item"><a href="{{ route('admin.khoa-hoc.index') }}">Khóa học</a></li>
-            <li class="breadcrumb-item"><a href="{{ route('admin.khoa-hoc.show', $khoaHoc->id) }}">{{ $khoaHoc->ma_khoa_hoc }}</a></li>
-            <li class="breadcrumb-item active">Học viên</li>
-        </ol>
-    </nav>
-
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1"><i class="fas fa-users me-2 text-success"></i>Học viên khóa học: {{ $khoaHoc->ten_khoa_hoc }}</h4>
-            <div class="small text-muted">
-                Mã lớp: <code class="fw-bold">{{ $khoaHoc->ma_khoa_hoc }}</code> |
-                Nhóm ngành: <span class="fw-bold text-dark">{{ $khoaHoc->nhomNganh->ten_nhom_nganh ?? 'N/A' }}</span>
+<div class="container-fluid admin-page-x hvkh-page">
+    {{-- Welcome banner --}}
+    <div class="apx-welcome hvkh-welcome">
+        <div class="apx-welcome-icon"><i class="fas fa-users"></i></div>
+        <div class="apx-welcome-text">
+            <div class="hvkh-tag-row">
+                <span class="hvkh-loai-badge"><i class="fas fa-graduation-cap"></i> HỌC VIÊN KHÓA HỌC</span>
+                <span class="hvkh-status-badge"><i class="fas fa-fingerprint"></i> {{ $khoaHoc->ma_khoa_hoc }}</span>
+                @if($khoaHoc->nhomNganh)
+                    <span class="hvkh-status-badge"><i class="fas fa-tag"></i> {{ $khoaHoc->nhomNganh->ten_nhom_nganh }}</span>
+                @endif
+                <span class="hvkh-status-badge"><i class="fas fa-users"></i> {{ $stats['tong'] }} học viên</span>
             </div>
+            <h4>{{ $khoaHoc->ten_khoa_hoc }}</h4>
+            <p>
+                <span><i class="fas fa-circle-play"></i> {{ $stats['dang_hoc'] }} đang học</span>
+                <span class="hvkh-sep">·</span>
+                <span><i class="fas fa-circle-check"></i> {{ $stats['hoan_thanh'] }} hoàn thành</span>
+            </p>
         </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-success fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAddHocVien">
-                <i class="fas fa-user-plus me-1"></i> THÊM HỌC VIÊN
-            </button>
-            <a href="{{ route('admin.khoa-hoc.show', $khoaHoc->id) }}" class="btn btn-outline-secondary shadow-sm">
-                <i class="fas fa-arrow-left me-1"></i> Quay lại chi tiết
+        <div class="apx-welcome-cta">
+            <a href="{{ route('admin.khoa-hoc.show', $khoaHoc->id) }}" class="apx-view-toggle">
+                <i class="fas fa-arrow-left"></i> <span>Chi tiết khóa</span>
             </a>
+            <button type="button" class="btn btn-light text-primary fw-bold shadow-sm hvkh-add-btn" data-bs-toggle="modal" data-bs-target="#modalAddHocVien">
+                <i class="fas fa-user-plus me-1"></i> Thêm học viên
+            </button>
         </div>
     </div>
 
     @include('components.alert')
 
-    <div class="row g-3 mb-4">
-        <div class="col-md-4"><div class="vip-card p-3 text-center border-0 shadow-sm bg-primary text-white"><div class="smaller text-uppercase fw-bold opacity-75">Tổng học viên</div><div class="fs-2 fw-bold">{{ $stats['tong'] }}</div></div></div>
-        <div class="col-md-4"><div class="vip-card p-3 text-center border-0 shadow-sm bg-success text-white"><div class="smaller text-uppercase fw-bold opacity-75">Đang học</div><div class="fs-2 fw-bold">{{ $stats['dang_hoc'] }}</div></div></div>
-        <div class="col-md-4"><div class="vip-card p-3 text-center border-0 shadow-sm bg-info text-white"><div class="smaller text-uppercase fw-bold opacity-75">Hoàn thành</div><div class="fs-2 fw-bold">{{ $stats['hoan_thanh'] }}</div></div></div>
-    </div>
-
-    <div class="vip-card shadow-sm border-0">
-        <div class="vip-card-header bg-white border-bottom py-3">
-            <h5 class="vip-card-title small fw-bold text-uppercase mb-0">Danh sách học viên trong lớp</h5>
-        </div>
-        <div class="vip-card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light smaller text-muted text-uppercase">
-                        <tr>
-                            <th class="ps-4 text-center" width="60">STT</th>
-                            <th>Học viên</th>
-                            <th>Thông tin liên hệ</th>
-                            <th class="text-center">Ngày ghi danh</th>
-                            <th class="text-center">Trạng thái</th>
-                            <th class="pe-4 text-center" width="150">Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($hocViens as $index => $bghv)
-                            <tr>
-                                <td class="text-center ps-4 text-muted small">{{ $hocViens->firstItem() + $index }}</td>
-                                <td><div class="d-flex align-items-center"><div class="avatar-mini rounded-circle bg-light border text-center me-2" style="width:35px;height:35px;line-height:35px;"><i class="fas fa-user text-muted"></i></div><div><div class="fw-bold text-dark">{{ $bghv->hocVien?->nguoiDung?->ho_ten ?? 'N/A' }}</div><code class="smaller">#{{ $bghv->hocVien?->ma_hoc_vien ?? ($bghv->hocVien?->id ?? 'N/A') }}</code></div></div></td>
-                                <td><div class="small"><i class="far fa-envelope me-1 text-muted"></i>{{ $bghv->hocVien?->nguoiDung?->email ?? 'N/A' }}</div><div class="small mt-1"><i class="fas fa-phone-alt me-1 text-muted"></i>{{ $bghv->hocVien?->nguoiDung?->so_dien_thoai ?? 'N/A' }}</div></td>
-                                <td class="text-center small">{{ $bghv->ngay_tham_gia ? $bghv->ngay_tham_gia->format('d/m/Y') : '—' }}</td>
-                                <td class="text-center"><span class="badge {{ $bghv->trang_thai_badge }} shadow-xs">{{ $bghv->trang_thai_label }}</span></td>
-                                <td class="pe-4 text-center">
-                                    <div class="d-flex justify-content-center gap-1">
-                                        <button type="button" class="btn btn-sm btn-outline-warning border-0 btn-edit-enroll" data-id="{{ $bghv->id }}" data-name="{{ $bghv->hocVien?->nguoiDung?->ho_ten ?? 'N/A' }}" data-date="{{ $bghv->ngay_tham_gia ? $bghv->ngay_tham_gia->format('Y-m-d') : '' }}" data-status="{{ $bghv->trang_thai }}" data-note="{{ $bghv->ghi_chu }}" title="Sửa ghi danh"><i class="fas fa-edit"></i></button>
-                                        <form action="{{ route('admin.khoa-hoc.hoc-vien.destroy', [$khoaHoc->id, $bghv->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa học viên khỏi khóa học này?')">@csrf @method('DELETE')<button type="submit" class="btn btn-sm btn-outline-danger border-0" title="Xóa khỏi lớp"><i class="fas fa-user-times"></i></button></form>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="6" class="text-center py-5 text-muted small italic">Khóa học này hiện chưa có học viên nào tham gia.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
+    {{-- ① Tổng quan --}}
+    <section class="apx-section">
+        <header class="apx-section-head">
+            <div class="apx-section-title">
+                <span class="apx-section-num">1</span>
+                <div>
+                    <h2><i class="fas fa-chart-pie"></i> Tổng quan học viên</h2>
+                    <p>Ba chỉ số nhanh theo trạng thái học tập trong khóa.</p>
+                </div>
             </div>
-            <div class="p-3 border-top d-flex justify-content-center">{{ $hocViens->links('pagination::bootstrap-5') }}</div>
+        </header>
+        <div class="row g-3">
+            <div class="col-md-4 col-6">
+                <div class="apx-stat tone-primary">
+                    <div class="aps-icon"><i class="fas fa-users"></i></div>
+                    <div class="aps-text"><strong>{{ $stats['tong'] }}</strong><small>Tổng học viên</small></div>
+                </div>
+            </div>
+            <div class="col-md-4 col-6">
+                <div class="apx-stat tone-success">
+                    <div class="aps-icon"><i class="fas fa-circle-play"></i></div>
+                    <div class="aps-text"><strong>{{ $stats['dang_hoc'] }}</strong><small>Đang học</small></div>
+                </div>
+            </div>
+            <div class="col-md-4 col-6">
+                <div class="apx-stat tone-info">
+                    <div class="aps-icon"><i class="fas fa-circle-check"></i></div>
+                    <div class="aps-text"><strong>{{ $stats['hoan_thanh'] }}</strong><small>Hoàn thành</small></div>
+                </div>
+            </div>
         </div>
-    </div>
+    </section>
+
+    {{-- ② Danh sách HV compact --}}
+    <section class="apx-section">
+        <header class="apx-section-head">
+            <div class="apx-section-title">
+                <span class="apx-section-num">2</span>
+                <div>
+                    <h2><i class="fas fa-list"></i> Danh sách học viên trong lớp</h2>
+                    <p>Bấm vào dòng để xem thông tin liên hệ chi tiết. Sử dụng nút "Thêm học viên" để ghi danh thêm.</p>
+                </div>
+            </div>
+            <div class="apx-section-meta">
+                <span class="apx-meta-pill">
+                    <strong>{{ $hocViens->firstItem() ?? 0 }}–{{ $hocViens->lastItem() ?? 0 }}</strong> / {{ $hocViens->total() }}
+                </span>
+            </div>
+        </header>
+
+        <div class="hvkh-list">
+            @if($hocViens->count() === 0)
+                <div class="hvkh-empty">
+                    <div class="hvkh-empty-icon"><i class="fas fa-user-slash"></i></div>
+                    <h5>Khóa học chưa có học viên</h5>
+                    <p>Bấm "Thêm học viên" để ghi danh học viên mới vào lớp.</p>
+                    <button type="button" class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#modalAddHocVien">
+                        <i class="fas fa-user-plus me-1"></i> Thêm học viên đầu tiên
+                    </button>
+                </div>
+            @else
+                <div class="hvkh-row hvkh-row-header">
+                    <div class="hvkh-col-stt">#</div>
+                    <div class="hvkh-col-name">Học viên</div>
+                    <div class="hvkh-col-contact">Liên hệ</div>
+                    <div class="hvkh-col-date">Ngày ghi danh</div>
+                    <div class="hvkh-col-status">Trạng thái</div>
+                    <div class="hvkh-col-action">Thao tác</div>
+                </div>
+
+                @foreach($hocViens as $index => $bghv)
+                    @php
+                        $hv = $bghv->hocVien;
+                        $nd = $hv?->nguoiDung;
+                        $tenHV = $nd?->ho_ten ?? 'N/A';
+                        $idHV  = $hv?->ma_hoc_vien ?? $hv?->id ?? '?';
+                        $idColor = ($hv?->id ?? $loop->index) % 6;
+                        $gradients = [
+                            'linear-gradient(135deg,#4361ee,#2f46c9)','linear-gradient(135deg,#16a34a,#15803d)',
+                            'linear-gradient(135deg,#d97706,#b45309)','linear-gradient(135deg,#0ea5e9,#0369a1)',
+                            'linear-gradient(135deg,#7c3aed,#6d28d9)','linear-gradient(135deg,#db2777,#be185d)',
+                        ];
+                        $initial = mb_strtoupper(mb_substr(trim($tenHV), 0, 1, 'UTF-8'), 'UTF-8');
+
+                        $statusClass = match($bghv->trang_thai) {
+                            'dang_hoc'   => 'is-success',
+                            'hoan_thanh' => 'is-info',
+                            'ngung_hoc'  => 'is-warning',
+                            default      => 'is-secondary',
+                        };
+                        $statusIcon = match($bghv->trang_thai) {
+                            'dang_hoc'   => 'fa-circle-play',
+                            'hoan_thanh' => 'fa-circle-check',
+                            'ngung_hoc'  => 'fa-pause-circle',
+                            default      => 'fa-circle',
+                        };
+                    @endphp
+                    <div class="hvkh-row">
+                        <div class="hvkh-col-stt">{{ $hocViens->firstItem() + $index }}</div>
+                        <div class="hvkh-col-name">
+                            <div class="hvkh-avatar" style="background: {{ $gradients[$idColor] }};">
+                                {{ $initial ?: '?' }}
+                            </div>
+                            <div class="hvkh-name-block">
+                                <div class="hvkh-name">{{ $tenHV }}</div>
+                                <div class="hvkh-id"><i class="fas fa-hashtag"></i> {{ $idHV }}</div>
+                            </div>
+                        </div>
+                        <div class="hvkh-col-contact">
+                            <div class="hvkh-contact-line">
+                                <i class="fas fa-envelope"></i>
+                                <span>{{ $nd?->email ?? '—' }}</span>
+                            </div>
+                            <div class="hvkh-contact-line">
+                                <i class="fas fa-phone"></i>
+                                <span>{{ $nd?->so_dien_thoai ?? '—' }}</span>
+                            </div>
+                        </div>
+                        <div class="hvkh-col-date">
+                            @if($bghv->ngay_tham_gia)
+                                <div class="hvkh-date">{{ $bghv->ngay_tham_gia->format('d/m/Y') }}</div>
+                                <div class="hvkh-date-rel">{{ $bghv->ngay_tham_gia->diffForHumans() }}</div>
+                            @else
+                                <span class="text-muted small">—</span>
+                            @endif
+                        </div>
+                        <div class="hvkh-col-status">
+                            <span class="hvkh-status-pill {{ $statusClass }}">
+                                <i class="fas {{ $statusIcon }}"></i> {{ $bghv->trang_thai_label }}
+                            </span>
+                        </div>
+                        <div class="hvkh-col-action">
+                            <button type="button" class="hvkh-action-btn btn-edit-enroll"
+                                    data-id="{{ $bghv->id }}"
+                                    data-name="{{ $tenHV }}"
+                                    data-date="{{ $bghv->ngay_tham_gia ? $bghv->ngay_tham_gia->format('Y-m-d') : '' }}"
+                                    data-status="{{ $bghv->trang_thai }}"
+                                    data-note="{{ $bghv->ghi_chu }}"
+                                    title="Sửa ghi danh">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <form action="{{ route('admin.khoa-hoc.hoc-vien.destroy', [$khoaHoc->id, $bghv->id]) }}" method="POST" class="d-inline"
+                                  onsubmit="return confirm('Xóa học viên này khỏi khóa học?');">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="hvkh-action-btn danger" title="Xóa khỏi lớp">
+                                    <i class="fas fa-user-times"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                @endforeach
+            @endif
+
+            @if($hocViens->hasPages())
+                <div class="hvkh-pagination">
+                    {{ $hocViens->links('pagination::bootstrap-5') }}
+                </div>
+            @endif
+        </div>
+    </section>
 </div>
 
 <div class="modal fade shadow" id="modalAddHocVien" tabindex="-1">
@@ -529,5 +644,159 @@ document.addEventListener('DOMContentLoaded', function () {
         line-height: 1;
     }
     .selected-student-remove:hover { color: #bb2d3b; }
+
+    /* ===== Welcome banner xanh dương + đề mục đỏ ===== */
+    .hvkh-page .apx-section-head { background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%); border-color: #fecaca; border-left-color: #dc2626; }
+    .hvkh-page .apx-section-num { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); box-shadow: 0 4px 12px rgba(220,38,38,0.25); }
+    .hvkh-page .apx-section-title h2 i { color: #dc2626; }
+    .hvkh-page .apx-meta-pill { border-color: #fecaca; color: #dc2626; }
+    .hvkh-page .apx-meta-pill strong { color: #b91c1c; }
+
+    .hvkh-welcome { background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #4361ee 100%) !important; box-shadow: 0 16px 36px rgba(29,78,216,0.22) !important; }
+    .hvkh-tag-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .hvkh-loai-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.4); backdrop-filter: blur(6px); color: #fff; font-size: 0.7rem; font-weight: 800; letter-spacing: 1px; border-radius: 999px; }
+    .hvkh-status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; background: rgba(255,255,255,0.14); color: #fff; font-size: 0.72rem; font-weight: 700; border-radius: 999px; }
+    .apx-welcome.hvkh-welcome p { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 0.85rem; }
+    .apx-welcome.hvkh-welcome p i { color: #fef3c7; margin-right: 4px; }
+    .hvkh-sep { opacity: 0.5; }
+    .hvkh-add-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0,0,0,0.18); }
+
+    /* Compact list */
+    .hvkh-list {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        overflow: hidden;
+    }
+    .hvkh-row {
+        display: grid;
+        grid-template-columns: 50px minmax(220px, 2fr) minmax(220px, 2fr) 130px 140px 120px;
+        gap: 10px;
+        align-items: center;
+        padding: 10px 14px;
+        border-bottom: 1px solid #f1f5f9;
+        transition: background 0.15s ease;
+    }
+    .hvkh-row:hover:not(.hvkh-row-header) { background: #fafafa; }
+    .hvkh-row-header {
+        background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
+        font-size: 0.7rem; font-weight: 800;
+        color: #7f1d1d; text-transform: uppercase;
+        letter-spacing: 0.4px;
+        border-bottom: 1px solid #fecaca;
+        padding: 12px 14px;
+    }
+
+    .hvkh-col-stt { font-size: 0.78rem; color: #94a3b8; font-weight: 800; text-align: center; }
+    .hvkh-col-name { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .hvkh-avatar {
+        flex-shrink: 0;
+        width: 38px; height: 38px;
+        border-radius: 50%;
+        color: #fff; font-weight: 800; font-size: 0.95rem;
+        display: grid; place-items: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .hvkh-name-block { flex: 1; min-width: 0; }
+    .hvkh-name {
+        font-size: 0.9rem; font-weight: 800; color: #0f172a;
+        line-height: 1.3;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .hvkh-id {
+        font-size: 0.72rem; color: #94a3b8;
+        font-weight: 700; font-family: monospace;
+    }
+    .hvkh-id i { color: #1d4ed8; margin-right: 3px; font-size: 0.62rem; }
+
+    .hvkh-col-contact { font-size: 0.78rem; min-width: 0; }
+    .hvkh-contact-line {
+        display: flex; align-items: center; gap: 6px;
+        color: #475569; font-weight: 600;
+        line-height: 1.4;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .hvkh-contact-line i {
+        color: #1d4ed8; font-size: 0.7rem;
+        flex-shrink: 0;
+    }
+    .hvkh-contact-line span {
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    .hvkh-col-date { font-size: 0.84rem; }
+    .hvkh-date { font-weight: 800; color: #0f172a; }
+    .hvkh-date-rel { font-size: 0.7rem; color: #94a3b8; font-weight: 600; margin-top: 2px; }
+
+    .hvkh-status-pill {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 4px 12px;
+        font-size: 0.7rem; font-weight: 800;
+        border-radius: 999px;
+        text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .hvkh-status-pill i { font-size: 0.6rem; }
+    .hvkh-status-pill.is-success   { background: #dcfce7; color: #166534; }
+    .hvkh-status-pill.is-warning   { background: #fef3c7; color: #b45309; }
+    .hvkh-status-pill.is-info      { background: #cffafe; color: #0e7490; }
+    .hvkh-status-pill.is-secondary { background: #f1f5f9; color: #475569; }
+
+    .hvkh-col-action { display: flex; gap: 4px; justify-content: flex-end; }
+    .hvkh-action-btn {
+        display: inline-grid; place-items: center;
+        width: 32px; height: 32px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        color: #475569;
+        font-size: 0.78rem;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.18s ease;
+    }
+    .hvkh-action-btn:hover { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
+    .hvkh-action-btn.danger { color: #dc2626; }
+    .hvkh-action-btn.danger:hover { background: #dc2626; color: #fff; border-color: #dc2626; }
+
+    .hvkh-pagination {
+        padding: 14px 18px;
+        background: #f8fafc;
+        border-top: 1px solid #e2e8f0;
+        display: flex; justify-content: center;
+    }
+    .hvkh-pagination nav { margin: 0; }
+
+    .hvkh-empty { padding: 60px 30px; text-align: center; }
+    .hvkh-empty-icon {
+        width: 88px; height: 88px;
+        margin: 0 auto 18px;
+        background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+        border-radius: 50%;
+        display: grid; place-items: center;
+        color: #dc2626;
+        font-size: 2rem;
+    }
+    .hvkh-empty h5 { font-weight: 800; color: #0f172a; margin-bottom: 8px; }
+    .hvkh-empty p { font-size: 0.9rem; color: #94a3b8; max-width: 460px; margin: 0 auto 16px; line-height: 1.55; }
+
+    /* Responsive */
+    @media (max-width: 991.98px) {
+        .hvkh-row {
+            grid-template-columns: 40px 1fr 100px;
+            grid-template-areas:
+                "stt name action"
+                "stt contact contact"
+                "stt date status";
+            gap: 6px 10px;
+        }
+        .hvkh-row-header { display: none; }
+        .hvkh-col-stt { grid-area: stt; align-self: start; padding-top: 4px; }
+        .hvkh-col-name { grid-area: name; }
+        .hvkh-col-contact { grid-area: contact; }
+        .hvkh-col-date { grid-area: date; }
+        .hvkh-col-status { grid-area: status; }
+        .hvkh-col-action { grid-area: action; justify-content: flex-end; }
+    }
 </style>
+
+@include('pages.admin.partials._admin-page-styles')
 @endsection

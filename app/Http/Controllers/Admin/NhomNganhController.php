@@ -30,10 +30,20 @@ class NhomNganhController extends Controller
             })
             ->paginate($perPage);
 
+        // Thống kê tổng quan để hiển thị trên đầu trang
+        $stats = [
+            'tong'         => NhomNganh::count(),
+            'hoat_dong'    => NhomNganh::where('trang_thai', true)->count(),
+            'tam_dung'     => NhomNganh::where('trang_thai', false)->count(),
+            'co_khoa_hoc'  => NhomNganh::has('khoaHocs')->count(),
+            'tong_khoa_hoc' => \App\Models\KhoaHoc::count(),
+        ];
+
         return view('pages.admin.khoa-hoc.mon-hoc.index', [
             'nhomNganhs' => $nhomNganhs,
             'search' => $search,
             'trangThai' => $trangThai,
+            'stats' => $stats,
         ]);
     }
 

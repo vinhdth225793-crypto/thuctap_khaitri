@@ -75,7 +75,34 @@
         ->values();
 @endphp
 
+@php
+    // Cấu trúc lại task để hiển thị có thứ tự ưu tiên rõ ràng
+    $taskCounts = collect($taskStats ?? [])->pluck('count', 'key');
+    $hasUrgent = ($urgentTotal ?? 0) > 0;
+
+    // Quick access tới các nghiệp vụ admin
+    $quickAccess = [
+        ['title' => 'Tài khoản', 'icon' => 'fa-users', 'route' => route('admin.tai-khoan.index'), 'tone' => 'primary', 'desc' => 'Tạo, sửa, khóa user'],
+        ['title' => 'Phê duyệt TK', 'icon' => 'fa-user-check', 'route' => route('admin.phe-duyet-tai-khoan.index'), 'tone' => 'warning', 'desc' => 'Duyệt giảng viên mới'],
+        ['title' => 'Nhóm ngành', 'icon' => 'fa-shapes', 'route' => route('admin.nhom-nganh.index'), 'tone' => 'info', 'desc' => 'Lĩnh vực đào tạo'],
+        ['title' => 'Khóa học', 'icon' => 'fa-graduation-cap', 'route' => route('admin.khoa-hoc.index'), 'tone' => 'success', 'desc' => 'Tạo & mở lớp'],
+        ['title' => 'Module', 'icon' => 'fa-layer-group', 'route' => route('admin.module-hoc.index'), 'tone' => 'secondary', 'desc' => 'Phân công GV'],
+        ['title' => 'Lịch học', 'icon' => 'fa-calendar-days', 'route' => route('admin.khoa-hoc.index'), 'tone' => 'info', 'desc' => 'Sắp xếp buổi học'],
+        ['title' => 'Điểm danh', 'icon' => 'fa-clipboard-user', 'route' => route('admin.diem-danh.index'), 'tone' => 'primary', 'desc' => 'GV & học viên'],
+        ['title' => 'Bài giảng', 'icon' => 'fa-book-open', 'route' => route('admin.bai-giang.index'), 'tone' => 'success', 'desc' => 'Duyệt nội dung'],
+        ['title' => 'Thư viện', 'icon' => 'fa-folder-open', 'route' => route('admin.thu-vien.index'), 'tone' => 'secondary', 'desc' => 'Tài liệu chia sẻ'],
+        ['title' => 'Câu hỏi', 'icon' => 'fa-clipboard-question', 'route' => route('admin.kiem-tra-online.cau-hoi.index'), 'tone' => 'warning', 'desc' => 'Ngân hàng đề'],
+        ['title' => 'Bài kiểm tra', 'icon' => 'fa-clipboard-check', 'route' => route('admin.kiem-tra-online.phe-duyet.index'), 'tone' => 'danger', 'desc' => 'Phê duyệt đề'],
+        ['title' => 'Kết quả', 'icon' => 'fa-chart-line', 'route' => route('admin.ket-qua.index'), 'tone' => 'success', 'desc' => 'Theo dõi tiến độ'],
+        ['title' => 'Đơn xin nghỉ', 'icon' => 'fa-calendar-xmark', 'route' => route('admin.giang-vien-don-xin-nghi.index'), 'tone' => 'warning', 'desc' => 'GV xin nghỉ'],
+        ['title' => 'Yêu cầu HV', 'icon' => 'fa-user-plus', 'route' => route('admin.yeu-cau-hoc-vien.index'), 'tone' => 'info', 'desc' => 'Yêu cầu vào lớp'],
+        ['title' => 'Banner', 'icon' => 'fa-image', 'route' => route('admin.settings.banners.index'), 'tone' => 'primary', 'desc' => 'Banner trang chủ'],
+        ['title' => 'Cài đặt', 'icon' => 'fa-gear', 'route' => route('admin.settings'), 'tone' => 'secondary', 'desc' => 'Hệ thống & liên hệ'],
+    ];
+@endphp
+
 <div class="admin-dashboard">
+    {{-- ========== 1. Welcome banner ========== --}}
     <section class="admin-briefing-card">
         <div>
             <div class="dashboard-kicker">
@@ -107,90 +134,79 @@
         </div>
     </section>
 
-    <section class="work-queue-grid">
-        @foreach($priorityTasks as $task)
-            <a href="{{ $task['route'] }}" class="work-card tone-{{ $task['tone'] }}">
-                <div class="work-icon"><i class="{{ $task['icon'] }}"></i></div>
+    {{-- ========== 2. Việc cần xử lý ngay (urgent tasks) ========== --}}
+    <section class="dash-section">
+        <header class="dash-section-head">
+            <div class="dash-section-title">
+                <span class="dash-section-num">1</span>
                 <div>
-                    <span>{{ $task['title'] }}</span>
-                    <strong>{{ number_format($task['count']) }}</strong>
-                    <p>{{ $task['description'] }}</p>
+                    <h2><i class="fas fa-circle-exclamation text-warning"></i> Việc cần xử lý ngay</h2>
+                    <p>Những việc đang chờ admin duyệt — click vào để vào trang xử lý.</p>
                 </div>
-            </a>
-        @endforeach
-    </section>
+            </div>
+            @if($hasUrgent)
+                <span class="dash-urgent-badge">{{ number_format($urgentTotal) }} việc đang chờ</span>
+            @else
+                <span class="dash-clear-badge"><i class="fas fa-check"></i> Hàng đợi sạch</span>
+            @endif
+        </header>
 
-    <section class="overview-grid">
-        @foreach($overviewCards as $card)
-            <a href="{{ $card['route'] }}" class="overview-card tone-{{ $card['tone'] }}">
-                <div>
-                    <span>{{ $card['label'] }}</span>
-                    <strong>{{ number_format($card['value']) }}</strong>
-                    <p>{{ $card['meta'] }}</p>
-                </div>
-                <i class="{{ $card['icon'] }}"></i>
-            </a>
-        @endforeach
-    </section>
-
-    <section class="dashboard-chart-grid">
-        <div class="dashboard-panel chart-panel chart-wide">
-            <div class="panel-head">
-                <div>
-                    <span class="dashboard-kicker">Biểu đồ</span>
-                    <h2>Đăng ký mới trong 7 ngày</h2>
-                </div>
-                <span class="chart-note">Học viên, giảng viên, admin</span>
-            </div>
-            <div class="chart-box chart-box-tall">
-                <canvas id="registrationChart" aria-label="Biểu đồ đăng ký mới trong 7 ngày"></canvas>
-            </div>
-        </div>
-
-        <div class="dashboard-panel chart-panel">
-            <div class="panel-head">
-                <div>
-                    <span class="dashboard-kicker">Nhân sự</span>
-                    <h2>Phân bổ vai trò</h2>
-                </div>
-            </div>
-            <div class="chart-box">
-                <canvas id="roleChart" aria-label="Biểu đồ phân bổ vai trò"></canvas>
-            </div>
-            <div class="chart-legend">
-                @foreach($roleChartData as $role)
-                    <span><i style="background: {{ $role['color'] }}"></i>{{ $role['label'] }}: {{ number_format($role['value']) }}</span>
-                @endforeach
-            </div>
-        </div>
-
-        <div class="dashboard-panel chart-panel">
-            <div class="panel-head">
-                <div>
-                    <span class="dashboard-kicker">Hàng đợi</span>
-                    <h2>Việc chờ xử lý</h2>
-                </div>
-            </div>
-            <div class="chart-box">
-                <canvas id="workloadChart" aria-label="Biểu đồ việc chờ xử lý"></canvas>
-            </div>
-        </div>
-
-        <div class="dashboard-panel chart-panel chart-wide">
-            <div class="panel-head">
-                <div>
-                    <span class="dashboard-kicker">Đào tạo</span>
-                    <h2>Hoạt động 6 tháng gần đây</h2>
-                </div>
-                <span class="chart-note">Người dùng, khóa học, module</span>
-            </div>
-            <div class="chart-box chart-box-tall">
-                <canvas id="monthlyActivityChart" aria-label="Biểu đồ hoạt động đào tạo theo tháng"></canvas>
-            </div>
+        <div class="work-queue-grid">
+            @foreach($priorityTasks as $task)
+                <a href="{{ $task['route'] }}" class="work-card tone-{{ $task['tone'] }} {{ $task['count'] > 0 ? 'has-count' : 'no-count' }}">
+                    <div class="work-icon"><i class="{{ $task['icon'] }}"></i></div>
+                    <div>
+                        <span>{{ $task['title'] }}</span>
+                        <strong>{{ number_format($task['count']) }}</strong>
+                        <p>{{ $task['description'] }}</p>
+                    </div>
+                    @if($task['count'] > 0)
+                        <span class="work-arrow"><i class="fas fa-arrow-right"></i></span>
+                    @endif
+                </a>
+            @endforeach
         </div>
     </section>
 
-    <section class="dashboard-main-grid">
+    {{-- ========== 3. Tổng quan hệ thống ========== --}}
+    <section class="dash-section">
+        <header class="dash-section-head">
+            <div class="dash-section-title">
+                <span class="dash-section-num">2</span>
+                <div>
+                    <h2><i class="fas fa-chart-pie text-primary"></i> Tổng quan hệ thống</h2>
+                    <p>Số liệu tổng hợp về người dùng, đào tạo và lịch vận hành.</p>
+                </div>
+            </div>
+        </header>
+
+        <div class="overview-grid">
+            @foreach($overviewCards as $card)
+                <a href="{{ $card['route'] }}" class="overview-card tone-{{ $card['tone'] }}">
+                    <div>
+                        <span>{{ $card['label'] }}</span>
+                        <strong>{{ number_format($card['value']) }}</strong>
+                        <p>{{ $card['meta'] }}</p>
+                    </div>
+                    <i class="{{ $card['icon'] }}"></i>
+                </a>
+            @endforeach
+        </div>
+    </section>
+
+    {{-- ========== 4. Điều hành ngày hôm nay ========== --}}
+    <section class="dash-section">
+        <header class="dash-section-head">
+            <div class="dash-section-title">
+                <span class="dash-section-num">3</span>
+                <div>
+                    <h2><i class="fas fa-calendar-day text-info"></i> Điều hành hôm nay</h2>
+                    <p>Lịch học và việc còn vướng cần admin theo dõi.</p>
+                </div>
+            </div>
+        </header>
+
+    <div class="dashboard-main-grid">
         <div class="dashboard-panel">
             <div class="panel-head">
                 <div>
@@ -269,9 +285,22 @@
                 </a>
             </div>
         </div>
+        </div>
     </section>
 
-    <section class="dashboard-main-grid">
+    {{-- ========== 4. Phê duyệt tài khoản & đơn nghỉ ========== --}}
+    <section class="dash-section">
+        <header class="dash-section-head">
+            <div class="dash-section-title">
+                <span class="dash-section-num">4</span>
+                <div>
+                    <h2><i class="fas fa-user-check text-warning"></i> Tài khoản & đơn nghỉ chờ duyệt</h2>
+                    <p>Tài khoản giảng viên mới đăng ký và đơn xin nghỉ giảng cần phản hồi sớm.</p>
+                </div>
+            </div>
+        </header>
+
+    <div class="dashboard-main-grid">
         <div class="dashboard-panel">
             <div class="panel-head">
                 <div>
@@ -321,9 +350,22 @@
                 @endforelse
             </div>
         </div>
+    </div>
     </section>
 
-    <section class="dashboard-main-grid">
+    {{-- ========== 5. Yêu cầu học viên & phân công module ========== --}}
+    <section class="dash-section">
+        <header class="dash-section-head">
+            <div class="dash-section-title">
+                <span class="dash-section-num">5</span>
+                <div>
+                    <h2><i class="fas fa-clipboard-check text-success"></i> Yêu cầu học viên & phân công</h2>
+                    <p>Yêu cầu của học viên và những module còn vướng phân công.</p>
+                </div>
+            </div>
+        </header>
+
+    <div class="dashboard-main-grid">
         <div class="dashboard-panel">
             <div class="panel-head">
                 <div>
@@ -373,18 +415,97 @@
                 @endforelse
             </div>
         </div>
+    </div>
     </section>
 
-    <section class="dashboard-panel">
-        <div class="panel-head">
-            <div>
-                <span class="dashboard-kicker">Tài khoản</span>
-                <h2>Thành viên mới gia nhập</h2>
+    {{-- ========== 6. Biểu đồ thống kê ========== --}}
+    <section class="dash-section">
+        <header class="dash-section-head">
+            <div class="dash-section-title">
+                <span class="dash-section-num">6</span>
+                <div>
+                    <h2><i class="fas fa-chart-column text-primary"></i> Thống kê & biểu đồ</h2>
+                    <p>Phân tích đăng ký, vai trò và hoạt động đào tạo theo thời gian.</p>
+                </div>
             </div>
-            <a href="{{ route('admin.tai-khoan.index') }}">Quản lý tài khoản</a>
-        </div>
+        </header>
 
-        <div class="table-responsive">
+        <div class="dashboard-chart-grid">
+            <div class="dashboard-panel chart-panel chart-wide">
+                <div class="panel-head">
+                    <div>
+                        <span class="dashboard-kicker">Biểu đồ</span>
+                        <h2>Đăng ký mới trong 7 ngày</h2>
+                    </div>
+                    <span class="chart-note">Học viên, giảng viên, admin</span>
+                </div>
+                <div class="chart-box chart-box-tall">
+                    <canvas id="registrationChart" aria-label="Biểu đồ đăng ký mới trong 7 ngày"></canvas>
+                </div>
+            </div>
+
+            <div class="dashboard-panel chart-panel">
+                <div class="panel-head">
+                    <div>
+                        <span class="dashboard-kicker">Nhân sự</span>
+                        <h2>Phân bổ vai trò</h2>
+                    </div>
+                </div>
+                <div class="chart-box">
+                    <canvas id="roleChart" aria-label="Biểu đồ phân bổ vai trò"></canvas>
+                </div>
+                <div class="chart-legend">
+                    @foreach($roleChartData as $role)
+                        <span><i style="background: {{ $role['color'] }}"></i>{{ $role['label'] }}: {{ number_format($role['value']) }}</span>
+                    @endforeach
+                </div>
+            </div>
+
+            <div class="dashboard-panel chart-panel">
+                <div class="panel-head">
+                    <div>
+                        <span class="dashboard-kicker">Hàng đợi</span>
+                        <h2>Việc chờ xử lý</h2>
+                    </div>
+                </div>
+                <div class="chart-box">
+                    <canvas id="workloadChart" aria-label="Biểu đồ việc chờ xử lý"></canvas>
+                </div>
+            </div>
+
+            <div class="dashboard-panel chart-panel chart-wide">
+                <div class="panel-head">
+                    <div>
+                        <span class="dashboard-kicker">Đào tạo</span>
+                        <h2>Hoạt động 6 tháng gần đây</h2>
+                    </div>
+                    <span class="chart-note">Người dùng, khóa học, module</span>
+                </div>
+                <div class="chart-box chart-box-tall">
+                    <canvas id="monthlyActivityChart" aria-label="Biểu đồ hoạt động đào tạo theo tháng"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {{-- ========== 7. Thành viên mới ========== --}}
+    <section class="dash-section">
+        <header class="dash-section-head">
+            <div class="dash-section-title">
+                <span class="dash-section-num">7</span>
+                <div>
+                    <h2><i class="fas fa-user-plus text-info"></i> Thành viên mới gia nhập</h2>
+                    <p>10 người đăng ký gần nhất — kiểm tra & cấp quyền nếu cần.</p>
+                </div>
+            </div>
+            <a href="{{ route('admin.tai-khoan.index') }}" class="dash-section-link">
+                Quản lý tài khoản <i class="fas fa-arrow-right"></i>
+            </a>
+        </header>
+
+        <div class="dashboard-panel">
+
+            <div class="table-responsive">
             <table class="table table-hover align-middle mb-0 admin-table">
                 <thead>
                     <tr>
@@ -436,6 +557,32 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+        </div>
+    </section>
+
+    {{-- ========== 8. Truy cập nhanh nghiệp vụ ========== --}}
+    <section class="dash-section">
+        <header class="dash-section-head">
+            <div class="dash-section-title">
+                <span class="dash-section-num">8</span>
+                <div>
+                    <h2><i class="fas fa-bolt text-warning"></i> Truy cập nhanh nghiệp vụ</h2>
+                    <p>Vào thẳng các trang quản lý — không cần qua menu sidebar.</p>
+                </div>
+            </div>
+        </header>
+
+        <div class="quick-access-grid">
+            @foreach($quickAccess as $qa)
+                <a href="{{ $qa['route'] }}" class="quick-access-card tone-{{ $qa['tone'] }}">
+                    <div class="qa-icon"><i class="fas {{ $qa['icon'] }}"></i></div>
+                    <div class="qa-text">
+                        <strong>{{ $qa['title'] }}</strong>
+                        <small>{{ $qa['desc'] }}</small>
+                    </div>
+                </a>
+            @endforeach
         </div>
     </section>
 </div>
@@ -910,6 +1057,261 @@
         .status-pill {
             margin-left: 0;
         }
+    }
+
+    /* ========== Section heading rõ ràng cho admin dashboard ========== */
+    .dash-section {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .dash-section-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 18px;
+        background: linear-gradient(135deg, #ffffff 0%, #f5f7ff 100%);
+        border: 1px solid #e3e8ff;
+        border-left: 4px solid #4361ee;
+        border-radius: 12px;
+        flex-wrap: wrap;
+    }
+
+    .dash-section-title {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .dash-section-num {
+        flex-shrink: 0;
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #4361ee 0%, #2f46c9 100%);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-weight: 900;
+        font-size: 1.05rem;
+        box-shadow: 0 6px 16px rgba(67, 97, 238, 0.3);
+    }
+
+    .dash-section-title h2 {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #17203d;
+        margin: 0 0 2px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .dash-section-title h2 i {
+        font-size: 1rem;
+    }
+
+    .dash-section-title p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #69728a;
+        line-height: 1.4;
+    }
+
+    .dash-section-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        background: #fff;
+        border: 1px solid #c7d2fe;
+        border-radius: 999px;
+        color: #4361ee;
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .dash-section-link:hover {
+        background: #4361ee;
+        color: #fff;
+        border-color: #4361ee;
+        transform: translateX(2px);
+    }
+
+    .dash-urgent-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 14px;
+        background: #fff7ed;
+        border: 1px solid #fdba74;
+        border-radius: 999px;
+        color: #c2410c;
+        font-size: 0.85rem;
+        font-weight: 800;
+        animation: urgentPulse 1.6s ease-out infinite;
+    }
+
+    @keyframes urgentPulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(251, 146, 60, 0.4); }
+        50% { box-shadow: 0 0 0 8px rgba(251, 146, 60, 0); }
+    }
+
+    .dash-clear-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        background: #ecfdf5;
+        border: 1px solid #6ee7b7;
+        border-radius: 999px;
+        color: #047857;
+        font-size: 0.85rem;
+        font-weight: 800;
+    }
+
+    /* Work card có "no count" -> mờ hơn */
+    .work-card.no-count {
+        opacity: 0.7;
+    }
+
+    .work-card.no-count strong {
+        color: #94a3b8;
+    }
+
+    .work-card {
+        position: relative;
+    }
+
+    .work-arrow {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: rgba(67, 97, 238, 0.12);
+        color: #4361ee;
+        display: grid;
+        place-items: center;
+        font-size: 0.78rem;
+        transition: all 0.2s ease;
+    }
+
+    .work-card:hover .work-arrow {
+        background: #4361ee;
+        color: #fff;
+        transform: translateX(3px);
+    }
+
+    /* ========== Quick access grid ========== */
+    .quick-access-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+    }
+
+    .quick-access-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px;
+        background: #fff;
+        border: 1px solid #e3e8ff;
+        border-radius: 12px;
+        text-decoration: none;
+        color: #17203d;
+        transition: all 0.25s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .quick-access-card::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--qa-color, #4361ee);
+        transform: scaleY(0);
+        transform-origin: top center;
+        transition: transform 0.25s ease;
+    }
+
+    .quick-access-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 28px rgba(67, 97, 238, 0.16);
+        border-color: var(--qa-color, #4361ee);
+        color: #17203d;
+    }
+
+    .quick-access-card:hover::before {
+        transform: scaleY(1);
+    }
+
+    .quick-access-card.tone-primary { --qa-color: #4361ee; }
+    .quick-access-card.tone-success { --qa-color: #22c55e; }
+    .quick-access-card.tone-warning { --qa-color: #f59e0b; }
+    .quick-access-card.tone-danger  { --qa-color: #ef4444; }
+    .quick-access-card.tone-info    { --qa-color: #0ea5e9; }
+    .quick-access-card.tone-secondary { --qa-color: #69728a; }
+
+    .qa-icon {
+        flex-shrink: 0;
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: rgba(67, 97, 238, 0.08);
+        color: var(--qa-color, #4361ee);
+        display: grid;
+        place-items: center;
+        font-size: 1.05rem;
+        transition: all 0.25s ease;
+    }
+
+    .quick-access-card:hover .qa-icon {
+        background: var(--qa-color, #4361ee);
+        color: #fff;
+        transform: scale(1.06);
+    }
+
+    .qa-text {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .qa-text strong {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: #17203d;
+        line-height: 1.2;
+    }
+
+    .qa-text small {
+        margin-top: 2px;
+        font-size: 0.75rem;
+        color: #69728a;
+        font-weight: 500;
+        line-height: 1.3;
+    }
+
+    @media (max-width: 1080px) {
+        .quick-access-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (max-width: 720px) {
+        .quick-access-grid { grid-template-columns: repeat(2, 1fr); }
+        .dash-section-head { padding: 12px 14px; }
+        .dash-section-title h2 { font-size: 1rem; }
+        .dash-section-title p { font-size: 0.78rem; }
     }
 </style>
 

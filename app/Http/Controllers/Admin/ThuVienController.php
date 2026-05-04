@@ -47,6 +47,19 @@ class ThuVienController extends Controller
             'nguoi_duyet_id' => auth()->user()->id,
         ]);
 
+        try {
+            $approved = $validated['trang_thai_duyet'] === 'da_duyet';
+            if ($taiNguyen->nguoi_tao_id) {
+                app(\App\Services\NotificationService::class)->notifyLibraryApproved(
+                    (int) $taiNguyen->nguoi_tao_id,
+                    $taiNguyen->tieu_de,
+                    $taiNguyen->id,
+                    $approved,
+                    $validated['ghi_chu_admin'] ?? null
+                );
+            }
+        } catch (\Throwable $e) { report($e); }
+
         return back()->with('success', 'Đã cập nhật trạng thái phê duyệt tài nguyên.');
     }
 
