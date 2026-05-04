@@ -46,46 +46,71 @@
         && ($isInternalRoom || filled($phongHocLive->start_url) || filled($phongHocLive->join_url));
 @endphp
 
-<div class="container-fluid">
-    <div class="card border-0 shadow-sm mb-4 text-white overflow-hidden teacher-live-hero">
-        <div class="card-body p-4 p-md-5">
-            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
-                <div>
-                    <div class="small text-white-50 text-uppercase mb-2">Phòng điều hành giảng viên</div>
-                    <h2 class="fw-bold mb-2 text-white">{{ $phongHocLive->tieu_de }}</h2>
-                    <div class="text-white-50 mb-3">{{ $baiGiang->khoaHoc->ten_khoa_hoc }} / {{ $baiGiang->moduleHoc->ten_module }}</div>
-                    <div class="d-flex flex-wrap gap-2">
-                        <span class="badge bg-{{ $phongHocLive->timeline_trang_thai_color }}">{{ $phongHocLive->timeline_trang_thai_label }}</span>
-                        <span class="badge bg-light text-dark">{{ $platformLabel }}</span>
-                        @if($isInternalRoom && $hasExternalLaunch)
-                            <span class="badge bg-success text-white">{{ $externalPlatformLabel }} sẵn sàng</span>
-                        @endif
-                        <span class="badge bg-light text-dark">{{ $phongHocLive->thoi_luong_phut }} phút</span>
-                    </div>
-                </div>
-                <div class="text-md-end">
-                    <div class="small text-white-50">Bắt đầu lúc</div>
-                    <div class="fw-bold fs-5">{{ $phongHocLive->thoi_gian_bat_dau->format('d/m/Y H:i') }}</div>
-                    <div
-                        id="teacher-live-countdown"
-                        class="small text-white mt-1 fw-bold"
-                        data-open-at="{{ $phongHocLive->join_opens_at->toIso8601String() }}"
-                        data-start-at="{{ $phongHocLive->thoi_gian_bat_dau->toIso8601String() }}"
-                        data-timeline="{{ $timelineStatus }}"
-                        data-player-mode="{{ $playerMode }}"
-                    ></div>
-                    <div class="d-flex flex-wrap justify-content-md-end gap-2 mt-3">
-                        @if($hasExternalLaunch)
-                            <a href="{{ $externalLaunchUrl }}" target="_blank" rel="noopener" class="btn btn-light btn-sm fw-bold px-3">
-                                <i class="fas fa-external-link-alt me-1"></i> {{ $externalLaunchText }}
-                            </a>
-                        @endif
-                        <a href="{{ $backUrl }}" class="btn btn-outline-light btn-sm fw-bold px-3">
-                            <i class="fas fa-arrow-left me-1"></i> Về buổi học
-                        </a>
-                    </div>
-                </div>
+<div class="container-fluid lr-page">
+    {{-- Welcome banner xanh dương — Phòng điều hành GV --}}
+    <div class="apx-welcome lr-welcome">
+        @php
+            $statusClassMap = [
+                'sap_dien_ra'    => 'is-warning',
+                'dang_dien_ra'   => 'is-success',
+                'da_ket_thuc'    => 'is-secondary',
+                'da_huy'         => 'is-danger',
+                'da_hoan_thanh'  => 'is-info',
+            ];
+            $statusIconMap = [
+                'sap_dien_ra'    => 'fa-clock',
+                'dang_dien_ra'   => 'fa-circle-play',
+                'da_ket_thuc'    => 'fa-flag-checkered',
+                'da_huy'         => 'fa-circle-xmark',
+                'da_hoan_thanh'  => 'fa-circle-check',
+            ];
+            $hStatusClass = $statusClassMap[$timelineStatus] ?? 'is-secondary';
+            $hStatusIcon  = $statusIconMap[$timelineStatus] ?? 'fa-circle';
+        @endphp
+        <div class="lr-welcome-icon">
+            <i class="fas fa-broadcast-tower"></i>
+            @if($timelineStatus === \App\Models\PhongHocLive::ROOM_STATE_DANG_DIEN_RA)
+                <span class="lr-live-dot"></span>
+            @endif
+        </div>
+        <div class="apx-welcome-text">
+            <div class="lr-tag-row">
+                <span class="lr-loai-badge"><i class="fas fa-broadcast-tower"></i> PHÒNG LIVE GIẢNG VIÊN</span>
+                <span class="lr-status-pill {{ $hStatusClass }}">
+                    <i class="fas {{ $hStatusIcon }}"></i> {{ $phongHocLive->timeline_trang_thai_label }}
+                </span>
+                <span class="lr-status-badge"><i class="fas fa-cube"></i> {{ $platformLabel }}</span>
+                @if($isInternalRoom && $hasExternalLaunch)
+                    <span class="lr-status-pill is-success"><i class="fas fa-circle-check"></i> {{ $externalPlatformLabel }} sẵn sàng</span>
+                @endif
+                <span class="lr-status-badge"><i class="far fa-clock"></i> {{ $phongHocLive->thoi_luong_phut }} phút</span>
             </div>
+            <h4>{{ $phongHocLive->tieu_de }}</h4>
+            <p>
+                <span><i class="fas fa-graduation-cap"></i> {{ $baiGiang->khoaHoc->ten_khoa_hoc }}</span>
+                <span class="lr-sep">·</span>
+                <span><i class="fas fa-cube"></i> {{ $baiGiang->moduleHoc->ten_module }}</span>
+                <span class="lr-sep">·</span>
+                <span><i class="fas fa-calendar-day"></i> Bắt đầu {{ $phongHocLive->thoi_gian_bat_dau->format('d/m/Y H:i') }}</span>
+            </p>
+            <div
+                id="teacher-live-countdown"
+                class="lr-countdown"
+                data-open-at="{{ $phongHocLive->join_opens_at->toIso8601String() }}"
+                data-start-at="{{ $phongHocLive->thoi_gian_bat_dau->toIso8601String() }}"
+                data-timeline="{{ $timelineStatus }}"
+                data-player-mode="{{ $playerMode }}"
+            ></div>
+        </div>
+        <div class="apx-welcome-cta">
+            <a href="{{ $backUrl }}" class="apx-view-toggle">
+                <i class="fas fa-arrow-left"></i> <span>Về buổi học</span>
+            </a>
+            @if($hasExternalLaunch)
+                <a href="{{ $externalLaunchUrl }}" target="_blank" rel="noopener" class="btn btn-light text-primary fw-bold shadow-sm lr-launch-btn">
+                    <i class="fas fa-external-link-alt me-1"></i> {{ $externalLaunchText }}
+                </a>
+            @endif
         </div>
     </div>
 
@@ -506,6 +531,107 @@
 </div>
 
 <style>
+    /* ===== Welcome banner xanh dương cho live-room ===== */
+    .lr-welcome {
+        background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #4361ee 100%) !important;
+        box-shadow: 0 16px 36px rgba(29, 78, 216, 0.22) !important;
+        position: relative;
+        overflow: hidden;
+    }
+    .lr-welcome-icon {
+        flex-shrink: 0;
+        width: 64px; height: 64px;
+        background: rgba(255,255,255,0.18);
+        border: 1px solid rgba(255,255,255,0.28);
+        backdrop-filter: blur(8px);
+        color: #fff;
+        border-radius: 14px;
+        display: grid; place-items: center;
+        font-size: 1.6rem;
+        position: relative;
+        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
+        z-index: 1;
+    }
+    .lr-live-dot {
+        position: absolute;
+        top: -3px; right: -3px;
+        width: 16px; height: 16px;
+        background: #ef4444;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        animation: lrLiveBlink 1.4s ease-out infinite;
+    }
+    @keyframes lrLiveBlink {
+        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+    .lr-tag-row {
+        display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+        flex-wrap: wrap;
+    }
+    .lr-loai-badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 12px;
+        background: rgba(255,255,255,0.22);
+        border: 1px solid rgba(255,255,255,0.4);
+        backdrop-filter: blur(6px);
+        color: #fff;
+        font-size: 0.7rem; font-weight: 800;
+        letter-spacing: 1px;
+        border-radius: 999px;
+    }
+    .lr-status-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 10px;
+        background: rgba(255,255,255,0.14);
+        color: #fff; font-size: 0.72rem; font-weight: 700;
+        border-radius: 999px;
+    }
+    .lr-status-pill {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 12px;
+        font-size: 0.72rem; font-weight: 800;
+        border-radius: 999px;
+    }
+    .lr-status-pill i { font-size: 0.62rem; }
+    .lr-status-pill.is-success   { background: #dcfce7; color: #166534; animation: lrPulse 1.6s ease-out infinite; }
+    .lr-status-pill.is-warning   { background: #fef3c7; color: #b45309; }
+    .lr-status-pill.is-info      { background: #cffafe; color: #0e7490; }
+    .lr-status-pill.is-danger    { background: #fee2e2; color: #b91c1c; }
+    .lr-status-pill.is-secondary { background: #f1f5f9; color: #475569; }
+    @keyframes lrPulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.45); }
+        50%      { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+    }
+    .apx-welcome.lr-welcome p {
+        display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+        font-size: 0.85rem;
+    }
+    .apx-welcome.lr-welcome p i { color: #fef3c7; margin-right: 4px; }
+    .lr-sep { opacity: 0.5; }
+
+    .lr-countdown {
+        display: inline-flex; align-items: center; gap: 6px;
+        margin-top: 10px;
+        padding: 6px 14px;
+        background: rgba(0, 0, 0, 0.18);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        color: #fff;
+        font-size: 0.84rem;
+        font-weight: 800;
+        border-radius: 8px;
+        letter-spacing: 0.4px;
+        white-space: nowrap;
+    }
+    .lr-countdown:empty { display: none; }
+    .lr-launch-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(0,0,0,0.18);
+    }
+
+    /* Giữ class cũ để không vỡ JS countdown nếu code khác bám vào */
     .teacher-live-hero {
         border-radius: 1.5rem;
         background:
@@ -946,4 +1072,6 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endpush
+
+@include('pages.admin.partials._admin-page-styles')
 @endsection

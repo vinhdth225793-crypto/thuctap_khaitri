@@ -67,7 +67,13 @@ class TeacherLeaveRequestController extends Controller
         $teacher = auth()->user()->giangVien;
         abort_if(!$teacher, 404);
 
-        $this->leaveRequestService->createForTeacher($teacher, $request->validated());
+        $leave = $this->leaveRequestService->createForTeacher($teacher, $request->validated());
+
+        try {
+            $tenGV = auth()->user()->ho_ten ?? 'Giảng viên';
+            $leaveId = is_object($leave) ? ($leave->id ?? 0) : 0;
+            app(\App\Services\NotificationService::class)->notifyLeaveSubmitted($tenGV, (int) $leaveId);
+        } catch (\Throwable $e) { report($e); }
 
         return redirect()
             ->route('giang-vien.don-xin-nghi.index')

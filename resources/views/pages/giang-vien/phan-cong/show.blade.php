@@ -3,154 +3,205 @@
 @section('title', 'Tổng quan khóa: ' . $khoaHoc->ten_khoa_hoc)
 
 @section('content')
-<div class="container-fluid">
-    <!-- Breadcrumb -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 bg-white p-3 rounded-4 shadow-xs border">
-                    <li class="breadcrumb-item"><a href="{{ route('giang-vien.dashboard') }}" class="text-decoration-none"><i class="fas fa-home me-1"></i> Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('giang-vien.khoa-hoc') }}" class="text-decoration-none">Lộ trình dạy</a></li>
-                    <li class="breadcrumb-item active fw-bold text-dark" aria-current="page">Phiên điều hành</li>
-                </ol>
-            </nav>
-        </div>
-    </div>
-
-        <!-- Header -->
-    <div class="row mb-4 align-items-center">
-        <div class="col-md-8">
-            <div class="d-flex align-items-center">
-                <div class="bg-primary text-white rounded-4 d-flex align-items-center justify-content-center shadow-md me-4" style="width: 64px; height: 64px; font-size: 1.5rem;">
-                    <i class="fas fa-graduation-cap"></i>
-                </div>
-                <div>
-                    <h2 class="fw-extrabold mb-1 text-dark letter-spacing-tight">{{ $khoaHoc->ten_khoa_hoc }}</h2>
-                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <span class="text-muted small">Trang tổng quan khóa học của giảng viên</span>
-                        <span class="text-silver">|</span>
-                        <span class="badge bg-{{ $khoaHoc->trang_thai_hoc_tap_badge }}-soft text-{{ $khoaHoc->trang_thai_hoc_tap_badge }} border border-{{ $khoaHoc->trang_thai_hoc_tap_badge }} rounded-pill px-3">
-                            {{ $khoaHoc->trang_thai_hoc_tap_label }}
-                        </span>
-                        <span class="badge bg-primary-soft text-primary border border-primary rounded-pill px-3">
-                            {{ $courseStats['assigned_modules'] }} module phụ trách
-                        </span>
-                    </div>
-                </div>
+<div class="container-fluid admin-page-x gv-detail-page">
+    {{-- ========== Welcome banner xanh dương ========== --}}
+    <div class="apx-welcome gv-welcome">
+        <div class="apx-welcome-icon"><i class="fas fa-graduation-cap"></i></div>
+        <div class="apx-welcome-text">
+            <div class="gv-tag-row">
+                <span class="gv-loai-badge">
+                    <i class="fas fa-chalkboard-teacher"></i> LỚP TÔI PHỤ TRÁCH
+                </span>
+                <span class="gv-status-badge">
+                    <i class="fas fa-circle"></i>
+                    {{ $khoaHoc->trang_thai_hoc_tap_label }}
+                </span>
+                <span class="gv-status-badge">
+                    <i class="fas fa-cubes"></i>
+                    {{ $courseStats['assigned_modules'] }} module phụ trách
+                </span>
+                @if($courseStats['pending_modules'] > 0)
+                    <span class="gv-pending-badge">
+                        <i class="fas fa-hourglass-half"></i> {{ $courseStats['pending_modules'] }} chờ xác nhận
+                    </span>
+                @endif
             </div>
+            <h4>{{ $khoaHoc->ten_khoa_hoc }}</h4>
+            <p>
+                <span><i class="fas fa-barcode"></i> Mã: <code>{{ $khoaHoc->ma_khoa_hoc }}</code></span>
+                <span class="gv-sep">·</span>
+                <span><i class="fas fa-shapes"></i> {{ $khoaHoc->nhomNganh->ten_nhom_nganh ?? 'N/A' }}</span>
+                <span class="gv-sep">·</span>
+                <span><i class="fas fa-calendar-day"></i> {{ $courseStats['total_sessions'] }} buổi tổng</span>
+                <span class="gv-sep">·</span>
+                <span><i class="fas fa-check-double"></i> {{ $courseStats['completed_sessions'] }} buổi đã dạy</span>
+            </p>
         </div>
-        <div class="col-md-4 text-md-end mt-3 mt-md-0">
-            @if($courseStats['pending_modules'] > 0)
-                <div class="badge bg-warning-soft text-warning border border-warning px-4 py-3 shadow-sm rounded-4 fs-6">
-                    <i class="fas fa-clock me-2"></i> {{ $courseStats['pending_modules'] }} module chờ xác nhận
-                </div>
-            @else
-                <div class="badge bg-success-soft text-success border border-success px-4 py-3 shadow-sm rounded-4 fs-6">
-                    <i class="fas fa-shield-check me-2"></i> Tất cả module đã sẵn sàng giảng dạy
-                </div>
-            @endif
+        <div class="apx-welcome-cta">
+            <a href="{{ route('giang-vien.khoa-hoc') }}" class="apx-view-toggle">
+                <i class="fas fa-arrow-left"></i> <span>Lộ trình dạy</span>
+            </a>
+            <a href="{{ route('giang-vien.xet-duyet-ket-qua.show', $khoaHoc->id) }}"
+               class="btn btn-light text-success fw-bold shadow-sm">
+                <i class="fas fa-file-signature me-1"></i> Xét duyệt cuối khóa
+            </a>
+            <a href="{{ route('giang-vien.khoa-hoc.ket-qua', $phanCong->id) }}"
+               class="btn btn-light text-primary fw-bold shadow-sm">
+                <i class="fas fa-poll-h me-1"></i> Quản lý kết quả
+            </a>
         </div>
     </div>
 
     @include('components.alert')
 
-    <div class="row" id="main-layout-row">
+    <div class="row g-4" id="main-layout-row">
         <!-- Cột trái: Lịch dạy & Nội dung -->
         <div class="col-lg-8" id="teaching-roadmap-column">
-            {{-- LỘ TRÌNH BUỔI HỌC --}}
-            <div class="mb-4">
-                <div class="row g-3 mb-4">
+
+            {{-- ① Tổng quan tiến độ --}}
+            <section class="apx-section">
+                <header class="apx-section-head">
+                    <div class="apx-section-title">
+                        <span class="apx-section-num">1</span>
+                        <div>
+                            <h2><i class="fas fa-chart-pie"></i> Tổng quan tiến độ</h2>
+                            <p>Bốn chỉ số nhanh về module bạn đang phụ trách.</p>
+                        </div>
+                    </div>
+                    <div class="apx-section-meta">
+                        <span class="apx-meta-pill"><strong>{{ $phanCong->moduleHoc->tien_do_hoc_tap }}%</strong> hoàn thành</span>
+                    </div>
+                </header>
+
+                <div class="row g-3">
                     <div class="col-md-3 col-6">
-                        <div class="card border-0 shadow-sm rounded-4 p-3 h-100 overflow-hidden position-relative">
-                            <div class="position-absolute end-0 top-0 p-3 opacity-10">
-                                <i class="fas fa-calendar-alt fa-3x"></i>
+                        <div class="apx-stat tone-primary">
+                            <div class="aps-icon"><i class="fas fa-calendar-alt"></i></div>
+                            <div class="aps-text">
+                                <strong>{{ $phanCong->moduleHoc->so_buoi_hop_le }}</strong>
+                                <small>Buổi kế hoạch</small>
                             </div>
-                            <div class="smaller text-muted text-uppercase fw-bold mb-1">Buổi hợp lệ</div>
-                            <div class="fs-3 fw-bold text-dark">{{ $phanCong->moduleHoc->so_buoi_hop_le }}</div>
-                            <div class="smaller text-muted mt-1">Buổi trong kế hoạch</div>
                         </div>
                     </div>
                     <div class="col-md-3 col-6">
-                        <div class="card border-0 shadow-sm rounded-4 p-3 h-100 overflow-hidden position-relative">
-                            <div class="position-absolute end-0 top-0 p-3 opacity-10">
-                                <i class="fas fa-check-circle fa-3x text-success"></i>
+                        <div class="apx-stat tone-success">
+                            <div class="aps-icon"><i class="fas fa-check-circle"></i></div>
+                            <div class="aps-text">
+                                <strong>{{ $phanCong->moduleHoc->so_buoi_hoan_thanh }}</strong>
+                                <small>Đã hoàn thành</small>
                             </div>
-                            <div class="smaller text-muted text-uppercase fw-bold mb-1">Đã hoàn thành</div>
-                            <div class="fs-3 fw-bold text-success">{{ $phanCong->moduleHoc->so_buoi_hoan_thanh }}</div>
-                            <div class="smaller text-muted mt-1">Buổi đã dạy xong</div>
                         </div>
                     </div>
                     <div class="col-md-3 col-6">
-                        <div class="card border-0 shadow-sm rounded-4 p-3 h-100 overflow-hidden position-relative">
-                            <div class="position-absolute end-0 top-0 p-3 opacity-10">
-                                <i class="fas fa-clock fa-3x text-primary"></i>
+                        <div class="apx-stat tone-warning">
+                            <div class="aps-icon"><i class="fas fa-clock"></i></div>
+                            <div class="aps-text">
+                                <strong>{{ $phanCong->moduleHoc->learning_progress_snapshot['upcoming_schedules'] }}</strong>
+                                <small>Sắp tới</small>
                             </div>
-                            <div class="smaller text-muted text-uppercase fw-bold mb-1">Sắp tới</div>
-                            <div class="fs-3 fw-bold text-primary">{{ $phanCong->moduleHoc->learning_progress_snapshot['upcoming_schedules'] }}</div>
-                            <div class="smaller text-muted mt-1">Buổi chờ lên lớp</div>
                         </div>
                     </div>
                     <div class="col-md-3 col-6">
-                        <div class="card border-0 shadow-sm rounded-4 p-3 h-100 overflow-hidden position-relative">
-                            <div class="position-absolute end-0 top-0 p-3 opacity-10">
-                                <i class="fas fa-chart-line fa-3x text-info"></i>
-                            </div>
-                            <div class="smaller text-muted text-uppercase fw-bold mb-1">Tiến độ</div>
-                            <div class="fs-3 fw-bold text-info">{{ $phanCong->moduleHoc->tien_do_hoc_tap }}%</div>
-                            <div class="progress mt-2" style="height: 4px;">
-                                <div class="progress-bar bg-info" style="width: {{ $phanCong->moduleHoc->tien_do_hoc_tap }}%"></div>
+                        <div class="apx-stat tone-info">
+                            <div class="aps-icon"><i class="fas fa-chart-line"></i></div>
+                            <div class="aps-text">
+                                <strong>{{ $phanCong->moduleHoc->tien_do_hoc_tap }}%</strong>
+                                <small>Tiến độ</small>
                             </div>
                         </div>
                     </div>
                 </div>
+            </section>
 
-                <div class="d-flex justify-content-between align-items-center mb-4 mt-2">
-                    <h5 class="fw-bold mb-0 text-dark d-flex align-items-center">
-                        <span class="bg-primary text-white p-2 rounded-3 me-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
-                            <i class="fas fa-calendar-check"></i>
-                        </span>
-                        Lộ trình giảng dạy theo từng buổi
-                        <button class="btn btn-sm btn-outline-primary ms-3 d-none" id="btn-show-sidebar" title="Mở lại thông tin khóa học">
-                            <i class="fas fa-expand-alt me-1"></i> Xem thông tin khóa học
-                        </button>
-                    </h5>
-                    <div class="d-flex gap-2">
-                        <a href="{{ route('giang-vien.xet-duyet-ket-qua.show', $khoaHoc->id) }}" class="btn btn-sm btn-success shadow-sm px-3">
-                            <i class="fas fa-file-signature me-1"></i> Xet duyet cuoi khoa
-                        </a>
-                        <a href="{{ route('giang-vien.khoa-hoc.ket-qua', $phanCong->id) }}" class="btn btn-sm btn-primary shadow-sm px-3">
-                            <i class="fas fa-poll-h me-1"></i> Quản lý kết quả
-                        </a>
-                        <div class="dropdown">
-                            <button class="btn btn-sm btn-danger dropdown-toggle shadow-sm px-3" type="button" id="createExamDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-plus-circle me-1"></i> Tạo bài kiểm tra
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="createExamDropdown">
-                                <li><h6 class="dropdown-header">Chọn phạm vi</h6></li>
-                                <li>
-                                    <button class="dropdown-item py-2 btn-add-test-module" type="button">
-                                        <i class="fas fa-layer-group me-2 text-primary"></i> Kiểm tra cuối module
-                                    </button>
-                                </li>
-                                <li>
-                                    <button class="dropdown-item py-2 btn-add-test-course" type="button">
-                                        <i class="fas fa-graduation-cap me-2 text-danger"></i> Kiểm tra toàn khóa
-                                    </button>
-                                </li>
-                            </ul>
+            {{-- ② Bài kiểm tra (chỉ khi có) --}}
+            @if($courseExams->isNotEmpty())
+                <section class="apx-section">
+                    <header class="apx-section-head">
+                        <div class="apx-section-title">
+                            <span class="apx-section-num">2</span>
+                            <div>
+                                <h2><i class="fas fa-file-invoice"></i> Bài kiểm tra của khóa</h2>
+                                <p>Đề kiểm tra ở phạm vi module hoặc toàn khóa — cấu hình & phát hành.</p>
+                            </div>
                         </div>
-                        <span class="badge bg-white text-primary border border-primary px-3 shadow-sm d-flex align-items-center">{{ $lichDays->count() }} buổi dạy</span>
-                    </div>
-                </div>
+                        <div class="apx-section-meta">
+                            <div class="dropdown">
+                                <button class="btn btn-danger btn-sm fw-bold dropdown-toggle shadow-sm" type="button" id="createExamDropdownTop" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-plus-circle me-1"></i> Tạo đề mới
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="createExamDropdownTop">
+                                    <li><h6 class="dropdown-header">Chọn phạm vi</h6></li>
+                                    <li><button class="dropdown-item py-2 btn-add-test-module" type="button"><i class="fas fa-layer-group me-2 text-primary"></i> Kiểm tra cuối module</button></li>
+                                    <li><button class="dropdown-item py-2 btn-add-test-course" type="button"><i class="fas fa-graduation-cap me-2 text-danger"></i> Kiểm tra toàn khóa</button></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </header>
 
-                <div class="session-overview-banner mb-4">
-                    <div class="session-overview-banner__title">Mỗi buổi học là một phiên điều hành hoàn chỉnh</div>
-                    <div class="session-overview-banner__text">
-                        Card buổi học đã được chuẩn hóa theo 4 cụm: thông tin buổi học, điều hành lớp học, điểm danh và nội dung buổi học. Các nút cũ vẫn giữ nguyên đường dẫn để tiếp tục triển khai ở các phase sau.
+                    <div class="row g-3">
+                        @foreach($courseExams as $test)
+                            <div class="col-md-6">
+                                <div class="gv-exam-card">
+                                    <div class="gv-exam-header">
+                                        <span class="gv-exam-scope">
+                                            <i class="fas fa-{{ $test->pham_vi === 'cuoi_khoa' ? 'graduation-cap' : 'layer-group' }}"></i>
+                                            {{ $test->pham_vi_label }}
+                                        </span>
+                                        <strong>{{ $test->tieu_de }}</strong>
+                                        <small><i class="far fa-clock"></i> {{ $test->thoi_gian_lam_bai }} phút · {{ $test->chi_tiet_cau_hois_count ?? $test->chiTietCauHois()->count() }} câu</small>
+                                    </div>
+                                    <div class="gv-exam-actions">
+                                        <a href="{{ route('giang-vien.bai-kiem-tra.edit', $test->id) }}" class="btn btn-sm btn-outline-danger px-3">
+                                            <i class="fas fa-cog me-1"></i> Cấu hình
+                                        </a>
+                                        <a href="{{ route('giang-vien.bai-kiem-tra.surveillance.edit', $test->id) }}" class="btn btn-sm btn-outline-warning px-3">
+                                            <i class="fas fa-shield-alt me-1"></i> Giám sát
+                                        </a>
+                                        @if($test->trang_thai_duyet === 'da_duyet' && $test->trang_thai_phat_hanh !== 'phat_hanh')
+                                            <form action="{{ route('giang-vien.bai-kiem-tra.publish', $test->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Phát hành đề kiểm tra này cho học viên làm bài?')">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-success px-3">
+                                                    <i class="fas fa-paper-plane me-1"></i> Phát hành
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
                     </div>
-                </div>
+                </section>
+            @endif
 
-                
+            {{-- ③ Lộ trình giảng dạy theo module --}}
+            <section class="apx-section">
+                <header class="apx-section-head">
+                    <div class="apx-section-title">
+                        <span class="apx-section-num">{{ $courseExams->isNotEmpty() ? 3 : 2 }}</span>
+                        <div>
+                            <h2><i class="fas fa-calendar-check"></i> Lộ trình giảng dạy theo từng buổi</h2>
+                            <p>Mỗi buổi học là một phiên điều hành — click vào module để xem chi tiết.</p>
+                        </div>
+                    </div>
+                    <div class="apx-section-meta">
+                        <span class="apx-meta-pill"><strong>{{ $lichDays->count() }}</strong> buổi dạy</span>
+                        @if(!$courseExams->isNotEmpty())
+                            <div class="dropdown">
+                                <button class="btn btn-danger btn-sm fw-bold dropdown-toggle shadow-sm" type="button" id="createExamDropdownInline" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-plus-circle me-1"></i> Tạo đề
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="createExamDropdownInline">
+                                    <li><h6 class="dropdown-header">Chọn phạm vi</h6></li>
+                                    <li><button class="dropdown-item py-2 btn-add-test-module" type="button"><i class="fas fa-layer-group me-2 text-primary"></i> Kiểm tra cuối module</button></li>
+                                    <li><button class="dropdown-item py-2 btn-add-test-course" type="button"><i class="fas fa-graduation-cap me-2 text-danger"></i> Kiểm tra toàn khóa</button></li>
+                                </ul>
+                            </div>
+                        @endif
+                    </div>
+                </header>
+
+                <div class="mb-4">
+
 
                 @if($courseExams->isNotEmpty())
                     <div class="mb-4">
@@ -265,25 +316,25 @@
                         <p class="mb-0">Chưa có lịch dạy cụ thể cho khóa học này.</p>
                     </div>
                 @endforelse
-            </div>
-
-
-
-            <div class="card mb-4 border-0 shadow-sm rounded-4 overflow-hidden">
-                <div class="card-header bg-white py-3 border-bottom-0">
-                    <h5 class="card-title fw-bold text-dark mb-0 d-flex align-items-center">
-                        <span class="bg-info text-white p-2 rounded-3 me-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 0.9rem;">
-                            <i class="fas fa-info-circle"></i>
-                        </span>
-                        Mô tả nội dung bài dạy
-                    </h5>
                 </div>
-                <div class="card-body p-4 pt-0">
-                    <div class="bg-light p-4 rounded-4 border border-dashed text-dark lh-lg shadow-inner">
-                        {!! $phanCong->moduleHoc->mo_ta ? nl2br(e($phanCong->moduleHoc->mo_ta)) : '<span class="text-muted italic">Chưa có mô tả chi tiết cho bài học này.</span>' !!}
+            </section>
+
+            {{-- ④ Mô tả nội dung bài dạy --}}
+            <section class="apx-section">
+                <header class="apx-section-head">
+                    <div class="apx-section-title">
+                        <span class="apx-section-num">{{ $courseExams->isNotEmpty() ? 4 : 3 }}</span>
+                        <div>
+                            <h2><i class="fas fa-info-circle"></i> Mô tả nội dung module</h2>
+                            <p>Nội dung học tập của module bạn đang phụ trách: {{ $phanCong->moduleHoc->ten_module }}.</p>
+                        </div>
                     </div>
+                </header>
+
+                <div class="gv-desc-card">
+                    {!! $phanCong->moduleHoc->mo_ta ? nl2br(e($phanCong->moduleHoc->mo_ta)) : '<span class="text-muted fst-italic">Chưa có mô tả chi tiết cho module này.</span>' !!}
                 </div>
-            </div>
+            </section>
         </div>
 
         <!-- Cột phải: Thông tin Khóa học & Học viên -->
@@ -1962,5 +2013,128 @@ document.addEventListener('DOMContentLoaded', function() {
         .session-cluster-card { padding: 1.25rem; }
         .session-metric-grid { grid-template-columns: 1fr; }
     }
+
+    /* ===== Welcome banner cho giảng viên (gradient xanh dương) ===== */
+    .gv-welcome {
+        background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #4361ee 100%) !important;
+        box-shadow: 0 16px 36px rgba(29, 78, 216, 0.22) !important;
+    }
+
+    .gv-tag-row {
+        display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+        flex-wrap: wrap;
+    }
+
+    .gv-loai-badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 12px;
+        background: rgba(255,255,255,0.22);
+        border: 1px solid rgba(255,255,255,0.4);
+        backdrop-filter: blur(6px);
+        color: #fff;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 1px;
+        border-radius: 999px;
+    }
+
+    .gv-status-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 10px;
+        background: rgba(255,255,255,0.14);
+        color: #fff;
+        font-size: 0.72rem;
+        font-weight: 700;
+        border-radius: 999px;
+    }
+    .gv-status-badge i { font-size: 0.55rem; opacity: 0.85; }
+
+    .gv-pending-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 12px;
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        color: #78350f;
+        font-size: 0.72rem;
+        font-weight: 800;
+        border-radius: 999px;
+        animation: gvPendingPulse 1.6s ease-out infinite;
+    }
+    @keyframes gvPendingPulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.6); }
+        50% { box-shadow: 0 0 0 6px rgba(251, 191, 36, 0); }
+    }
+
+    .apx-welcome.gv-welcome p {
+        display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+        font-size: 0.85rem;
+    }
+    .apx-welcome.gv-welcome p i { color: #fef3c7; margin-right: 4px; }
+    .apx-welcome.gv-welcome p code {
+        background: rgba(255,255,255,0.18);
+        color: #fff;
+        padding: 1px 8px;
+        border-radius: 5px;
+        font-size: 0.82rem;
+    }
+    .gv-sep { opacity: 0.5; }
+
+    /* ===== Bài kiểm tra card ===== */
+    .gv-exam-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-left: 4px solid #dc2626;
+        border-radius: 12px;
+        padding: 16px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        transition: all 0.2s ease;
+    }
+    .gv-exam-card:hover {
+        border-color: #dc2626;
+        box-shadow: 0 8px 22px rgba(220, 38, 38, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .gv-exam-header { display: flex; flex-direction: column; gap: 4px; }
+    .gv-exam-scope {
+        display: inline-flex; align-items: center; gap: 5px;
+        align-self: flex-start;
+        padding: 3px 10px;
+        background: #fee2e2;
+        color: #b91c1c;
+        font-size: 0.7rem;
+        font-weight: 800;
+        border-radius: 999px;
+        margin-bottom: 6px;
+    }
+    .gv-exam-header strong {
+        font-size: 0.95rem;
+        color: #0f172a;
+        font-weight: 700;
+        line-height: 1.3;
+    }
+    .gv-exam-header small {
+        font-size: 0.78rem;
+        color: #64748b;
+        font-weight: 600;
+    }
+    .gv-exam-header small i { color: #dc2626; margin-right: 4px; }
+
+    .gv-exam-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    /* ===== Mô tả module card ===== */
+    .gv-desc-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 22px 24px;
+        line-height: 1.75;
+        color: #334155;
+        font-size: 0.92rem;
+    }
 </style>
+
+@include('pages.admin.partials._admin-page-styles')
 @endsection

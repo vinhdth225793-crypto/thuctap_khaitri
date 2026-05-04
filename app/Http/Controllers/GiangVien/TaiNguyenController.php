@@ -45,18 +45,97 @@ class TaiNguyenController extends Controller
         );
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $giangVien = auth()->user()->giangVien;
         if (!$giangVien) {
             return redirect()->route('home')->with('error', 'Tài khoản chưa được liên kết với giảng viên.');
         }
 
-        $taiNguyens = TaiNguyenBuoiHoc::where('nguoi_tao_id', auth()->user()->id)
-            ->orderBy('created_at', 'desc')
-            ->paginate(15);
+        $baseQuery = TaiNguyenBuoiHoc::query()
+            ->where('nguoi_tao_id', auth()->user()->id);
 
-        return view('pages.giang-vien.thu-vien.index', compact('taiNguyens'));
+        $filters = [
+            'keyword' => trim((string) $request->query('keyword', '')),
+            'trang_thai_duyet' => $request->filled('trang_thai_duyet')
+                ? (string) $request->query('trang_thai_duyet')
+                : null,
+            'pham_vi_su_dung' => $request->filled('pham_vi_su_dung')
+                ? (string) $request->query('pham_vi_su_dung')
+                : null,
+            'loai_tai_nguyen' => $request->filled('loai_tai_nguyen')
+                ? (string) $request->query('loai_tai_nguyen')
+                : null,
+        ];
+
+        $summary = [
+            'total_count' => (clone $baseQuery)->count(),
+            'ready_count' => (clone $baseQuery)
+                ->where(function ($approvalQuery) {
+                    $approvalQuery->whereNull('trang_thai_duyet')
+                        ->orWhere('trang_thai_duyet', TaiNguyenBuoiHoc::STATUS_DUYET_DA_DUYET);
+                })
+                ->where(function ($processingQuery) {
+                    $processingQuery->whereNull('trang_thai_xu_ly')
+                        ->orWhereIn('trang_thai_xu_ly', [
+                            TaiNguyenBuoiHoc::STATUS_XU_LY_NONE,
+                            TaiNguyenBuoiHoc::STATUS_XU_LY_SAN_SANG,
+                        ]);
+                })
+                ->count(),
+            'pending_count' => (clone $baseQuery)
+                ->where('trang_thai_duyet', TaiNguyenBuoiHoc::STATUS_DUYET_CHO)
+                ->count(),
+            'public_count' => (clone $baseQuery)
+                ->where('pham_vi_su_dung', TaiNguyenBuoiHoc::PHAM_VI_CONG_KHAI)
+                ->count(),
+            'status_counts' => [
+                'nhap' => (clone $baseQuery)
+                    ->where(function ($query) {
+                        $query->whereNull('trang_thai_duyet')
+                            ->orWhere('trang_thai_duyet', TaiNguyenBuoiHoc::STATUS_DUYET_NHAP);
+                    })
+                    ->count(),
+                'cho_duyet' => (clone $baseQuery)->where('trang_thai_duyet', TaiNguyenBuoiHoc::STATUS_DUYET_CHO)->count(),
+                'da_duyet' => (clone $baseQuery)->where('trang_thai_duyet', TaiNguyenBuoiHoc::STATUS_DUYET_DA_DUYET)->count(),
+                'can_chinh_sua' => (clone $baseQuery)->where('trang_thai_duyet', TaiNguyenBuoiHoc::STATUS_DUYET_CAN_SUA)->count(),
+                'tu_choi' => (clone $baseQuery)->where('trang_thai_duyet', TaiNguyenBuoiHoc::STATUS_DUYET_TU_CHOI)->count(),
+            ],
+            'scope_counts' => [
+                'ca_nhan' => (clone $baseQuery)->where('pham_vi_su_dung', TaiNguyenBuoiHoc::PHAM_VI_CA_NHAN)->count(),
+                'khoa_hoc' => (clone $baseQuery)->where('pham_vi_su_dung', TaiNguyenBuoiHoc::PHAM_VI_KHOA_HOC)->count(),
+                'cong_khai' => (clone $baseQuery)->where('pham_vi_su_dung', TaiNguyenBuoiHoc::PHAM_VI_CONG_KHAI)->count(),
+            ],
+        ];
+
+        $taiNguyens = (clone $baseQuery)
+            ->when($filters['keyword'], function ($query, $keyword) {
+                $query->where(function ($searchQuery) use ($keyword) {
+                    $searchQuery->where('tieu_de', 'like', '%' . $keyword . '%')
+                        ->orWhere('mo_ta', 'like', '%' . $keyword . '%')
+                        ->orWhere('file_name', 'like', '%' . $keyword . '%')
+                        ->orWhere('link_ngoai', 'like', '%' . $keyword . '%');
+                });
+            })
+            ->when($filters['trang_thai_duyet'], function ($query, $status) {
+                if ($status === TaiNguyenBuoiHoc::STATUS_DUYET_NHAP) {
+                    $query->where(function ($draftQuery) {
+                        $draftQuery->whereNull('trang_thai_duyet')
+                            ->orWhere('trang_thai_duyet', TaiNguyenBuoiHoc::STATUS_DUYET_NHAP);
+                    });
+
+                    return;
+                }
+
+                $query->where('trang_thai_duyet', $status);
+            })
+            ->when($filters['pham_vi_su_dung'], fn ($query, $scope) => $query->where('pham_vi_su_dung', $scope))
+            ->when($filters['loai_tai_nguyen'], fn ($query, $type) => $query->where('loai_tai_nguyen', $type))
+            ->orderBy('created_at', 'desc')
+            ->paginate(12)
+            ->withQueryString();
+
+        return view('pages.giang-vien.thu-vien.index', compact('taiNguyens', 'summary', 'filters'));
     }
 
     public function create()
@@ -116,6 +195,14 @@ class TaiNguyenController extends Controller
                 'trang_thai_duyet' => TaiNguyenBuoiHoc::STATUS_DUYET_CHO,
                 'ngay_gui_duyet' => now(),
             ]);
+
+            try {
+                app(\App\Services\NotificationService::class)->notifyLibrarySubmitted(
+                    $taiNguyen->tieu_de,
+                    $taiNguyen->id,
+                    auth()->user()->ho_ten ?? null
+                );
+            } catch (\Throwable $e) { report($e); }
 
             return back()->with('success', 'Đã gửi yêu cầu duyệt tài nguyên.');
         }

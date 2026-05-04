@@ -5,7 +5,8 @@
     $hasBaiKiemTraRoute = Route::has('hoc-vien.bai-kiem-tra');
 @endphp
 
-<div class="container-fluid">
+<div class="container-fluid student-dashboard">
+    {{-- ① Chào mừng --}}
     <div class="card vip-card border-0 mb-4 student-hero">
         <div class="card-body p-4 p-lg-5">
             <div class="row align-items-center g-4">
@@ -48,6 +49,17 @@
             </div>
         </div>
     </div>
+
+    {{-- ② Tổng quan học tập --}}
+    <header class="student-section-head">
+        <div class="ssh-title">
+            <span class="ssh-num">1</span>
+            <div>
+                <h2><i class="fas fa-chart-pie"></i> Tổng quan học tập</h2>
+                <p>Số liệu về khóa học, lịch học, tài liệu và tiến độ chung của bạn.</p>
+            </div>
+        </div>
+    </header>
 
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-3">
@@ -93,6 +105,17 @@
             </div>
         </div>
     </div>
+
+    {{-- ③ Tiến độ học tập & lịch học --}}
+    <header class="student-section-head">
+        <div class="ssh-title">
+            <span class="ssh-num">2</span>
+            <div>
+                <h2><i class="fas fa-chart-line"></i> Tiến độ & lịch học</h2>
+                <p>Xem từng khóa đang học và những buổi sắp diễn ra.</p>
+            </div>
+        </div>
+    </header>
 
     <div class="row dashboard-balance-row">
         <div class="col-xl-8 mb-4">
@@ -238,6 +261,17 @@
         </div>
     </div>
 
+    {{-- ④ Thao tác nhanh & bài kiểm tra --}}
+    <header class="student-section-head">
+        <div class="ssh-title">
+            <span class="ssh-num">3</span>
+            <div>
+                <h2><i class="fas fa-bolt"></i> Thao tác nhanh & bài kiểm tra</h2>
+                <p>Vào nhanh các trang thường dùng và xem bài kiểm tra cần làm.</p>
+            </div>
+        </div>
+    </header>
+
     <div class="row">
         <div class="col-xl-8 mb-4">
             <div class="card vip-card h-100">
@@ -333,6 +367,17 @@
         </div>
     </div>
 
+    {{-- ⑤ Tài liệu mới --}}
+    <header class="student-section-head">
+        <div class="ssh-title">
+            <span class="ssh-num">4</span>
+            <div>
+                <h2><i class="fas fa-folder-open"></i> Tài liệu mới được mở</h2>
+                <p>Tài liệu giảng viên vừa công khai cho khóa bạn đang học.</p>
+            </div>
+        </div>
+    </header>
+
     <div class="card vip-card">
         <div class="card-header border-0 d-flex justify-content-between align-items-center">
             <div>
@@ -407,6 +452,12 @@
 
 @push('styles')
 <style>
+    .student-dashboard {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
     .student-hero {
         background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0f766e 100%);
         color: #fff;
@@ -415,6 +466,69 @@
     .hero-text {
         color: rgba(255, 255, 255, 0.86);
         line-height: 1.7;
+    }
+
+    /* ===== Section heading dùng riêng cho dashboard học viên ===== */
+    .student-section-head {
+        display: flex;
+        align-items: center;
+        padding: 14px 18px;
+        margin-bottom: 14px;
+        background: linear-gradient(135deg, #ffffff 0%, #eef2ff 100%);
+        border: 1px solid #e0e7ff;
+        border-left: 4px solid #4361ee;
+        border-radius: 12px;
+    }
+
+    .ssh-title {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .ssh-num {
+        flex-shrink: 0;
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-weight: 900;
+        font-size: 1rem;
+        box-shadow: 0 6px 16px rgba(67, 97, 238, 0.3);
+    }
+
+    .ssh-title h2 {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 0 0 2px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .ssh-title h2 i {
+        font-size: 0.95rem;
+        color: #4361ee;
+    }
+
+    .ssh-title p {
+        margin: 0;
+        font-size: 0.82rem;
+        color: #64748b;
+        line-height: 1.4;
+    }
+
+    @media (max-width: 720px) {
+        .student-section-head { padding: 12px 14px; }
+        .ssh-title h2 { font-size: 0.95rem; }
+        .ssh-title p { font-size: 0.76rem; }
+        .ssh-num { width: 32px; height: 32px; font-size: 0.9rem; }
     }
 
     .hero-box {

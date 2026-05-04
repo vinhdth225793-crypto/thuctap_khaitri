@@ -1,27 +1,70 @@
 @extends('layouts.app', ['title' => 'Làm bài kiểm tra'])
 
 @section('content')
-<div class="container-fluid">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-        <div>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-2">
-                    <li class="breadcrumb-item"><a href="{{ route('hoc-vien.dashboard') }}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('hoc-vien.bai-kiem-tra') }}">Bài kiểm tra</a></li>
-                    @if($baiKiemTra->lich_hoc_id)
-                        <li class="breadcrumb-item"><a href="{{ route('hoc-vien.buoi-hoc.show', $baiKiemTra->lich_hoc_id) }}">Buổi {{ $baiKiemTra->lichHoc->buoi_so ?: '#' }}</a></li>
-                    @endif
-                    <li class="breadcrumb-item active" aria-current="page">{{ $baiKiemTra->tieu_de }}</li>
-                </ol>
-            </nav>
-            <h2 class="fw-bold mb-1">{{ $baiKiemTra->tieu_de }}</h2>
-            <p class="text-muted mb-0">{{ $baiKiemTra->khoaHoc->ten_khoa_hoc ?? 'Chưa xác định khóa học' }}</p>
+<div class="container-fluid admin-page-x bktshow-page">
+    {{-- ========== Welcome banner xanh dương ========== --}}
+    @php
+        $accessClass = match($baiKiemTra->access_status_color) {
+            'success' => 'is-success',
+            'warning' => 'is-warning',
+            'danger'  => 'is-danger',
+            default   => 'is-secondary',
+        };
+        $accessIcon = match($baiKiemTra->access_status_color) {
+            'success' => 'fa-circle-check',
+            'warning' => 'fa-hourglass-half',
+            'danger'  => 'fa-circle-xmark',
+            default   => 'fa-circle-info',
+        };
+    @endphp
+    <div class="apx-welcome bktshow-welcome">
+        <div class="apx-welcome-icon"><i class="fas fa-file-signature"></i></div>
+        <div class="apx-welcome-text">
+            <div class="bktshow-tag-row">
+                <span class="bktshow-loai-badge">
+                    <i class="fas fa-clipboard-check"></i> BÀI KIỂM TRA
+                </span>
+                <span class="bktshow-status-pill {{ $accessClass }}">
+                    <i class="fas {{ $accessIcon }}"></i> {{ $baiKiemTra->access_status_label }}
+                </span>
+                @if($baiKiemTra->co_giam_sat)
+                    <span class="bktshow-watch-badge">
+                        <i class="fas fa-shield-halved"></i> Giám sát nâng cao
+                    </span>
+                @endif
+                <span class="bktshow-status-badge">
+                    <i class="fas fa-redo"></i> Còn {{ $remainingAttempts }}/{{ $baiKiemTra->so_lan_duoc_lam }} lượt
+                </span>
+            </div>
+            <h4>{{ $baiKiemTra->tieu_de }}</h4>
+            <p>
+                <span><i class="fas fa-graduation-cap"></i> {{ $baiKiemTra->khoaHoc->ten_khoa_hoc ?? 'Chưa xác định khóa học' }}</span>
+                <span class="bktshow-sep">·</span>
+                <span><i class="fas fa-clock"></i> {{ $baiKiemTra->thoi_gian_lam_bai }} phút</span>
+                <span class="bktshow-sep">·</span>
+                <span><i class="fas fa-star"></i> {{ number_format((float) $baiKiemTra->tong_diem, 2) }} điểm</span>
+            </p>
         </div>
-
-        <a href="{{ route('hoc-vien.bai-kiem-tra') }}" class="btn btn-outline-primary">
-            <i class="fas fa-arrow-left me-2"></i>Danh sách bài kiểm tra
-        </a>
+        <div class="apx-welcome-cta">
+            <a href="{{ route('hoc-vien.bai-kiem-tra') }}" class="apx-view-toggle">
+                <i class="fas fa-arrow-left"></i> <span>Danh sách</span>
+            </a>
+        </div>
     </div>
+
+    @include('components.alert')
+
+    {{-- Breadcrumb --}}
+    <nav aria-label="breadcrumb" class="bktshow-breadcrumb mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ route('hoc-vien.dashboard') }}"><i class="fas fa-home me-1"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('hoc-vien.bai-kiem-tra') }}">Bài kiểm tra</a></li>
+            @if($baiKiemTra->lich_hoc_id)
+                <li class="breadcrumb-item"><a href="{{ route('hoc-vien.buoi-hoc.show', $baiKiemTra->lich_hoc_id) }}">Buổi {{ $baiKiemTra->lichHoc->buoi_so ?: '#' }}</a></li>
+            @endif
+            <li class="breadcrumb-item active" aria-current="page">{{ $baiKiemTra->tieu_de }}</li>
+        </ol>
+    </nav>
 
     <div class="row g-4">
         <div class="col-lg-4">
@@ -436,6 +479,97 @@
 
 @push('styles')
 <style>
+    /* ===== Welcome banner xanh dương ===== */
+    .bktshow-welcome {
+        background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #4361ee 100%) !important;
+        box-shadow: 0 16px 36px rgba(29, 78, 216, 0.22) !important;
+    }
+    .bktshow-tag-row {
+        display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+        flex-wrap: wrap;
+    }
+    .bktshow-loai-badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 12px;
+        background: rgba(255,255,255,0.22);
+        border: 1px solid rgba(255,255,255,0.4);
+        backdrop-filter: blur(6px);
+        color: #fff;
+        font-size: 0.7rem; font-weight: 800;
+        letter-spacing: 1px; border-radius: 999px;
+    }
+    .bktshow-status-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 10px;
+        background: rgba(255,255,255,0.14);
+        color: #fff; font-size: 0.72rem; font-weight: 700;
+        border-radius: 999px;
+    }
+    .bktshow-status-pill {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 12px;
+        font-size: 0.72rem; font-weight: 800;
+        border-radius: 999px;
+    }
+    .bktshow-status-pill.is-success   { background: #dcfce7; color: #166534; }
+    .bktshow-status-pill.is-warning   { background: #fef3c7; color: #b45309; }
+    .bktshow-status-pill.is-danger    { background: #fee2e2; color: #b91c1c; }
+    .bktshow-status-pill.is-secondary { background: #f1f5f9; color: #475569; }
+    .bktshow-watch-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 12px;
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        color: #78350f;
+        font-size: 0.72rem; font-weight: 800;
+        border-radius: 999px;
+    }
+    .apx-welcome.bktshow-welcome p {
+        display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+        font-size: 0.85rem;
+    }
+    .apx-welcome.bktshow-welcome p i { color: #fef3c7; margin-right: 4px; }
+    .bktshow-sep { opacity: 0.5; }
+
+    /* Breadcrumb */
+    .bktshow-breadcrumb {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-left: 3px solid #dc2626;
+        border-radius: 8px;
+        padding: 8px 16px;
+    }
+    .bktshow-breadcrumb .breadcrumb { font-size: 0.82rem; }
+    .bktshow-breadcrumb a { color: #dc2626; text-decoration: none; font-weight: 600; }
+    .bktshow-breadcrumb a:hover { color: #b91c1c; text-decoration: underline; }
+    .bktshow-breadcrumb .breadcrumb-item.active { color: #0f172a; font-weight: 700; }
+
+    /* Card styling polish for đỏ tones */
+    .bktshow-page .vip-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+    }
+    .bktshow-page .vip-card .card-header {
+        background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
+        border-bottom: 1px solid #fecaca;
+        padding: 14px 18px;
+    }
+    .bktshow-page .vip-card .card-header h5 {
+        color: #0f172a;
+        font-size: 0.96rem;
+        font-weight: 800;
+    }
+    .bktshow-page .vip-card .card-header h5::before {
+        content: '';
+        display: inline-block;
+        width: 4px; height: 16px;
+        background: #dc2626;
+        margin-right: 10px;
+        vertical-align: middle;
+        border-radius: 2px;
+    }
+
     .info-row {
         display: flex;
         align-items: flex-start;
@@ -569,4 +703,6 @@
 @if($baiKiemTra->co_giam_sat && $baiLam && $baiLam->can_resume)
     @include('pages.hoc-vien.bai-kiem-tra._surveillance-script')
 @endif
+
+@include('pages.admin.partials._admin-page-styles')
 @endsection

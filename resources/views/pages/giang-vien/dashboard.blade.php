@@ -3,8 +3,8 @@
 @section('title', 'Trung tâm điều hành Giảng viên')
 
 @section('content')
-<div class="container-fluid py-4">
-    <!-- Banner chào mừng -->
+<div class="container-fluid py-4 teacher-dashboard">
+    {{-- ① Banner chào mừng --}}
     <div class="row mb-4">
         <div class="col-12">
             <div class="card border-0 shadow-sm overflow-hidden" style="background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); color: white;">
@@ -33,6 +33,17 @@
             </div>
         </div>
     </div>
+
+    {{-- ② Tổng quan giảng dạy --}}
+    <header class="teacher-section-head">
+        <div class="tsh-title">
+            <span class="tsh-num">1</span>
+            <div>
+                <h2><i class="fas fa-chart-pie"></i> Tổng quan giảng dạy</h2>
+                <p>Số liệu lớp đang dạy, lịch sắp tới, học viên và đơn từ.</p>
+            </div>
+        </div>
+    </header>
 
     <!-- Chỉ số thống kê -->
     <div class="row mb-4">
@@ -89,6 +100,17 @@
             </div>
         </div>
     </div>
+
+    {{-- ③ Điều hành lớp & thao tác nhanh --}}
+    <header class="teacher-section-head">
+        <div class="tsh-title">
+            <span class="tsh-num">2</span>
+            <div>
+                <h2><i class="fas fa-chalkboard"></i> Điều hành lớp & thao tác nhanh</h2>
+                <p>Lịch dạy hôm nay, tiến độ các lớp đang phụ trách, và các thao tác nhanh hay dùng.</p>
+            </div>
+        </div>
+    </header>
 
     <div class="row">
         <!-- Cột trái: Lịch dạy và Phân công -->
@@ -280,5 +302,65 @@
     .bg-info-subtle { background-color: rgba(54, 185, 204, 0.1); }
     .bg-warning-subtle { background-color: rgba(246, 194, 62, 0.1); }
     .bg-danger-subtle { background-color: rgba(231, 74, 59, 0.1); }
+
+    /* ===== Section heading dùng riêng cho dashboard giảng viên ===== */
+    .teacher-dashboard {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .teacher-section-head {
+        display: flex;
+        align-items: center;
+        padding: 14px 18px;
+        margin-bottom: 14px;
+        background: linear-gradient(135deg, #ffffff 0%, #dbeafe 100%);
+        border: 1px solid #bfdbfe;
+        border-left: 4px solid #1d4ed8;
+        border-radius: 12px;
+    }
+
+    .tsh-title {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .tsh-num {
+        flex-shrink: 0;
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-weight: 900;
+        font-size: 1rem;
+        box-shadow: 0 6px 16px rgba(29, 78, 216, 0.3);
+    }
+
+    .tsh-title h2 {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 0 0 2px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .tsh-title h2 i { font-size: 0.95rem; color: #1d4ed8; }
+    .tsh-title p { margin: 0; font-size: 0.82rem; color: #64748b; line-height: 1.4; }
+
+    @media (max-width: 720px) {
+        .teacher-section-head { padding: 12px 14px; }
+        .tsh-title h2 { font-size: 0.95rem; }
+        .tsh-title p { font-size: 0.76rem; }
+        .tsh-num { width: 32px; height: 32px; font-size: 0.9rem; }
+    }
 </style>
 @endsection

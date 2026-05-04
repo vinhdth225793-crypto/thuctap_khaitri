@@ -3,165 +3,252 @@
 @section('title', 'Hồ sơ cá nhân')
 
 @section('content')
-<div class="container-fluid">
-    <!-- Breadcrumb -->
-    <div class="row mb-4">
-        <div class="col-12 text-muted small">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{{ route('hoc-vien.dashboard') }}">Dashboard</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Hồ sơ cá nhân</li>
-                </ol>
-            </nav>
-        </div>
-    </div>
+@php
+    $hocVien = $user->hocVien;
+    $avatarUrl = $user->anh_dai_dien ? asset('storage/' . $user->anh_dai_dien) : null;
+    $initial = mb_strtoupper(mb_substr(trim($user->ho_ten), 0, 1, 'UTF-8'), 'UTF-8');
+@endphp
 
-    <div class="row mb-4 align-items-center">
-        <div class="col-md-8">
-            <div class="d-flex align-items-center">
-                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm me-3" style="width: 50px; height: 50px;">
-                    <i class="fas fa-user-edit fa-lg"></i>
-                </div>
-                <div>
-                    <h3 class="fw-bold mb-0 text-dark">Chỉnh sửa thông tin cá nhân</h3>
-                    <div class="text-muted small mt-1">Cập nhật thông tin tài khoản và thông tin học tập của bạn.</div>
-                </div>
+<div class="container-fluid admin-page-x prof-page">
+    {{-- Welcome banner --}}
+    <div class="apx-welcome prof-welcome">
+        <div class="prof-avatar-lg">
+            @if($avatarUrl)
+                <img src="{{ $avatarUrl }}" alt="{{ $user->ho_ten }}">
+            @else
+                <span>{{ $initial ?: 'U' }}</span>
+            @endif
+        </div>
+        <div class="apx-welcome-text">
+            <div class="prof-tag-row">
+                <span class="prof-loai-badge"><i class="fas fa-user-graduate"></i> HỒ SƠ HỌC VIÊN</span>
+                @if($user->trang_thai)
+                    <span class="prof-status-badge is-success"><i class="fas fa-check-circle"></i> Tài khoản hoạt động</span>
+                @else
+                    <span class="prof-status-badge is-warning"><i class="fas fa-pause-circle"></i> Tạm khóa</span>
+                @endif
+                @if($hocVien?->lop)
+                    <span class="prof-status-badge"><i class="fas fa-users"></i> Lớp {{ $hocVien->lop }}</span>
+                @endif
             </div>
+            <h4>{{ $user->ho_ten }}</h4>
+            <p>
+                <span><i class="fas fa-envelope"></i> {{ $user->email }}</span>
+                @if($user->so_dien_thoai)
+                    <span class="prof-sep">·</span>
+                    <span><i class="fas fa-phone"></i> {{ $user->so_dien_thoai }}</span>
+                @endif
+                @if($hocVien?->nganh)
+                    <span class="prof-sep">·</span>
+                    <span><i class="fas fa-graduation-cap"></i> {{ $hocVien->nganh }}</span>
+                @endif
+            </p>
+        </div>
+        <div class="apx-welcome-cta">
+            <a href="{{ route('hoc-vien.dashboard') }}" class="apx-view-toggle">
+                <i class="fas fa-arrow-left"></i> <span>Dashboard</span>
+            </a>
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success border-0 shadow-sm mb-4">
-            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
-        </div>
-    @endif
+    @include('components.alert')
 
     <form action="{{ route('hoc-vien.profile.update') }}" method="POST" enctype="multipart/form-data">
         @csrf
-        <div class="row">
-            <!-- Thông tin cơ bản -->
-            <div class="col-lg-8">
-                <div class="card vip-card border-0 shadow-sm mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="fw-bold mb-0 text-dark">
-                            <i class="fas fa-info-circle me-2 text-primary"></i>Thông tin cơ bản
-                        </h5>
+
+        <div class="row g-4">
+            {{-- Sidebar: Avatar + meta --}}
+            <div class="col-lg-4">
+                <section class="apx-section">
+                    <header class="apx-section-head">
+                        <div class="apx-section-title">
+                            <span class="apx-section-num">1</span>
+                            <div>
+                                <h2><i class="fas fa-camera"></i> Ảnh đại diện</h2>
+                                <p>Tải lên ảnh để mọi nơi đều hiển thị đẹp.</p>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div class="prof-avatar-card">
+                        <div class="prof-avatar-preview">
+                            @if($avatarUrl)
+                                <img src="{{ $avatarUrl }}" alt="avatar" id="profAvatarPreview">
+                            @else
+                                <div class="prof-avatar-fallback" id="profAvatarPreview">{{ $initial ?: 'U' }}</div>
+                            @endif
+                        </div>
+                        @if($user->anh_dai_dien)
+                            <label class="prof-remove-row">
+                                <input type="checkbox" name="xoa_anh_dai_dien" value="1">
+                                <span><i class="fas fa-trash"></i> Xóa ảnh hiện tại</span>
+                            </label>
+                        @endif
+                        <label for="anh_dai_dien" class="prof-upload-btn">
+                            <i class="fas fa-upload"></i> Tải ảnh mới
+                            <input type="file" name="anh_dai_dien" id="anh_dai_dien" accept="image/*" hidden onchange="previewProfAvatar(this)">
+                        </label>
+                        @error('anh_dai_dien')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
+                        <div class="prof-upload-hint">
+                            <i class="fas fa-circle-info"></i> JPG, PNG, GIF — tối đa 2 MB
+                        </div>
                     </div>
-                    <div class="card-body p-4">
+                </section>
+
+                {{-- Meta info card --}}
+                <section class="apx-section">
+                    <header class="apx-section-head">
+                        <div class="apx-section-title">
+                            <span class="apx-section-num">2</span>
+                            <div>
+                                <h2><i class="fas fa-id-badge"></i> Tóm tắt</h2>
+                                <p>Thông tin nhanh tài khoản.</p>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div class="prof-meta-card">
+                        <div class="prof-meta-row">
+                            <span class="prof-meta-label">Mã NV</span>
+                            <strong>#{{ $user->ma_nguoi_dung }}</strong>
+                        </div>
+                        <div class="prof-meta-row">
+                            <span class="prof-meta-label">Vai trò</span>
+                            <span class="prof-pill is-info"><i class="fas fa-user-graduate"></i> Học viên</span>
+                        </div>
+                        <div class="prof-meta-row">
+                            <span class="prof-meta-label">Trạng thái</span>
+                            @if($user->trang_thai)
+                                <span class="prof-pill is-success"><i class="fas fa-check"></i> Hoạt động</span>
+                            @else
+                                <span class="prof-pill is-warning"><i class="fas fa-pause"></i> Tạm khóa</span>
+                            @endif
+                        </div>
+                        <div class="prof-meta-row">
+                            <span class="prof-meta-label">Tạo lúc</span>
+                            <strong>{{ optional($user->created_at)->format('d/m/Y') }}</strong>
+                        </div>
+                        @if($hocVien?->diem_trung_binh !== null)
+                            <div class="prof-meta-row">
+                                <span class="prof-meta-label">Điểm TB</span>
+                                <strong class="text-primary">{{ number_format((float) $hocVien->diem_trung_binh, 2) }}</strong>
+                            </div>
+                        @endif
+                    </div>
+                </section>
+            </div>
+
+            {{-- Main: Form --}}
+            <div class="col-lg-8">
+                {{-- Basic info --}}
+                <section class="apx-section">
+                    <header class="apx-section-head">
+                        <div class="apx-section-title">
+                            <span class="apx-section-num">3</span>
+                            <div>
+                                <h2><i class="fas fa-user-pen"></i> Thông tin cơ bản</h2>
+                                <p>Họ tên, email, số điện thoại — dùng cho mọi giao tiếp.</p>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div class="prof-form-card">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label for="ho_ten" class="form-label small fw-bold">Họ tên <span class="text-danger">*</span></label>
-                                <input type="text" name="ho_ten" id="ho_ten" class="form-control vip-form-control @error('ho_ten') is-invalid @enderror" value="{{ old('ho_ten', $user->ho_ten) }}" required>
+                                <label class="prof-label">Họ tên <span class="text-danger">*</span></label>
+                                <input type="text" name="ho_ten" class="form-control prof-input @error('ho_ten') is-invalid @enderror" value="{{ old('ho_ten', $user->ho_ten) }}" required>
                                 @error('ho_ten')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
-
                             <div class="col-md-6">
-                                <label for="email" class="form-label small fw-bold">Email <span class="text-danger">*</span></label>
-                                <input type="email" name="email" id="email" class="form-control vip-form-control @error('email') is-invalid @enderror" value="{{ old('email', $user->email) }}" required>
+                                <label class="prof-label">Email <span class="text-danger">*</span></label>
+                                <input type="email" name="email" class="form-control prof-input @error('email') is-invalid @enderror" value="{{ old('email', $user->email) }}" required>
                                 @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
-
                             <div class="col-md-6">
-                                <label for="so_dien_thoai" class="form-label small fw-bold">Số điện thoại</label>
-                                <input type="text" name="so_dien_thoai" id="so_dien_thoai" class="form-control vip-form-control @error('so_dien_thoai') is-invalid @enderror" value="{{ old('so_dien_thoai', $user->so_dien_thoai) }}">
+                                <label class="prof-label">Số điện thoại</label>
+                                <input type="text" name="so_dien_thoai" class="form-control prof-input @error('so_dien_thoai') is-invalid @enderror" value="{{ old('so_dien_thoai', $user->so_dien_thoai) }}">
                                 @error('so_dien_thoai')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
-
                             <div class="col-md-6">
-                                <label for="ngay_sinh" class="form-label small fw-bold">Ngày sinh</label>
-                                <input type="date" name="ngay_sinh" id="ngay_sinh" class="form-control vip-form-control @error('ngay_sinh') is-invalid @enderror" value="{{ old('ngay_sinh', optional($user->ngay_sinh)->format('Y-m-d')) }}">
+                                <label class="prof-label">Ngày sinh</label>
+                                <input type="date" name="ngay_sinh" class="form-control prof-input @error('ngay_sinh') is-invalid @enderror" value="{{ old('ngay_sinh', optional($user->ngay_sinh)->format('Y-m-d')) }}">
                                 @error('ngay_sinh')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
-
                             <div class="col-12">
-                                <label for="dia_chi" class="form-label small fw-bold">Địa chỉ</label>
-                                <textarea name="dia_chi" id="dia_chi" class="form-control vip-form-control @error('dia_chi') is-invalid @enderror" rows="3">{{ old('dia_chi', $user->dia_chi) }}</textarea>
+                                <label class="prof-label">Địa chỉ</label>
+                                <textarea name="dia_chi" rows="3" class="form-control prof-input @error('dia_chi') is-invalid @enderror">{{ old('dia_chi', $user->dia_chi) }}</textarea>
                                 @error('dia_chi')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                         </div>
+                    </div>
+                </section>
 
-                        <hr class="my-4">
+                {{-- Học tập --}}
+                <section class="apx-section">
+                    <header class="apx-section-head">
+                        <div class="apx-section-title">
+                            <span class="apx-section-num">4</span>
+                            <div>
+                                <h2><i class="fas fa-book"></i> Thông tin học tập</h2>
+                                <p>Lớp, ngành, điểm trung bình của bạn.</p>
+                            </div>
+                        </div>
+                    </header>
 
-                        <h5 class="fw-bold mb-3 text-dark">
-                            <i class="fas fa-user-graduate me-2 text-primary"></i>Thông tin học tập
-                        </h5>
+                    <div class="prof-form-card">
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label for="lop" class="form-label small fw-bold">Lớp</label>
-                                <input type="text" name="lop" id="lop" class="form-control vip-form-control @error('lop') is-invalid @enderror" value="{{ old('lop', optional($user->hocVien)->lop) }}">
+                                <label class="prof-label">Lớp</label>
+                                <input type="text" name="lop" class="form-control prof-input @error('lop') is-invalid @enderror" value="{{ old('lop', $hocVien?->lop) }}">
                                 @error('lop')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="col-md-4">
-                                <label for="nganh" class="form-label small fw-bold">Ngành</label>
-                                <input type="text" name="nganh" id="nganh" class="form-control vip-form-control @error('nganh') is-invalid @enderror" value="{{ old('nganh', optional($user->hocVien)->nganh) }}">
+                                <label class="prof-label">Ngành</label>
+                                <input type="text" name="nganh" class="form-control prof-input @error('nganh') is-invalid @enderror" value="{{ old('nganh', $hocVien?->nganh) }}">
                                 @error('nganh')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="col-md-4">
-                                <label for="diem_trung_binh" class="form-label small fw-bold">Điểm trung bình</label>
-                                <input type="text" name="diem_trung_binh" id="diem_trung_binh" class="form-control vip-form-control @error('diem_trung_binh') is-invalid @enderror" value="{{ old('diem_trung_binh', optional($user->hocVien)->diem_trung_binh) }}">
+                                <label class="prof-label">Điểm trung bình</label>
+                                <input type="text" name="diem_trung_binh" class="form-control prof-input @error('diem_trung_binh') is-invalid @enderror" value="{{ old('diem_trung_binh', $hocVien?->diem_trung_binh) }}">
                                 @error('diem_trung_binh')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                         </div>
                     </div>
-                </div>
+                </section>
 
-                <div class="card vip-card border-0 shadow-sm mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="fw-bold mb-0 text-dark">
-                            <i class="fas fa-key me-2 text-primary"></i>Đổi mật khẩu
-                        </h5>
-                    </div>
-                    <div class="card-body p-4">
+                {{-- Đổi mật khẩu --}}
+                <section class="apx-section">
+                    <header class="apx-section-head">
+                        <div class="apx-section-title">
+                            <span class="apx-section-num">5</span>
+                            <div>
+                                <h2><i class="fas fa-key"></i> Đổi mật khẩu</h2>
+                                <p>Để trống nếu bạn không muốn đổi mật khẩu.</p>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div class="prof-form-card">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label for="mat_khau" class="form-label small fw-bold">Mật khẩu mới</label>
-                                <input type="password" name="mat_khau" id="mat_khau" class="form-control vip-form-control @error('mat_khau') is-invalid @enderror" placeholder="Để trống nếu không đổi">
+                                <label class="prof-label">Mật khẩu mới</label>
+                                <input type="password" name="mat_khau" class="form-control prof-input @error('mat_khau') is-invalid @enderror" placeholder="Tối thiểu 8 ký tự">
                                 @error('mat_khau')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="col-md-6">
-                                <label for="mat_khau_confirmation" class="form-label small fw-bold">Xác nhận mật khẩu</label>
-                                <input type="password" name="mat_khau_confirmation" id="mat_khau_confirmation" class="form-control vip-form-control" placeholder="Nhập lại mật khẩu mới">
+                                <label class="prof-label">Xác nhận mật khẩu</label>
+                                <input type="password" name="mat_khau_confirmation" class="form-control prof-input" placeholder="Nhập lại mật khẩu mới">
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
+                </section>
 
-            <!-- Ảnh đại diện -->
-            <div class="col-lg-4">
-                <div class="card vip-card border-0 shadow-sm mb-4">
-                    <div class="card-header bg-white border-bottom py-3 text-center">
-                        <h5 class="fw-bold mb-0 text-dark">Ảnh đại diện</h5>
-                    </div>
-                    <div class="card-body p-4 text-center">
-                        <div class="mb-3">
-                            @if($user->anh_dai_dien)
-                                <img src="{{ asset('storage/'.$user->anh_dai_dien) }}" alt="avatar" class="rounded-circle shadow-sm" width="150" height="150" style="object-fit: cover;">
-                                <div class="form-check justify-content-center d-flex mt-2">
-                                    <input class="form-check-input me-2" type="checkbox" name="xoa_anh_dai_dien" value="1" id="xoa_anh">
-                                    <label class="form-check-label small" for="xoa_anh">Xóa ảnh hiện tại</label>
-                                </div>
-                            @else
-                                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center mx-auto shadow-sm" style="width: 150px; height: 150px;">
-                                    <i class="fas fa-user fa-4x text-muted opacity-50"></i>
-                                </div>
-                            @endif
-                        </div>
-                        <div class="mb-3">
-                            <label for="anh_dai_dien" class="form-label small fw-bold">Tải lên ảnh mới</label>
-                            <input type="file" name="anh_dai_dien" id="anh_dai_dien" class="form-control form-control-sm @error('anh_dai_dien') is-invalid @enderror" accept="image/*">
-                            @error('anh_dai_dien')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
-                        <div class="small text-muted italic">Hỗ trợ định dạng: JPG, PNG, GIF. Tối đa 2MB.</div>
-                    </div>
-                </div>
-
-                <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-primary py-3 fw-bold shadow-sm">
-                        <i class="fas fa-save me-2"></i>LƯU THAY ĐỔI
+                <div class="prof-actions">
+                    <button type="submit" class="prof-btn-save">
+                        <i class="fas fa-save"></i> Lưu thay đổi
                     </button>
-                    <a href="{{ route('hoc-vien.dashboard') }}" class="btn btn-outline-secondary py-2 fw-bold">
-                        HỦY BỎ
+                    <a href="{{ route('hoc-vien.dashboard') }}" class="prof-btn-cancel">
+                        <i class="fas fa-times"></i> Hủy bỏ
                     </a>
                 </div>
             </div>
@@ -169,7 +256,18 @@
     </form>
 </div>
 
-<style>
-    .vip-form-control:focus { box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1); border-color: #0d6efd; }
-</style>
+@include('components.profile-styles')
+
+<script>
+function previewProfAvatar(input) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        const old = document.getElementById('profAvatarPreview');
+        const wrap = old.parentElement;
+        wrap.innerHTML = '<img src="' + e.target.result + '" alt="avatar" id="profAvatarPreview">';
+    };
+    reader.readAsDataURL(input.files[0]);
+}
+</script>
 @endsection

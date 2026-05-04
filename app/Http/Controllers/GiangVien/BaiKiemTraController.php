@@ -657,6 +657,13 @@ class BaiKiemTraController extends Controller
             'de_xuat_duyet_luc' => now(),
         ]);
 
+        try {
+            app(\App\Services\NotificationService::class)->notifyExamSubmitted(
+                $baiKiemTra->tieu_de,
+                $baiKiemTra->id
+            );
+        } catch (\Throwable $e) { report($e); }
+
         return back()->with('success', 'Đã gửi bài kiểm tra cho admin duyệt.');
     }
 

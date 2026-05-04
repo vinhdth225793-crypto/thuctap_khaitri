@@ -26,41 +26,118 @@
         || filled($questionFilters['trang_thai'] ?? null);
 @endphp
 
-<div class="container-fluid">
-    <!-- Header Page -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-        <div>
-            <h2 class="fw-bold mb-1 text-primary"><i class="fas fa-edit me-2"></i>{{ $baiKiemTra->tieu_de }}</h2>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="{{ route('giang-vien.khoa-hoc') }}">Khóa học</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('giang-vien.khoa-hoc.show', $baiKiemTra->khoa_hoc_id) }}">{{ $baiKiemTra->khoaHoc->ten_khoa_hoc }}</a></li>
-                    <li class="breadcrumb-item active">Cấu hình bài kiểm tra</li>
-                </ol>
-            </nav>
+<div class="container-fluid admin-page-x bktedit-page">
+    {{-- ========== Welcome banner xanh dương ========== --}}
+    @php
+        $duyetClass = match($baiKiemTra->trang_thai_duyet) {
+            'da_duyet'  => 'is-success',
+            'cho_duyet' => 'is-warning',
+            'tu_choi'   => 'is-danger',
+            default     => 'is-secondary',
+        };
+        $duyetIcon = match($baiKiemTra->trang_thai_duyet) {
+            'da_duyet'  => 'fa-check-circle',
+            'cho_duyet' => 'fa-hourglass-half',
+            'tu_choi'   => 'fa-times-circle',
+            default     => 'fa-pen',
+        };
+    @endphp
+    <div class="apx-welcome bktedit-welcome">
+        <div class="apx-welcome-icon"><i class="fas fa-sliders-h"></i></div>
+        <div class="apx-welcome-text">
+            <div class="bktedit-tag-row">
+                <span class="bktedit-loai-badge">
+                    <i class="fas fa-edit"></i> CẤU HÌNH BÀI KIỂM TRA
+                </span>
+                <span class="bktedit-status-pill {{ $duyetClass }}">
+                    <i class="fas {{ $duyetIcon }}"></i> {{ $baiKiemTra->trang_thai_duyet_label }}
+                </span>
+                <span class="bktedit-status-badge">
+                    <i class="fas fa-graduation-cap"></i> {{ $baiKiemTra->khoaHoc->ma_khoa_hoc ?? 'KH' }}
+                </span>
+            </div>
+            <h4>{{ $baiKiemTra->tieu_de }}</h4>
+            <p>
+                <span><i class="fas fa-book"></i> {{ $baiKiemTra->khoaHoc->ten_khoa_hoc ?? '—' }}</span>
+                <span class="bktedit-sep">·</span>
+                <span><i class="fas fa-tag"></i> {{ $baiKiemTra->pham_vi_label }}</span>
+                <span class="bktedit-sep">·</span>
+                <span><i class="far fa-clock"></i> {{ $baiKiemTra->thoi_gian_lam_bai }} phút</span>
+            </p>
         </div>
-        <div class="d-flex gap-2">
-            <a href="{{ route('giang-vien.khoa-hoc.show', $baiKiemTra->khoa_hoc_id) }}" class="btn btn-outline-secondary rounded-pill px-3">
-                <i class="fas fa-arrow-left me-1"></i> Quay lại
+        <div class="apx-welcome-cta">
+            <a href="{{ route('giang-vien.khoa-hoc.show', $baiKiemTra->khoa_hoc_id) }}" class="apx-view-toggle">
+                <i class="fas fa-arrow-left"></i> <span>Quay lại</span>
             </a>
             @if($baiKiemTra->trang_thai_duyet === 'nhap' || $baiKiemTra->trang_thai_duyet === 'tu_choi')
-                <button type="submit" form="mainExamForm" name="action_after_save" value="submit_for_approval" class="btn btn-success rounded-pill px-3 shadow-sm" onclick="return confirm('Lưu cấu hình hiện tại và gửi bài kiểm tra này để quản trị viên duyệt?')">
-                    <i class="fas fa-paper-plane me-1"></i> Lưu & gửi duyệt
+                <button type="submit" form="mainExamForm" name="action_after_save" value="submit_for_approval"
+                        class="btn btn-light text-success fw-bold shadow-sm bktedit-submit-btn"
+                        onclick="return confirm('Lưu cấu hình hiện tại và gửi bài kiểm tra này để quản trị viên duyệt?')">
+                    <i class="fas fa-paper-plane me-1"></i> Lưu &amp; gửi duyệt
                 </button>
             @endif
         </div>
     </div>
 
+    {{-- Quick stats --}}
+    <div class="row g-3 mb-3">
+        <div class="col-md-3 col-6">
+            <div class="apx-stat tone-primary">
+                <div class="aps-icon"><i class="fas fa-list-ol"></i></div>
+                <div class="aps-text">
+                    <strong>{{ count($selectedQuestionIds) }}</strong>
+                    <small>Câu hỏi đã chọn</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="apx-stat tone-success">
+                <div class="aps-icon"><i class="fas fa-star"></i></div>
+                <div class="aps-text">
+                    <strong>{{ number_format((float) $baiKiemTra->tong_diem, 2) }}</strong>
+                    <small>Tổng điểm đề</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="apx-stat tone-info">
+                <div class="aps-icon"><i class="fas fa-redo"></i></div>
+                <div class="aps-text">
+                    <strong>{{ $baiKiemTra->so_lan_duoc_lam }}</strong>
+                    <small>Số lần được làm</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="apx-stat tone-warning">
+                <div class="aps-icon"><i class="fas fa-users"></i></div>
+                <div class="aps-text">
+                    <strong>{{ $baiKiemTra->baiLams->count() }}</strong>
+                    <small>Lượt nộp gần đây</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Breadcrumb --}}
+    <nav aria-label="breadcrumb" class="bktedit-breadcrumb mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ route('giang-vien.khoa-hoc') }}"><i class="fas fa-home me-1"></i>Khóa học</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('giang-vien.khoa-hoc.show', $baiKiemTra->khoa_hoc_id) }}">{{ $baiKiemTra->khoaHoc->ten_khoa_hoc }}</a></li>
+            <li class="breadcrumb-item active">Cấu hình bài kiểm tra</li>
+        </ol>
+    </nav>
+
     <!-- Notifications -->
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-3" role="alert">
             <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
 
     @if($viewErrors->any())
-        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-3" role="alert">
             <ul class="mb-0 small fw-bold">
                 @foreach($viewErrors->all() as $error)
                     <li>{{ $error }}</li>
@@ -905,6 +982,102 @@
     .ans-preview-item.correct { background-color: var(--success-soft); border-color: #bbf7d0; color: #166534; font-weight: 600; }
     .ans-preview-icon { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #ddd; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; }
     .correct .ans-preview-icon { border-color: #166534; background: #166534; color: #fff; }
+
+    /* ===== Welcome banner xanh dương + override đỏ ===== */
+    .bktedit-welcome {
+        background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #4361ee 100%) !important;
+        box-shadow: 0 16px 36px rgba(29, 78, 216, 0.22) !important;
+    }
+    .bktedit-tag-row {
+        display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+        flex-wrap: wrap;
+    }
+    .bktedit-loai-badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 12px;
+        background: rgba(255,255,255,0.22);
+        border: 1px solid rgba(255,255,255,0.4);
+        backdrop-filter: blur(6px);
+        color: #fff; font-size: 0.7rem; font-weight: 800;
+        letter-spacing: 1px; border-radius: 999px;
+    }
+    .bktedit-status-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 10px;
+        background: rgba(255,255,255,0.14);
+        color: #fff; font-size: 0.72rem; font-weight: 700;
+        border-radius: 999px;
+    }
+    .bktedit-status-pill {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 12px;
+        font-size: 0.72rem; font-weight: 800;
+        border-radius: 999px;
+    }
+    .bktedit-status-pill.is-success   { background: #dcfce7; color: #166534; }
+    .bktedit-status-pill.is-warning   { background: #fef3c7; color: #b45309; animation: bktePulse 1.6s ease-out infinite; }
+    .bktedit-status-pill.is-danger    { background: #fee2e2; color: #b91c1c; }
+    .bktedit-status-pill.is-secondary { background: #f1f5f9; color: #475569; }
+    @keyframes bktePulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.6); }
+        50%      { box-shadow: 0 0 0 6px rgba(251, 191, 36, 0); }
+    }
+    .apx-welcome.bktedit-welcome p {
+        display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+        font-size: 0.85rem;
+    }
+    .apx-welcome.bktedit-welcome p i { color: #fef3c7; margin-right: 4px; }
+    .bktedit-sep { opacity: 0.5; }
+    .bktedit-submit-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(0,0,0,0.18);
+    }
+
+    /* Breadcrumb */
+    .bktedit-breadcrumb {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-left: 3px solid #dc2626;
+        border-radius: 8px;
+        padding: 8px 16px;
+    }
+    .bktedit-breadcrumb .breadcrumb { font-size: 0.82rem; }
+    .bktedit-breadcrumb a { color: #dc2626; text-decoration: none; font-weight: 600; }
+    .bktedit-breadcrumb a:hover { color: #b91c1c; text-decoration: underline; }
+    .bktedit-breadcrumb .breadcrumb-item.active { color: #0f172a; font-weight: 700; }
+
+    /* Modern tabs polish */
+    .bktedit-page .modern-tabs {
+        border-bottom: 1px solid #fecaca;
+        background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+    }
+    .bktedit-page .modern-tabs .nav-link {
+        color: #64748b;
+        border: none;
+        border-bottom: 3px solid transparent;
+        border-radius: 0;
+        transition: all 0.18s ease;
+    }
+    .bktedit-page .modern-tabs .nav-link:hover {
+        color: #dc2626;
+        background: rgba(220, 38, 38, 0.04);
+    }
+    .bktedit-page .modern-tabs .nav-link.active {
+        color: #dc2626;
+        background: #fff;
+        border-bottom-color: #dc2626;
+        box-shadow: 0 -3px 0 0 #dc2626 inset;
+    }
+    .bktedit-page .modern-tabs .nav-link.active i { color: #dc2626; }
+
+    /* Sidebar info card */
+    .bktedit-page .col-lg-3 > .card:first-child h5 {
+        color: #dc2626;
+    }
+
+    @media (max-width: 575.98px) {
+        .bktedit-breadcrumb .breadcrumb { font-size: 0.74rem; }
+    }
 </style>
 
 @push('scripts')
@@ -1643,4 +1816,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endpush
+
+@include('pages.admin.partials._admin-page-styles')
 @endsection
