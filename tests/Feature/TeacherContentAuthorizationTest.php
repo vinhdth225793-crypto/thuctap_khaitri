@@ -164,7 +164,11 @@ class TeacherContentAuthorizationTest extends TestCase
                 'thu_tu_hien_thi' => 2,
             ]);
 
-        $response->assertRedirect(route('giang-vien.bai-giang.index'));
+        $response->assertRedirect(route('giang-vien.khoa-hoc.show', [
+            'id' => $course->id,
+            'focus_lich_hoc_id' => $lichHoc->id,
+            'quick_action' => 'lecture',
+        ]));
 
         $lecture = BaiGiang::query()->firstOrFail();
 
@@ -199,7 +203,11 @@ class TeacherContentAuthorizationTest extends TestCase
                 'hanh_dong' => 'gui_duyet',
             ]);
 
-        $response->assertRedirect(route('giang-vien.bai-giang.index'));
+        $response->assertRedirect(route('giang-vien.khoa-hoc.show', [
+            'id' => $course->id,
+            'focus_lich_hoc_id' => $lichHoc->id,
+            'quick_action' => 'lecture',
+        ]));
 
         $lecture = BaiGiang::query()->firstOrFail();
 

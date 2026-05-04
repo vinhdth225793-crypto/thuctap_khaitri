@@ -44,6 +44,10 @@ use App\Http\Controllers\ThongBaoController;
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/search', [HomeController::class, 'search'])->name('home.search');
 Route::get('/tim-giang-vien', [HomeController::class, 'searchGiangVien'])->name('tim-giang-vien');
+Route::get('/api/search-suggest', [HomeController::class, 'searchSuggest'])->name('api.search-suggest');
+Route::get('/api/notifications/recent', [HomeController::class, 'notificationsRecent'])
+    ->middleware('auth')
+    ->name('api.notifications.recent');
 
 // =========== ROUTE XÁC THỰC ===========
 Route::middleware('guest')->group(function () {
@@ -59,7 +63,7 @@ Route::post('/dang-xuat', [AuthController::class, 'logout'])->name('dang-xuat')-
 Route::get('/profile', function () {
     $user = auth()->user();
     if ($user->vai_tro === 'admin') {
-        return redirect()->route('admin.tai-khoan.edit', $user->ma_nguoi_dung);
+        return redirect()->route('admin.profile');
     } elseif ($user->vai_tro === 'giang_vien') {
         return redirect()->route('giang-vien.profile');
     } else {
@@ -70,6 +74,10 @@ Route::get('/profile', function () {
 // =========== ROUTE THÔNG BÁO ===========
 Route::middleware(['auth'])->group(function () {
     Route::get('/thong-bao', [ThongBaoController::class, 'index'])->name('thong-bao.index');
+    Route::get('/thong-bao/recent.json', [ThongBaoController::class, 'jsonRecent'])->name('thong-bao.recent-json');
+    Route::post('/thong-bao/mark-all-read', [ThongBaoController::class, 'markAllRead'])->name('thong-bao.mark-all-read');
+    Route::get('/thong-bao/{id}/read', [ThongBaoController::class, 'markRead'])->name('thong-bao.read');
+    Route::delete('/thong-bao/{id}', [ThongBaoController::class, 'destroy'])->name('thong-bao.destroy');
     Route::get('/thong-bao/{id}', [ThongBaoController::class, 'docMot'])->name('thong-bao.doc-mot');
 });
 
@@ -78,6 +86,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
 
     // Quản lý tài khoản và phê duyệt
+    // Hồ sơ cá nhân admin
+    Route::get('/profile', [AdminController::class, 'profile'])->name('profile');
+    Route::post('/profile', [AdminController::class, 'updateProfile'])->name('profile.update');
+
     Route::prefix('tai-khoan')->name('tai-khoan.')->group(function () {
         Route::get('/', [AdminController::class, 'indexNguoiDung'])->name('index');
         Route::get('/create', [AdminController::class, 'createNguoiDung'])->name('create');

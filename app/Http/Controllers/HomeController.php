@@ -249,6 +249,123 @@ class HomeController extends Controller
         return $this->search($request);
     }
 
+    /**
+     * AJAX: gợi ý tìm kiếm tức thì cho ô tìm kiếm trên navbar.
+     * Trả về JSON gồm khóa học + giảng viên khớp keyword.
+     */
+    public function searchSuggest(Request $request)
+    {
+        $keyword = trim((string) $request->get('q', ''));
+
+        if (mb_strlen($keyword) < 2) {
+            return response()->json([
+                'q' => $keyword,
+                'courses' => [],
+                'instructors' => [],
+                'total' => 0,
+            ]);
+        }
+
+        $courses = KhoaHoc::query()
+            ->active()
+            ->hoatDong()
+            ->whereIn('trang_thai_van_hanh', ['cho_giang_vien', 'san_sang', 'dang_day'])
+            ->where(function ($q) use ($keyword) {
+                $q->where('ten_khoa_hoc', 'like', "%{$keyword}%")
+                    ->orWhere('ma_khoa_hoc', 'like', "%{$keyword}%")
+                    ->orWhere('mo_ta_ngan', 'like', "%{$keyword}%");
+            })
+            ->with('nhomNganh:id,ten_nhom_nganh')
+            ->limit(5)
+            ->get(['id', 'ma_khoa_hoc', 'ten_khoa_hoc', 'cap_do', 'hinh_anh', 'nhom_nganh_id']);
+
+        $instructors = GiangVien::hienThiTrangChu()
+            ->whereHas('nguoiDung', function ($q) use ($keyword) {
+                $q->where('ho_ten', 'like', "%{$keyword}%");
+            })
+            ->orWhere('chuyen_nganh', 'like', "%{$keyword}%")
+            ->with('nguoiDung:ma_nguoi_dung,ho_ten,anh_dai_dien')
+            ->limit(3)
+            ->get(['id', 'nguoi_dung_id', 'chuyen_nganh', 'hoc_vi', 'avatar_url']);
+
+        $coursePayload = $courses->map(fn ($course) => [
+            'id' => $course->id,
+            'title' => $course->ten_khoa_hoc,
+            'code' => $course->ma_khoa_hoc,
+            'level' => $course->cap_do,
+            'level_label' => match ($course->cap_do) {
+                'co_ban' => 'Cơ bản',
+                'trung_binh' => 'Trung bình',
+                'nang_cao' => 'Nâng cao',
+                default => 'Tổng hợp',
+            },
+            'category' => $course->nhomNganh->ten_nhom_nganh ?? 'Đa lĩnh vực',
+            'image' => $course->hinh_anh ? asset($course->hinh_anh) : asset('images/default-course.svg'),
+            'url' => route('home', ['q' => $course->ma_khoa_hoc]) . '#courses',
+        ]);
+
+        $instructorPayload = $instructors->map(function ($gv) {
+            $avatar = $gv->avatar_url ?: optional($gv->nguoiDung)->anh_dai_dien;
+            $avatarUrl = null;
+            if ($avatar) {
+                $avatarUrl = \Illuminate\Support\Str::startsWith($avatar, ['http://', 'https://'])
+                    ? $avatar
+                    : asset(\Illuminate\Support\Str::startsWith($avatar, ['avatars/']) ? 'storage/' . $avatar : $avatar);
+            }
+
+            return [
+                'id' => $gv->id,
+                'name' => $gv->nguoiDung->ho_ten ?? 'Giảng viên',
+                'specialty' => $gv->chuyen_nganh ?: 'Chuyên gia đào tạo',
+                'degree' => $gv->hoc_vi ?: 'Giảng viên',
+                'avatar' => $avatarUrl,
+                'initial' => mb_substr($gv->nguoiDung->ho_ten ?? 'GV', 0, 1),
+            ];
+        });
+
+        return response()->json([
+            'q' => $keyword,
+            'courses' => $coursePayload,
+            'instructors' => $instructorPayload,
+            'total' => $coursePayload->count() + $instructorPayload->count(),
+        ]);
+    }
+
+    /**
+     * AJAX: 5 thông báo gần nhất của user đang đăng nhập (cho notification bell).
+     */
+    public function notificationsRecent(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['items' => [], 'unread' => 0]);
+        }
+
+        $items = \App\Models\ThongBao::query()
+            ->where('nguoi_nhan_id', $user->ma_nguoi_dung)
+            ->latest()
+            ->limit(6)
+            ->get(['id', 'tieu_de', 'noi_dung', 'loai', 'url', 'da_doc', 'created_at']);
+
+        $unread = \App\Models\ThongBao::query()
+            ->where('nguoi_nhan_id', $user->ma_nguoi_dung)
+            ->where('da_doc', false)
+            ->count();
+
+        return response()->json([
+            'unread' => $unread,
+            'items' => $items->map(fn ($item) => [
+                'id' => $item->id,
+                'title' => $item->tieu_de,
+                'preview' => \Illuminate\Support\Str::limit(strip_tags($item->noi_dung ?? ''), 80),
+                'url' => $item->url ?: route('thong-bao.doc-mot', $item->id),
+                'is_read' => (bool) $item->da_doc,
+                'time_ago' => $item->created_at?->diffForHumans() ?? '',
+                'type' => $item->loai,
+            ])->values(),
+        ]);
+    }
+
     private function buildSettings(): array
     {
         return [

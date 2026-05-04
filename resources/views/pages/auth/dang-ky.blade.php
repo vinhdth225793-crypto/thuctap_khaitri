@@ -23,7 +23,7 @@
                 />
             </div>
             <div class="col-md-6">
-                <x-form-input 
+                <x-form-input
                     type="email"
                     name="email"
                     label="Email"
@@ -126,10 +126,13 @@
             </button>
         </div>
         
-        <div class="text-center">
-            <p class="mb-0">Đã có tài khoản? 
-                <a href="{{ route('dang-nhap') }}" class="text-decoration-none fw-semibold">Đăng nhập ngay</a>
-            </p>
+        <div class="auth-switch">
+            <p>Đã có tài khoản?</p>
+            <a href="{{ route('dang-nhap') }}" class="auth-switch-btn">
+                <i class="fas fa-right-to-bracket"></i>
+                <span>Đăng nhập ngay</span>
+                <i class="fas fa-arrow-right"></i>
+            </a>
         </div>
     </form>
 </x-auth-card>
@@ -140,7 +143,7 @@
     $('#mat_khau_confirmation').on('keyup', function() {
         const password = $('#mat_khau').val();
         const confirmPassword = $(this).val();
-        
+
         if (password !== confirmPassword) {
             $(this).addClass('is-invalid');
             $(this).removeClass('is-valid');

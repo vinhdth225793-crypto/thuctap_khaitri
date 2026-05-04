@@ -13,6 +13,7 @@ use App\Models\NguoiDung;
 use App\Models\NhomNganh;
 use App\Models\TaiNguyenBuoiHoc;
 use App\Models\YeuCauHocVien;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -152,6 +153,8 @@ class StudentLearningFlowTest extends TestCase
 
     public function test_student_session_detail_shows_google_meet_join_area_from_online_link(): void
     {
+        Carbon::setTestNow(Carbon::today()->setTime(9, 30));
+
         $student = $this->createStudent();
         $course = $this->createCourse();
         $module = $this->createModule($course);
@@ -180,6 +183,8 @@ class StudentLearningFlowTest extends TestCase
             ->assertSee('abc-defg-hij', false)
             ->assertSee('246810', false)
             ->assertSee('Nội dung trọng tâm của buổi học', false);
+
+        Carbon::setTestNow();
     }
 
     public function test_student_cannot_open_session_detail_without_active_enrollment(): void

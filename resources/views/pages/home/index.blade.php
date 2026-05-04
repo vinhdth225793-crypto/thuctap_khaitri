@@ -122,6 +122,53 @@
     </aside>
 @endif
 
+<div class="site-progress" aria-hidden="true"><div class="site-progress-bar" id="siteProgressBar"></div></div>
+
+<div class="site-topbar" aria-label="Thông tin liên hệ nhanh">
+    <div class="home-container topbar-row">
+        <div class="topbar-info">
+            @if($cleanHotline)
+                <a href="tel:{{ $cleanHotline }}" class="topbar-link">
+                    <i class="fas fa-phone-volume"></i>
+                    <span>{{ $settings['hotline'] }}</span>
+                </a>
+            @endif
+            @if(filled($settings['email']))
+                <a href="mailto:{{ $settings['email'] }}" class="topbar-link">
+                    <i class="fas fa-envelope"></i>
+                    <span>{{ $settings['email'] }}</span>
+                </a>
+            @endif
+            @if(filled($settings['address']))
+                <span class="topbar-link topbar-static">
+                    <i class="fas fa-location-dot"></i>
+                    <span>{{ \Illuminate\Support\Str::limit(strip_tags($settings['address']), 60) }}</span>
+                </span>
+            @endif
+        </div>
+        <div class="topbar-extras">
+            @if(!empty($stats['sap_khai_giang']) && $stats['sap_khai_giang'] > 0)
+                <a href="#courses" class="topbar-pill">
+                    <span class="topbar-pulse"></span>
+                    <i class="fas fa-fire"></i>
+                    <span>{{ $stats['sap_khai_giang'] }} khóa sắp khai giảng</span>
+                </a>
+            @endif
+            <div class="topbar-social">
+                <span class="topbar-social-label">Theo dõi:</span>
+                @if($facebookLink)
+                    <a href="{{ $facebookLink }}" target="_blank" rel="noopener" aria-label="Facebook" class="topbar-social-icon"><i class="fab fa-facebook-f"></i></a>
+                @endif
+                @if($zaloLink)
+                    <a href="{{ $zaloLink }}" target="_blank" rel="noopener" aria-label="Zalo" class="topbar-social-icon"><i class="fas fa-comment-dots"></i></a>
+                @endif
+                <a href="#contact" aria-label="YouTube" class="topbar-social-icon"><i class="fab fa-youtube"></i></a>
+                <a href="#contact" aria-label="TikTok" class="topbar-social-icon"><i class="fab fa-tiktok"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <header class="site-header" id="siteHeader">
     <div class="home-container header-row">
         <a href="{{ route('home') }}" class="brand-link" aria-label="Trang chủ {{ $siteName }}">
@@ -143,18 +190,105 @@
                 <i class="fas fa-house"></i>
                 <span>Trang chủ</span>
             </a>
-            <a href="#courses" data-scroll-link="courses">
-                <i class="fas fa-layer-group"></i>
-                <span>Khóa học</span>
-            </a>
-            <a href="#updates" data-scroll-link="updates">
-                <i class="fas fa-bullhorn"></i>
-                <span>Thông tin mới</span>
-            </a>
+            @guest
+                <a href="#about" data-scroll-link="about">
+                    <i class="fas fa-circle-info"></i>
+                    <span>Về chúng tôi</span>
+                </a>
+            @endguest
+
+            <div class="nav-dropdown is-mega">
+                <a href="#courses" data-scroll-link="courses" class="nav-dropdown-toggle" aria-haspopup="true" aria-expanded="false">
+                    <i class="fas fa-layer-group"></i>
+                    <span>Khóa học</span>
+                    <i class="fas fa-chevron-down nav-caret"></i>
+                </a>
+                @if(isset($categories) && $categories->isNotEmpty())
+                    <div class="nav-mega-menu" role="menu">
+                        <div class="nav-mega-grid">
+                            {{-- Cột 1: Lĩnh vực đào tạo --}}
+                            <div class="nav-mega-col">
+                                <div class="nav-mega-head">
+                                    <span class="eyebrow"><i class="fas fa-shapes"></i> Lĩnh vực</span>
+                                    <strong>Nhóm ngành đang mở</strong>
+                                </div>
+                                <div class="nav-mega-list">
+                                    @foreach($categories->take(6) as $cat)
+                                        <a href="{{ route('home', ['category' => $cat->id]) }}#courses" class="nav-mega-item" role="menuitem">
+                                            <span class="ndi-icon"><i class="fas fa-cube"></i></span>
+                                            <span class="ndi-copy">
+                                                <strong>{{ $cat->ten_nhom_nganh }}</strong>
+                                                <small>{{ $cat->public_course_count }} khóa</small>
+                                            </span>
+                                            <i class="fas fa-arrow-right ndi-arrow"></i>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            {{-- Cột 2: Khóa học hot --}}
+                            <div class="nav-mega-col">
+                                <div class="nav-mega-head">
+                                    <span class="eyebrow"><i class="fas fa-fire"></i> Đang hot</span>
+                                    <strong>Khóa được quan tâm</strong>
+                                </div>
+                                <div class="nav-mega-list">
+                                    @foreach($courses->take(4) as $kh)
+                                        <a href="{{ route('home', ['q' => $kh->ma_khoa_hoc]) }}#courses" class="nav-mega-course" role="menuitem">
+                                            <img src="{{ $imageUrl($kh->hinh_anh) }}" alt="{{ $kh->ten_khoa_hoc }}">
+                                            <span class="nmc-copy">
+                                                <strong>{{ \Illuminate\Support\Str::limit($kh->ten_khoa_hoc, 38) }}</strong>
+                                                <small>
+                                                    <i class="fas fa-layer-group"></i> {{ $kh->module_hocs_count ?? 0 }} module
+                                                    @if($kh->hoc_vien_dang_hoc_count ?? 0)
+                                                        <span class="dot-sep">•</span>
+                                                        <i class="fas fa-users"></i> {{ $kh->hoc_vien_dang_hoc_count }}
+                                                    @endif
+                                                </small>
+                                            </span>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            {{-- Cột 3: Khóa nổi bật + CTA --}}
+                            <div class="nav-mega-col nav-mega-feature">
+                                @if($featuredCourse)
+                                    <a href="{{ route('home', ['q' => $featuredCourse->ma_khoa_hoc]) }}#courses" class="nav-mega-hero">
+                                        <img src="{{ $imageUrl($featuredCourse->hinh_anh) }}" alt="{{ $featuredCourse->ten_khoa_hoc }}">
+                                        <div class="nav-mega-hero-overlay">
+                                            <span class="nav-hero-badge"><i class="fas fa-star"></i> Tiêu biểu</span>
+                                            <strong>{{ \Illuminate\Support\Str::limit($featuredCourse->ten_khoa_hoc, 50) }}</strong>
+                                            <small>{{ $featuredCourse->module_hocs_count ?? 0 }} module · {{ $featuredCourse->cap_do === 'co_ban' ? 'Cơ bản' : ($featuredCourse->cap_do === 'nang_cao' ? 'Nâng cao' : 'Trung bình') }}</small>
+                                        </div>
+                                    </a>
+                                @endif
+                                <div class="nav-mega-cta">
+                                    <a href="#courses" class="btn-main">
+                                        <i class="fas fa-grip"></i> Xem tất cả khóa
+                                    </a>
+                                    @guest
+                                        <a href="{{ route('dang-ky') }}" class="btn-soft">
+                                            <i class="fas fa-user-plus"></i> Đăng ký nhanh
+                                        </a>
+                                    @endguest
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </div>
+
             <a href="#instructors" data-scroll-link="instructors">
                 <i class="fas fa-chalkboard-user"></i>
                 <span>Giảng viên</span>
             </a>
+            @guest
+                <a href="#faq" data-scroll-link="faq">
+                    <i class="fas fa-circle-question"></i>
+                    <span>Hỏi đáp</span>
+                </a>
+            @endguest
             <a href="#contact" data-scroll-link="contact">
                 <i class="fas fa-headset"></i>
                 <span>Liên hệ</span>
@@ -162,28 +296,117 @@
         </nav>
 
         <div class="header-actions" id="headerActions">
-            @auth
-                <a href="{{ $dashboardRoute }}" class="account-chip" aria-label="Mở tài khoản {{ $accountName }}">
-                    <span class="account-avatar" aria-hidden="true">
-                        @if($accountAvatar)
-                            <img src="{{ $accountAvatar }}" alt="">
-                        @else
-                            <span>{{ $accountInitial }}</span>
-                        @endif
-                    </span>
-                    <span class="account-copy">
-                        <strong>{{ $accountName }}</strong>
-                        <small>{{ $accountRoleLabel }}</small>
-                    </span>
-                </a>
-                <a href="{{ $dashboardRoute }}" class="btn-soft">Bảng điều khiển</a>
-                <form action="{{ route('dang-xuat') }}" method="POST">
-                    @csrf
-                    <button type="submit" class="btn-main">Đăng xuất</button>
+            {{-- Live search với dropdown gợi ý --}}
+            <div class="header-search-wrap" id="headerSearchWrap">
+                <button type="button" class="header-search-toggle" id="headerSearchToggle" aria-label="Tìm kiếm khóa học" aria-expanded="false" aria-controls="headerSearchPanel">
+                    <i class="fas fa-magnifying-glass"></i>
+                </button>
+
+                <form method="GET" action="{{ route('home') }}#courses" class="header-search-panel" id="headerSearchPanel" hidden>
+                    <i class="fas fa-magnifying-glass"></i>
+                    <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Tìm khóa học, giảng viên..." id="headerSearchInput" autocomplete="off">
+                    <button type="submit" aria-label="Tìm"><i class="fas fa-arrow-right"></i></button>
                 </form>
+
+                <div class="search-suggest" id="headerSearchSuggest" hidden>
+                    <div class="search-suggest-status" id="searchSuggestStatus">
+                        <i class="fas fa-keyboard"></i>
+                        <span>Gõ ít nhất 2 ký tự để tìm khóa học hoặc giảng viên</span>
+                    </div>
+                    <div class="search-suggest-body" id="searchSuggestBody"></div>
+                </div>
+            </div>
+
+            @auth
+                {{-- Notification bell --}}
+                <div class="header-notif-wrap" id="headerNotifWrap">
+                    <button type="button" class="header-icon-btn" id="headerNotifToggle" aria-label="Thông báo" aria-expanded="false" data-notif-url="{{ route('api.notifications.recent') }}">
+                        <i class="fas fa-bell"></i>
+                        <span class="header-icon-badge" id="headerNotifBadge" hidden>0</span>
+                    </button>
+                    <div class="notif-popover" id="headerNotifPopover" hidden>
+                        <div class="notif-popover-head">
+                            <strong>Thông báo</strong>
+                            <a href="{{ route('thong-bao.index') }}" class="link-mini">Xem tất cả</a>
+                        </div>
+                        <div class="notif-popover-body" id="headerNotifBody">
+                            <div class="notif-loading"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- User avatar dropdown --}}
+                <div class="header-user-wrap" id="headerUserWrap">
+                    <button type="button" class="account-chip is-button" id="headerUserToggle" aria-label="Tài khoản {{ $accountName }}" aria-expanded="false">
+                        <span class="account-avatar" aria-hidden="true">
+                            @if($accountAvatar)
+                                <img src="{{ $accountAvatar }}" alt="">
+                            @else
+                                <span>{{ $accountInitial }}</span>
+                            @endif
+                        </span>
+                        <span class="account-copy">
+                            <strong>{{ $accountName }}</strong>
+                            <small>{{ $accountRoleLabel }}</small>
+                        </span>
+                        <i class="fas fa-chevron-down account-caret"></i>
+                    </button>
+
+                    <div class="user-popover" id="headerUserPopover" hidden>
+                        <div class="user-popover-head">
+                            <span class="account-avatar lg" aria-hidden="true">
+                                @if($accountAvatar)
+                                    <img src="{{ $accountAvatar }}" alt="">
+                                @else
+                                    <span>{{ $accountInitial }}</span>
+                                @endif
+                            </span>
+                            <div>
+                                <strong>{{ $accountName }}</strong>
+                                <small>{{ $homeUser->email }}</small>
+                                <span class="user-popover-role">{{ $accountRoleLabel }}</span>
+                            </div>
+                        </div>
+                        <div class="user-popover-list">
+                            <a href="{{ $dashboardRoute }}" class="user-popover-item">
+                                <i class="fas fa-gauge-high"></i>
+                                <span>Bảng điều khiển</span>
+                            </a>
+                            <a href="{{ route('profile') }}" class="user-popover-item">
+                                <i class="fas fa-user-pen"></i>
+                                <span>Hồ sơ cá nhân</span>
+                            </a>
+                            @if($homeUser->vai_tro === 'hoc_vien')
+                                <a href="{{ route('hoc-vien.khoa-hoc-cua-toi') }}" class="user-popover-item">
+                                    <i class="fas fa-book-open"></i>
+                                    <span>Khóa học của tôi</span>
+                                </a>
+                            @elseif($homeUser->vai_tro === 'giang_vien')
+                                <a href="{{ route('giang-vien.khoa-hoc') }}" class="user-popover-item">
+                                    <i class="fas fa-chalkboard-user"></i>
+                                    <span>Lớp tôi phụ trách</span>
+                                </a>
+                            @endif
+                            <a href="{{ route('thong-bao.index') }}" class="user-popover-item">
+                                <i class="fas fa-bell"></i>
+                                <span>Tất cả thông báo</span>
+                            </a>
+                        </div>
+                        <form action="{{ route('dang-xuat') }}" method="POST" class="user-popover-foot">
+                            @csrf
+                            <button type="submit" class="user-popover-logout">
+                                <i class="fas fa-arrow-right-from-bracket"></i> Đăng xuất
+                            </button>
+                        </form>
+                    </div>
+                </div>
             @else
-                <a href="{{ route('dang-nhap') }}" class="btn-soft">Đăng nhập</a>
-                <a href="{{ route('dang-ky') }}" class="btn-main">Đăng ký</a>
+                <a href="{{ route('dang-nhap') }}" class="btn-soft">
+                    <i class="fas fa-right-to-bracket"></i> Đăng nhập
+                </a>
+                <a href="{{ route('dang-ky') }}" class="btn-main btn-pulse">
+                    Đăng ký <i class="fas fa-arrow-right"></i>
+                </a>
             @endauth
         </div>
 
@@ -246,9 +469,14 @@
 
         <nav aria-label="Liên kết trang chủ">
             <strong>Khám phá</strong>
+            @guest
+                <a href="#about">Về chúng tôi</a>
+            @endguest
             <a href="#courses">Khóa học</a>
-            <a href="#updates">Thông tin mới</a>
             <a href="#instructors">Giảng viên</a>
+            @guest
+                <a href="#faq">Câu hỏi thường gặp</a>
+            @endguest
             <a href="#contact">Liên hệ</a>
         </nav>
 

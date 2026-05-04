@@ -44,10 +44,13 @@
             </button>
         </div>
         
-        <div class="text-center">
-            <p class="mb-0">Chưa có tài khoản? 
-                <a href="{{ route('dang-ky') }}" class="text-decoration-none fw-semibold">Đăng ký ngay</a>
-            </p>
+        <div class="auth-switch">
+            <p>Chưa có tài khoản?</p>
+            <a href="{{ route('dang-ky') }}" class="auth-switch-btn">
+                <i class="fas fa-user-plus"></i>
+                <span>Đăng ký tài khoản miễn phí</span>
+                <i class="fas fa-arrow-right"></i>
+            </a>
         </div>
     </form>
 </x-auth-card>

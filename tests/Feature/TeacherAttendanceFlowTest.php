@@ -86,7 +86,7 @@ class TeacherAttendanceFlowTest extends TestCase
 
     public function test_teacher_can_check_in_and_out_direct_session_without_live_timestamps(): void
     {
-        Carbon::setTestNow('2026-04-03 13:00:00');
+        Carbon::setTestNow('2026-04-03 08:00:00');
 
         $admin = $this->createUser('admin');
         [$teacherUser, $teacher] = $this->createTeacher();
@@ -100,7 +100,7 @@ class TeacherAttendanceFlowTest extends TestCase
             ->post(route('giang-vien.buoi-hoc.teacher-attendance.check-in', $schedule->id))
             ->assertSessionHas('success');
 
-        Carbon::setTestNow('2026-04-03 15:00:00');
+        Carbon::setTestNow('2026-04-03 10:00:00');
 
         $this->actingAs($teacherUser)
             ->post(route('giang-vien.buoi-hoc.teacher-attendance.check-out', $schedule->id))
@@ -137,6 +137,8 @@ class TeacherAttendanceFlowTest extends TestCase
 
     public function test_teacher_cannot_check_in_same_session_twice(): void
     {
+        Carbon::setTestNow('2026-04-03 08:00:00');
+
         $admin = $this->createUser('admin');
         [$teacherUser, $teacher] = $this->createTeacher();
         [$course, , $schedule] = $this->createAssignedOnlineSchedule($admin, $teacher);
@@ -155,6 +157,8 @@ class TeacherAttendanceFlowTest extends TestCase
             ->assertSessionHasErrors('teacher_attendance');
 
         $this->assertDatabaseCount('diem_danh_giang_vien', 1);
+
+        Carbon::setTestNow();
     }
 
     public function test_unassigned_teacher_cannot_check_in_session(): void
@@ -196,6 +200,8 @@ class TeacherAttendanceFlowTest extends TestCase
 
     public function test_teacher_can_start_teaching_session_from_course_card(): void
     {
+        Carbon::setTestNow('2026-04-03 08:00:00');
+
         $admin = $this->createUser('admin');
         [$teacherUser, $teacher] = $this->createTeacher();
         [$course, , $schedule] = $this->createAssignedOnlineSchedule($admin, $teacher);
@@ -217,10 +223,14 @@ class TeacherAttendanceFlowTest extends TestCase
             'giang_vien_id' => $teacher->id,
             'trang_thai' => 'da_checkin',
         ]);
+
+        Carbon::setTestNow();
     }
 
     public function test_teacher_can_finish_teaching_session_after_starting_it(): void
     {
+        Carbon::setTestNow('2026-04-03 08:00:00');
+
         $admin = $this->createUser('admin');
         [$teacherUser, $teacher] = $this->createTeacher();
         [$course, , $schedule] = $this->createAssignedOnlineSchedule($admin, $teacher);
@@ -229,6 +239,8 @@ class TeacherAttendanceFlowTest extends TestCase
             ->from(route('giang-vien.khoa-hoc.show', $course->id))
             ->post(route('giang-vien.buoi-hoc.start', $schedule->id))
             ->assertSessionHas('success');
+
+        Carbon::setTestNow('2026-04-03 10:00:00');
 
         $response = $this->actingAs($teacherUser)
             ->from(route('giang-vien.khoa-hoc.show', $course->id))
@@ -246,6 +258,8 @@ class TeacherAttendanceFlowTest extends TestCase
             'giang_vien_id' => $teacher->id,
             'trang_thai' => 'hoan_thanh',
         ]);
+
+        Carbon::setTestNow();
     }
 
     public function test_teacher_cannot_finish_teaching_session_before_starting_it(): void
@@ -270,6 +284,8 @@ class TeacherAttendanceFlowTest extends TestCase
 
     public function test_teacher_course_show_page_renders_new_timeline_clusters(): void
     {
+        Carbon::setTestNow('2026-04-03 08:00:00');
+
         $admin = $this->createUser('admin');
         [$teacherUser, $teacher] = $this->createTeacher();
         [$course] = $this->createAssignedOnlineSchedule($admin, $teacher);
@@ -279,10 +295,11 @@ class TeacherAttendanceFlowTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertSee('Cụm 1', escape: false)
-            ->assertSee('Phòng live nội bộ', escape: false)
-            ->assertSee('Bắt đầu buổi học', escape: false)
-            ->assertSee('Chưa bắt đầu', escape: false);
+            ->assertSee('Vận hành buổi dạy', escape: false)
+            ->assertSee('Điều hành lớp học', escape: false)
+            ->assertSee('Bắt đầu buổi học', escape: false);
+
+        Carbon::setTestNow();
     }
 
     public function test_admin_can_view_teacher_attendance_dashboard(): void
@@ -426,6 +443,8 @@ class TeacherAttendanceFlowTest extends TestCase
 
     public function test_admin_can_view_student_attendance_dashboard(): void
     {
+        Carbon::setTestNow('2026-04-03 09:00:00');
+
         $admin = $this->createUser('admin');
         [, $teacher] = $this->createTeacher();
         [$course, , $schedule] = $this->createAssignedOnlineSchedule($admin, $teacher);
@@ -455,6 +474,8 @@ class TeacherAttendanceFlowTest extends TestCase
             ->assertSee($student->ho_ten)
             ->assertSee($course->ten_khoa_hoc)
             ->assertSee('Co mat', escape: false);
+
+        Carbon::setTestNow();
     }
 
     public function test_student_attendance_flow_still_works_after_teacher_attendance_is_started(): void

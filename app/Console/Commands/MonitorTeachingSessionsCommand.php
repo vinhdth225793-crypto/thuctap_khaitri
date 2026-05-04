@@ -41,8 +41,11 @@ class MonitorTeachingSessionsCommand extends Command
 
         // Quét các buổi học có ngày học là hôm nay hoặc hôm qua
         $schedules = LichHoc::query()
-            ->whereIn('ngay_hoc', [now()->toDateString(), now()->subDay()->toDateString()])
-            ->whereNotIn('trang_thai', ['hoan_thanh', 'da_huy'])
+            ->where(function ($q) {
+                $q->whereDate('ngay_hoc', now()->toDateString())
+                    ->orWhereDate('ngay_hoc', now()->subDay()->toDateString());
+            })
+            ->whereNotIn('trang_thai', ['hoan_thanh', 'huy'])
             ->with(['giangVien.nguoiDung', 'khoaHoc', 'moduleHoc'])
             ->get();
 

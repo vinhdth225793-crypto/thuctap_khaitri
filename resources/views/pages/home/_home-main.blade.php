@@ -1,85 +1,181 @@
 <section class="home-hub" id="home" style="--hub-image: url('{{ $imageUrl($heroImage) }}');">
+    {{-- Decorative background: floating blobs + sparkle dots --}}
+    <div class="hub-decor" aria-hidden="true">
+        <span class="hub-blob hub-blob-1"></span>
+        <span class="hub-blob hub-blob-2"></span>
+        <span class="hub-blob hub-blob-3"></span>
+        <span class="hub-sparkle hub-sparkle-1"></span>
+        <span class="hub-sparkle hub-sparkle-2"></span>
+        <span class="hub-sparkle hub-sparkle-3"></span>
+        <span class="hub-sparkle hub-sparkle-4"></span>
+    </div>
+
     <div class="home-container hub-inner">
         <div class="hub-spotlight">
             <div class="hub-copy">
                 <div class="hub-badge-row">
-                    <span class="eyebrow">Hệ thống đào tạo toàn diện</span>
-                    <span class="hub-order-badge"><i class="fas fa-shield-halved"></i> Dữ liệu đồng nhất</span>
+                    <span class="eyebrow eyebrow-shine">
+                        <span class="eyebrow-dot"></span>
+                        Nền tảng đào tạo trực tuyến
+                    </span>
+                    <span class="hub-order-badge"><i class="fas fa-circle-check"></i> Đã được kiểm chứng</span>
                 </div>
                 <h1>{{ $heroTitle }}</h1>
                 <p>{{ $heroDescription }}</p>
+
+                {{-- Trust bar: rating + learners + verified --}}
+                <div class="hub-trust-bar">
+                    <div class="trust-item">
+                        <div class="trust-stars">
+                            <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                        </div>
+                        <span><strong>4.9/5</strong> đánh giá từ học viên</span>
+                    </div>
+                    <span class="trust-divider"></span>
+                    <div class="trust-item">
+                        <div class="trust-avatars">
+                            @foreach($featuredInstructors->take(4) as $iv)
+                                @php
+                                    $iAvatar = $avatarUrl($iv->avatar_url ?: optional($iv->nguoiDung)->anh_dai_dien);
+                                    $iInit = mb_substr($iv->nguoiDung->ho_ten ?? 'GV', 0, 1);
+                                @endphp
+                                @if($iAvatar)
+                                    <img src="{{ $iAvatar }}" alt="">
+                                @else
+                                    <span class="trust-avatar-fallback">{{ $iInit }}</span>
+                                @endif
+                            @endforeach
+                        </div>
+                        <span><strong>{{ number_format($stats['tong_hoc_vien']) }}+</strong> học viên đang theo học</span>
+                    </div>
+                    <span class="trust-divider"></span>
+                    <div class="trust-item">
+                        <div class="trust-shield"><i class="fas fa-shield-halved"></i></div>
+                        <span><strong>Cam kết</strong> chất lượng & bảo mật</span>
+                    </div>
+                </div>
 
                 <div class="hub-capabilities-grid">
                     <div class="cap-item">
                         <div class="cap-icon"><i class="fas fa-layer-group"></i></div>
                         <div class="cap-text">
-                            <strong>Thư viện Khóa học</strong>
-                            <span>Dễ dàng tìm kiếm khóa phù hợp theo cấp độ, danh mục và lộ trình.</span>
+                            <strong>Thư viện khóa học đa dạng</strong>
+                            <span>Lọc nhanh theo cấp độ, danh mục và lịch khai giảng phù hợp.</span>
                         </div>
                     </div>
                     <div class="cap-item">
                         <div class="cap-icon"><i class="fas fa-video"></i></div>
                         <div class="cap-text">
-                            <strong>Lớp học Trực tuyến</strong>
-                            <span>Tham gia phòng học Live, truy cập tài nguyên và bài giảng tức thì.</span>
+                            <strong>Học trực tuyến tương tác</strong>
+                            <span>Phòng học live, tài nguyên buổi học và bài giảng có sẵn mọi lúc.</span>
                         </div>
                     </div>
                     <div class="cap-item">
                         <div class="cap-icon"><i class="fas fa-chart-pie"></i></div>
                         <div class="cap-text">
-                            <strong>Quản lý Kết quả</strong>
-                            <span>Theo dõi điểm danh, tiến độ học tập và thực hiện bài kiểm tra Online.</span>
+                            <strong>Theo dõi tiến độ minh bạch</strong>
+                            <span>Điểm danh, kết quả kiểm tra và phản hồi của giảng viên rõ ràng từng module.</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="hub-actions">
                     <a href="#courses" class="btn-main">Khám phá khóa học <i class="fas fa-arrow-right"></i></a>
-                    <a href="#contact" class="btn-light-outline">Tư vấn ngay</a>
+                    <a href="#contact" class="btn-light-outline"><i class="fas fa-headset"></i> Đăng ký tư vấn</a>
+                    <a href="#about" class="btn-ghost-light"><i class="fas fa-circle-play"></i> Giới thiệu hệ thống</a>
                 </div>
             </div>
 
             <div class="hub-panel">
                 <div class="hub-panel-header">
-                    <i class="fas fa-magnifying-glass"></i>
-                    <span>Bắt đầu tìm hiểu</span>
+                    <i class="fas fa-bolt"></i>
+                    <span>Bắt đầu tìm hiểu nhanh</span>
+                    <span class="panel-live-dot" aria-label="đang hoạt động"></span>
                 </div>
 
                 <form method="GET" action="{{ route('home') }}#courses" class="hub-search-box">
+                    <i class="fas fa-magnifying-glass hub-search-icon"></i>
                     <input type="search" name="q" value="{{ $filters['q'] }}" placeholder="Tên khóa học, mã khóa...">
-                    <button type="submit">Tìm nhanh</button>
+                    <button type="submit">Tìm <i class="fas fa-arrow-right"></i></button>
                 </form>
+
+                {{-- Strip uy tín (thay cho floating deco cards) --}}
+                <div class="panel-trust-row">
+                    <div class="panel-trust-item">
+                        <span class="ptr-icon ptr-icon-warm"><i class="fas fa-trophy"></i></span>
+                        <span class="ptr-copy">
+                            <strong>Top 1</strong>
+                            <small>khóa được chọn nhiều</small>
+                        </span>
+                    </div>
+                    <div class="panel-trust-item">
+                        <span class="ptr-icon ptr-icon-success"><i class="fas fa-graduation-cap"></i></span>
+                        <span class="ptr-copy">
+                            <strong>{{ number_format($stats['tong_giang_vien_noi_bat']) }}+ GV</strong>
+                            <small>được kiểm chứng</small>
+                        </span>
+                    </div>
+                </div>
+
+                {{-- Trending tags --}}
+                <div class="hub-trending">
+                    <span class="hub-trending-label"><i class="fas fa-fire"></i> Tag hot:</span>
+                    <div class="hub-trending-list">
+                        <a href="{{ route('home', ['level' => 'co_ban']) }}#courses" class="hub-tag">Cơ bản</a>
+                        <a href="{{ route('home', ['level' => 'nang_cao']) }}#courses" class="hub-tag">Nâng cao</a>
+                        @foreach($categories->take(3) as $cat)
+                            <a href="{{ route('home', ['category' => $cat->id]) }}#courses" class="hub-tag">{{ $cat->ten_nhom_nganh }}</a>
+                        @endforeach
+                    </div>
+                </div>
 
                 <div class="hub-quick-stats">
                     <div class="stat-box">
-                        <strong>{{ number_format($stats['tong_khoa_hoc']) }}</strong>
+                        <strong data-counter="{{ $stats['tong_khoa_hoc'] }}">0</strong>
                         <span>Khóa học</span>
                     </div>
                     <div class="stat-box">
-                        <strong>{{ number_format($stats['tong_module']) }}</strong>
+                        <strong data-counter="{{ $stats['tong_module'] }}">0</strong>
                         <span>Module</span>
                     </div>
                     <div class="stat-box">
-                        <strong>{{ number_format($stats['tong_hoc_vien']) }}</strong>
+                        <strong data-counter="{{ $stats['tong_hoc_vien'] }}">0</strong>
                         <span>Học viên</span>
                     </div>
                 </div>
 
                 @if($featuredCourse)
-                    <div class="hub-highlight-card">
-                        <span class="card-label">Khóa học tiêu biểu</span>
+                    <a href="#courses" class="hub-highlight-card hub-highlight-link">
+                        <span class="card-label">
+                            <span class="card-label-flame">🔥</span>
+                            Khóa học tiêu biểu
+                        </span>
                         <div class="card-content">
-                            <img src="{{ $imageUrl($featuredCourse->hinh_anh) }}" alt="{{ $featuredCourse->ten_khoa_hoc }}">
+                            <div class="card-thumb">
+                                <img src="{{ $imageUrl($featuredCourse->hinh_anh) }}" alt="{{ $featuredCourse->ten_khoa_hoc }}">
+                                <span class="card-hot-badge">HOT</span>
+                            </div>
                             <div>
                                 <h3>{{ $featuredCourse->ten_khoa_hoc }}</h3>
                                 <p>{{ \Illuminate\Support\Str::limit($featuredCourse->mo_ta_ngan ?: 'Lộ trình đào tạo chuẩn quốc tế.', 60) }}</p>
+                                <div class="card-mini-stats">
+                                    <span><i class="fas fa-cubes"></i> {{ $featuredCourse->module_hocs_count ?? 0 }} module</span>
+                                    <span><i class="fas fa-users"></i> {{ $featuredCourse->hoc_vien_dang_hoc_count ?? 0 }}</span>
+                                </div>
                             </div>
                         </div>
-                        <a href="#courses" class="card-link">Xem chi tiết <i class="fas fa-chevron-right"></i></a>
-                    </div>
+                        <span class="card-link">Xem chi tiết <i class="fas fa-arrow-right"></i></span>
+                    </a>
                 @endif
             </div>
         </div>
+    </div>
+
+    {{-- Wave divider --}}
+    <div class="hub-wave" aria-hidden="true">
+        <svg viewBox="0 0 1440 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,40 C240,80 480,0 720,30 C960,60 1200,80 1440,40 L1440,80 L0,80 Z" fill="var(--soft)"/>
+        </svg>
     </div>
 </section>
 
@@ -154,6 +250,101 @@
                 <strong>Cần tư vấn</strong>
                 <span>Gọi hotline, gửi email hoặc mở kênh mạng xã hội.</span>
             </a>
+        </div>
+    </section>
+
+    {{-- ========== Về tổ chức ========== --}}
+    <section class="about-section" id="about">
+        <div class="home-container">
+            <div class="about-grid">
+                <div class="about-visual">
+                    <img src="{{ $imageUrl($featuredCourse?->hinh_anh ?: 'images/khoa-hoc/1773463343_b1-vstep.jpg') }}" alt="Học viên {{ $siteName }}">
+                    <div class="floating-card fc-top">
+                        <div class="fc-icon is-brand"><i class="fas fa-users"></i></div>
+                        <div>
+                            <strong>{{ number_format($stats['tong_hoc_vien']) }}+ học viên</strong>
+                            <span>đang theo học</span>
+                        </div>
+                    </div>
+                    <div class="floating-card fc-bottom">
+                        <div class="fc-icon is-success"><i class="fas fa-award"></i></div>
+                        <div>
+                            <strong>Chất lượng đảm bảo</strong>
+                            <span>cam kết đầu ra</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="about-content">
+                    <span class="eyebrow">Về {{ $siteName }}</span>
+                    <h2>Đào tạo bài bản, đồng hành lâu dài cùng học viên</h2>
+                    <p>
+                        {{ $siteName }} là nền tảng đào tạo trực tuyến tích hợp toàn bộ quy trình học tập từ
+                        <strong>chọn khóa học</strong>, <strong>theo dõi lịch giảng</strong>, đến
+                        <strong>kết quả học tập</strong>. Hệ thống được xây dựng phù hợp cho mọi lứa tuổi —
+                        từ học sinh THCS đến người đi làm muốn nâng cao kỹ năng.
+                    </p>
+
+                    <div class="about-pillars">
+                        <div class="about-pillar">
+                            <div class="pillar-icon tone-brand"><i class="fas fa-graduation-cap"></i></div>
+                            <div>
+                                <strong>Lộ trình rõ ràng</strong>
+                                <span>Mỗi khóa chia thành module, có buổi học cụ thể và mục tiêu đầu ra minh bạch.</span>
+                            </div>
+                        </div>
+                        <div class="about-pillar">
+                            <div class="pillar-icon tone-info"><i class="fas fa-chalkboard-user"></i></div>
+                            <div>
+                                <strong>Giảng viên tận tâm</strong>
+                                <span>Đội ngũ có học vị, được phân công đúng chuyên ngành và đồng hành sát sao.</span>
+                            </div>
+                        </div>
+                        <div class="about-pillar">
+                            <div class="pillar-icon tone-warn"><i class="fas fa-shield-halved"></i></div>
+                            <div>
+                                <strong>Thi cử công bằng</strong>
+                                <span>Bài kiểm tra online có giám sát chặt chẽ, kết quả được phê duyệt nhiều bước.</span>
+                            </div>
+                        </div>
+                        <div class="about-pillar">
+                            <div class="pillar-icon tone-success"><i class="fas fa-handshake"></i></div>
+                            <div>
+                                <strong>Hỗ trợ nhanh chóng</strong>
+                                <span>Hotline, Zalo, email — phản hồi trong giờ hành chính, giải đáp mọi vướng mắc.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {{-- ========== Stats highlight ========== --}}
+    <section class="stats-highlight">
+        <div class="home-container">
+            <div class="stats-highlight-grid">
+                <div class="stat-highlight-item">
+                    <div class="stat-icon"><i class="fas fa-book-open"></i></div>
+                    <strong>{{ number_format($stats['tong_khoa_hoc']) }}</strong>
+                    <span>Khóa học đang mở</span>
+                </div>
+                <div class="stat-highlight-item">
+                    <div class="stat-icon"><i class="fas fa-users"></i></div>
+                    <strong>{{ number_format($stats['tong_hoc_vien']) }}</strong>
+                    <span>Học viên đang theo học</span>
+                </div>
+                <div class="stat-highlight-item">
+                    <div class="stat-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+                    <strong>{{ number_format($stats['tong_giang_vien_noi_bat']) }}</strong>
+                    <span>Giảng viên nổi bật</span>
+                </div>
+                <div class="stat-highlight-item">
+                    <div class="stat-icon"><i class="fas fa-cubes"></i></div>
+                    <strong>{{ number_format($stats['tong_module']) }}</strong>
+                    <span>Module bài giảng</span>
+                </div>
+            </div>
         </div>
     </section>
 @endauth
@@ -241,25 +432,31 @@
 <section class="learning-flow">
     <div class="home-container">
         <div class="section-heading">
-            <span class="eyebrow">Lộ trình</span>
-            <h2>Học viên nắm được việc cần làm ở từng bước</h2>
+            <span class="eyebrow">Quy trình tham gia</span>
+            <h2>Bốn bước đơn giản để bắt đầu hành trình học tập</h2>
+            <p>Quy trình minh bạch — từ lúc bạn quan tâm đến khi nhận kết quả cuối khóa.</p>
         </div>
 
         <div class="flow-grid">
             <div class="flow-item">
                 <span>1</span>
                 <h3>Chọn khóa phù hợp</h3>
-                <p>Xem cấp độ, số module, trạng thái và ngày khai giảng ngay trên danh sách khóa.</p>
+                <p>Xem cấp độ, số module, trạng thái khai giảng và ngày bắt đầu để chọn khóa đúng nhu cầu.</p>
             </div>
             <div class="flow-item">
                 <span>2</span>
-                <h3>Gửi yêu cầu tham gia</h3>
-                <p>Tài khoản học viên có thể gửi yêu cầu tham gia khóa đang mở để được xác nhận.</p>
+                <h3>Đăng ký tài khoản</h3>
+                <p>Tạo tài khoản học viên trong vài phút, gửi yêu cầu tham gia khóa đã chọn để được duyệt.</p>
             </div>
             <div class="flow-item">
                 <span>3</span>
-                <h3>Theo dõi tiến độ</h3>
-                <p>Sau khi vào học, học viên theo dõi lịch, tài nguyên, điểm danh và bài kiểm tra.</p>
+                <h3>Học và thực hành</h3>
+                <p>Tham gia buổi học live, xem lại bài giảng, làm bài kiểm tra và trao đổi cùng giảng viên.</p>
+            </div>
+            <div class="flow-item">
+                <span>4</span>
+                <h3>Nhận kết quả</h3>
+                <p>Theo dõi điểm từng module, kết quả tổng kết được giảng viên chốt và admin phê duyệt minh bạch.</p>
             </div>
         </div>
     </div>
@@ -355,6 +552,74 @@
         </div>
     </div>
 </section>
+
+@guest
+{{-- ========== FAQ ========== --}}
+<section class="faq-section" id="faq">
+    <div class="home-container">
+        <div class="section-heading">
+            <span class="eyebrow">Câu hỏi thường gặp</span>
+            <h2>Những điều học viên hay thắc mắc</h2>
+            <p>Nếu chưa thấy câu trả lời mong muốn, bạn có thể gửi câu hỏi qua mục liên hệ phía dưới.</p>
+        </div>
+
+        <div class="faq-list">
+            <details class="faq-item" open>
+                <summary>Tôi cần có nền tảng gì trước khi đăng ký khóa học?</summary>
+                <div class="faq-body">
+                    Mỗi khóa học đều ghi rõ <strong>cấp độ</strong> (Cơ bản / Trung bình / Nâng cao) và mô tả nội dung.
+                    Bạn chỉ cần đọc phần mô tả chi tiết, hoặc liên hệ tư vấn để được giảng viên hướng dẫn chọn khóa
+                    phù hợp với trình độ hiện tại.
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>Tôi học hoàn toàn online hay phải đến trung tâm?</summary>
+                <div class="faq-body">
+                    Phần lớn khóa học của {{ $siteName }} được tổ chức theo hình thức <strong>online</strong>
+                    qua phòng học live, kèm tài nguyên và bài giảng có thể xem lại. Một số khóa có thể yêu cầu
+                    buổi gặp trực tiếp — thông tin sẽ được hiển thị rõ trong lịch học.
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>Quy trình kiểm tra và đánh giá kết quả như thế nào?</summary>
+                <div class="faq-body">
+                    Học viên làm bài kiểm tra online theo từng module hoặc cuối khóa. Hệ thống có
+                    <strong>giám sát thi qua camera</strong>, chống gian lận và lưu lại nhật ký. Điểm số sẽ được
+                    giảng viên chấm, sau đó qua phiếu xét duyệt của admin trước khi chính thức chốt.
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>Tài khoản giảng viên đăng ký có gì khác học viên?</summary>
+                <div class="faq-body">
+                    Tài khoản học viên được kích hoạt ngay sau khi đăng ký. Tài khoản giảng viên cần
+                    <strong>admin phê duyệt</strong> trước khi sử dụng — bạn sẽ nhận thông báo qua email khi
+                    yêu cầu được duyệt.
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>Tôi có thể đổi lịch học hoặc xin nghỉ buổi học không?</summary>
+                <div class="faq-body">
+                    Có. Học viên có thể xem lịch học, gửi yêu cầu đổi/bổ sung học viên trong khóa.
+                    Giảng viên có chức năng gửi <strong>đơn xin nghỉ giảng</strong> để admin xét duyệt và
+                    sắp xếp lịch thay thế phù hợp.
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>Học phí và cách thanh toán?</summary>
+                <div class="faq-body">
+                    Học phí được niêm yết trong từng khóa khi liên hệ tư vấn. {{ $siteName }} hỗ trợ nhiều
+                    phương thức thanh toán phổ biến. Vui lòng gọi hotline hoặc nhắn Zalo để được báo giá chi tiết.
+                </div>
+            </details>
+        </div>
+    </div>
+</section>
+@endguest
 
 <section class="contact-section" id="contact">
     <div class="home-container contact-grid">

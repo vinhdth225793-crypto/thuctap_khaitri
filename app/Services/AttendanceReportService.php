@@ -106,7 +106,7 @@ class AttendanceReportService
     {
         return DiemDanh::query()
             ->with([
-                'hocVien',
+                'hocVien.nguoiDung',
                 'lichHoc.khoaHoc',
                 'lichHoc.giangVien.nguoiDung',
                 'lichHoc.moduleHoc.phanCongGiangViens.giangVien.nguoiDung',

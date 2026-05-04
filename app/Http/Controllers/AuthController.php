@@ -142,6 +142,14 @@ class AuthController extends Controller
                 'trang_thai' => 'cho_phe_duyet',
             ]);
 
+            // Notify admins
+            try {
+                app(\App\Services\NotificationService::class)
+                    ->notifyAccountPending($request->ho_ten, $request->email);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+
             return redirect()->back()->with('success', 'Yêu cầu tạo tài khoản GIẢNG VIÊN của bạn đang được thực hiện. VUI LÒNG CHỜ PHẢN HỒI !');
         }
     }
