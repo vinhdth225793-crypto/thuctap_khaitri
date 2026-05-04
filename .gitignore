@@ -22,3 +22,11 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Local notes / IDE / unrelated files
+/.claude
+/promt
+/sơ đồ
+/Đồ án BLOCKCHAIN
+*BLOCKCHAIN*
+*nhom_25.pptx*
