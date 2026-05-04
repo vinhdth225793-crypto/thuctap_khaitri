@@ -48,56 +48,16 @@
     <!-- Chỉ số thống kê -->
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-0 shadow-sm h-100 border-start border-4 border-primary">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Đang giảng dạy</div>
-                            <div class="h4 mb-0 font-weight-bold text-gray-800">{{ $stats['dang_day'] }} lớp</div>
-                        </div>
-                        <i class="fas fa-book-reader fa-2x text-gray-300"></i>
-                    </div>
-                </div>
-            </div>
+            <x-stat-tile label="Đang giảng dạy" :value="$stats['dang_day']" unit="lớp" icon="fas fa-book-reader" tone="primary" />
         </div>
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-0 shadow-sm h-100 border-start border-4 border-success">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Buổi sắp tới</div>
-                            <div class="h4 mb-0 font-weight-bold text-gray-800">{{ $stats['buoi_sap_toi'] }} buổi</div>
-                        </div>
-                        <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
-                    </div>
-                </div>
-            </div>
+            <x-stat-tile label="Buổi sắp tới" :value="$stats['buoi_sap_toi']" unit="buổi" icon="fas fa-calendar-check" tone="success" />
         </div>
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-0 shadow-sm h-100 border-start border-4 border-info">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Tổng học viên</div>
-                            <div class="h4 mb-0 font-weight-bold text-gray-800">{{ $stats['tong_hoc_vien'] }} người</div>
-                        </div>
-                        <i class="fas fa-users fa-2x text-gray-300"></i>
-                    </div>
-                </div>
-            </div>
+            <x-stat-tile label="Tổng học viên" :value="$stats['tong_hoc_vien']" unit="người" icon="fas fa-users" tone="info" />
         </div>
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-0 shadow-sm h-100 border-start border-4 border-warning">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Đơn chờ duyệt</div>
-                            <div class="h4 mb-0 font-weight-bold text-gray-800">{{ $stats['don_xin_nghi_cho_duyet'] }} đơn</div>
-                        </div>
-                        <i class="fas fa-envelope-open-text fa-2x text-gray-300"></i>
-                    </div>
-                </div>
-            </div>
+            <x-stat-tile label="Đơn chờ duyệt" :value="$stats['don_xin_nghi_cho_duyet']" unit="đơn" icon="fas fa-envelope-open-text" tone="warning" />
         </div>
     </div>
 
