@@ -41,112 +41,71 @@
 
     {{-- Navigation --}}
     <nav class="sidebar-nav custom-scrollbar" id="sidebarScrollContainer" aria-label="Điều hướng giảng viên">
-        {{-- Bảng điều khiển --}}
-        <div class="nav-item">
-            <a href="{{ route('giang-vien.dashboard') }}" class="edu-link-parent {{ request()->routeIs('giang-vien.dashboard') ? 'active' : '' }}" data-tooltip="Bảng điều khiển">
-                <div class="edu-icon-circle bg-soft-primary"><i class="fas fa-chart-pie"></i></div>
-                <span class="edu-link-label">Bảng điều khiển</span>
-            </a>
-        </div>
+        <x-sidebar-link route="giang-vien.dashboard" icon="fas fa-chart-pie" tone="primary" tooltip="Bảng điều khiển">
+            Bảng điều khiển
+        </x-sidebar-link>
 
-        {{-- ===== Section: GIẢNG DẠY ===== --}}
-        <div class="edu-section-label"><i class="fas fa-chalkboard-user"></i> Giảng dạy</div>
+        <x-sidebar-section icon="fas fa-chalkboard-user">Giảng dạy</x-sidebar-section>
 
-        <div class="nav-item">
-            <a class="edu-link-parent {{ $teachingGroupOpen ? '' : 'collapsed' }}"
-               data-bs-toggle="collapse" data-bs-target="#teachingGroup" role="button"
-               aria-expanded="{{ $teachingGroupOpen ? 'true' : 'false' }}" data-tooltip="Lịch & lộ trình">
-                <div class="edu-icon-circle bg-soft-info"><i class="fas fa-user-tie"></i></div>
-                <span class="edu-link-label">Lịch & lộ trình</span>
-                <i class="fas fa-chevron-right ms-auto arrow-toggle"></i>
-            </a>
-            <div class="collapse {{ $teachingGroupOpen ? 'show' : '' }}" id="teachingGroup">
-                <div class="edu-submenu-container">
-                    <a href="{{ route('giang-vien.khoa-hoc') }}" class="edu-submenu-item {{ request()->routeIs('giang-vien.khoa-hoc*') ? 'active' : '' }}">
-                        <i class="fas fa-book-reader"></i> <span>Lộ trình giảng dạy</span>
-                    </a>
-                    <a href="{{ route('giang-vien.lich-giang.index') }}" class="edu-submenu-item {{ request()->routeIs('giang-vien.lich-giang*') ? 'active' : '' }}">
-                        <i class="fas fa-calendar-alt"></i> <span>Lịch dạy của tôi</span>
-                    </a>
-                </div>
-            </div>
-        </div>
+        <x-sidebar-group id="teachingGroup" :open="$teachingGroupOpen" icon="fas fa-user-tie" tone="info" tooltip="Lịch & lộ trình">
+            Lịch & lộ trình
+            <x-slot:items>
+                <x-sidebar-submenu-item route="giang-vien.khoa-hoc" pattern="giang-vien.khoa-hoc*" icon="fas fa-book-reader">
+                    Lộ trình giảng dạy
+                </x-sidebar-submenu-item>
+                <x-sidebar-submenu-item route="giang-vien.lich-giang.index" pattern="giang-vien.lich-giang*" icon="fas fa-calendar-alt">
+                    Lịch dạy của tôi
+                </x-sidebar-submenu-item>
+            </x-slot:items>
+        </x-sidebar-group>
 
-        {{-- ===== Section: NỘI DUNG SỐ ===== --}}
-        <div class="edu-section-label"><i class="fas fa-folder-open"></i> Nội dung số</div>
+        <x-sidebar-section icon="fas fa-folder-open">Nội dung số</x-sidebar-section>
 
-        <div class="nav-item">
-            <a class="edu-link-parent {{ $contentGroupOpen ? '' : 'collapsed' }}"
-               data-bs-toggle="collapse" data-bs-target="#resourceGroup" role="button"
-               aria-expanded="{{ $contentGroupOpen ? 'true' : 'false' }}" data-tooltip="Học liệu số">
-                <div class="edu-icon-circle bg-soft-warning"><i class="fas fa-photo-film"></i></div>
-                <span class="edu-link-label">Học liệu số</span>
-                <i class="fas fa-chevron-right ms-auto arrow-toggle"></i>
-            </a>
-            <div class="collapse {{ $contentGroupOpen ? 'show' : '' }}" id="resourceGroup">
-                <div class="edu-submenu-container">
-                    <a href="{{ route('giang-vien.bai-giang.index') }}" class="edu-submenu-item {{ request()->routeIs('giang-vien.bai-giang*') ? 'active' : '' }}">
-                        <i class="fas fa-play-circle"></i> <span>Bài giảng</span>
-                    </a>
-                    <a href="{{ route('giang-vien.thu-vien.index') }}" class="edu-submenu-item {{ request()->routeIs('giang-vien.thu-vien*') ? 'active' : '' }}">
-                        <i class="fas fa-photo-video"></i> <span>Thư viện tài nguyên</span>
-                    </a>
-                </div>
-            </div>
-        </div>
+        <x-sidebar-group id="resourceGroup" :open="$contentGroupOpen" icon="fas fa-photo-film" tone="warning" tooltip="Học liệu số">
+            Học liệu số
+            <x-slot:items>
+                <x-sidebar-submenu-item route="giang-vien.bai-giang.index" pattern="giang-vien.bai-giang*" icon="fas fa-play-circle">
+                    Bài giảng
+                </x-sidebar-submenu-item>
+                <x-sidebar-submenu-item route="giang-vien.thu-vien.index" pattern="giang-vien.thu-vien*" icon="fas fa-photo-video">
+                    Thư viện tài nguyên
+                </x-sidebar-submenu-item>
+            </x-slot:items>
+        </x-sidebar-group>
 
-        {{-- ===== Section: KHẢO THÍ & ĐIỂM ===== --}}
-        <div class="edu-section-label"><i class="fas fa-pen-ruler"></i> Khảo thí & điểm</div>
+        <x-sidebar-section icon="fas fa-pen-ruler">Khảo thí & điểm</x-sidebar-section>
 
-        <div class="nav-item">
-            <a class="edu-link-parent {{ $examGroupOpen ? '' : 'collapsed' }}"
-               data-bs-toggle="collapse" data-bs-target="#examGroup" role="button"
-               aria-expanded="{{ $examGroupOpen ? 'true' : 'false' }}" data-tooltip="Đề thi & chấm điểm">
-                <div class="edu-icon-circle bg-soft-danger"><i class="fas fa-pen-fancy"></i></div>
-                <span class="edu-link-label">Đề thi & chấm điểm</span>
-                <i class="fas fa-chevron-right ms-auto arrow-toggle"></i>
-            </a>
-            <div class="collapse {{ $examGroupOpen ? 'show' : '' }}" id="examGroup">
-                <div class="edu-submenu-container">
-                    <a href="{{ route('giang-vien.bai-kiem-tra.index') }}" class="edu-submenu-item {{ request()->routeIs('giang-vien.bai-kiem-tra*') ? 'active' : '' }}">
-                        <i class="fas fa-clipboard-list"></i> <span>Đề kiểm tra</span>
-                    </a>
-                    <a href="{{ route('giang-vien.cham-diem.index') }}" class="edu-submenu-item {{ request()->routeIs('giang-vien.cham-diem*') ? 'active' : '' }}">
-                        <i class="fas fa-marker"></i> <span>Chấm điểm tự luận</span>
-                    </a>
-                    <a href="{{ route('giang-vien.diem-kiem-tra.index') }}" class="edu-submenu-item {{ request()->routeIs('giang-vien.diem-kiem-tra*') ? 'active' : '' }}">
-                        <i class="fas fa-chart-line"></i> <span>Bảng điểm</span>
-                    </a>
-                </div>
-            </div>
-        </div>
+        <x-sidebar-group id="examGroup" :open="$examGroupOpen" icon="fas fa-pen-fancy" tone="danger" tooltip="Đề thi & chấm điểm">
+            Đề thi & chấm điểm
+            <x-slot:items>
+                <x-sidebar-submenu-item route="giang-vien.bai-kiem-tra.index" pattern="giang-vien.bai-kiem-tra*" icon="fas fa-clipboard-list">
+                    Đề kiểm tra
+                </x-sidebar-submenu-item>
+                <x-sidebar-submenu-item route="giang-vien.cham-diem.index" pattern="giang-vien.cham-diem*" icon="fas fa-marker">
+                    Chấm điểm tự luận
+                </x-sidebar-submenu-item>
+                <x-sidebar-submenu-item route="giang-vien.diem-kiem-tra.index" pattern="giang-vien.diem-kiem-tra*" icon="fas fa-chart-line">
+                    Bảng điểm
+                </x-sidebar-submenu-item>
+            </x-slot:items>
+        </x-sidebar-group>
 
-        {{-- ===== Section: ĐƠN TỪ ===== --}}
-        <div class="edu-section-label"><i class="fas fa-file-pen"></i> Đơn từ</div>
+        <x-sidebar-section icon="fas fa-file-pen">Đơn từ</x-sidebar-section>
 
-        <div class="nav-item">
-            <a href="{{ route('giang-vien.don-xin-nghi.index') }}" class="edu-link-parent {{ request()->routeIs('giang-vien.don-xin-nghi*') ? 'active' : '' }}" data-tooltip="Đơn xin nghỉ">
-                <div class="edu-icon-circle bg-soft-success"><i class="fas fa-file-signature"></i></div>
-                <span class="edu-link-label">Đơn xin nghỉ</span>
-            </a>
-        </div>
+        <x-sidebar-link route="giang-vien.don-xin-nghi.index" :pattern="'giang-vien.don-xin-nghi*'"
+                        icon="fas fa-file-signature" tone="success" tooltip="Đơn xin nghỉ">
+            Đơn xin nghỉ
+        </x-sidebar-link>
 
-        {{-- ===== Section: TÀI KHOẢN ===== --}}
-        <div class="edu-section-label"><i class="fas fa-circle-user"></i> Tài khoản</div>
+        <x-sidebar-section icon="fas fa-circle-user">Tài khoản</x-sidebar-section>
 
-        <div class="nav-item">
-            <a href="{{ route('giang-vien.profile') }}" class="edu-link-parent edu-link-mini {{ request()->routeIs('giang-vien.profile') ? 'active' : '' }}" data-tooltip="Hồ sơ cá nhân">
-                <div class="edu-icon-circle bg-soft-secondary"><i class="fas fa-id-card"></i></div>
-                <span class="edu-link-label">Hồ sơ cá nhân</span>
-            </a>
-        </div>
+        <x-sidebar-link route="giang-vien.profile" icon="fas fa-id-card" tone="secondary" tooltip="Hồ sơ cá nhân" :mini="true">
+            Hồ sơ cá nhân
+        </x-sidebar-link>
 
-        <div class="nav-item">
-            <a href="{{ route('home') }}" class="edu-link-parent edu-link-mini" data-tooltip="Về trang chủ">
-                <div class="edu-icon-circle bg-soft-dark"><i class="fas fa-house"></i></div>
-                <span class="edu-link-label">Về trang chủ</span>
-            </a>
-        </div>
+        <x-sidebar-link route="home" icon="fas fa-house" tone="dark" tooltip="Về trang chủ" :mini="true">
+            Về trang chủ
+        </x-sidebar-link>
 
         {{-- Footer logout --}}
         <div class="edu-sidebar-footer">

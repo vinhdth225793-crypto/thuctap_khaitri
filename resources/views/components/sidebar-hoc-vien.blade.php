@@ -34,30 +34,19 @@
 
     {{-- Navigation --}}
     <nav class="sidebar-nav custom-scrollbar" id="sidebarScrollContainer" aria-label="Điều hướng học viên">
-        {{-- Bảng điều khiển --}}
-        <div class="nav-item">
-            <a href="{{ route('hoc-vien.dashboard') }}" class="edu-link-parent {{ request()->routeIs('hoc-vien.dashboard') ? 'active' : '' }}" data-tooltip="Bảng điều khiển">
-                <div class="edu-icon-circle bg-soft-learner"><i class="fas fa-house-chimney-user"></i></div>
-                <span class="edu-link-label">Bảng điều khiển</span>
-            </a>
-        </div>
+        <x-sidebar-link route="hoc-vien.dashboard" icon="fas fa-house-chimney-user" tone="learner" tooltip="Bảng điều khiển">
+            Bảng điều khiển
+        </x-sidebar-link>
 
-        {{-- ===== Section: HỌC TẬP ===== --}}
-        <div class="edu-section-label"><i class="fas fa-book-bookmark"></i> Học tập</div>
+        <x-sidebar-section icon="fas fa-book-bookmark">Học tập</x-sidebar-section>
 
-        <div class="nav-item">
-            <a href="{{ route('hoc-vien.khoa-hoc-cua-toi') }}" class="edu-link-parent {{ request()->routeIs('hoc-vien.khoa-hoc-cua-toi') ? 'active' : '' }}" data-tooltip="Khóa học của tôi">
-                <div class="edu-icon-circle bg-soft-info"><i class="fas fa-book-open-reader"></i></div>
-                <span class="edu-link-label">Khóa học của tôi</span>
-            </a>
-        </div>
+        <x-sidebar-link route="hoc-vien.khoa-hoc-cua-toi" icon="fas fa-book-open-reader" tone="info" tooltip="Khóa học của tôi">
+            Khóa học của tôi
+        </x-sidebar-link>
 
-        <div class="nav-item">
-            <a href="{{ route('hoc-vien.hoat-dong-tien-do') }}" class="edu-link-parent {{ request()->routeIs('hoc-vien.hoat-dong-tien-do') ? 'active' : '' }}" data-tooltip="Hoạt động & tiến độ">
-                <div class="edu-icon-circle bg-soft-success"><i class="fas fa-chart-line"></i></div>
-                <span class="edu-link-label">Hoạt động & tiến độ</span>
-            </a>
-        </div>
+        <x-sidebar-link route="hoc-vien.hoat-dong-tien-do" icon="fas fa-chart-line" tone="success" tooltip="Hoạt động & tiến độ">
+            Hoạt động & tiến độ
+        </x-sidebar-link>
 
         <div class="nav-item">
             @if($hasBaiKiemTraRoute)
@@ -89,32 +78,21 @@
             @endif
         </div>
 
-        {{-- ===== Section: KHÁM PHÁ ===== --}}
-        <div class="edu-section-label"><i class="fas fa-compass"></i> Khám phá</div>
+        <x-sidebar-section icon="fas fa-compass">Khám phá</x-sidebar-section>
 
-        <div class="nav-item">
-            <a href="{{ route('hoc-vien.khoa-hoc-tham-gia') }}" class="edu-link-parent {{ request()->routeIs('hoc-vien.khoa-hoc-tham-gia') ? 'active' : '' }}" data-tooltip="Xin vào lớp mới">
-                <div class="edu-icon-circle bg-soft-warning"><i class="fas fa-user-plus"></i></div>
-                <span class="edu-link-label">Xin vào lớp mới</span>
-            </a>
-        </div>
+        <x-sidebar-link route="hoc-vien.khoa-hoc-tham-gia" icon="fas fa-user-plus" tone="warning" tooltip="Xin vào lớp mới">
+            Xin vào lớp mới
+        </x-sidebar-link>
 
-        {{-- ===== Section: TÀI KHOẢN ===== --}}
-        <div class="edu-section-label"><i class="fas fa-circle-user"></i> Tài khoản</div>
+        <x-sidebar-section icon="fas fa-circle-user">Tài khoản</x-sidebar-section>
 
-        <div class="nav-item">
-            <a href="{{ route('hoc-vien.profile') }}" class="edu-link-parent edu-link-mini {{ request()->routeIs('hoc-vien.profile') ? 'active' : '' }}" data-tooltip="Hồ sơ cá nhân">
-                <div class="edu-icon-circle bg-soft-secondary"><i class="fas fa-id-card-clip"></i></div>
-                <span class="edu-link-label">Hồ sơ cá nhân</span>
-            </a>
-        </div>
+        <x-sidebar-link route="hoc-vien.profile" icon="fas fa-id-card-clip" tone="secondary" tooltip="Hồ sơ cá nhân" :mini="true">
+            Hồ sơ cá nhân
+        </x-sidebar-link>
 
-        <div class="nav-item">
-            <a href="{{ route('home') }}" class="edu-link-parent edu-link-mini" data-tooltip="Về trang chủ">
-                <div class="edu-icon-circle bg-soft-dark"><i class="fas fa-house"></i></div>
-                <span class="edu-link-label">Về trang chủ</span>
-            </a>
-        </div>
+        <x-sidebar-link route="home" icon="fas fa-house" tone="dark" tooltip="Về trang chủ" :mini="true">
+            Về trang chủ
+        </x-sidebar-link>
 
         {{-- Footer logout --}}
         <div class="edu-sidebar-footer">
