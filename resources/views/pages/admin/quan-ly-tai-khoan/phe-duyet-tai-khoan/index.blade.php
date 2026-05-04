@@ -37,23 +37,25 @@
 
     @include('components.alert')
 
-    <section class="apx-section">
-        <header class="apx-section-head">
-            <div class="apx-section-title"><span class="apx-section-num">1</span><div><h2><i class="fas fa-chart-pie"></i> Tổng quan đăng ký</h2><p>Bốn chỉ số nhanh cho hàng đợi phê duyệt.</p></div></div>
-        </header>
+    <x-page-section number="1" icon="fas fa-chart-pie"
+        title="Tổng quan đăng ký"
+        subtitle="Bốn chỉ số nhanh cho hàng đợi phê duyệt.">
         <div class="row g-3">
             <div class="col-md-3 col-6"><div class="apx-stat tone-primary"><div class="aps-icon"><i class="fas fa-users"></i></div><div class="aps-text"><strong>{{ $tongCho }}</strong><small>Tổng chờ duyệt</small></div></div></div>
             <div class="col-md-3 col-6"><div class="apx-stat tone-warning"><div class="aps-icon"><i class="fas fa-hourglass-half"></i></div><div class="aps-text"><strong>{{ $tongCho }}</strong><small>Cần xử lý</small></div></div></div>
             <div class="col-md-3 col-6"><div class="apx-stat tone-info"><div class="aps-icon"><i class="fas fa-calendar-day"></i></div><div class="aps-text"><strong>{{ $homNay }}</strong><small>Đăng ký hôm nay</small></div></div></div>
             <div class="col-md-3 col-6"><div class="apx-stat tone-success"><div class="aps-icon"><i class="fas fa-calendar-week"></i></div><div class="aps-text"><strong>{{ $tuanNay }}</strong><small>Đăng ký tuần này</small></div></div></div>
         </div>
-    </section>
+    </x-page-section>
 
-    <section class="apx-section">
-        <header class="apx-section-head">
-            <div class="apx-section-title"><span class="apx-section-num">2</span><div><h2><i class="fas fa-magnifying-glass"></i> Tìm kiếm</h2><p>Tìm theo tên, email hoặc số điện thoại.</p></div></div>
-            @if($hasFilter)<div class="apx-section-meta"><span class="apx-meta-pill" style="background:#fef3c7;color:#b45309;border-color:#fde68a;"><i class="fas fa-filter"></i> Đang lọc</span></div>@endif
-        </header>
+    <x-page-section number="2" icon="fas fa-magnifying-glass"
+        title="Tìm kiếm"
+        subtitle="Tìm theo tên, email hoặc số điện thoại.">
+        @if($hasFilter)
+            <x-slot:meta>
+                <span class="apx-meta-pill" style="background:#fef3c7;color:#b45309;border-color:#fde68a;"><i class="fas fa-filter"></i> Đang lọc</span>
+            </x-slot:meta>
+        @endif
         <div class="pdt-filter-card">
             <form method="GET" class="row g-3 align-items-end">
                 <div class="col-lg-8">
@@ -69,14 +71,14 @@
                 </div>
             </form>
         </div>
-    </section>
+    </x-page-section>
 
-    <section class="apx-section">
-        <header class="apx-section-head">
-            <div class="apx-section-title"><span class="apx-section-num">3</span><div><h2><i class="fas fa-list"></i> Danh sách tài khoản chờ phê duyệt</h2><p>Phê duyệt để tạo tài khoản chính thức hoặc từ chối nếu không hợp lệ.</p></div></div>
-            <div class="apx-section-meta"><span class="apx-meta-pill"><strong>{{ $taiKhoanChoPheDuyet->total() }}</strong> tài khoản</span></div>
-        </header>
-
+    <x-page-section number="3" icon="fas fa-list"
+        title="Danh sách tài khoản chờ phê duyệt"
+        subtitle="Phê duyệt để tạo tài khoản chính thức hoặc từ chối nếu không hợp lệ.">
+        <x-slot:meta>
+            <span class="apx-meta-pill"><strong>{{ $taiKhoanChoPheDuyet->total() }}</strong> tài khoản</span>
+        </x-slot:meta>
         <div class="pdt-table-wrap">
             @if($taiKhoanChoPheDuyet->isEmpty())
                 <div class="pdt-empty">
@@ -151,7 +153,7 @@
                 @endif
             @endif
         </div>
-    </section>
+    </x-page-section>
 </div>
 
 {{-- Modal duyệt --}}
