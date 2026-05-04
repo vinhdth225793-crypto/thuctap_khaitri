@@ -4,6 +4,8 @@ use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
 use App\Http\Controllers\Admin\BaiKiemTraPheDuyetController;
 use App\Http\Controllers\Admin\BannerController;
+use App\Http\Controllers\Admin\CaiDatController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\HocVienKhoaHocController;
 use App\Http\Controllers\Admin\KetQuaHocTapController as AdminKetQuaHocTapController;
 use App\Http\Controllers\Admin\KhoaHocManagementController;
@@ -13,12 +15,17 @@ use App\Http\Controllers\Admin\ModuleHocController;
 use App\Http\Controllers\Admin\NganHangCauHoiController;
 use App\Http\Controllers\Admin\NhomNganhController;
 use App\Http\Controllers\Admin\PhanCongController as AdminPhanCongController;
+use App\Http\Controllers\Admin\PheDuyetTaiKhoanController;
 use App\Http\Controllers\Admin\PhieuXetDuyetKetQuaController as AdminPhieuXetDuyetKetQuaController;
+use App\Http\Controllers\Admin\QuanLyTaiKhoanController;
 use App\Http\Controllers\Admin\TeacherLeaveRequestController as AdminTeacherLeaveRequestController;
 use App\Http\Controllers\Admin\TeacherScheduleController as AdminTeacherScheduleController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GiangVien\BaiGiangController;
 use App\Http\Controllers\GiangVien\BaiKiemTraController;
+use App\Http\Controllers\GiangVien\BaiKiemTraGiamSatController;
+use App\Http\Controllers\GiangVien\BaiKiemTraNhapCauHoiController;
+use App\Http\Controllers\GiangVien\ChamDiemController;
 use App\Http\Controllers\GiangVien\DiemDanhController;
 use App\Http\Controllers\GiangVien\LiveRoomController as GiangVienLiveRoomController;
 use App\Http\Controllers\GiangVien\PhanCongController;
@@ -83,7 +90,7 @@ Route::middleware(['auth'])->group(function () {
 
 // =========== ROUTE QUẢN TRỊ ===========
 Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware\CheckAdmin::class])->group(function () {
-    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('/dashboard', [AdminDashboardController::class, 'dashboard'])->name('dashboard');
 
     // Quản lý tài khoản và phê duyệt
     // Hồ sơ cá nhân admin
@@ -91,26 +98,26 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     Route::post('/profile', [AdminController::class, 'updateProfile'])->name('profile.update');
 
     Route::prefix('tai-khoan')->name('tai-khoan.')->group(function () {
-        Route::get('/', [AdminController::class, 'indexNguoiDung'])->name('index');
-        Route::get('/create', [AdminController::class, 'createNguoiDung'])->name('create');
-        Route::post('/', [AdminController::class, 'storeNguoiDung'])->name('store');
-        Route::get('/{id}', [AdminController::class, 'showNguoiDung'])->name('show');
-        Route::get('/{id}/edit', [AdminController::class, 'editNguoiDung'])->name('edit');
-        Route::put('/{id}', [AdminController::class, 'updateNguoiDung'])->name('update');
-        Route::delete('/{id}', [AdminController::class, 'destroyNguoiDung'])->name('destroy');
-        Route::post('/{id}/toggle-status', [AdminController::class, 'toggleStatusNguoiDung'])->name('toggle-status');
+        Route::get('/', [QuanLyTaiKhoanController::class, 'indexNguoiDung'])->name('index');
+        Route::get('/create', [QuanLyTaiKhoanController::class, 'createNguoiDung'])->name('create');
+        Route::post('/', [QuanLyTaiKhoanController::class, 'storeNguoiDung'])->name('store');
+        Route::get('/{id}', [QuanLyTaiKhoanController::class, 'showNguoiDung'])->name('show');
+        Route::get('/{id}/edit', [QuanLyTaiKhoanController::class, 'editNguoiDung'])->name('edit');
+        Route::put('/{id}', [QuanLyTaiKhoanController::class, 'updateNguoiDung'])->name('update');
+        Route::delete('/{id}', [QuanLyTaiKhoanController::class, 'destroyNguoiDung'])->name('destroy');
+        Route::post('/{id}/toggle-status', [QuanLyTaiKhoanController::class, 'toggleStatusNguoiDung'])->name('toggle-status');
     });
 
     Route::prefix('phe-duyet-tai-khoan')->name('phe-duyet-tai-khoan.')->group(function () {
-        Route::get('/', [AdminController::class, 'indexPheDuyetTaiKhoan'])->name('index');
-        Route::post('/{id}/approve', [AdminController::class, 'approveTaiKhoan'])->name('approve');
-        Route::post('/{id}/reject', [AdminController::class, 'rejectTaiKhoan'])->name('reject');
-        Route::post('/{id}/undo', [AdminController::class, 'undoApproveTaiKhoan'])->name('undo');
+        Route::get('/', [PheDuyetTaiKhoanController::class, 'indexPheDuyetTaiKhoan'])->name('index');
+        Route::post('/{id}/approve', [PheDuyetTaiKhoanController::class, 'approveTaiKhoan'])->name('approve');
+        Route::post('/{id}/reject', [PheDuyetTaiKhoanController::class, 'rejectTaiKhoan'])->name('reject');
+        Route::post('/{id}/undo', [PheDuyetTaiKhoanController::class, 'undoApproveTaiKhoan'])->name('undo');
     });
 
-    Route::get('/giang-vien', [AdminController::class, 'indexGiangVien'])->name('giang-vien.index');
+    Route::get('/giang-vien', [QuanLyTaiKhoanController::class, 'indexGiangVien'])->name('giang-vien.index');
     Route::get('/giang-vien/{giangVienId}/lich-giang', [AdminTeacherScheduleController::class, 'show'])->name('giang-vien.lich-giang.show');
-    Route::get('/hoc-vien', [AdminController::class, 'indexHocVien'])->name('hoc-vien.index');
+    Route::get('/hoc-vien', [QuanLyTaiKhoanController::class, 'indexHocVien'])->name('hoc-vien.index');
     Route::get('/ket-qua-hoc-tap', [AdminKetQuaHocTapController::class, 'index'])->name('ket-qua.index');
     Route::get('/ket-qua-hoc-tap/khoa-hoc/{khoaHocId}', [AdminKetQuaHocTapController::class, 'show'])->name('ket-qua.show');
     Route::post('/ket-qua-hoc-tap/{resultId}/duyet', [AdminKetQuaHocTapController::class, 'approve'])->name('ket-qua.approve');
@@ -271,14 +278,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
 
     // Cài đặt hệ thống
     Route::prefix('settings')->group(function () {
-        Route::get('/', [AdminController::class, 'showSettings'])->name('settings');
-        Route::post('/', [AdminController::class, 'saveSettings'])->name('settings.save');
-        Route::get('/contact', [AdminController::class, 'showContactSettings'])->name('settings.contact');
-        Route::post('/contact', [AdminController::class, 'saveSettings'])->name('settings.contact.save');
-        Route::get('/social', [AdminController::class, 'showSocialSettings'])->name('settings.social');
-        Route::post('/social', [AdminController::class, 'saveSettings'])->name('settings.social.save');
-        Route::get('/instructors', [AdminController::class, 'showInstructorSettings'])->name('settings.instructors');
-        Route::post('/instructors', [AdminController::class, 'saveInstructorSettings'])->name('settings.instructors.save');
+        Route::get('/', [CaiDatController::class, 'showSettings'])->name('settings');
+        Route::post('/', [CaiDatController::class, 'saveSettings'])->name('settings.save');
+        Route::get('/contact', [CaiDatController::class, 'showContactSettings'])->name('settings.contact');
+        Route::post('/contact', [CaiDatController::class, 'saveSettings'])->name('settings.contact.save');
+        Route::get('/social', [CaiDatController::class, 'showSocialSettings'])->name('settings.social');
+        Route::post('/social', [CaiDatController::class, 'saveSettings'])->name('settings.social.save');
+        Route::get('/instructors', [CaiDatController::class, 'showInstructorSettings'])->name('settings.instructors');
+        Route::post('/instructors', [CaiDatController::class, 'saveInstructorSettings'])->name('settings.instructors.save');
 
         // Quản lý banner trong phần cài đặt
         Route::prefix('banners')->name('settings.banners.')->group(function () {
@@ -391,24 +398,24 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
     Route::get('/bai-kiem-tra', [BaiKiemTraController::class, 'index'])->name('bai-kiem-tra.index');
     Route::post('/bai-kiem-tra', [BaiKiemTraController::class, 'store'])->name('bai-kiem-tra.store');
     Route::get('/bai-kiem-tra/import-template', [NganHangCauHoiController::class, 'downloadTemplate'])->name('bai-kiem-tra.import-template');
-    Route::get('/bai-kiem-tra/import-template-tu-luan', [BaiKiemTraController::class, 'downloadEssayImportTemplate'])->name('bai-kiem-tra.import-template-essay');
+    Route::get('/bai-kiem-tra/import-template-tu-luan', [BaiKiemTraNhapCauHoiController::class, 'downloadEssayImportTemplate'])->name('bai-kiem-tra.import-template-essay');
     Route::get('/bai-kiem-tra/{id}/edit', [BaiKiemTraController::class, 'edit'])->name('bai-kiem-tra.edit');
-    Route::get('/bai-kiem-tra/{id}/giam-sat', [BaiKiemTraController::class, 'editSurveillance'])->name('bai-kiem-tra.surveillance.edit');
+    Route::get('/bai-kiem-tra/{id}/giam-sat', [BaiKiemTraGiamSatController::class, 'editSurveillance'])->name('bai-kiem-tra.surveillance.edit');
     Route::put('/bai-kiem-tra/{id}', [BaiKiemTraController::class, 'update'])->name('bai-kiem-tra.update');
-    Route::put('/bai-kiem-tra/{id}/giam-sat', [BaiKiemTraController::class, 'updateSurveillanceSettings'])->name('bai-kiem-tra.surveillance.update');
-    Route::post('/bai-kiem-tra/{id}/cau-hoi-tu-luan', [BaiKiemTraController::class, 'storeEssayQuestion'])->name('bai-kiem-tra.essay-question.store');
-    Route::post('/bai-kiem-tra/{id}/import-preview', [BaiKiemTraController::class, 'importPreview'])->name('bai-kiem-tra.import-preview');
-    Route::post('/bai-kiem-tra/{id}/import-confirm', [BaiKiemTraController::class, 'importConfirm'])->name('bai-kiem-tra.import-confirm');
+    Route::put('/bai-kiem-tra/{id}/giam-sat', [BaiKiemTraGiamSatController::class, 'updateSurveillanceSettings'])->name('bai-kiem-tra.surveillance.update');
+    Route::post('/bai-kiem-tra/{id}/cau-hoi-tu-luan', [BaiKiemTraNhapCauHoiController::class, 'storeEssayQuestion'])->name('bai-kiem-tra.essay-question.store');
+    Route::post('/bai-kiem-tra/{id}/import-preview', [BaiKiemTraNhapCauHoiController::class, 'importPreview'])->name('bai-kiem-tra.import-preview');
+    Route::post('/bai-kiem-tra/{id}/import-confirm', [BaiKiemTraNhapCauHoiController::class, 'importConfirm'])->name('bai-kiem-tra.import-confirm');
     Route::post('/bai-kiem-tra/{id}/gui-duyet', [BaiKiemTraController::class, 'submitForApproval'])->name('bai-kiem-tra.submit');
     Route::post('/bai-kiem-tra/{id}/phat-hanh', [BaiKiemTraController::class, 'publish'])->name('bai-kiem-tra.publish');
     Route::delete('/bai-kiem-tra/{id}', [BaiKiemTraController::class, 'destroy'])->name('bai-kiem-tra.destroy');
-    Route::get('/diem-kiem-tra', [BaiKiemTraController::class, 'diemKiemTraIndex'])->name('diem-kiem-tra.index');
-    Route::get('/diem-kiem-tra/{id}/bao-cao', [BaiKiemTraController::class, 'xuatBaoCaoDiemKiemTra'])->name('diem-kiem-tra.bao-cao');
-    Route::get('/diem-kiem-tra/{id}/hoc-vien', [BaiKiemTraController::class, 'diemKiemTraHocVien'])->name('diem-kiem-tra.hoc-vien');
-    Route::get('/cham-diem/danh-sach', [BaiKiemTraController::class, 'chamDiemIndex'])->name('cham-diem.index');
-    Route::get('/cham-diem/{id}', [BaiKiemTraController::class, 'chamDiemShow'])->name('cham-diem.show');
-    Route::post('/cham-diem/{id}', [BaiKiemTraController::class, 'chamDiemStore'])->name('cham-diem.store');
-    Route::post('/cham-diem/{id}/giam-sat', [BaiKiemTraController::class, 'updateSurveillanceReview'])->name('cham-diem.surveillance');
+    Route::get('/diem-kiem-tra', [ChamDiemController::class, 'diemKiemTraIndex'])->name('diem-kiem-tra.index');
+    Route::get('/diem-kiem-tra/{id}/bao-cao', [ChamDiemController::class, 'xuatBaoCaoDiemKiemTra'])->name('diem-kiem-tra.bao-cao');
+    Route::get('/diem-kiem-tra/{id}/hoc-vien', [ChamDiemController::class, 'diemKiemTraHocVien'])->name('diem-kiem-tra.hoc-vien');
+    Route::get('/cham-diem/danh-sach', [ChamDiemController::class, 'chamDiemIndex'])->name('cham-diem.index');
+    Route::get('/cham-diem/{id}', [ChamDiemController::class, 'chamDiemShow'])->name('cham-diem.show');
+    Route::post('/cham-diem/{id}', [ChamDiemController::class, 'chamDiemStore'])->name('cham-diem.store');
+    Route::post('/cham-diem/{id}/giam-sat', [ChamDiemController::class, 'updateSurveillanceReview'])->name('cham-diem.surveillance');
 });
 
 // =========== ROUTE HỌC VIÊN ===========
