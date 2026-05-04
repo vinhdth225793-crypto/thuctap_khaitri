@@ -4,116 +4,125 @@
         $hasKetQuaRoute = Route::has('hoc-vien.ket-qua');
     @endphp
 
-    <!-- Brand Identity -->
-    <div class="sidebar-header border-0 mt-4 mb-4 px-4 text-center">
-        <div class="edu-logo-wrapper mx-auto mb-2 bg-learner">
+    {{-- Header: logo + brand --}}
+    <div class="edu-sidebar-header">
+        <div class="edu-logo-wrapper bg-learner">
             <i class="fas fa-graduation-cap"></i>
         </div>
-        <h4 class="edu-brand-name">HỌC VIÊN</h4>
-        <div class="edu-tagline">LEARNING HUB</div>
+        <div class="edu-brand-block">
+            <h4 class="edu-brand-name">HỌC VIÊN</h4>
+            <div class="edu-tagline">LEARNING HUB</div>
+        </div>
     </div>
 
-    <!-- Student Card -->
-    <div class="px-3 mb-4">
+    {{-- Profile card --}}
+    <div class="edu-profile-wrap">
         <div class="edu-profile-card">
-            <div class="d-flex align-items-center gap-3">
-                <div class="edu-avatar-box">
-                    @if(auth()->user()->anh_dai_dien)
-                        <img src="{{ asset(auth()->user()->anh_dai_dien) }}" class="rounded-circle">
-                    @else
-                        <div class="edu-avatar-initials bg-learner">{{ strtoupper(mb_substr(auth()->user()->ho_ten, 0, 1)) }}</div>
-                    @endif
-                </div>
-                <div class="overflow-hidden">
-                    <div class="edu-user-title text-truncate">{{ auth()->user()->ho_ten }}</div>
-                    <div class="edu-user-status"><span class="dot-online"></span> Đang học tập</div>
-                </div>
+            <div class="edu-avatar-box">
+                @if(auth()->user()->anh_dai_dien)
+                    <img src="{{ asset(auth()->user()->anh_dai_dien) }}" alt="">
+                @else
+                    <div class="edu-avatar-initials bg-learner">{{ strtoupper(mb_substr(auth()->user()->ho_ten, 0, 1)) }}</div>
+                @endif
+            </div>
+            <div class="edu-profile-info">
+                <div class="edu-user-title">{{ auth()->user()->ho_ten }}</div>
+                <div class="edu-user-status"><span class="dot-online"></span> Đang học tập</div>
             </div>
         </div>
     </div>
 
-    <!-- Navigation Scrollable Area -->
-    <nav class="sidebar-nav custom-scrollbar px-3 pb-5" id="sidebarScrollContainer">
-        <!-- Dashboard -->
-        <div class="nav-item mb-3">
-            <a href="{{ route('hoc-vien.dashboard') }}" class="edu-link-parent {{ request()->routeIs('hoc-vien.dashboard') ? 'active' : '' }}">
+    {{-- Navigation --}}
+    <nav class="sidebar-nav custom-scrollbar" id="sidebarScrollContainer" aria-label="Điều hướng học viên">
+        {{-- Bảng điều khiển --}}
+        <div class="nav-item">
+            <a href="{{ route('hoc-vien.dashboard') }}" class="edu-link-parent {{ request()->routeIs('hoc-vien.dashboard') ? 'active' : '' }}" data-tooltip="Bảng điều khiển">
                 <div class="edu-icon-circle bg-soft-learner"><i class="fas fa-house-chimney-user"></i></div>
-                <span class="fw-bold">Bảng điều khiển</span>
+                <span class="edu-link-label">Bảng điều khiển</span>
             </a>
         </div>
 
-        <!-- Khóa học -->
-        <div class="nav-item mb-3">
-            <a href="{{ route('hoc-vien.khoa-hoc-cua-toi') }}" class="edu-link-parent {{ request()->routeIs('hoc-vien.khoa-hoc-cua-toi') ? 'active' : '' }}">
+        {{-- ===== Section: HỌC TẬP ===== --}}
+        <div class="edu-section-label"><i class="fas fa-book-bookmark"></i> Học tập</div>
+
+        <div class="nav-item">
+            <a href="{{ route('hoc-vien.khoa-hoc-cua-toi') }}" class="edu-link-parent {{ request()->routeIs('hoc-vien.khoa-hoc-cua-toi') ? 'active' : '' }}" data-tooltip="Khóa học của tôi">
                 <div class="edu-icon-circle bg-soft-info"><i class="fas fa-book-open-reader"></i></div>
-                <span class="fw-bold">Khóa học của tôi</span>
+                <span class="edu-link-label">Khóa học của tôi</span>
             </a>
         </div>
 
-        <!-- Tiến độ -->
-        <div class="nav-item mb-3">
-            <a href="{{ route('hoc-vien.hoat-dong-tien-do') }}" class="edu-link-parent {{ request()->routeIs('hoc-vien.hoat-dong-tien-do') ? 'active' : '' }}">
+        <div class="nav-item">
+            <a href="{{ route('hoc-vien.hoat-dong-tien-do') }}" class="edu-link-parent {{ request()->routeIs('hoc-vien.hoat-dong-tien-do') ? 'active' : '' }}" data-tooltip="Hoạt động & tiến độ">
                 <div class="edu-icon-circle bg-soft-success"><i class="fas fa-chart-line"></i></div>
-                <span class="fw-bold">Hoạt động & Tiến độ</span>
+                <span class="edu-link-label">Hoạt động & tiến độ</span>
             </a>
         </div>
 
-        <!-- Đăng ký lớp -->
-        <div class="nav-item mb-3">
-            <a href="{{ route('hoc-vien.khoa-hoc-tham-gia') }}" class="edu-link-parent {{ request()->routeIs('hoc-vien.khoa-hoc-tham-gia') ? 'active' : '' }}">
-                <div class="edu-icon-circle bg-soft-warning"><i class="fas fa-user-plus"></i></div>
-                <span class="fw-bold">Xin vào lớp</span>
-            </a>
-        </div>
-
-        <!-- Bài kiểm tra -->
-        <div class="nav-item mb-3">
+        <div class="nav-item">
             @if($hasBaiKiemTraRoute)
-                <a href="{{ route('hoc-vien.bai-kiem-tra') }}" class="edu-link-parent {{ request()->routeIs('hoc-vien.bai-kiem-tra*') ? 'active' : '' }}">
+                <a href="{{ route('hoc-vien.bai-kiem-tra') }}" class="edu-link-parent {{ request()->routeIs('hoc-vien.bai-kiem-tra*') ? 'active' : '' }}" data-tooltip="Bài kiểm tra">
                     <div class="edu-icon-circle bg-soft-danger"><i class="fas fa-file-signature"></i></div>
-                    <span class="fw-bold">Bài kiểm tra</span>
+                    <span class="edu-link-label">Bài kiểm tra</span>
                 </a>
             @else
-                <div class="edu-link-parent opacity-50" style="cursor: not-allowed;">
+                <div class="edu-link-parent edu-link-disabled" data-tooltip="Sắp mở">
                     <div class="edu-icon-circle bg-soft-secondary"><i class="fas fa-lock"></i></div>
-                    <span class="fw-bold">Bài kiểm tra</span>
-                    <span class="badge bg-warning text-dark ms-auto arrow-toggle" style="font-size: 8px;">SẮP MỞ</span>
+                    <span class="edu-link-label">Bài kiểm tra</span>
+                    <span class="edu-soon-badge">SẮP MỞ</span>
                 </div>
             @endif
         </div>
 
-        <!-- Kết quả -->
-        <div class="nav-item mb-3">
+        <div class="nav-item">
             @if($hasKetQuaRoute)
-                <a href="{{ route('hoc-vien.ket-qua') }}" class="edu-link-parent {{ request()->routeIs('hoc-vien.ket-qua') ? 'active' : '' }}">
+                <a href="{{ route('hoc-vien.ket-qua') }}" class="edu-link-parent {{ request()->routeIs('hoc-vien.ket-qua') ? 'active' : '' }}" data-tooltip="Kết quả học tập">
                     <div class="edu-icon-circle bg-soft-primary"><i class="fas fa-square-poll-vertical"></i></div>
-                    <span class="fw-bold">Kết quả học tập</span>
+                    <span class="edu-link-label">Kết quả học tập</span>
                 </a>
             @else
-                <div class="edu-link-parent opacity-50" style="cursor: not-allowed;">
+                <div class="edu-link-parent edu-link-disabled" data-tooltip="Sắp mở">
                     <div class="edu-icon-circle bg-soft-secondary"><i class="fas fa-lock"></i></div>
-                    <span class="fw-bold">Kết quả học tập</span>
-                    <span class="badge bg-warning text-dark ms-auto arrow-toggle" style="font-size: 8px;">SẮP MỞ</span>
+                    <span class="edu-link-label">Kết quả học tập</span>
+                    <span class="edu-soon-badge">SẮP MỞ</span>
                 </div>
             @endif
         </div>
 
-        <!-- Bottom -->
-        <div class="mt-5 pt-4 border-top border-light">
-            <a href="{{ route('hoc-vien.profile') }}" class="edu-link-parent mb-2 {{ request()->routeIs('hoc-vien.profile') ? 'active' : '' }}">
+        {{-- ===== Section: KHÁM PHÁ ===== --}}
+        <div class="edu-section-label"><i class="fas fa-compass"></i> Khám phá</div>
+
+        <div class="nav-item">
+            <a href="{{ route('hoc-vien.khoa-hoc-tham-gia') }}" class="edu-link-parent {{ request()->routeIs('hoc-vien.khoa-hoc-tham-gia') ? 'active' : '' }}" data-tooltip="Xin vào lớp mới">
+                <div class="edu-icon-circle bg-soft-warning"><i class="fas fa-user-plus"></i></div>
+                <span class="edu-link-label">Xin vào lớp mới</span>
+            </a>
+        </div>
+
+        {{-- ===== Section: TÀI KHOẢN ===== --}}
+        <div class="edu-section-label"><i class="fas fa-circle-user"></i> Tài khoản</div>
+
+        <div class="nav-item">
+            <a href="{{ route('hoc-vien.profile') }}" class="edu-link-parent edu-link-mini {{ request()->routeIs('hoc-vien.profile') ? 'active' : '' }}" data-tooltip="Hồ sơ cá nhân">
                 <div class="edu-icon-circle bg-soft-secondary"><i class="fas fa-id-card-clip"></i></div>
-                <span class="fw-bold">Hồ sơ cá nhân</span>
+                <span class="edu-link-label">Hồ sơ cá nhân</span>
             </a>
-            <a href="{{ route('home') }}" class="edu-link-parent mb-4">
+        </div>
+
+        <div class="nav-item">
+            <a href="{{ route('home') }}" class="edu-link-parent edu-link-mini" data-tooltip="Về trang chủ">
                 <div class="edu-icon-circle bg-soft-dark"><i class="fas fa-house"></i></div>
-                <span class="fw-bold">Về trang chủ</span>
+                <span class="edu-link-label">Về trang chủ</span>
             </a>
-            
-            <form action="{{ route('dang-xuat') }}" method="POST">
+        </div>
+
+        {{-- Footer logout --}}
+        <div class="edu-sidebar-footer">
+            <form action="{{ route('dang-xuat') }}" method="POST" class="edu-logout-form">
                 @csrf
-                <button type="submit" class="edu-btn-logout d-flex align-items-center justify-content-center py-3 bg-learner-dark">
-                    <i class="fas fa-power-off fs-5"></i>
-                    <span class="ms-2 fw-800">ĐĂNG XUẤT</span>
+                <button type="submit" class="edu-btn-logout" data-tooltip="Đăng xuất">
+                    <i class="fas fa-power-off"></i>
+                    <span class="edu-link-label">ĐĂNG XUẤT</span>
                 </button>
             </form>
         </div>
@@ -121,72 +130,386 @@
 </aside>
 
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap');
+
+    :root {
+        --sb-brand: #4361ee;
+        --sb-brand-dark: #3a0ca3;
+        --sb-bg: #ffffff;
+        --sb-text: #475569;
+        --sb-text-strong: #0f172a;
+        --sb-muted: #94a3b8;
+        --sb-line: #f1f5f9;
+        --sb-soft: #f8fafc;
+        --sb-active-grad: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+    }
 
     .edu-sidebar-fixed {
-        background: #ffffff !important;
+        background: var(--sb-bg) !important;
         width: 280px;
         height: 100vh;
         position: fixed;
-        left: 0; top: 0;
+        left: 0;
+        top: 0;
         z-index: 1050;
-        box-shadow: 10px 0 40px rgba(0,0,0,0.02);
+        box-shadow: 4px 0 24px rgba(15, 23, 42, 0.04);
         display: flex;
         flex-direction: column;
         font-family: 'Lexend', sans-serif;
-        border-right: 1px solid #f1f5f9;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-right: 1px solid var(--sb-line);
+        transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* Collapse support */
-    .sidebar-collapsed .edu-sidebar-fixed { width: 85px !important; }
-    .sidebar-collapsed .edu-sidebar-fixed .sidebar-header { padding-left: 0 !important; padding-right: 0 !important; }
-    .sidebar-collapsed .edu-sidebar-fixed .edu-logo-wrapper { width: 45px; height: 45px; font-size: 1.2rem; }
-    .sidebar-collapsed .edu-sidebar-fixed .edu-profile-card { padding: 10px 5px; display: flex; justify-content: center; background: transparent; border: none; }
-    .sidebar-collapsed .edu-sidebar-fixed .edu-avatar-box { margin: 0 auto; width: 42px; height: 42px; }
-    .sidebar-collapsed .edu-sidebar-fixed .edu-link-parent { justify-content: center; padding: 12px 0; }
-    .sidebar-collapsed .edu-sidebar-fixed .edu-icon-circle { margin-right: 0; }
-    .sidebar-collapsed .edu-sidebar-fixed .edu-btn-logout { padding: 14px 0; }
-    .sidebar-collapsed .edu-sidebar-fixed .edu-brand-name, 
-    .sidebar-collapsed .edu-sidebar-fixed .edu-tagline,
-    .sidebar-collapsed .edu-sidebar-fixed .edu-user-title,
-    .sidebar-collapsed .edu-sidebar-fixed .edu-user-status,
-    .sidebar-collapsed .edu-sidebar-fixed span,
-    .sidebar-collapsed .edu-sidebar-fixed .arrow-toggle,
-    .sidebar-collapsed .edu-sidebar-fixed .edu-submenu-container { display: none !important; }
+    /* ===== Header ===== */
+    .edu-sidebar-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--sb-line);
+    }
 
-    /* Custom Student Styles */
-    .bg-learner { background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%) !important; }
-    .bg-soft-learner { background: #eef2ff; color: #4361ee; }
-    .bg-learner-dark { background: #3a0ca3 !important; }
-    .bg-learner-dark:hover { background: #ef4444 !important; }
+    .edu-logo-wrapper {
+        flex-shrink: 0;
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-size: 1.4rem;
+        box-shadow: 0 8px 18px rgba(67, 97, 238, 0.3);
+    }
 
-    /* Base components */
-    .edu-logo-wrapper { width: 60px; height: 60px; border-radius: 16px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 2rem; box-shadow: 0 8px 20px rgba(67, 97, 238, 0.2); }
-    .edu-brand-name { font-weight: 800; color: #0f172a; letter-spacing: 1px; margin-bottom: 0; font-size: 1.5rem; }
-    .edu-tagline { font-size: 0.75rem; font-weight: 700; color: #94a3b8; letter-spacing: 2.5px; }
-    .edu-profile-card { background: #f8fafc; border: 1px solid #f1f5f9; padding: 15px; border-radius: 20px; }
-    .edu-avatar-box { width: 48px; height: 48px; border-radius: 14px; overflow: hidden; background: #fff; }
+    .bg-learner { background: var(--sb-active-grad) !important; }
+
+    .edu-brand-block { line-height: 1.2; min-width: 0; }
+    .edu-brand-name { font-weight: 800; color: var(--sb-text-strong); font-size: 1.05rem; letter-spacing: 0.6px; margin: 0; }
+    .edu-tagline { font-size: 0.65rem; font-weight: 700; color: var(--sb-muted); letter-spacing: 1.5px; margin-top: 2px; }
+
+    /* ===== Profile card ===== */
+    .edu-profile-wrap { padding: 14px 16px; }
+
+    .edu-profile-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: var(--sb-soft);
+        border: 1px solid var(--sb-line);
+        border-radius: 14px;
+        transition: all 0.2s ease;
+    }
+
+    .edu-profile-card:hover { background: #f1f5f9; border-color: #e2e8f0; }
+
+    .edu-avatar-box {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #fff;
+        flex-shrink: 0;
+    }
+
     .edu-avatar-box img { width: 100%; height: 100%; object-fit: cover; }
-    .edu-avatar-initials { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 1.2rem; }
-    .edu-user-title { font-weight: 700; color: #1e293b; font-size: 1rem; }
-    .edu-user-status { font-size: 0.75rem; color: #64748b; font-weight: 600; display: flex; align-items: center; gap: 6px; }
-    .dot-online { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px #22c55e; }
-    .edu-link-parent { display: flex; align-items: center; padding: 12px 16px; color: #475569 !important; text-decoration: none !important; border-radius: 16px; font-size: 1.05rem; transition: all 0.2s; }
-    .edu-link-parent:hover { background: #f1f5f9; color: #4361ee !important; }
-    .edu-link-parent.active { background: #eff6ff; color: #4361ee !important; font-weight: 700; }
-    .edu-icon-circle { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-right: 14px; font-size: 1.2rem; }
-    .edu-link-parent.active .edu-icon-circle { background: #4361ee !important; color: #fff !important; }
-    .edu-btn-logout { width: 100%; border: none; padding: 14px; color: #fff; border-radius: 16px; font-weight: 800; font-size: 0.9rem; letter-spacing: 1.5px; transition: all 0.3s; }
-    .bg-soft-primary { background: #eef2ff; color: #6366f1; }
-    .bg-soft-info { background: #e0f2fe; color: #0ea5e9; }
-    .bg-soft-success { background: #f0fdf4; color: #22c55e; }
-    .bg-soft-warning { background: #fef3c7; color: #f59e0b; }
-    .bg-soft-danger { background: #fee2e2; color: #ef4444; }
-    .bg-soft-secondary { background: #f1f5f9; color: #64748b; }
-    .bg-soft-dark { background: #f1f5f9; color: #0f172a; }
-    .arrow-toggle { font-size: 0.85rem; opacity: 0.5; }
-    .custom-scrollbar { overflow-y: auto; overflow-x: hidden; flex-grow: 1; }
-    .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+
+    .edu-avatar-initials {
+        width: 100%;
+        height: 100%;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-weight: 800;
+        font-size: 1.1rem;
+    }
+
+    .edu-profile-info { min-width: 0; flex: 1; }
+    .edu-user-title {
+        font-weight: 700;
+        color: var(--sb-text-strong);
+        font-size: 0.92rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .edu-user-status { font-size: 0.7rem; color: #64748b; font-weight: 600; display: flex; align-items: center; gap: 5px; margin-top: 2px; }
+    .dot-online {
+        width: 7px; height: 7px;
+        background: #22c55e;
+        border-radius: 50%;
+        animation: dotPulse 1.6s infinite;
+    }
+
+    @keyframes dotPulse {
+        0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.7); }
+        70% { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+        100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+    }
+
+    /* ===== Navigation ===== */
+    .sidebar-nav {
+        flex: 1;
+        padding: 8px 14px 18px;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .nav-item { margin-bottom: 4px; }
+
+    /* ===== Section labels ===== */
+    .edu-section-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 16px 12px 8px;
+        font-size: 0.68rem;
+        font-weight: 800;
+        color: var(--sb-muted);
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        border-top: 1px dashed var(--sb-line);
+        margin-top: 8px;
+    }
+
+    .edu-section-label:first-of-type { border-top: 0; margin-top: 12px; }
+
+    .edu-section-label i { font-size: 0.72rem; color: var(--sb-brand); }
+
+    /* ===== Parent links ===== */
+    .edu-link-parent {
+        display: flex;
+        align-items: center;
+        padding: 10px 12px;
+        color: var(--sb-text) !important;
+        text-decoration: none !important;
+        border-radius: 12px;
+        font-size: 0.92rem;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+        border: 0;
+        background: transparent;
+        width: 100%;
+    }
+
+    .edu-link-parent::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 0;
+        background: var(--sb-brand);
+        border-radius: 0 3px 3px 0;
+        transition: height 0.2s ease;
+    }
+
+    .edu-link-parent:hover {
+        background: var(--sb-soft);
+        color: var(--sb-text-strong) !important;
+        transform: translateX(2px);
+    }
+
+    .edu-link-parent:hover::before { height: 60%; }
+
+    .edu-link-parent.active {
+        background: rgba(67, 97, 238, 0.08);
+        color: var(--sb-brand-dark) !important;
+        font-weight: 700;
+    }
+
+    .edu-link-parent.active::before { height: 70%; }
+
+    .edu-link-parent.active .edu-icon-circle {
+        background: var(--sb-active-grad) !important;
+        color: #fff !important;
+        box-shadow: 0 8px 16px rgba(67, 97, 238, 0.3);
+    }
+
+    .edu-link-disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    /* ===== Icon circle ===== */
+    .edu-icon-circle {
+        flex-shrink: 0;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        margin-right: 12px;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+    }
+
+    .edu-link-parent:hover .edu-icon-circle { transform: scale(1.04); }
+
+    .bg-soft-learner   { background: #eef2ff; color: #4361ee; }
+    .bg-soft-primary   { background: #eef2ff; color: #4361ee; }
+    .bg-soft-info      { background: #e0f2fe; color: #0ea5e9; }
+    .bg-soft-warning   { background: #fef3c7; color: #d97706; }
+    .bg-soft-success   { background: #dcfce7; color: #16a34a; }
+    .bg-soft-danger    { background: #fee2e2; color: #dc2626; }
+    .bg-soft-secondary { background: #f1f5f9; color: #475569; }
+    .bg-soft-dark      { background: #e2e8f0; color: #1e293b; }
+
+    .edu-link-label {
+        flex: 1;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-weight: 600;
+    }
+
+    /* ===== Soon badge ===== */
+    .edu-soon-badge {
+        margin-left: auto;
+        padding: 2px 8px;
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        color: #78350f;
+        font-size: 0.6rem;
+        font-weight: 800;
+        letter-spacing: 0.8px;
+        border-radius: 999px;
+    }
+
+    .edu-link-mini { padding: 8px 12px; font-size: 0.88rem; }
+    .edu-link-mini .edu-icon-circle { width: 32px; height: 32px; font-size: 0.85rem; }
+
+    /* ===== Footer logout ===== */
+    .edu-sidebar-footer {
+        margin-top: 18px;
+        padding-top: 14px;
+        border-top: 1px solid var(--sb-line);
+    }
+
+    .edu-logout-form { margin: 0; }
+
+    .edu-btn-logout {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        color: #fff;
+        border: 0;
+        border-radius: 12px;
+        font-weight: 800;
+        font-size: 0.82rem;
+        letter-spacing: 1.2px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .edu-btn-logout::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        opacity: 0;
+        transition: opacity 0.25s ease;
+        z-index: 0;
+    }
+
+    .edu-btn-logout > * { position: relative; z-index: 1; }
+
+    .edu-btn-logout:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 24px rgba(239, 68, 68, 0.35);
+    }
+
+    .edu-btn-logout:hover::before { opacity: 1; }
+
+    .edu-btn-logout i { font-size: 1rem; }
+
+    /* ===== Scrollbar ===== */
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    /* ============== COLLAPSED STATE ============== */
+    .sidebar-collapsed .edu-sidebar-fixed { width: 78px !important; }
+    .sidebar-collapsed .edu-sidebar-header { padding: 18px 12px; justify-content: center; }
+    .sidebar-collapsed .edu-brand-block { display: none; }
+    .sidebar-collapsed .edu-profile-wrap { padding: 10px 12px; }
+    .sidebar-collapsed .edu-profile-card { padding: 8px; justify-content: center; background: transparent; border: 0; }
+    .sidebar-collapsed .edu-profile-info { display: none; }
+    .sidebar-collapsed .edu-avatar-box { width: 40px; height: 40px; }
+    .sidebar-collapsed .sidebar-nav { padding: 8px; }
+    .sidebar-collapsed .nav-item { margin-bottom: 6px; }
+    .sidebar-collapsed .edu-link-parent { justify-content: center; padding: 10px 0; }
+    .sidebar-collapsed .edu-icon-circle { margin-right: 0; }
+    .sidebar-collapsed .edu-link-label,
+    .sidebar-collapsed .edu-section-label,
+    .sidebar-collapsed .edu-soon-badge {
+        display: none !important;
+    }
+    .sidebar-collapsed .edu-btn-logout { padding: 12px 0; }
+    .sidebar-collapsed .edu-link-parent::before { display: none; }
+
+    /* ===== Tooltip when collapsed ===== */
+    .sidebar-collapsed .edu-link-parent[data-tooltip]::after,
+    .sidebar-collapsed .edu-btn-logout[data-tooltip]::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        left: calc(100% + 14px);
+        top: 50%;
+        transform: translateY(-50%) translateX(-6px);
+        padding: 6px 12px;
+        background: #0f172a;
+        color: #fff;
+        font-size: 0.78rem;
+        font-weight: 600;
+        border-radius: 8px;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s ease;
+        z-index: 1100;
+        pointer-events: none;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+    }
+
+    .sidebar-collapsed .edu-link-parent[data-tooltip]::before,
+    .sidebar-collapsed .edu-btn-logout[data-tooltip]::before {
+        content: '';
+        position: absolute;
+        left: calc(100% + 8px);
+        top: 50%;
+        transform: translateY(-50%) translateX(-6px);
+        border: 6px solid transparent;
+        border-right-color: #0f172a;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s ease;
+        z-index: 1100;
+        pointer-events: none;
+    }
+
+    .sidebar-collapsed .edu-link-parent[data-tooltip]:hover::after,
+    .sidebar-collapsed .edu-link-parent[data-tooltip]:hover::before,
+    .sidebar-collapsed .edu-btn-logout[data-tooltip]:hover::after,
+    .sidebar-collapsed .edu-btn-logout[data-tooltip]:hover::before {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(-50%) translateX(0);
+    }
+
+    /* ============== Responsive ============== */
+    @media (max-width: 991.98px) {
+        .edu-sidebar-fixed { transform: translateX(-100%); }
+        .edu-sidebar-fixed.active { transform: translateX(0); }
+    }
 </style>

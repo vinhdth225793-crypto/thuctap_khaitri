@@ -333,20 +333,49 @@
             width: fit-content;
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            color: #eff6ff;
+            gap: 10px;
+            color: #fff;
             text-decoration: none;
-            font-weight: 700;
+            font-weight: 800;
             font-size: 0.92rem;
-            padding: 9px 12px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.13);
-            border: 1px solid rgba(255, 255, 255, 0.22);
+            padding: 11px 18px 11px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-home-link::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.0), rgba(255,255,255,0.25), rgba(255,255,255,0.0));
+            transform: translateX(-100%);
+            transition: transform 0.5s ease;
         }
 
         .auth-home-link:hover {
             color: #ffffff;
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.32);
+            border-color: rgba(255, 255, 255, 0.6);
+            transform: translateX(-4px);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+        }
+
+        .auth-home-link:hover::before {
+            transform: translateX(100%);
+        }
+
+        .auth-home-link i {
+            transition: transform 0.25s ease;
+        }
+
+        .auth-home-link:hover i {
+            transform: translateX(-3px);
         }
         
         .auth-header {
@@ -477,15 +506,86 @@
             font-size: 0.9rem;
         }
 
-        .auth-contact-strip div {
+        .auth-contact-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 10px;
+            color: #eff6ff;
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 500;
+            transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+            backdrop-filter: blur(6px);
+        }
+
+        .auth-contact-link:hover {
+            background: rgba(255, 255, 255, 0.16);
+            border-color: rgba(255, 255, 255, 0.3);
+            color: #fff;
+            transform: translateX(2px);
+        }
+
+        .auth-contact-link > i:first-child {
+            flex-shrink: 0;
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.16);
+            display: grid;
+            place-items: center;
+            font-size: 0.78rem;
+        }
+
+        .auth-contact-link span {
+            flex: 1;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .auth-contact-address {
+            background: rgba(255, 255, 255, 0.14);
+            border-color: rgba(255, 255, 255, 0.22);
+        }
+
+        .auth-contact-address:hover {
+            background: rgba(255, 255, 255, 0.22);
+        }
+
+        .auth-contact-ext {
+            flex-shrink: 0;
+            opacity: 0.7;
+            font-size: 0.72rem;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+
+        .auth-contact-link:hover .auth-contact-ext {
+            opacity: 1;
+            transform: translate(2px, -2px);
+        }
+
+        .auth-contact-static {
+            cursor: default;
+        }
+
+        .auth-contact-static:hover {
+            transform: none;
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.14);
+        }
+
+        /* Backwards compat — phòng có view khác còn dùng .auth-contact-strip div */
+        .auth-contact-strip > div {
             display: flex;
             align-items: center;
             gap: 9px;
             min-width: 0;
-        }
-
-        .auth-contact-strip span {
-            overflow-wrap: anywhere;
         }
 
         .auth-form-card {
@@ -543,6 +643,127 @@
         .auth-form-card .vip-btn {
             padding-top: 9px;
             padding-bottom: 9px;
+        }
+
+        /* ===== Nút submit auth nổi bật (Đăng nhập / Đăng ký) ===== */
+        .auth-form-card .vip-btn-primary {
+            position: relative;
+            overflow: hidden;
+            padding: 14px 20px;
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: 0.4px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: #fff;
+            box-shadow:
+                0 12px 28px rgba(67, 97, 238, 0.4),
+                0 0 0 0 rgba(67, 97, 238, 0.4);
+            border: 0;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+        }
+
+        .auth-form-card .vip-btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .auth-form-card .vip-btn-primary:hover {
+            background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%);
+            color: #fff;
+            transform: translateY(-3px);
+            box-shadow:
+                0 18px 38px rgba(67, 97, 238, 0.5),
+                0 0 0 4px rgba(67, 97, 238, 0.18);
+        }
+
+        .auth-form-card .vip-btn-primary:hover::before {
+            left: 130%;
+        }
+
+        .auth-form-card .vip-btn-primary:active {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(67, 97, 238, 0.35);
+        }
+
+        .auth-form-card .vip-btn-primary i {
+            transition: transform 0.25s ease;
+        }
+
+        .auth-form-card .vip-btn-primary:hover i {
+            transform: scale(1.18) rotate(-6deg);
+        }
+
+        /* ===== Switch link "Đăng nhập ngay / Đăng ký ngay" thành button outline nổi bật ===== */
+        .auth-switch {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px dashed #e5e7eb;
+            text-align: center;
+        }
+
+        .auth-switch p {
+            margin: 0 0 10px;
+            color: #64748b;
+            font-size: 0.92rem;
+        }
+
+        .auth-switch-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 22px;
+            border-radius: 999px;
+            border: 2px solid var(--primary-color);
+            background: #fff;
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 800;
+            font-size: 0.95rem;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-switch-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            transform: scaleX(0);
+            transform-origin: left center;
+            transition: transform 0.3s ease;
+            z-index: 0;
+        }
+
+        .auth-switch-btn:hover {
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(67, 97, 238, 0.32);
+            border-color: transparent;
+        }
+
+        .auth-switch-btn:hover::before {
+            transform: scaleX(1);
+        }
+
+        .auth-switch-btn > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .auth-switch-btn i {
+            transition: transform 0.25s ease;
+        }
+
+        .auth-switch-btn:hover i {
+            transform: translateX(3px);
         }
 
         @media (max-width: 991.98px) {

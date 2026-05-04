@@ -11,8 +11,19 @@
     $siteLogo = \App\Models\SystemSetting::get('site_logo', '');
     $hotline = \App\Models\SystemSetting::get('hotline', '0900 000 000');
     $email = \App\Models\SystemSetting::get('email', \App\Models\SystemSetting::get('site_email', 'tuvan@khaitri.edu.vn'));
-    $address = \App\Models\SystemSetting::get('address', 'Trung tâm đào tạo Khải Trí');
+    $addressRaw = \App\Models\SystemSetting::get('address', 'Trung tâm đào tạo Khải Trí');
     $logoSrc = filled($siteLogo) ? asset($siteLogo) : asset('images/logo/' . $logo);
+
+    // Xử lý địa chỉ: nếu admin nhập HTML có link, extract URL; nếu không có, build link Google Maps tự động
+    $addressText = trim(strip_tags($addressRaw)) ?: 'Trung tâm đào tạo Khải Trí';
+    $addressUrl = null;
+    if (preg_match('/href\s*=\s*["\']([^"\']+)["\']/i', $addressRaw, $m)) {
+        $addressUrl = $m[1];
+    } elseif (filled($addressText)) {
+        $addressUrl = 'https://www.google.com/maps/search/?api=1&query=' . urlencode($addressText);
+    }
+
+    $hotlineClean = preg_replace('/\s+/', '', $hotline);
 @endphp
 
 <div class="auth-container">
@@ -70,18 +81,26 @@
             </div>
 
             <div class="auth-contact-strip">
-                <div>
+                <a href="tel:{{ $hotlineClean }}" class="auth-contact-link" aria-label="Gọi {{ $hotline }}">
                     <i class="fas fa-phone"></i>
                     <span>{{ $hotline }}</span>
-                </div>
-                <div>
+                </a>
+                <a href="mailto:{{ $email }}" class="auth-contact-link" aria-label="Gửi email">
                     <i class="fas fa-envelope"></i>
                     <span>{{ $email }}</span>
-                </div>
-                <div>
-                    <i class="fas fa-location-dot"></i>
-                    <span>{{ $address }}</span>
-                </div>
+                </a>
+                @if($addressUrl)
+                    <a href="{{ $addressUrl }}" target="_blank" rel="noopener" class="auth-contact-link auth-contact-address" aria-label="Xem bản đồ địa chỉ">
+                        <i class="fas fa-location-dot"></i>
+                        <span>{{ \Illuminate\Support\Str::limit($addressText, 56) }}</span>
+                        <i class="fas fa-arrow-up-right-from-square auth-contact-ext"></i>
+                    </a>
+                @else
+                    <span class="auth-contact-link auth-contact-static">
+                        <i class="fas fa-location-dot"></i>
+                        <span>{{ \Illuminate\Support\Str::limit($addressText, 56) }}</span>
+                    </span>
+                @endif
             </div>
         </aside>
 

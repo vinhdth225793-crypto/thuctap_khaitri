@@ -13,549 +13,514 @@
         $leaveRequestItems = collect($scheduleView['leave_request_items'] ?? []);
         $scheduledByDate = $scheduledItems->groupBy('date');
         $leaveRequestByDate = $leaveRequestItems->groupBy('date');
-        $activeDayCount = collect($scheduleView['days'])
-            ->filter(function (array $day) use ($scheduledByDate, $leaveRequestByDate) {
-                return $scheduledByDate->has($day['date']) || $leaveRequestByDate->has($day['date']);
-            })
-            ->count();
+
+        // Tổng số phút giảng dạy trong tuần (ước tính theo period_label hoặc grid time)
+        $totalMinutes = $scheduledItems->sum(function ($item) {
+            // Lấy time từ format "07:00 - 09:30" nếu có
+            $time = $item['time'] ?? null;
+            if (!$time) return 0;
+            if (preg_match('/(\d{1,2}):(\d{2})\s*[-–]\s*(\d{1,2}):(\d{2})/', $time, $m)) {
+                return (((int)$m[3] * 60 + (int)$m[4]) - ((int)$m[1] * 60 + (int)$m[2]));
+            }
+            return 0;
+        });
+        $totalHours = $totalMinutes > 0 ? round($totalMinutes / 60, 1) : null;
     @endphp
 
-    <div class="card border-0 shadow-sm mb-4 overflow-hidden schedule-board-card">
-        <div class="card-header bg-white border-0 p-4 pb-0">
-            <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3">
-                <div class="pe-xl-3">
-                    <h5 class="mb-1 fw-bold">Thời khóa biểu theo tuần</h5>
-                    <p class="text-muted small mb-0">Theo dõi lịch giảng dạy và các ca học trong tuần.</p>
+    <div class="schedule-board-compact mb-4">
+        <h6 class="visually-hidden">Thời khóa biểu theo tuần — Danh sách buổi dạy tuần này</h6>
+        {{-- ===== Header: tuần navigation + thống kê ===== --}}
+        <div class="sbc-head">
+            <div class="sbc-week-nav">
+                <a href="{{ request()->fullUrlWithQuery(['week_start' => $prevWeek]) }}" class="sbc-nav-btn" title="Tuần trước">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+                <div class="sbc-week-label">
+                    <span class="sbc-week-num">Tuần {{ $weekStart->weekOfYear }}</span>
+                    <strong>{{ $weekStart->format('d/m') }} – {{ \Carbon\Carbon::parse($scheduleView['week_end'])->format('d/m/Y') }}</strong>
                 </div>
-
-                <div class="schedule-week-toolbar d-flex align-items-center gap-3">
-                    <div class="d-flex align-items-center bg-light rounded-pill p-1 border shadow-xs">
-                        <a href="{{ request()->fullUrlWithQuery(['week_start' => $prevWeek]) }}" class="btn btn-icon-round btn-white border-0" title="Tuần trước">
-                            <i class="fas fa-chevron-left"></i>
-                        </a>
-
-                        <div class="px-4 text-center border-start border-end">
-                            <div class="smaller text-uppercase fw-bold text-primary mb-0" style="letter-spacing: 1px;">Tuần {{ $weekStart->weekOfYear }}</div>
-                            <div class="fw-bold text-dark" style="font-size: 0.9rem;">
-                                {{ $weekStart->format('d/m') }} - {{ \Carbon\Carbon::parse($scheduleView['week_end'])->format('d/m/Y') }}
-                            </div>
-                        </div>
-
-                        <a href="{{ request()->fullUrlWithQuery(['week_start' => $nextWeek]) }}" class="btn btn-icon-round btn-white border-0" title="Tuần sau">
-                            <i class="fas fa-chevron-right"></i>
-                        </a>
-                    </div>
-
-                    <div class="d-flex gap-2">
-                        @if($scheduleView['week_start'] !== $currentWeek)
-                            <a href="{{ request()->fullUrlWithQuery(['week_start' => $currentWeek]) }}" class="btn btn-outline-primary rounded-pill px-3 fw-bold btn-sm">
-                                <i class="fas fa-undo-alt me-1"></i> Tuần này
-                            </a>
-                        @endif
-                        <div class="badge bg-primary text-white rounded-pill px-3 py-2 d-flex align-items-center shadow-sm">
-                            <i class="fas fa-chalkboard-teacher me-2"></i> {{ $scheduledItems->count() }} BUỔI DẠY
-                        </div>
-                    </div>
-                </div>
+                <a href="{{ request()->fullUrlWithQuery(['week_start' => $nextWeek]) }}" class="sbc-nav-btn" title="Tuần sau">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+                @if($scheduleView['week_start'] !== $currentWeek)
+                    <a href="{{ request()->fullUrlWithQuery(['week_start' => $currentWeek]) }}" class="sbc-today-btn">
+                        <i class="fas fa-arrow-rotate-left"></i> Tuần này
+                    </a>
+                @endif
             </div>
 
-            <div class="d-flex flex-wrap gap-4 pt-3 mt-3 border-top schedule-legend">
-                <div class="d-flex align-items-center gap-2 small">
-                    <span class="legend-box bg-sang"></span>
-                    <span class="text-muted fw-bold">Ca Sáng</span>
-                </div>
-                <div class="d-flex align-items-center gap-2 small">
-                    <span class="legend-box bg-chieu"></span>
-                    <span class="text-muted fw-bold">Ca Chiều</span>
-                </div>
-                <div class="d-flex align-items-center gap-2 small">
-                    <span class="legend-box bg-toi"></span>
-                    <span class="text-muted fw-bold">Ca Tối</span>
-                </div>
-                <div class="ms-auto d-flex gap-3">
-                    <div class="d-flex align-items-center gap-2 small">
-                        <span class="legend-dot bg-warning"></span>
-                        <span class="text-muted">Chờ duyệt nghỉ</span>
-                    </div>
-                    <div class="d-flex align-items-center gap-2 small">
-                        <span class="legend-dot bg-success"></span>
-                        <span class="text-muted">Đã duyệt nghỉ</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card-body p-0 mt-3">
-            <div class="d-lg-none p-3 pt-0">
-                <div class="row g-3">
-                    @foreach($scheduleView['days'] as $day)
-                        @php
-                            $isToday = $day['date'] === today()->toDateString();
-                            $dayScheduledItems = $scheduledByDate->get($day['date'], collect());
-                            $dayLeaveItems = $leaveRequestByDate->get($day['date'], collect());
-                            $dayTotal = $dayScheduledItems->count() + $dayLeaveItems->count();
-                        @endphp
-                        <div class="col-12">
-                            <div class="schedule-day-card {{ $isToday ? 'is-today' : '' }}">
-                                <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
-                                    <div>
-                                        <div class="fw-bold">{{ $day['thu_label'] }}</div>
-                                        <div class="small text-muted">{{ $day['label'] }}</div>
-                                    </div>
-                                    <span class="badge rounded-pill {{ $isToday ? 'bg-primary text-white' : 'text-bg-light border' }}">
-                                        {{ $dayTotal }} mục
-                                    </span>
-                                </div>
-
-                                @forelse($dayScheduledItems as $item)
-                                    <div class="schedule-mobile-item scheduled">
-                                        <div class="d-flex justify-content-between align-items-start gap-2">
-                                            <div class="fw-semibold text-dark schedule-line-clamp-2">{{ $item['module_name'] ?: $item['course_name'] }}</div>
-                                            @if($item['buoi_so'])
-                                                <span class="badge text-bg-light border flex-shrink-0">B{{ $item['buoi_so'] }}</span>
-                                            @endif
-                                        </div>
-                                        <div class="small text-muted mt-1">{{ $item['course_code'] }} @if($item['summary']) • {{ $item['summary'] }} @endif</div>
-                                    </div>
-                                @empty
-                                @endforelse
-
-                                @foreach($dayLeaveItems as $item)
-                                    <div class="schedule-mobile-item leave-request border-{{ $item['status_color'] }}">
-                                        <div class="fw-semibold text-{{ $item['status_color'] }}">{{ $item['status_label'] }}</div>
-                                        <div class="small text-muted mt-1">{{ $item['summary'] }}</div>
-                                    </div>
-                                @endforeach
-
-                                @if($dayTotal === 0)
-                                    <div class="small text-muted">Không có lịch hoặc đơn nghỉ trong ngày này.</div>
-                                @endif
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-
-            <div class="d-none d-lg-block">
-                <div class="table-responsive schedule-wrapper">
-                    <table class="table table-bordered schedule-board-table mb-0 border-0">
-                        <thead>
-                            <tr class="text-center border-top-0">
-                                <th class="sticky-column schedule-period-head">Tiết</th>
-                                @foreach($scheduleView['days'] as $day)
-                                    @php
-                                        $isToday = $day['date'] === today()->toDateString();
-                                    @endphp
-                                    <th class="schedule-day-head {{ $isToday ? 'is-today' : '' }}">
-                                        <div class="fw-bold {{ $isToday ? 'text-primary' : 'text-dark' }}">{{ $day['thu_label'] }}</div>
-                                        <div class="small {{ $isToday ? 'text-primary' : 'text-muted' }}">{{ $day['label'] }}</div>
-                                    </th>
-                                @endforeach
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($scheduleView['grid'] as $row)
-                                <tr>
-                                    <td class="sticky-column schedule-period-cell text-center">
-                                        <div class="fw-bold text-primary">{{ $row['period'] }}</div>
-                                        <div class="text-muted small">{{ $row['time'] }}</div>
-                                    </td>
-
-                                    @foreach($scheduleView['days'] as $day)
-                                        @php
-                                            $cell = $row['cells'][$day['date']] ?? ['scheduled' => [], 'leave_requests' => [], 'occupied' => false, 'has_leave_request' => false];
-                                            $isToday = $day['date'] === today()->toDateString();
-                                            $isEmptyCell = empty($cell['scheduled']) && empty($cell['leave_requests']);
-                                        @endphp
-                                        <td class="schedule-cell {{ $isToday ? 'bg-today' : '' }}">
-                                            @if($isEmptyCell)
-                                                <div class="schedule-cell-empty"></div>
-                                            @endif
-
-                                            @foreach($cell['scheduled'] as $item)
-                                                @php
-                                                    $sessionType = $item['session'] ?? null;
-                                                    $sessionClass = match($sessionType) {
-                                                        'sang' => 'scheduled-sang',
-                                                        'chieu' => 'scheduled-chieu',
-                                                        'toi' => 'scheduled-toi',
-                                                        default => 'scheduled-default'
-                                                    };
-                                                    $sessionIcon = match($sessionType) {
-                                                        'sang' => 'fa-sun text-warning',
-                                                        'chieu' => 'fa-cloud-sun text-orange',
-                                                        'toi' => 'fa-moon text-indigo',
-                                                        default => 'fa-chalkboard'
-                                                    };
-                                                @endphp
-                                                <div class="schedule-item scheduled {{ $sessionClass }}">
-                                                    <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
-                                                        <div class="schedule-item-title" title="{{ $item['module_name'] }}">
-                                                            <i class="fas {{ $sessionIcon }} me-1 small"></i>
-                                                            {{ $item['module_name'] ?: $item['course_name'] }}
-                                                        </div>
-                                                        @if($item['buoi_so'])
-                                                            <span class="badge bg-white text-dark border flex-shrink-0 shadow-xs" style="font-size: 0.6rem;">B{{ $item['buoi_so'] }}</span>
-                                                        @endif
-                                                    </div>
-
-                                                    <div class="schedule-item-meta d-flex align-items-center gap-1" title="{{ $item['course_code'] }}">
-                                                        <span class="text-truncate">{{ $item['course_code'] }}</span>
-                                                    </div>
-
-                                                    @if($item['summary'])
-                                                        <div class="schedule-item-submeta text-truncate" title="{{ $item['summary'] }}">
-                                                            <i class="fas fa-map-marker-alt me-1 opacity-50"></i>{{ $item['summary'] }}
-                                                        </div>
-                                                    @endif
-
-                                                    @if($isTeacherView)
-                                                        <div class="schedule-actions">
-                                                            <a href="{{ $item['routes']['attendance'] }}" class="btn btn-white border" title="Điểm danh">
-                                                                <i class="fas fa-user-check text-primary"></i>
-                                                            </a>
-                                                            <a href="{{ $item['routes']['resources'] }}" class="btn btn-white border" title="Tài nguyên">
-                                                                <i class="fas fa-folder-open text-success"></i>
-                                                            </a>
-                                                            <a href="{{ $item['routes']['exams'] }}" class="btn btn-white border" title="Kiểm tra">
-                                                                <i class="fas fa-file-alt text-warning"></i>
-                                                            </a>
-                                                            @if($item['can_leave'])
-                                                                <a href="{{ $item['routes']['leave_request'] }}" class="btn btn-white border" title="Xin nghỉ">
-                                                                    <i class="fas fa-calendar-minus text-danger"></i>
-                                                                </a>
-                                                            @endif
-                                                        </div>
-                                                    @endif
-
-                                                    @if($item['leave_status_label'])
-                                                        <div class="mt-2 pt-2 border-top">
-                                                            <span class="badge rounded-pill bg-{{ $item['leave_status_color'] }}-subtle text-{{ $item['leave_status_color'] }} border border-{{ $item['leave_status_color'] }}-subtle w-100 py-1">
-                                                                {{ $item['leave_status_label'] }}
-                                                            </span>
-                                                        </div>
-                                                    @endif
-                                                </div>
-                                            @endforeach
-
-                                            @foreach($cell['leave_requests'] as $item)
-                                                <div class="schedule-item leave-request border-{{ $item['status_color'] }}">
-                                                    <div class="fw-semibold text-{{ $item['status_color'] }} schedule-line-clamp-2">
-                                                        {{ $item['status_label'] }}
-                                                    </div>
-                                                    <div class="schedule-item-submeta mt-1" title="{{ $item['summary'] }}">
-                                                        {{ $item['summary'] }}
-                                                    </div>
-                                                </div>
-                                            @endforeach
-                                        </td>
-                                    @endforeach
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white border-0 pt-3 px-3 d-flex justify-content-between align-items-center">
-            <div>
-                <span class="visually-hidden">Danh sách lịch dạy trong tuần</span>
-                <h6 class="mb-0 fw-bold">Danh sách buổi dạy tuần này</h6>
-            </div>
-            @if($scheduledItems->isNotEmpty())
-                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 rounded-pill small">
-                    {{ $scheduledItems->count() }} buổi
+            <div class="sbc-summary">
+                <span class="sbc-pill pill-primary">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    <strong>{{ $scheduledItems->count() }}</strong> buổi
                 </span>
-            @endif
+                @if($totalHours)
+                    <span class="sbc-pill pill-info">
+                        <i class="fas fa-stopwatch"></i>
+                        <strong>{{ $totalHours }}</strong> giờ
+                    </span>
+                @endif
+                @if($leaveRequestItems->isNotEmpty())
+                    <span class="sbc-pill pill-warning">
+                        <i class="fas fa-calendar-minus"></i>
+                        <strong>{{ $leaveRequestItems->count() }}</strong> đơn nghỉ
+                    </span>
+                @endif
+            </div>
         </div>
-        <div class="card-body p-3 pt-0">
-            @if($scheduledItems->isNotEmpty())
-                <div class="table-responsive">
-                    <table class="table align-middle table-hover mb-0" style="font-size: 0.85rem;">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="border-0 py-2">Thời gian</th>
-                                <th class="border-0 py-2">Khóa học</th>
-                                <th class="border-0 py-2">Module</th>
-                                <th class="border-0 py-2 text-center">Trạng thái</th>
-                                <th class="border-0 py-2 text-end">Tác vụ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($scheduledItems as $item)
-                                <tr>
-                                    <td class="py-2">
-                                        <div class="fw-bold text-dark">{{ $item['date_label'] }}</div>
-                                        <div class="small text-muted">{{ $item['weekday_label'] }} | {{ $item['period_label'] }}</div>
-                                    </td>
-                                    <td class="py-2">
-                                        <div class="fw-bold text-primary">{{ $item['course_code'] }}</div>
-                                    </td>
-                                    <td class="py-2 text-truncate" style="max-width: 150px;">{{ $item['module_name'] }}</td>
-                                    <td class="py-2 text-center">
-                                        <span class="badge bg-{{ $item['status_color'] }}-subtle text-{{ $item['status_color'] }} border border-{{ $item['status_color'] }}-subtle px-2 py-1" style="font-size: 0.7rem;">
-                                            {{ $item['status_label'] }}
-                                        </span>
-                                    </td>
-                                    <td class="py-2 text-end">
-                                        <div class="d-flex justify-content-end gap-1">
-                                            @if($isTeacherView)
-                                                <a href="{{ route('giang-vien.khoa-hoc.show', $item['course_id']) }}" class="btn btn-xs btn-white border px-2 py-1" title="Vào lớp">
-                                                    <i class="fas fa-external-link-alt text-primary fa-xs"></i>
-                                                </a>
-                                                <a href="{{ route('giang-vien.don-xin-nghi.create', ['lich_hoc_id' => $item['id']]) }}" class="btn btn-xs btn-white border px-2 py-1" title="Xin nghỉ">
-                                                    <i class="fas fa-calendar-minus text-warning fa-xs"></i>
-                                                </a>
+
+        {{-- ===== Desktop: Grid 7 ngày × tiết ===== --}}
+        <div class="sbc-grid-wrap d-none d-lg-block">
+            <table class="sbc-grid">
+                <thead>
+                    <tr>
+                        <th class="sbc-period-head">Tiết</th>
+                        @foreach($scheduleView['days'] as $day)
+                            @php $isToday = $day['date'] === today()->toDateString(); @endphp
+                            <th class="sbc-day-head {{ $isToday ? 'is-today' : '' }}">
+                                <span class="sbc-day-thu">{{ $day['thu_label'] }}</span>
+                                <span class="sbc-day-date">{{ $day['label'] }}</span>
+                            </th>
+                        @endforeach
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($scheduleView['grid'] as $row)
+                        <tr>
+                            <td class="sbc-period-cell">
+                                <strong>{{ $row['period'] }}</strong>
+                                <small>{{ $row['time'] }}</small>
+                            </td>
+                            @foreach($scheduleView['days'] as $day)
+                                @php
+                                    $cell = $row['cells'][$day['date']] ?? ['scheduled' => [], 'leave_requests' => []];
+                                    $isToday = $day['date'] === today()->toDateString();
+                                @endphp
+                                <td class="sbc-cell {{ $isToday ? 'is-today' : '' }}">
+                                    @foreach($cell['scheduled'] as $item)
+                                        @php
+                                            $sessionType = $item['session'] ?? 'default';
+                                            $shortName = \Illuminate\Support\Str::limit($item['module_name'] ?: $item['course_name'], 30);
+                                            $hoverDetail = ($item['module_name'] ?: $item['course_name'])
+                                                . "\n" . ($item['course_code'] ?? '')
+                                                . ($item['summary'] ? "\n" . $item['summary'] : '');
+                                        @endphp
+                                        <a href="{{ $isTeacherView ? route('giang-vien.khoa-hoc.show', $item['course_id']) : '#' }}"
+                                           class="sbc-item session-{{ $sessionType }}"
+                                           title="{{ trim($hoverDetail) }}">
+                                            <span class="sbc-item-time">
+                                                <i class="far fa-clock"></i>
+                                                {{ \Illuminate\Support\Str::of($item['time'] ?? '')->replaceMatches('/\s*[-–]\s*/', '–') }}
+                                            </span>
+                                            <strong class="sbc-item-name">{{ $shortName }}</strong>
+                                            <span class="sbc-item-meta">
+                                                <span class="sbc-code">{{ $item['course_code'] }}</span>
+                                                @if($item['buoi_so'])
+                                                    <span class="sbc-buoi">B{{ $item['buoi_so'] }}</span>
+                                                @endif
+                                            </span>
+                                            @if($item['leave_status_label'])
+                                                <span class="sbc-leave-tag tag-{{ $item['leave_status_color'] }}">
+                                                    <i class="fas fa-calendar-minus"></i> {{ $item['leave_status_label'] }}
+                                                </span>
                                             @endif
+                                        </a>
+                                    @endforeach
+
+                                    @foreach($cell['leave_requests'] as $item)
+                                        <div class="sbc-item leave-only border-{{ $item['status_color'] }}" title="{{ $item['summary'] }}">
+                                            <span class="sbc-item-time"><i class="far fa-calendar-minus"></i></span>
+                                            <strong class="text-{{ $item['status_color'] }}">{{ $item['status_label'] }}</strong>
+                                            <span class="sbc-item-meta text-muted">{{ \Illuminate\Support\Str::limit($item['summary'], 28) }}</span>
                                         </div>
-                                    </td>
-                                </tr>
+                                    @endforeach
+                                </td>
                             @endforeach
-                        </tbody>
-                    </table>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
+        {{-- ===== Mobile: list từng ngày ===== --}}
+        <div class="sbc-mobile d-lg-none">
+            @foreach($scheduleView['days'] as $day)
+                @php
+                    $isToday = $day['date'] === today()->toDateString();
+                    $dayItems = $scheduledByDate->get($day['date'], collect());
+                    $dayLeaves = $leaveRequestByDate->get($day['date'], collect());
+                @endphp
+                <div class="sbc-day-row {{ $isToday ? 'is-today' : '' }}">
+                    <div class="sbc-day-strip">
+                        <strong>{{ $day['thu_label'] }}</strong>
+                        <small>{{ $day['label'] }}</small>
+                        @if($dayItems->count() + $dayLeaves->count() > 0)
+                            <span class="sbc-day-count">{{ $dayItems->count() + $dayLeaves->count() }}</span>
+                        @endif
+                    </div>
+                    <div class="sbc-day-items">
+                        @forelse($dayItems as $item)
+                            @php $sessionType = $item['session'] ?? 'default'; @endphp
+                            <a href="{{ $isTeacherView ? route('giang-vien.khoa-hoc.show', $item['course_id']) : '#' }}"
+                               class="sbc-item session-{{ $sessionType }}">
+                                <span class="sbc-item-time"><i class="far fa-clock"></i> {{ $item['time'] ?? $item['period_label'] }}</span>
+                                <strong class="sbc-item-name">{{ \Illuminate\Support\Str::limit($item['module_name'] ?: $item['course_name'], 40) }}</strong>
+                                <span class="sbc-item-meta">
+                                    <span class="sbc-code">{{ $item['course_code'] }}</span>
+                                    @if($item['buoi_so'])<span class="sbc-buoi">B{{ $item['buoi_so'] }}</span>@endif
+                                </span>
+                            </a>
+                        @empty
+                            @if($dayLeaves->isEmpty())
+                                <div class="sbc-day-empty">— Không có lịch —</div>
+                            @endif
+                        @endforelse
+
+                        @foreach($dayLeaves as $item)
+                            <div class="sbc-item leave-only border-{{ $item['status_color'] }}">
+                                <strong class="text-{{ $item['status_color'] }}"><i class="fas fa-calendar-minus"></i> {{ $item['status_label'] }}</strong>
+                                <span class="sbc-item-meta text-muted">{{ $item['summary'] }}</span>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
-            @else
-                <div class="text-center py-3">
-                    <p class="text-muted mb-0 small">Không có lịch dạy thực tế.</p>
-                </div>
-            @endif
+            @endforeach
         </div>
     </div>
-
-    @if($leaveRequestItems->isNotEmpty())
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white border-0 pt-3 px-3">
-                <h6 class="mb-0 fw-bold">Đơn xin nghỉ trong tuần</h6>
-            </div>
-            <div class="card-body p-3 pt-0">
-                <div class="table-responsive">
-                    <table class="table align-middle table-hover mb-0" style="font-size: 0.8rem;">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="border-0 py-1">Ngày</th>
-                                <th class="border-0 py-1 text-center">Trạng thái</th>
-                                <th class="border-0 py-1">Lý do</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($leaveRequestItems as $item)
-                                <tr>
-                                    <td class="py-1">
-                                        <div class="fw-bold text-dark">{{ $item['date_label'] }}</div>
-                                        <div class="small text-muted">{{ $item['period_label'] }}</div>
-                                    </td>
-                                    <td class="py-1 text-center">
-                                        <span class="badge bg-{{ $item['status_color'] }}-subtle text-{{ $item['status_color'] }} border border-{{ $item['status_color'] }}-subtle px-2 py-1" style="font-size: 0.65rem;">
-                                            {{ $item['status_label'] }}
-                                        </span>
-                                    </td>
-                                    <td class="py-1">
-                                        <div class="small text-muted text-truncate" style="max-width: 150px;">
-                                            {{ $item['reason'] }}
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    @endif
 
     <style>
-        .schedule-board-card { border-radius: 1.25rem; }
-        .btn-icon-round { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
-        
-        /* Session Colors */
-        .bg-sang { background-color: #0d6efd; }
-        .bg-chieu { background-color: #fd7e14; }
-        .bg-toi { background-color: #6610f2; }
-        
-        .scheduled-sang { border-left-color: #0d6efd !important; background-color: rgba(13, 110, 253, 0.03); }
-        .scheduled-chieu { border-left-color: #fd7e14 !important; background-color: rgba(253, 126, 20, 0.03); }
-        .scheduled-toi { border-left-color: #6610f2 !important; background-color: rgba(102, 16, 242, 0.03); }
-        
-        .legend-box { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
-        .text-orange { color: #fd7e14; }
-        .text-indigo { color: #6610f2; }
+        /* ===== Compact schedule board ===== */
+        .schedule-board-compact {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+        }
 
-        .schedule-week-toolbar {
+        .sbc-head {
             display: flex;
-            flex-wrap: wrap;
             align-items: center;
-            justify-content: flex-end;
-            gap: 1rem;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+            border-bottom: 1px solid #e2e8f0;
+            flex-wrap: wrap;
         }
 
-        .schedule-wrapper {
-            overflow-x: auto;
-            overflow-y: auto;
-            max-height: 45rem;
-            padding: 0 1rem 1rem;
+        .sbc-week-nav {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .schedule-board-table {
+        .sbc-nav-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            color: #1d4ed8;
+            display: grid;
+            place-items: center;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .sbc-nav-btn:hover { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+
+        .sbc-week-label {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+            text-align: center;
+            min-width: 140px;
+        }
+        .sbc-week-num {
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: #1d4ed8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .sbc-week-label strong { font-size: 0.92rem; color: #0f172a; font-weight: 800; }
+
+        .sbc-today-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 5px 12px;
+            background: #fff;
+            border: 1px solid #1d4ed8;
+            border-radius: 999px;
+            color: #1d4ed8;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .sbc-today-btn:hover { background: #1d4ed8; color: #fff; }
+
+        .sbc-summary {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .sbc-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            background: #fff;
+            border: 1px solid;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+        .sbc-pill strong { font-weight: 800; }
+        .sbc-pill.pill-primary  { color: #1d4ed8; border-color: #bfdbfe; background: #eff6ff; }
+        .sbc-pill.pill-info     { color: #0369a1; border-color: #bae6fd; background: #f0f9ff; }
+        .sbc-pill.pill-warning  { color: #c2410c; border-color: #fed7aa; background: #fff7ed; }
+
+        /* ===== Grid desktop ===== */
+        .sbc-grid-wrap { overflow-x: auto; }
+
+        .sbc-grid {
             width: 100%;
-            table-layout: fixed;
             border-collapse: separate;
             border-spacing: 0;
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            border-radius: 0.75rem;
-            overflow: hidden;
+            font-size: 0.82rem;
         }
 
-        .schedule-board-table th,
-        .schedule-board-table td {
-            border: 1px solid #e2e8f0 !important;
+        .sbc-grid th, .sbc-grid td {
+            border-right: 1px solid #f1f5f9;
+            border-bottom: 1px solid #f1f5f9;
         }
+        .sbc-grid th:last-child, .sbc-grid td:last-child { border-right: 0; }
+        .sbc-grid tr:last-child td { border-bottom: 0; }
 
-        .schedule-board-table thead th {
+        .sbc-period-head, .sbc-day-head {
+            background: #f8fafc;
+            padding: 10px 8px;
+            text-align: center;
+            font-weight: 700;
+            color: #475569;
             position: sticky;
             top: 0;
-            z-index: 6;
+            z-index: 2;
+        }
+
+        .sbc-period-head {
+            min-width: 80px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        .sbc-day-head.is-today {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            color: #1d4ed8;
+        }
+
+        .sbc-day-thu { display: block; font-weight: 800; font-size: 0.82rem; }
+        .sbc-day-date { display: block; font-size: 0.7rem; font-weight: 600; opacity: 0.75; margin-top: 1px; }
+
+        .sbc-period-cell {
             background: #f8fafc;
-            padding: 1rem 0.5rem !important;
+            text-align: center;
+            padding: 8px 6px;
+            min-width: 80px;
+        }
+        .sbc-period-cell strong {
+            display: block;
+            font-size: 0.85rem;
+            color: #1d4ed8;
+            font-weight: 800;
+        }
+        .sbc-period-cell small {
+            display: block;
+            font-size: 0.68rem;
+            color: #94a3b8;
+            margin-top: 2px;
         }
 
-        .sticky-column {
-            position: sticky;
-            left: 0;
-            z-index: 5;
-            background: #f8fafc !important;
-            width: 5.5rem;
-            min-width: 5.5rem;
-        }
-
-        .schedule-period-cell {
-            padding: 0.75rem 0.25rem !important;
-        }
-
-        .schedule-day-head.is-today {
-            background: rgba(13, 110, 253, 0.05) !important;
-            box-shadow: inset 0 -3px 0 #0d6efd;
-        }
-
-        .schedule-cell {
-            padding: 0.5rem !important;
+        .sbc-cell {
             vertical-align: top;
-            height: 7.5rem;
-            min-width: 140px;
+            padding: 4px;
+            min-width: 130px;
+            min-height: 60px;
+            position: relative;
+        }
+        .sbc-cell.is-today { background: rgba(29, 78, 216, 0.03); }
+
+        /* ===== Item card trong cell ===== */
+        .sbc-item {
+            display: block;
+            padding: 6px 8px;
+            margin-bottom: 4px;
+            border-radius: 8px;
+            border-left: 3px solid #94a3b8;
             background: #fff;
-        }
-
-        .schedule-cell-empty {
-            min-height: 100%;
-            border: 1px dashed #e2e8f0;
-            border-radius: 0.5rem;
-            background: #fafafa;
-        }
-
-        .bg-today {
-            background: rgba(13, 110, 253, 0.02) !important;
-        }
-
-        .schedule-item {
-            padding: 0.6rem;
-            border: 1px solid #e2e8f0;
-            border-left-width: 4px !important;
-            border-radius: 0.6rem;
-            background: #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            transition: all 0.2s;
-        }
-        
-        .schedule-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            z-index: 10;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            text-decoration: none !important;
+            color: #0f172a !important;
+            transition: all 0.18s ease;
             position: relative;
         }
 
-        .schedule-item + .schedule-item {
-            margin-top: 0.5rem;
+        .sbc-item:last-child { margin-bottom: 0; }
+
+        .sbc-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(15, 23, 42, 0.1);
+            z-index: 5;
         }
 
-        .schedule-item-title {
-            font-size: 0.75rem;
+        .sbc-item-time {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 0.68rem;
             font-weight: 700;
-            line-height: 1.3;
-            color: #1e293b;
+            color: #64748b;
+            margin-bottom: 2px;
+        }
+        .sbc-item-time i { font-size: 0.62rem; }
+
+        .sbc-item-name {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.25;
+            margin-bottom: 3px;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
 
-        .schedule-item-meta,
-        .schedule-item-submeta {
-            font-size: 0.65rem;
-            line-height: 1.2;
-        }
-
-        .schedule-item-meta {
-            color: #64748b;
-            margin-top: 0.25rem;
+        .sbc-item-meta {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.66rem;
             font-weight: 600;
         }
 
-        .schedule-item-submeta {
-            color: #94a3b8;
-            margin-top: 0.15rem;
+        .sbc-code {
+            color: #1d4ed8;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
         }
 
-        .schedule-actions {
-            margin-top: 0.6rem;
+        .sbc-buoi {
+            margin-left: auto;
+            padding: 1px 6px;
+            background: #f1f5f9;
+            color: #475569;
+            border-radius: 4px;
+            font-size: 0.62rem;
+            font-weight: 800;
+        }
+
+        /* Session colors — border-left + tint background */
+        .session-sang   { border-left-color: #0d6efd; background: linear-gradient(135deg, #eff6ff 0%, #fff 60%); }
+        .session-chieu  { border-left-color: #fd7e14; background: linear-gradient(135deg, #fff7ed 0%, #fff 60%); }
+        .session-toi    { border-left-color: #6610f2; background: linear-gradient(135deg, #f5f3ff 0%, #fff 60%); }
+        .session-default{ border-left-color: #475569; background: #fff; }
+
+        .session-sang:hover  { border-left-color: #0d6efd; background: #eff6ff; }
+        .session-chieu:hover { border-left-color: #fd7e14; background: #fff7ed; }
+        .session-toi:hover   { border-left-color: #6610f2; background: #f5f3ff; }
+
+        .sbc-leave-tag {
+            display: block;
+            margin-top: 4px;
+            padding: 2px 6px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .tag-warning { background: #fef3c7; color: #c2410c; }
+        .tag-success { background: #dcfce7; color: #16a34a; }
+        .tag-secondary { background: #f1f5f9; color: #475569; }
+        .tag-danger { background: #fee2e2; color: #b91c1c; }
+
+        .sbc-item.leave-only {
+            background: #fff7ed !important;
+            border: 1px dashed #fed7aa;
+            border-left: 3px solid #f97316 !important;
+        }
+        .sbc-item.leave-only.border-success { border-left-color: #16a34a !important; background: #dcfce7 !important; border-color: #6ee7b7; }
+        .sbc-item.leave-only.border-danger  { border-left-color: #dc2626 !important; background: #fee2e2 !important; border-color: #fca5a5; }
+        .sbc-item.leave-only.border-warning { border-left-color: #d97706 !important; }
+        .sbc-item.leave-only.border-secondary{ border-left-color: #475569 !important; background: #f1f5f9 !important; border-color: #cbd5e1; }
+
+        /* ===== Mobile list ===== */
+        .sbc-mobile { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+
+        .sbc-day-row {
             display: flex;
-            flex-wrap: wrap;
-            gap: 0.3rem;
-        }
-
-        .schedule-actions .btn {
-            width: 1.6rem;
-            height: 1.6rem;
-            padding: 0;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 0.4rem;
-            background: #fff;
-        }
-
-        .schedule-actions .btn i { font-size: 0.7rem; }
-
-        .schedule-day-card {
+            gap: 10px;
+            padding: 10px;
+            background: #f8fafc;
+            border-radius: 10px;
             border: 1px solid #e2e8f0;
-            border-radius: 1rem;
-            padding: 1.25rem;
-            background: #fff;
+        }
+        .sbc-day-row.is-today {
+            background: linear-gradient(135deg, #dbeafe 0%, #f0f9ff 100%);
+            border-color: #93c5fd;
         }
 
-        .schedule-mobile-item {
-            border: 1px solid #e2e8f0;
-            border-left-width: 4px;
-            border-radius: 0.75rem;
-            padding: 1rem;
-            background: #fff;
+        .sbc-day-strip {
+            flex-shrink: 0;
+            min-width: 70px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding-right: 10px;
+            border-right: 2px dashed #cbd5e1;
+            position: relative;
+        }
+        .sbc-day-strip strong { font-size: 0.85rem; font-weight: 800; color: #0f172a; }
+        .sbc-day-strip small { font-size: 0.7rem; color: #64748b; }
+
+        .sbc-day-count {
+            position: absolute;
+            top: 0;
+            right: 8px;
+            min-width: 20px;
+            padding: 1px 6px;
+            background: #1d4ed8;
+            color: #fff;
+            font-size: 0.65rem;
+            font-weight: 800;
+            border-radius: 999px;
+            text-align: center;
         }
 
-        .legend-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
+        .sbc-day-items {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 0;
         }
 
-        .bg-primary-subtle { background-color: rgba(13, 110, 253, 0.08) !important; }
-        .bg-warning-subtle { background-color: rgba(255, 193, 7, 0.1) !important; }
-        .bg-success-subtle { background-color: rgba(25, 135, 84, 0.1) !important; }
+        .sbc-day-empty {
+            font-size: 0.78rem;
+            color: #94a3b8;
+            font-style: italic;
+            padding: 6px 0;
+        }
 
-        @media (max-width: 1199.98px) {
-            .schedule-week-toolbar { justify-content: flex-start; }
+        @media (max-width: 720px) {
+            .sbc-head { padding: 10px 12px; }
+            .sbc-summary { width: 100%; justify-content: flex-start; }
         }
     </style>
 @endif

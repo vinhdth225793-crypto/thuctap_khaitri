@@ -73,55 +73,240 @@
             <span class="d-none d-md-inline">Trang chủ</span>
         </a>
         <!-- Thông báo -->
-        <div class="dropdown">
-            <button class="btn position-relative" type="button" data-bs-toggle="dropdown">
+        <div class="dropdown hd-bell-wrap">
+            <button class="hd-bell-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="fas fa-bell"></i>
                 @if($headerNotificationCount > 0)
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                        {{ $headerNotificationCount > 99 ? '99+' : $headerNotificationCount }}
-                    </span>
+                    <span class="hd-bell-count">{{ $headerNotificationCount > 99 ? '99+' : $headerNotificationCount }}</span>
                 @endif
             </button>
-            <div class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="width: 320px;">
-                <h6 class="dropdown-header d-flex justify-content-between align-items-center py-3">
-                    <span>Thông báo</span>
+            <div class="dropdown-menu dropdown-menu-end hd-bell-menu">
+                <div class="hd-bell-head">
+                    <div>
+                        <h6><i class="fas fa-bell"></i> Thông báo</h6>
+                        @if($headerNotificationCount > 0)
+                            <small>{{ $headerNotificationCount }} thông báo chưa đọc</small>
+                        @else
+                            <small>Tất cả đã đọc</small>
+                        @endif
+                    </div>
                     @if($headerNotificationCount > 0)
-                        <span class="badge bg-danger rounded-pill">{{ $headerNotificationCount }} mới</span>
+                        <form action="{{ route('thong-bao.mark-all-read') }}" method="POST" class="m-0">
+                            @csrf
+                            <button type="submit" class="hd-bell-mark" title="Đánh dấu tất cả đã đọc">
+                                <i class="fas fa-check-double"></i>
+                            </button>
+                        </form>
                     @endif
-                </h6>
-                <div class="dropdown-divider m-0"></div>
-                <div style="max-height: 350px; overflow-y: auto;">
+                </div>
+                <div class="hd-bell-list">
                     @forelse($headerRecentNotifications as $tb)
-                        <a class="dropdown-item py-3 border-bottom {{ $tb->da_doc ? '' : 'bg-light' }}" href="{{ route('thong-bao.doc-mot', $tb->id) }}">
-                            <div class="d-flex align-items-start gap-2">
-                                <div class="mt-1">
-                                    @if($tb->loai === 'phan_cong')
-                                        <i class="fas fa-user-tie text-info"></i>
-                                    @elseif($tb->loai === 'mo_lop')
-                                        <i class="fas fa-rocket text-success"></i>
-                                    @elseif($tb->loai === 'xac_nhan_gv')
-                                        <i class="fas fa-check-circle text-primary"></i>
-                                    @else
-                                        <i class="fas fa-info-circle text-secondary"></i>
-                                    @endif
-                                </div>
-                                <div class="flex-fill">
-                                    <div class="small fw-bold text-dark text-wrap">{{ $tb->tieu_de }}</div>
-                                    <div class="smaller text-muted mt-1">{{ $tb->created_at->diffForHumans() }}</div>
-                                </div>
-                                @if(!$tb->da_doc)
-                                    <div class="rounded-circle bg-danger" style="width: 8px; height: 8px; margin-top: 5px;"></div>
-                                @endif
+                        <a class="hd-bell-item {{ $tb->da_doc ? '' : 'is-unread' }} level-{{ $tb->level ?? 'info' }}" href="{{ route('thong-bao.read', $tb->id) }}">
+                            <div class="hd-bell-icon">
+                                <i class="{{ $tb->icon_class }}"></i>
                             </div>
+                            <div class="hd-bell-info">
+                                <div class="hd-bell-title">{{ $tb->tieu_de }}</div>
+                                <div class="hd-bell-text">{{ \Illuminate\Support\Str::limit($tb->noi_dung, 80) }}</div>
+                                <div class="hd-bell-time"><i class="far fa-clock"></i> {{ $tb->created_at->diffForHumans() }}</div>
+                            </div>
+                            @if(!$tb->da_doc)
+                                <span class="hd-bell-dot"></span>
+                            @endif
                         </a>
                     @empty
-                        <div class="text-center py-4 text-muted small">Không có thông báo nào</div>
+                        <div class="hd-bell-empty">
+                            <i class="fas fa-bell-slash"></i>
+                            <p>Không có thông báo nào</p>
+                        </div>
                     @endforelse
                 </div>
-                <div class="dropdown-divider m-0"></div>
-                <a class="dropdown-item text-center py-2 fw-bold small text-primary" href="{{ route('thong-bao.index') }}">Xem tất cả thông báo</a>
+                <a class="hd-bell-foot" href="{{ route('thong-bao.index') }}">
+                    <i class="fas fa-arrow-right"></i> Xem tất cả thông báo
+                </a>
             </div>
         </div>
+
+<style>
+    .hd-bell-wrap { position: relative; }
+    .hd-bell-btn {
+        width: 42px; height: 42px;
+        border-radius: 12px;
+        background: #fff;
+        border: 1.5px solid #f1f5f9;
+        color: #1e293b;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s ease;
+    }
+    .hd-bell-btn:hover, .hd-bell-btn[aria-expanded="true"] {
+        background: #fef2f2;
+        border-color: #fecaca;
+        color: #dc2626;
+    }
+    .hd-bell-btn i { font-size: 1.05rem; }
+    .hd-bell-count {
+        position: absolute;
+        top: -4px; right: -4px;
+        min-width: 20px;
+        padding: 2px 6px;
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        color: #fff;
+        font-size: 0.66rem;
+        font-weight: 800;
+        border-radius: 999px;
+        box-shadow: 0 2px 6px rgba(220,38,38,0.4);
+        animation: hdBellPulse 1.6s ease-out infinite;
+    }
+    @keyframes hdBellPulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5); }
+        50%      { box-shadow: 0 0 0 5px rgba(220, 38, 38, 0); }
+    }
+
+    .hd-bell-menu {
+        width: 380px;
+        padding: 0;
+        border: 0;
+        border-radius: 14px;
+        box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+        overflow: hidden;
+    }
+    .hd-bell-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 16px;
+        background: linear-gradient(135deg, #1d4ed8 0%, #4361ee 100%);
+        color: #fff;
+    }
+    .hd-bell-head h6 {
+        margin: 0 0 2px;
+        font-size: 0.95rem;
+        font-weight: 800;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .hd-bell-head h6 i { font-size: 0.86rem; }
+    .hd-bell-head small {
+        font-size: 0.74rem;
+        opacity: 0.85;
+        font-weight: 500;
+    }
+    .hd-bell-mark {
+        width: 32px; height: 32px;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.2);
+        border: 1px solid rgba(255,255,255,0.3);
+        color: #fff;
+        cursor: pointer;
+        display: grid; place-items: center;
+        font-size: 0.78rem;
+        transition: all 0.18s ease;
+    }
+    .hd-bell-mark:hover { background: rgba(255,255,255,0.35); }
+
+    .hd-bell-list {
+        max-height: 420px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 #f1f5f9;
+    }
+    .hd-bell-list::-webkit-scrollbar { width: 6px; }
+    .hd-bell-list::-webkit-scrollbar-track { background: #f1f5f9; }
+    .hd-bell-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+
+    .hd-bell-item {
+        display: flex;
+        gap: 10px;
+        padding: 12px 14px;
+        border-bottom: 1px solid #f1f5f9;
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.15s ease;
+        position: relative;
+    }
+    .hd-bell-item:last-child { border-bottom: 0; }
+    .hd-bell-item:hover { background: #fafafa; color: inherit; }
+    .hd-bell-item.is-unread { background: #fafafa; }
+    .hd-bell-item.is-unread:hover { background: #f1f5f9; }
+
+    .hd-bell-icon {
+        flex-shrink: 0;
+        width: 36px; height: 36px;
+        border-radius: 10px;
+        display: grid; place-items: center;
+        font-size: 0.92rem;
+    }
+    .hd-bell-item.level-info    .hd-bell-icon { background: #dbeafe; color: #1d4ed8; }
+    .hd-bell-item.level-success .hd-bell-icon { background: #dcfce7; color: #16a34a; }
+    .hd-bell-item.level-warning .hd-bell-icon { background: #fef3c7; color: #b45309; }
+    .hd-bell-item.level-danger  .hd-bell-icon { background: #fee2e2; color: #dc2626; }
+
+    .hd-bell-info { flex: 1; min-width: 0; }
+    .hd-bell-title {
+        font-size: 0.84rem;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1.3;
+        margin-bottom: 3px;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .hd-bell-text {
+        font-size: 0.76rem;
+        color: #64748b;
+        line-height: 1.4;
+        margin-bottom: 4px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .hd-bell-time {
+        font-size: 0.7rem;
+        color: #94a3b8;
+        font-weight: 600;
+    }
+    .hd-bell-time i { color: #1d4ed8; margin-right: 3px; font-size: 0.62rem; }
+    .hd-bell-dot {
+        position: absolute;
+        top: 14px; right: 12px;
+        width: 8px; height: 8px;
+        background: #dc2626;
+        border-radius: 50%;
+        box-shadow: 0 0 0 3px rgba(220,38,38,0.18);
+    }
+
+    .hd-bell-empty {
+        padding: 40px 20px;
+        text-align: center;
+        color: #94a3b8;
+    }
+    .hd-bell-empty i { font-size: 2rem; opacity: 0.4; display: block; margin-bottom: 8px; }
+    .hd-bell-empty p { font-size: 0.84rem; margin: 0; }
+
+    .hd-bell-foot {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        padding: 10px 14px;
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        color: #dc2626;
+        font-size: 0.82rem;
+        font-weight: 800;
+        text-decoration: none;
+        border-top: 1px solid #fecaca;
+        transition: all 0.18s ease;
+    }
+    .hd-bell-foot:hover { background: #dc2626; color: #fff; }
+    .hd-bell-foot i { font-size: 0.74rem; }
+</style>
         
         <!-- User Profile -->
         <div class="dropdown">
