@@ -155,42 +155,22 @@
 </div>
 
 {{-- Modal duyệt --}}
-<div class="modal fade" id="approveModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content border-0">
-            <div class="modal-header pdt-modal-head success">
-                <h5 class="modal-title fw-bold"><i class="fas fa-check-circle me-2"></i> Xác nhận phê duyệt</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4">
-                Bạn có chắc chắn muốn phê duyệt tài khoản <strong id="approveName" class="text-success"></strong>?
-            </div>
-            <div class="modal-footer border-0">
-                <button type="button" class="btn btn-light fw-bold px-4" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="pdt-btn-approve" id="confirmApprove" style="padding: 9px 22px;"><i class="fas fa-check"></i> Phê duyệt</button>
-            </div>
-        </div>
-    </div>
-</div>
+<x-confirm-modal id="approveModal" tone="success"
+    title="Xác nhận phê duyệt"
+    confirmId="confirmApprove"
+    confirmLabel="Phê duyệt"
+    confirmIcon="fas fa-check">
+    Bạn có chắc chắn muốn phê duyệt tài khoản <strong id="approveName" class="text-success"></strong>?
+</x-confirm-modal>
 
 {{-- Modal từ chối --}}
-<div class="modal fade" id="rejectModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content border-0">
-            <div class="modal-header pdt-modal-head danger">
-                <h5 class="modal-title fw-bold"><i class="fas fa-circle-xmark me-2"></i> Xác nhận từ chối</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4">
-                Bạn có chắc chắn muốn từ chối tài khoản <strong id="rejectName" class="text-danger"></strong>?
-            </div>
-            <div class="modal-footer border-0">
-                <button type="button" class="btn btn-light fw-bold px-4" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="pdt-btn-reject" id="confirmReject" style="padding: 9px 22px;"><i class="fas fa-xmark"></i> Từ chối</button>
-            </div>
-        </div>
-    </div>
-</div>
+<x-confirm-modal id="rejectModal" tone="danger"
+    title="Xác nhận từ chối"
+    confirmId="confirmReject"
+    confirmLabel="Từ chối"
+    confirmIcon="fas fa-xmark">
+    Bạn có chắc chắn muốn từ chối tài khoản <strong id="rejectName" class="text-danger"></strong>?
+</x-confirm-modal>
 
 @include('pages.admin.partials._admin-page-styles')
 
