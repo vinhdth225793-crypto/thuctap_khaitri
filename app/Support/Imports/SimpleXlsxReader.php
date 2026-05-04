@@ -11,7 +11,9 @@ use ZipArchive;
 class SimpleXlsxReader
 {
     private const NS_MAIN = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+
     private const NS_REL_OFFICE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+
     private const NS_REL_PACKAGE = 'http://schemas.openxmlformats.org/package/2006/relationships';
 
     /**
@@ -19,11 +21,11 @@ class SimpleXlsxReader
      */
     public function readSheetRows(string $filePath, string $sheetName): array
     {
-        if (!is_file($filePath)) {
+        if (! is_file($filePath)) {
             throw new RuntimeException('Không tìm thấy tệp import Excel.');
         }
 
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($filePath) !== true) {
             throw new RuntimeException('Không thể mở tệp Excel để đọc dữ liệu.');
         }
@@ -54,7 +56,7 @@ class SimpleXlsxReader
 
         $strings = [];
         foreach ($xpath->query('//main:sst/main:si') as $item) {
-            if (!$item instanceof DOMElement) {
+            if (! $item instanceof DOMElement) {
                 continue;
             }
 
@@ -84,20 +86,20 @@ class SimpleXlsxReader
 
         $targets = [];
         foreach ($relationshipsXPath->query('//rel:Relationship') as $relationshipNode) {
-            if (!$relationshipNode instanceof DOMElement) {
+            if (! $relationshipNode instanceof DOMElement) {
                 continue;
             }
 
             $target = ltrim($relationshipNode->getAttribute('Target'), '/');
-            if (!str_starts_with($target, 'xl/')) {
-                $target = 'xl/' . $target;
+            if (! str_starts_with($target, 'xl/')) {
+                $target = 'xl/'.$target;
             }
 
             $targets[$relationshipNode->getAttribute('Id')] = $target;
         }
 
         foreach ($workbookXPath->query('//main:sheets/main:sheet') as $sheetNode) {
-            if (!$sheetNode instanceof DOMElement) {
+            if (! $sheetNode instanceof DOMElement) {
                 continue;
             }
 
@@ -108,7 +110,7 @@ class SimpleXlsxReader
             $relationId = $sheetNode->getAttributeNS(self::NS_REL_OFFICE, 'id') ?: $sheetNode->getAttribute('r:id');
             $worksheetPath = $targets[$relationId] ?? null;
 
-            if (!$worksheetPath) {
+            if (! $worksheetPath) {
                 break;
             }
 
@@ -135,7 +137,7 @@ class SimpleXlsxReader
 
         $rows = [];
         foreach ($xpath->query('//main:sheetData/main:row') as $rowNode) {
-            if (!$rowNode instanceof DOMElement) {
+            if (! $rowNode instanceof DOMElement) {
                 continue;
             }
 
@@ -143,7 +145,7 @@ class SimpleXlsxReader
             $cells = [];
 
             foreach ($xpath->query('./main:c', $rowNode) as $cellNode) {
-                if (!$cellNode instanceof DOMElement) {
+                if (! $cellNode instanceof DOMElement) {
                     continue;
                 }
 
@@ -156,6 +158,7 @@ class SimpleXlsxReader
 
             if ($cells === []) {
                 $rows[] = ['row' => $rowNumber, 'values' => []];
+
                 continue;
             }
 
@@ -211,10 +214,10 @@ class SimpleXlsxReader
 
     private function loadDocument(string $xmlContent, string $label): DOMDocument
     {
-        $document = new DOMDocument();
+        $document = new DOMDocument;
         $document->preserveWhiteSpace = false;
 
-        if (!@$document->loadXML($xmlContent)) {
+        if (! @$document->loadXML($xmlContent)) {
             throw new RuntimeException("Không thể phân tích {$label} trong tệp Excel.");
         }
 

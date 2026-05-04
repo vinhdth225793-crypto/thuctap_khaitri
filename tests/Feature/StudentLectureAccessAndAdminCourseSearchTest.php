@@ -93,14 +93,14 @@ class StudentLectureAccessAndAdminCourseSearchTest extends TestCase
             $ids = collect($paginator->items())->pluck('id')->all();
 
             return in_array($matchingDangDay->id, $ids, true)
-                && !in_array($matchingSanSang->id, $ids, true);
+                && ! in_array($matchingSanSang->id, $ids, true);
         });
 
         $response->assertViewHas('khoaHocSanSang', function (LengthAwarePaginator $paginator) use ($matchingDangDay, $matchingSanSang) {
             $ids = collect($paginator->items())->pluck('id')->all();
 
             return in_array($matchingSanSang->id, $ids, true)
-                && !in_array($matchingDangDay->id, $ids, true);
+                && ! in_array($matchingDangDay->id, $ids, true);
         });
     }
 
@@ -109,8 +109,8 @@ class StudentLectureAccessAndAdminCourseSearchTest extends TestCase
         $index = $this->sequence++;
 
         return NguoiDung::create(array_merge([
-            'ho_ten' => strtoupper($role) . ' ' . $index,
-            'email' => $role . $index . '@example.com',
+            'ho_ten' => strtoupper($role).' '.$index,
+            'email' => $role.$index.'@example.com',
             'mat_khau' => bcrypt('password123'),
             'vai_tro' => $role,
             'trang_thai' => true,
@@ -132,15 +132,15 @@ class StudentLectureAccessAndAdminCourseSearchTest extends TestCase
     {
         $index = $this->sequence++;
         $nhomNganh = NhomNganh::create([
-            'ma_nhom_nganh' => 'NN' . str_pad((string) $index, 3, '0', STR_PAD_LEFT),
-            'ten_nhom_nganh' => 'Nhom nganh ' . $index,
+            'ma_nhom_nganh' => 'NN'.str_pad((string) $index, 3, '0', STR_PAD_LEFT),
+            'ten_nhom_nganh' => 'Nhom nganh '.$index,
             'trang_thai' => true,
         ]);
 
         return KhoaHoc::create(array_merge([
             'nhom_nganh_id' => $nhomNganh->id,
-            'ma_khoa_hoc' => 'KH-' . str_pad((string) $index, 3, '0', STR_PAD_LEFT),
-            'ten_khoa_hoc' => 'Khoa hoc ' . $index,
+            'ma_khoa_hoc' => 'KH-'.str_pad((string) $index, 3, '0', STR_PAD_LEFT),
+            'ten_khoa_hoc' => 'Khoa hoc '.$index,
             'cap_do' => 'co_ban',
             'tong_so_module' => 1,
             'trang_thai' => true,
@@ -154,7 +154,7 @@ class StudentLectureAccessAndAdminCourseSearchTest extends TestCase
     {
         return ModuleHoc::create([
             'khoa_hoc_id' => $course->id,
-            'ma_module' => $course->ma_khoa_hoc . '-M1',
+            'ma_module' => $course->ma_khoa_hoc.'-M1',
             'ten_module' => 'Module 1',
             'thu_tu_module' => 1,
             'so_buoi' => 1,

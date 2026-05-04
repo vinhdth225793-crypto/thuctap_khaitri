@@ -19,7 +19,7 @@ class AttendanceReportService
     {
         $hasTeacherAttendanceTable = $this->hasTeacherAttendanceTable();
         $currentWeekStart = now()->startOfWeek(Carbon::MONDAY);
-        
+
         // Mở rộng phạm vi tìm lịch học: từ retentionStart đến 2 tuần tới
         $retentionStart = $currentWeekStart->copy()->subMonthNoOverflow()->startOfWeek(Carbon::MONDAY);
         $futureEnd = $currentWeekStart->copy()->addWeeks(2)->endOfWeek(Carbon::SUNDAY);
@@ -42,7 +42,7 @@ class AttendanceReportService
             ->orderBy('gio_bat_dau')
             ->get();
 
-        if (!$hasTeacherAttendanceTable) {
+        if (! $hasTeacherAttendanceTable) {
             $schedules->each(fn (LichHoc $schedule) => $schedule->setRelation('teacherAttendanceLogs', collect()));
         }
 
@@ -84,7 +84,7 @@ class AttendanceReportService
         $hasTeacherAttendanceTable = $this->hasTeacherAttendanceTable();
         $status = (string) ($filters['trang_thai'] ?? '');
 
-        if (!$hasTeacherAttendanceTable && filled($status) && $status !== 'chua_bat_dau') {
+        if (! $hasTeacherAttendanceTable && filled($status) && $status !== 'chua_bat_dau') {
             return $this->emptyPaginator(12);
         }
 
@@ -94,7 +94,7 @@ class AttendanceReportService
             ->orderByDesc('gio_bat_dau')
             ->paginate(12);
 
-        if (!$hasTeacherAttendanceTable) {
+        if (! $hasTeacherAttendanceTable) {
             $paginator->getCollection()
                 ->each(fn (LichHoc $schedule) => $schedule->setRelation('teacherAttendanceLogs', collect()));
         }
@@ -141,22 +141,22 @@ class AttendanceReportService
 
         if ($hasTeacherAttendanceTable) {
             $relations['teacherAttendanceLogs'] = fn ($query) => $query
-                    ->where('giang_vien_id', $giangVien->id)
-                    ->with('giangVien.nguoiDung');
+                ->where('giang_vien_id', $giangVien->id)
+                ->with('giangVien.nguoiDung');
         }
 
         $schedule = LichHoc::query()
             ->with($relations)
             ->findOrFail($lichHoc->id);
 
-        if (!$hasTeacherAttendanceTable) {
+        if (! $hasTeacherAttendanceTable) {
             $schedule->setRelation('teacherAttendanceLogs', collect());
         }
 
         if (! Schema::hasTable('phong_hoc_live_nguoi_tham_gia')) {
             $schedule->baiGiangs?->each(function ($lecture): void {
                 if ($lecture->phongHocLive) {
-                    $lecture->phongHocLive->setRelation('nguoiThamGia', new EloquentCollection());
+                    $lecture->phongHocLive->setRelation('nguoiThamGia', new EloquentCollection);
                 }
             });
         }
@@ -204,14 +204,14 @@ class AttendanceReportService
                     }
 
                     $builder->orWhereHas('moduleHoc.phanCongGiangViens', fn ($assignmentQuery) => $assignmentQuery
-                            ->where('giang_vien_id', $teacherId)
-                            ->where('trang_thai', 'da_nhan'));
+                        ->where('giang_vien_id', $teacherId)
+                        ->where('trang_thai', 'da_nhan'));
                 });
             })
             ->when(filled($filters['trang_thai'] ?? null), function ($query) use ($filters, $hasTeacherAttendanceTable) {
                 $status = (string) $filters['trang_thai'];
 
-                if (!$hasTeacherAttendanceTable) {
+                if (! $hasTeacherAttendanceTable) {
                     if ($status !== 'chua_bat_dau') {
                         $query->whereRaw('1 = 0');
                     }
@@ -238,7 +238,7 @@ class AttendanceReportService
 
     private function pruneExpiredTeacherAttendanceHistory(Carbon $retentionStart): void
     {
-        if (!$this->hasTeacherAttendanceTable()) {
+        if (! $this->hasTeacherAttendanceTable()) {
             return;
         }
 
@@ -253,7 +253,7 @@ class AttendanceReportService
 
     private function resolveSelectedWeekStart(?string $weekStart, Carbon $currentWeekStart, Carbon $retentionStart): Carbon
     {
-        if (!filled($weekStart)) {
+        if (! filled($weekStart)) {
             return $currentWeekStart->copy();
         }
 
@@ -272,21 +272,21 @@ class AttendanceReportService
 
     private function isTeacherAttendancePending(LichHoc $schedule, ?bool $hasTeacherAttendanceTable = null): bool
     {
-        if (!$schedule->assigned_teacher) {
+        if (! $schedule->assigned_teacher) {
             return true;
         }
 
-        if (!($hasTeacherAttendanceTable ?? $this->hasTeacherAttendanceTable())) {
+        if (! ($hasTeacherAttendanceTable ?? $this->hasTeacherAttendanceTable())) {
             return true;
         }
 
         $attendance = $schedule->teacher_attendance_log;
 
-        if (!$attendance) {
+        if (! $attendance) {
             return true;
         }
 
-        return !in_array($attendance->display_status, [
+        return ! in_array($attendance->display_status, [
             DiemDanhGiangVien::STATUS_DA_CHECKOUT,
             DiemDanhGiangVien::STATUS_HOAN_THANH,
         ], true);
@@ -294,7 +294,7 @@ class AttendanceReportService
 
     private function buildWeekLabel(Carbon $weekStart, Carbon $weekEnd): string
     {
-        return 'Tuần ' . $weekStart->format('d/m') . ' - ' . $weekEnd->format('d/m/Y');
+        return 'Tuần '.$weekStart->format('d/m').' - '.$weekEnd->format('d/m/Y');
     }
 
     private function buildTeacherHistoryWeeks($schedules, Carbon $currentWeekStart, Carbon $retentionStart, Carbon $selectedWeekStart, bool $hasTeacherAttendanceTable)
@@ -336,7 +336,7 @@ class AttendanceReportService
 
     private function hasTeacherAttendanceTable(): bool
     {
-        return Schema::hasTable((new DiemDanhGiangVien())->getTable());
+        return Schema::hasTable((new DiemDanhGiangVien)->getTable());
     }
 
     private function emptyPaginator(int $perPage): LengthAwarePaginator

@@ -12,8 +12,7 @@ class TeacherAttendanceController extends Controller
 {
     public function __construct(
         private readonly TeacherAttendanceService $teacherAttendanceService,
-    ) {
-    }
+    ) {}
 
     public function checkIn(int $lichHocId): RedirectResponse
     {
@@ -21,7 +20,7 @@ class TeacherAttendanceController extends Controller
         $actor = auth()->user();
         $giangVien = $actor?->giangVien;
 
-        abort_if(!$actor || !$giangVien, 403);
+        abort_if(! $actor || ! $giangVien, 403);
 
         try {
             $this->teacherAttendanceService->checkIn($lichHoc, $giangVien, $actor);
@@ -38,7 +37,7 @@ class TeacherAttendanceController extends Controller
         $actor = auth()->user();
         $giangVien = $actor?->giangVien;
 
-        abort_if(!$actor || !$giangVien, 403);
+        abort_if(! $actor || ! $giangVien, 403);
 
         try {
             $this->teacherAttendanceService->checkOut($lichHoc, $giangVien, $actor);

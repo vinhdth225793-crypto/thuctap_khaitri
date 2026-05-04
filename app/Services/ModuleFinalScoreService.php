@@ -12,9 +12,7 @@ class ModuleFinalScoreService
     public function __construct(
         private readonly CourseAttendanceScoreService $attendanceScoreService,
         private readonly ModuleResultAggregationService $moduleResultAggregationService,
-    )
-    {
-    }
+    ) {}
 
     /**
      * Tính toán bảng điểm chi tiết cho 1 học viên trong 1 module
@@ -32,16 +30,14 @@ class ModuleFinalScoreService
             ->get();
 
         // 2. Phân loại bài nhỏ và bài lớn
-        $smallExams = $examResults->filter(fn ($r) => 
-            in_array($r->baiKiemTra?->loai_bai_kiem_tra, [BaiKiemTra::LOAI_BUOI_HOC, BaiKiemTra::LOAI_MODULE])
+        $smallExams = $examResults->filter(fn ($r) => in_array($r->baiKiemTra?->loai_bai_kiem_tra, [BaiKiemTra::LOAI_BUOI_HOC, BaiKiemTra::LOAI_MODULE])
         );
-        $largeExams = $examResults->filter(fn ($r) => 
-            $r->baiKiemTra?->loai_bai_kiem_tra === BaiKiemTra::LOAI_CUOI_MODULE
+        $largeExams = $examResults->filter(fn ($r) => $r->baiKiemTra?->loai_bai_kiem_tra === BaiKiemTra::LOAI_CUOI_MODULE
         );
 
         // 3. Tính trung bình bài nhỏ
         $avgSmallScore = $smallExams->count() > 0 ? (float) $smallExams->avg('diem_kiem_tra') : null;
-        
+
         // 4. Lấy điểm bài lớn (thường chỉ có 1 bài cuối module)
         $largeScore = $largeExams->count() > 0 ? (float) $largeExams->first()->diem_kiem_tra : null;
 
@@ -56,7 +52,7 @@ class ModuleFinalScoreService
         // 7. Tính điểm tổng kết module theo trọng số
         $finalScore = null;
         if ($processScore !== null && $moduleExamScore !== null) {
-            $finalScore = ($processScore * ((float) $khoaHoc->ty_trong_diem_danh / 100)) 
+            $finalScore = ($processScore * ((float) $khoaHoc->ty_trong_diem_danh / 100))
                         + ($moduleExamScore * ((float) $khoaHoc->ty_trong_kiem_tra / 100));
         } elseif ($moduleExamScore !== null) {
             $finalScore = $moduleExamScore;
@@ -65,13 +61,13 @@ class ModuleFinalScoreService
         return [
             'module_id' => $moduleId,
             'hoc_vien_id' => $hocVienId,
-            'exam_results' => $examResults->map(fn($r) => [
+            'exam_results' => $examResults->map(fn ($r) => [
                 'id' => $r->id,
                 'bai_kiem_tra_id' => $r->bai_kiem_tra_id,
                 'tieu_de' => $r->baiKiemTra?->tieu_de,
                 'loai' => $r->baiKiemTra?->loai_bai_kiem_tra,
                 'diem' => (float) $r->diem_kiem_tra,
-                'trang_thai' => $r->trang_thai
+                'trang_thai' => $r->trang_thai,
             ]),
             'summary' => [
                 'avg_small_exam_score' => $avgSmallScore !== null ? round($avgSmallScore, 2) : null,
@@ -100,8 +96,10 @@ class ModuleFinalScoreService
 
     private function checkCanFinalize(Collection $examResults): bool
     {
-        if ($examResults->isEmpty()) return false;
-        
+        if ($examResults->isEmpty()) {
+            return false;
+        }
+
         // Check xem có bài nào chưa chấm xong không
         // Giả sử có logic check trạng thái chấm ở KetQuaHocTap hoặc BaiLam
         // Ở đây ta tin tưởng KetQuaHocTap chỉ sinh ra khi đã có điểm

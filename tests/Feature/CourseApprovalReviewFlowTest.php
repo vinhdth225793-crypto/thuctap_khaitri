@@ -147,13 +147,13 @@ class CourseApprovalReviewFlowTest extends TestCase
         HocVien::create(['nguoi_dung_id' => $student->ma_nguoi_dung]);
 
         $nhomNganh = NhomNganh::create([
-            'ma_nhom_nganh' => 'NN' . uniqid(),
-            'ten_nhom_nganh' => 'Nhom nganh ' . uniqid(),
+            'ma_nhom_nganh' => 'NN'.uniqid(),
+            'ten_nhom_nganh' => 'Nhom nganh '.uniqid(),
             'trang_thai' => true,
         ]);
         $course = KhoaHoc::create([
             'nhom_nganh_id' => $nhomNganh->id,
-            'ma_khoa_hoc' => 'KH' . uniqid(),
+            'ma_khoa_hoc' => 'KH'.uniqid(),
             'ten_khoa_hoc' => 'Khoa hoc xet duyet',
             'cap_do' => 'co_ban',
             'tong_so_module' => 1,
@@ -167,7 +167,7 @@ class CourseApprovalReviewFlowTest extends TestCase
         ]);
         $module = ModuleHoc::create([
             'khoa_hoc_id' => $course->id,
-            'ma_module' => 'MD' . uniqid(),
+            'ma_module' => 'MD'.uniqid(),
             'ten_module' => 'Module xet duyet',
             'thu_tu_module' => 1,
             'so_buoi' => 2,
@@ -195,8 +195,8 @@ class CourseApprovalReviewFlowTest extends TestCase
     private function createUser(string $role): NguoiDung
     {
         return NguoiDung::create([
-            'ho_ten' => ucfirst($role) . ' ' . uniqid(),
-            'email' => $role . '-' . uniqid() . '@example.com',
+            'ho_ten' => ucfirst($role).' '.uniqid(),
+            'email' => $role.'-'.uniqid().'@example.com',
             'mat_khau' => 'password',
             'vai_tro' => $role,
             'trang_thai' => true,
@@ -239,7 +239,7 @@ class CourseApprovalReviewFlowTest extends TestCase
         return BaiKiemTra::create(array_merge([
             'khoa_hoc_id' => $course->id,
             'module_hoc_id' => $module?->id,
-            'tieu_de' => 'Exam ' . uniqid(),
+            'tieu_de' => 'Exam '.uniqid(),
             'thoi_gian_lam_bai' => 30,
             'pham_vi' => $module ? 'module' : 'cuoi_khoa',
             'loai_bai_kiem_tra' => $module ? 'module' : 'cuoi_khoa',

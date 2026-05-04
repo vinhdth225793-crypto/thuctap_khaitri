@@ -11,7 +11,9 @@ class ChiTietPhieuXetDuyetKetQua extends Model
     use HasFactory;
 
     public const KET_QUA_DAT = 'dat';
+
     public const KET_QUA_KHONG_DAT = 'khong_dat';
+
     public const KET_QUA_CHUA_DU = 'chua_du';
 
     protected $table = 'chi_tiet_phieu_xet_duyet_ket_qua';

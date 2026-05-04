@@ -12,14 +12,15 @@ use RuntimeException;
 class ExcelQuestionParser implements QuestionFileParser
 {
     public const PROFILE_NEW_TEMPLATE = ImportTemplateRegistry::QUESTION_BANK_MCQ;
+
     public const PROFILE_ESSAY_TEMPLATE = ImportTemplateRegistry::QUESTION_BANK_ESSAY;
+
     public const PROFILE_LEGACY_CSV = ImportTemplateRegistry::QUESTION_BANK_MCQ_LEGACY_CSV;
 
     public function __construct(
         private readonly ImportTemplateRegistry $templateRegistry,
         private readonly SimpleXlsxReader $xlsxReader,
-    ) {
-    }
+    ) {}
 
     public function supports(string $extension): bool
     {
@@ -278,16 +279,16 @@ class ExcelQuestionParser implements QuestionFileParser
         if ($question === '') {
             $parseStatus = 'thieu_noi_dung';
             $parseNote = 'Thieu noi dung cau hoi.';
-        } elseif ($score !== '' && (!is_numeric($score) || (float) $score < 0.25)) {
+        } elseif ($score !== '' && (! is_numeric($score) || (float) $score < 0.25)) {
             $parseStatus = 'diem_khong_hop_le';
             $parseNote = 'Diem cau hoi phai tu 0.25 tro len.';
         }
 
-        if (!in_array($difficulty, ['de', 'trung_binh', 'kho'], true)) {
+        if (! in_array($difficulty, ['de', 'trung_binh', 'kho'], true)) {
             $difficulty = 'trung_binh';
         }
 
-        if (!in_array($statusValue, [
+        if (! in_array($statusValue, [
             NganHangCauHoi::TRANG_THAI_NHAP,
             NganHangCauHoi::TRANG_THAI_SAN_SANG,
             NganHangCauHoi::TRANG_THAI_TAM_AN,

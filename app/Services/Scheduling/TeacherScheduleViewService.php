@@ -13,8 +13,7 @@ class TeacherScheduleViewService
 {
     public function __construct(
         private readonly TeacherAssignmentResolver $assignmentResolver,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -45,7 +44,7 @@ class TeacherScheduleViewService
         return [
             'week_start' => $weekStart->toDateString(),
             'week_end' => $weekEnd->toDateString(),
-            'week_label' => $weekStart->format('d/m/Y') . ' - ' . $weekEnd->format('d/m/Y'),
+            'week_label' => $weekStart->format('d/m/Y').' - '.$weekEnd->format('d/m/Y'),
             'days' => $days->all(),
             'periods' => TeachingPeriodCatalog::periods(),
             'grid' => $this->buildGrid($days, $scheduledItems, $leaveRequestItems),
@@ -135,10 +134,11 @@ class TeacherScheduleViewService
                     ->sortByDesc('created_at')
                     ->values();
                 $latestLeaveRequest = $matchedLeaveRequests->first();
+
                 return [
                     'id' => $schedule->id,
-                    'assignment_id' => $assignmentMap[(int) $schedule->khoa_hoc_id . ':' . ($schedule->module_hoc_id !== null ? (int) $schedule->module_hoc_id : '*')]
-                        ?? $assignmentMap[(int) $schedule->khoa_hoc_id . ':*']
+                    'assignment_id' => $assignmentMap[(int) $schedule->khoa_hoc_id.':'.($schedule->module_hoc_id !== null ? (int) $schedule->module_hoc_id : '*')]
+                        ?? $assignmentMap[(int) $schedule->khoa_hoc_id.':*']
                         ?? null,
                     'course_id' => (int) $schedule->khoa_hoc_id,
                     'khoa_hoc_id' => $schedule->khoa_hoc_id,
@@ -164,7 +164,7 @@ class TeacherScheduleViewService
                     'leave_status_label' => $latestLeaveRequest['status_label'] ?? null,
                     'leave_status_color' => $latestLeaveRequest['status_color'] ?? null,
                     'leave_reason' => $latestLeaveRequest['reason'] ?? null,
-                    
+
                     // Quick Action Links
                     'routes' => [
                         'show_course' => $this->buildTeacherSessionActionUrl((int) $schedule->khoa_hoc_id, (int) $schedule->id),
@@ -173,7 +173,7 @@ class TeacherScheduleViewService
                         'exams' => $this->buildTeacherSessionActionUrl((int) $schedule->khoa_hoc_id, (int) $schedule->id, 'exams'),
                         'leave_request' => route('giang-vien.don-xin-nghi.create', ['lich_hoc_id' => $schedule->id]),
                     ],
-                    
+
                     // Interaction Flags
                     'can_attendance' => true,
                     'can_resource' => true,
@@ -195,7 +195,7 @@ class TeacherScheduleViewService
             $params['quick_action'] = $quickAction;
         }
 
-        return route('giang-vien.khoa-hoc.show', $params) . '#session-' . $scheduleId;
+        return route('giang-vien.khoa-hoc.show', $params).'#session-'.$scheduleId;
     }
 
     /**
@@ -212,7 +212,7 @@ class TeacherScheduleViewService
             $row = [
                 'period' => $period,
                 'label' => TeachingPeriodCatalog::periodLabels()[$period],
-                'time' => TeachingPeriodCatalog::periods()[$period]['start'] . ' - ' . TeachingPeriodCatalog::periods()[$period]['end'],
+                'time' => TeachingPeriodCatalog::periods()[$period]['start'].' - '.TeachingPeriodCatalog::periods()[$period]['end'],
                 'session' => TeachingPeriodCatalog::sessionLabel(TeachingPeriodCatalog::periods()[$period]['session']),
                 'cells' => [],
             ];

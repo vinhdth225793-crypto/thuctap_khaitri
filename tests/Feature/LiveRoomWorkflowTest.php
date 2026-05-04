@@ -15,10 +15,9 @@ use App\Models\NhomNganh;
 use App\Models\PhanCongModuleGiangVien;
 use App\Models\PhongHocLive;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
-
-use Illuminate\Foundation\Testing\WithoutMiddleware;
 
 class LiveRoomWorkflowTest extends TestCase
 {
@@ -143,7 +142,6 @@ class LiveRoomWorkflowTest extends TestCase
             ]);
 
         $response->assertRedirect(route('admin.bai-giang.index'));
-
 
         $lecture = BaiGiang::query()->firstOrFail();
         $room = $lecture->phongHocLive()->firstOrFail();
@@ -497,25 +495,25 @@ class LiveRoomWorkflowTest extends TestCase
         $showCourseUrl = route('giang-vien.khoa-hoc.show', [
             'id' => $course->id,
             'focus_lich_hoc_id' => $lichHoc->id,
-        ]) . '#session-' . $lichHoc->id;
+        ]).'#session-'.$lichHoc->id;
 
         $attendanceUrl = route('giang-vien.khoa-hoc.show', [
             'id' => $course->id,
             'focus_lich_hoc_id' => $lichHoc->id,
             'quick_action' => 'attendance',
-        ]) . '#session-' . $lichHoc->id;
+        ]).'#session-'.$lichHoc->id;
 
         $resourceUrl = route('giang-vien.khoa-hoc.show', [
             'id' => $course->id,
             'focus_lich_hoc_id' => $lichHoc->id,
             'quick_action' => 'resources',
-        ]) . '#session-' . $lichHoc->id;
+        ]).'#session-'.$lichHoc->id;
 
         $examUrl = route('giang-vien.khoa-hoc.show', [
             'id' => $course->id,
             'focus_lich_hoc_id' => $lichHoc->id,
             'quick_action' => 'exams',
-        ]) . '#session-' . $lichHoc->id;
+        ]).'#session-'.$lichHoc->id;
 
         $this->actingAs($teacherUser)
             ->get(route('giang-vien.live-room.show', $lecture->id))
@@ -702,8 +700,8 @@ class LiveRoomWorkflowTest extends TestCase
         $index = $this->sequence++;
 
         return NguoiDung::create([
-            'ho_ten' => strtoupper($role) . ' ' . $index,
-            'email' => $role . $index . '@example.com',
+            'ho_ten' => strtoupper($role).' '.$index,
+            'email' => $role.$index.'@example.com',
             'mat_khau' => bcrypt('password'),
             'vai_tro' => $role,
             'trang_thai' => true,
@@ -736,15 +734,15 @@ class LiveRoomWorkflowTest extends TestCase
         $index = $this->sequence++;
 
         $nhomNganh = NhomNganh::create([
-            'ma_nhom_nganh' => 'NN' . str_pad((string) $index, 3, '0', STR_PAD_LEFT),
-            'ten_nhom_nganh' => 'Nhom nganh ' . $index,
+            'ma_nhom_nganh' => 'NN'.str_pad((string) $index, 3, '0', STR_PAD_LEFT),
+            'ten_nhom_nganh' => 'Nhom nganh '.$index,
             'trang_thai' => true,
         ]);
 
         return KhoaHoc::create([
             'nhom_nganh_id' => $nhomNganh->id,
-            'ma_khoa_hoc' => 'KH-' . str_pad((string) $index, 3, '0', STR_PAD_LEFT),
-            'ten_khoa_hoc' => 'Khoa hoc ' . $index,
+            'ma_khoa_hoc' => 'KH-'.str_pad((string) $index, 3, '0', STR_PAD_LEFT),
+            'ten_khoa_hoc' => 'Khoa hoc '.$index,
             'cap_do' => 'co_ban',
             'tong_so_module' => 1,
             'trang_thai' => true,
@@ -758,7 +756,7 @@ class LiveRoomWorkflowTest extends TestCase
     {
         return ModuleHoc::create([
             'khoa_hoc_id' => $course->id,
-            'ma_module' => $course->ma_khoa_hoc . '-M1',
+            'ma_module' => $course->ma_khoa_hoc.'-M1',
             'ten_module' => 'Module 1',
             'thu_tu_module' => 1,
             'so_buoi' => 3,

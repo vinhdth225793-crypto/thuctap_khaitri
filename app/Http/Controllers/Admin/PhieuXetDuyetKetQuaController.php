@@ -11,8 +11,7 @@ class PhieuXetDuyetKetQuaController extends Controller
 {
     public function __construct(
         private readonly CourseApprovalReviewService $reviewService,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request)
     {

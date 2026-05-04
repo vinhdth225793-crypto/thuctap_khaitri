@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class HocVienKhoaHoc extends Model
@@ -18,7 +18,7 @@ class HocVienKhoaHoc extends Model
         'ngay_tham_gia',
         'trang_thai',
         'ghi_chu',
-        'created_by'
+        'created_by',
     ];
 
     protected $casts = [
@@ -56,11 +56,11 @@ class HocVienKhoaHoc extends Model
      */
     public function getTrangThaiLabelAttribute(): string
     {
-        return match($this->trang_thai) {
-            'dang_hoc'   => 'Đang học',
+        return match ($this->trang_thai) {
+            'dang_hoc' => 'Đang học',
             'hoan_thanh' => 'Hoàn thành',
-            'ngung_hoc'  => 'Ngừng học',
-            default      => 'Không xác định',
+            'ngung_hoc' => 'Ngừng học',
+            default => 'Không xác định',
         };
     }
 
@@ -69,11 +69,11 @@ class HocVienKhoaHoc extends Model
      */
     public function getTrangThaiBadgeAttribute(): string
     {
-        return match($this->trang_thai) {
-            'dang_hoc'   => 'bg-success',
+        return match ($this->trang_thai) {
+            'dang_hoc' => 'bg-success',
             'hoan_thanh' => 'bg-primary',
-            'ngung_hoc'  => 'bg-danger',
-            default      => 'bg-secondary',
+            'ngung_hoc' => 'bg-danger',
+            default => 'bg-secondary',
         };
     }
 }

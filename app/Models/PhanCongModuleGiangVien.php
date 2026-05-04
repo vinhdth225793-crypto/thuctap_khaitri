@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class PhanCongModuleGiangVien extends Model
 {
@@ -18,7 +18,7 @@ class PhanCongModuleGiangVien extends Model
         'ngay_phan_cong',
         'trang_thai',
         'ghi_chu',
-        'created_by'
+        'created_by',
     ];
 
     protected $casts = [
@@ -93,4 +93,3 @@ class PhanCongModuleGiangVien extends Model
         };
     }
 }
-

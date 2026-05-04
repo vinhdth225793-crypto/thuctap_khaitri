@@ -6,16 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Models\BaiKiemTra;
 use App\Models\BaiLamBaiKiemTra;
 use App\Models\DiemDanhGiangVien;
+use App\Models\HocVienKhoaHoc;
+use App\Models\KetQuaHocTap;
 use App\Models\KhoaHoc;
 use App\Models\LichHoc;
 use App\Models\PhanCongModuleGiangVien;
 use App\Models\YeuCauHocVien;
-use App\Models\KetQuaHocTap;
-use App\Models\HocVienKhoaHoc;
-use App\Services\TeacherAttendanceService;
-use App\Services\ThongBaoService;
 use App\Services\KetQuaHocTapService;
 use App\Services\LearningResultFinalizationService;
+use App\Services\TeacherAttendanceService;
+use App\Services\ThongBaoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -26,8 +26,7 @@ class PhanCongController extends Controller
         private readonly KetQuaHocTapService $ketQuaHocTapService,
         private readonly LearningResultFinalizationService $finalizationService,
         private readonly \App\Services\ModuleFinalScoreService $moduleFinalScoreService,
-    ) {
-    }
+    ) {}
 
     /**
      * Hiển thị lộ trình giảng dạy gom nhóm theo Khóa học
@@ -35,18 +34,18 @@ class PhanCongController extends Controller
     public function index()
     {
         $giangVien = auth()->user()->giangVien;
-        if (!$giangVien) {
+        if (! $giangVien) {
             return redirect()->route('home')
                 ->with('error', 'Tài khoản chưa được liên kết với giảng viên.');
         }
 
         $khoaHocs = KhoaHoc::with(['nhomNganh', 'moduleHocs' => function ($q) use ($giangVien) {
-                $q->whereHas('phanCongGiangViens', function ($q2) use ($giangVien) {
-                    $q2->where('giang_vien_id', $giangVien->id);
-                })->with(['phanCongGiangViens' => function ($q2) use ($giangVien) {
-                    $q2->where('giang_vien_id', $giangVien->id);
-                }, 'lichHocs']);
-            }])
+            $q->whereHas('phanCongGiangViens', function ($q2) use ($giangVien) {
+                $q2->where('giang_vien_id', $giangVien->id);
+            })->with(['phanCongGiangViens' => function ($q2) use ($giangVien) {
+                $q2->where('giang_vien_id', $giangVien->id);
+            }, 'lichHocs']);
+        }])
             ->whereHas('moduleHocs.phanCongGiangViens', function ($q) use ($giangVien) {
                 $q->where('giang_vien_id', $giangVien->id);
             })
@@ -58,6 +57,7 @@ class PhanCongController extends Controller
         $khoaHocsChuaNhan = $khoaHocs->filter(function ($khoaHoc) {
             return $khoaHoc->moduleHocs->contains(function ($module) {
                 $pc = $module->phanCongGiangViens->first();
+
                 return $pc && $pc->trang_thai === 'cho_xac_nhan';
             });
         });
@@ -65,17 +65,19 @@ class PhanCongController extends Controller
         // 2. Khóa học đã nhận dạy và đã hoàn thành (tiến độ 100%)
         $khoaHocsHoanThanh = $khoaHocs->filter(function ($khoaHoc) {
             // Không nằm trong nhóm chưa nhận
-            $daXacNhanHet = !$khoaHoc->moduleHocs->contains(function ($module) {
+            $daXacNhanHet = ! $khoaHoc->moduleHocs->contains(function ($module) {
                 $pc = $module->phanCongGiangViens->first();
+
                 return $pc && $pc->trang_thai === 'cho_xac_nhan';
             });
-            return $daXacNhanHet && (int)$khoaHoc->tien_do_hoc_tap === 100;
+
+            return $daXacNhanHet && (int) $khoaHoc->tien_do_hoc_tap === 100;
         });
 
         // 3. Khóa học đã nhận dạy và đang trong quá trình (tiến độ < 100%)
         $khoaHocsDaNhan = $khoaHocs->filter(function ($khoaHoc) use ($khoaHocsChuaNhan, $khoaHocsHoanThanh) {
-            return !$khoaHocsChuaNhan->contains('id', $khoaHoc->id) && 
-                   !$khoaHocsHoanThanh->contains('id', $khoaHoc->id);
+            return ! $khoaHocsChuaNhan->contains('id', $khoaHoc->id) &&
+                   ! $khoaHocsHoanThanh->contains('id', $khoaHoc->id);
         });
 
         $phanCongChoXacNhan = PhanCongModuleGiangVien::where('giang_vien_id', $giangVien->id)
@@ -83,8 +85,8 @@ class PhanCongController extends Controller
             ->count();
 
         return view('pages.giang-vien.phan-cong.index', compact(
-            'khoaHocsChuaNhan', 
-            'khoaHocsDaNhan', 
+            'khoaHocsChuaNhan',
+            'khoaHocsDaNhan',
             'khoaHocsHoanThanh',
             'phanCongChoXacNhan'
         ));
@@ -104,7 +106,7 @@ class PhanCongController extends Controller
         }
 
         $phanCong = $courseAssignments->firstWhere('trang_thai', 'da_nhan') ?? $courseAssignments->first();
-        abort_if(!$phanCong, 404);
+        abort_if(! $phanCong, 404);
 
         $focusedLichHocId = (int) request('focus_lich_hoc_id', 0);
         $activeAssignment = $phanCong;
@@ -127,17 +129,17 @@ class PhanCongController extends Controller
         $moduleIds = $assignmentByModule->keys()->map(fn ($moduleId) => (int) $moduleId)->all();
 
         $lichDays = LichHoc::with([
-                'taiNguyen',
-                'baiKiemTras',
-                'baiGiangs.phongHocLive',
-                'diemDanhs',
-                'giangVien.nguoiDung',
-                'moduleHoc.phanCongGiangViens.giangVien.nguoiDung',
-                'teacherAttendanceLogs' => function ($query) use ($giangVien) {
-                    $query->where('giang_vien_id', $giangVien->id)
-                        ->with('giangVien.nguoiDung');
-                },
-            ])
+            'taiNguyen',
+            'baiKiemTras',
+            'baiGiangs.phongHocLive',
+            'diemDanhs',
+            'giangVien.nguoiDung',
+            'moduleHoc.phanCongGiangViens.giangVien.nguoiDung',
+            'teacherAttendanceLogs' => function ($query) use ($giangVien) {
+                $query->where('giang_vien_id', $giangVien->id)
+                    ->with('giangVien.nguoiDung');
+            },
+        ])
             ->where('khoa_hoc_id', $khoaHoc->id)
             ->whereIn('module_hoc_id', $moduleIds)
             ->orderBy('ngay_hoc')
@@ -149,7 +151,7 @@ class PhanCongController extends Controller
         $timelineItems = $lichDays->map(function (LichHoc $lich) use ($assignmentByModule) {
             $assignment = $assignmentByModule->get((int) $lich->module_hoc_id);
 
-            if (!$assignment) {
+            if (! $assignment) {
                 return null;
             }
 
@@ -180,8 +182,8 @@ class PhanCongController extends Controller
                 'attendanceStatus' => [
                     'label' => $teacherAttendance?->trang_thai_label ?? 'Chưa điểm danh',
                     'color' => $teacherAttendance?->trang_thai_color ?? 'secondary',
-                    'can_check_in' => $canManageSession && !$sessionStatus['is_locked'] && !$teacherAttendance?->has_checked_in,
-                    'can_check_out' => $canManageSession && ($teacherAttendance?->has_checked_in ?? false) && !$teacherAttendance?->has_checked_out,
+                    'can_check_in' => $canManageSession && ! $sessionStatus['is_locked'] && ! $teacherAttendance?->has_checked_in,
+                    'can_check_out' => $canManageSession && ($teacherAttendance?->has_checked_in ?? false) && ! $teacherAttendance?->has_checked_out,
                 ],
                 'resourceCount' => $lich->taiNguyen->count(),
                 'examCount' => $lich->baiKiemTras->count(),
@@ -292,12 +294,12 @@ class PhanCongController extends Controller
             ->whereHas('baiKiemTra', fn ($query) => $query->where('khoa_hoc_id', $khoaHoc->id))
             ->orderBy('lan_lam_thu')
             ->get()
-            ->groupBy(fn (BaiLamBaiKiemTra $attempt) => $attempt->hoc_vien_id . ':' . $attempt->bai_kiem_tra_id);
+            ->groupBy(fn (BaiLamBaiKiemTra $attempt) => $attempt->hoc_vien_id.':'.$attempt->bai_kiem_tra_id);
 
         $studentResults = [];
         foreach ($hocViens as $enrollment) {
             $student = $enrollment->hocVien?->nguoiDung;
-            
+
             // Lấy tất cả kết quả của học viên này trong khóa
             $allResults = $resultsByStudent->get($enrollment->hoc_vien_id, collect());
             $moduleResults = $allResults->whereNotNull('module_hoc_id')->whereNull('bai_kiem_tra_id')->values();
@@ -317,7 +319,7 @@ class PhanCongController extends Controller
                 'breakdown' => $this->moduleFinalScoreService->calculateForStudent((int) $phanCong->module_hoc_id, $enrollment->hoc_vien_id),
                 'attempts_by_exam' => $examResults->mapWithKeys(function (KetQuaHocTap $result) use ($attemptsByStudentExam, $enrollment) {
                     return [
-                        $result->bai_kiem_tra_id => $attemptsByStudentExam->get($enrollment->hoc_vien_id . ':' . $result->bai_kiem_tra_id, collect()),
+                        $result->bai_kiem_tra_id => $attemptsByStudentExam->get($enrollment->hoc_vien_id.':'.$result->bai_kiem_tra_id, collect()),
                     ];
                 }),
             ];
@@ -333,7 +335,7 @@ class PhanCongController extends Controller
     {
         $giangVien = auth()->user()->giangVien;
         $phanCong = $this->resolveTeacherAssignment($giangVien->id, (int) $id);
-        
+
         $validated = $request->validate([
             'result_id' => 'required|exists:ket_qua_hoc_tap,id',
             'trang_thai' => 'nullable|string|max:50',
@@ -411,20 +413,20 @@ class PhanCongController extends Controller
     {
         $giangVien = auth()->user()->giangVien;
 
-        if (!$giangVien) {
+        if (! $giangVien) {
             return redirect()->route('home')
                 ->with('error', 'Tài khoản chưa được liên kết với giảng viên.');
         }
 
         [$lichHoc, $canManage] = $this->resolveTeacherScheduleContext($giangVien->id, (int) $id);
 
-        if (!$canManage) {
+        if (! $canManage) {
             return back()->with('error', 'Bạn không được phân công giảng dạy buổi học này.');
         }
 
         $sessionStatus = $this->buildSessionStatus($lichHoc, true);
 
-        if (!$sessionStatus['can_start']) {
+        if (! $sessionStatus['can_start']) {
             return back()->with('error', $this->resolveTeachingSessionGuardMessage($sessionStatus, 'start'));
         }
 
@@ -444,20 +446,20 @@ class PhanCongController extends Controller
     {
         $giangVien = auth()->user()->giangVien;
 
-        if (!$giangVien) {
+        if (! $giangVien) {
             return redirect()->route('home')
                 ->with('error', 'Tài khoản chưa được liên kết với giảng viên.');
         }
 
         [$lichHoc, $canManage] = $this->resolveTeacherScheduleContext($giangVien->id, (int) $id);
 
-        if (!$canManage) {
+        if (! $canManage) {
             return back()->with('error', 'Bạn không được phân công giảng dạy buổi học này.');
         }
 
         $sessionStatus = $this->buildSessionStatus($lichHoc, true);
 
-        if (!$sessionStatus['can_finish']) {
+        if (! $sessionStatus['can_finish']) {
             return back()->with('error', $this->resolveTeachingSessionGuardMessage($sessionStatus, 'finish'));
         }
 
@@ -483,7 +485,7 @@ class PhanCongController extends Controller
             ->where('trang_thai', 'da_nhan')
             ->exists();
 
-        if (!$isAssigned) {
+        if (! $isAssigned) {
             return back()->with('error', 'Bạn không có quyền cập nhật lịch dạy này.');
         }
 
@@ -517,7 +519,7 @@ class PhanCongController extends Controller
             ->where('trang_thai', 'da_nhan')
             ->exists();
 
-        if (!$duocPhanCong) {
+        if (! $duocPhanCong) {
             return back()->with('error', 'Bạn không được phân công giảng dạy khóa học này.');
         }
 
@@ -630,7 +632,7 @@ class PhanCongController extends Controller
             ->orderByDesc('id')
             ->first();
 
-        abort_if(!$moduleAssignment, 404);
+        abort_if(! $moduleAssignment, 404);
 
         return $moduleAssignment;
     }
@@ -665,7 +667,7 @@ class PhanCongController extends Controller
 
         $legacyAssignment = (clone $baseQuery)->find($identifier);
 
-        if (!$legacyAssignment) {
+        if (! $legacyAssignment) {
             $legacyAssignment = (clone $baseQuery)
                 ->where('module_hoc_id', $identifier)
                 ->orderByRaw($statusPriority)
@@ -673,7 +675,7 @@ class PhanCongController extends Controller
                 ->first();
         }
 
-        abort_if(!$legacyAssignment, 404);
+        abort_if(! $legacyAssignment, 404);
 
         $courseAssignments = (clone $baseQuery)
             ->where('khoa_hoc_id', $legacyAssignment->khoa_hoc_id)
@@ -728,9 +730,9 @@ class PhanCongController extends Controller
             $deadlineAt = $lichHoc->teacher_checkout_deadline;
 
             if ($openAt && now()->lt($openAt)) {
-                $startBlockReason = 'Chi duoc bat dau/check-in tu ' . $openAt->format('d/m/Y H:i') . '.';
+                $startBlockReason = 'Chi duoc bat dau/check-in tu '.$openAt->format('d/m/Y H:i').'.';
             } elseif ($deadlineAt && now()->gt($deadlineAt)) {
-                $startBlockReason = 'Da qua han bat dau/check-in luc ' . $deadlineAt->format('d/m/Y H:i') . '.';
+                $startBlockReason = 'Da qua han bat dau/check-in luc '.$deadlineAt->format('d/m/Y H:i').'.';
             }
         }
 
@@ -782,8 +784,8 @@ class PhanCongController extends Controller
             'check_in_time' => $attendance?->check_in_at,
             'check_out_time' => $attendance?->check_out_at,
             'duration_minutes' => $attendance?->tong_thoi_luong_day_phut,
-            'can_check_in' => $canManage && !$sessionStatus['is_locked'] && !$hasCheckedIn,
-            'can_check_out' => $canManage && $hasCheckedIn && !$hasCheckedOut,
+            'can_check_in' => $canManage && ! $sessionStatus['is_locked'] && ! $hasCheckedIn,
+            'can_check_out' => $canManage && $hasCheckedIn && ! $hasCheckedOut,
             'status_hint' => match ($value) {
                 DiemDanhGiangVien::STATUS_DA_CHECKIN => 'Giảng viên đã check-in. Có thể check-out khi kết thúc phần giảng dạy của buổi học.',
                 DiemDanhGiangVien::STATUS_DA_CHECKOUT => 'Giờ vào và giờ ra đã được ghi nhận. Có thể tiếp tục kết thúc buổi học nếu chưa chốt phiên.',
@@ -823,7 +825,7 @@ class PhanCongController extends Controller
             'late_count' => $lateCount,
             'absent_count' => $absentCount,
             'excused_count' => $excusedCount,
-            'can_manage' => $canManage && !$sessionStatus['is_cancelled'],
+            'can_manage' => $canManage && ! $sessionStatus['is_cancelled'],
             'is_finalized' => $isFinalized,
             'status_hint' => $isFinalized
                 ? 'Điểm danh học viên đã được chốt bằng báo cáo cuối buổi. Bạn vẫn có thể mở lại modal để rà soát và cập nhật nếu cần.'
@@ -865,13 +867,13 @@ class PhanCongController extends Controller
 
         $sessionLocked = $sessionStatus['is_locked'];
 
-        if (!$teacherLiveRoom) {
+        if (! $teacherLiveRoom) {
             return [
                 'label' => 'Buoi hoc online',
                 'color' => 'info',
                 'room_status_label' => 'Chua tao',
                 'room_status_color' => 'secondary',
-                'can_create_room' => $canManage && !$sessionLocked,
+                'can_create_room' => $canManage && ! $sessionLocked,
                 'can_enter_room' => false,
                 'can_end_room' => false,
             ];
@@ -883,7 +885,7 @@ class PhanCongController extends Controller
             'room_status_label' => $teacherLiveRoom->teaching_timeline_status_label,
             'room_status_color' => $teacherLiveRoom->teaching_timeline_status_color,
             'can_create_room' => false,
-            'can_enter_room' => $canManage && !$sessionLocked,
+            'can_enter_room' => $canManage && ! $sessionLocked,
             'can_end_room' => $canManage && $teacherLiveRoom->isDangDienRa(),
         ];
     }

@@ -13,8 +13,7 @@ class TeacherLeaveRequestController extends Controller
 {
     public function __construct(
         private readonly TeacherLeaveRequestService $leaveRequestService,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request)
     {
@@ -68,7 +67,9 @@ class TeacherLeaveRequestController extends Controller
                 app(\App\Services\NotificationService::class)
                     ->notifyLeaveDecided((int) $teacherUserId, $leaveRequest->id, true, $note);
             }
-        } catch (\Throwable $e) { report($e); }
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return redirect()
             ->route('admin.giang-vien-don-xin-nghi.show', $leaveRequest->id)
@@ -87,7 +88,9 @@ class TeacherLeaveRequestController extends Controller
                 app(\App\Services\NotificationService::class)
                     ->notifyLeaveDecided((int) $teacherUserId, $leaveRequest->id, false, $note);
             }
-        } catch (\Throwable $e) { report($e); }
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return redirect()
             ->route('admin.giang-vien-don-xin-nghi.show', $leaveRequest->id)

@@ -19,17 +19,16 @@ class BaiGiangController extends Controller
 {
     public function __construct(
         private readonly LiveLectureService $liveLectureService
-    ) {
-    }
+    ) {}
 
     public function index(Request $request)
     {
         $query = BaiGiang::with([
-                'khoaHoc',
-                'moduleHoc',
-                'nguoiTao',
-                'phongHocLive.moderator',
-            ])
+            'khoaHoc',
+            'moduleHoc',
+            'nguoiTao',
+            'phongHocLive.moderator',
+        ])
             ->orderByDesc('created_at');
 
         if ($request->filled('trang_thai_duyet')) {
@@ -237,6 +236,7 @@ class BaiGiangController extends Controller
         $trangThaiMoi = $this->liveLectureService->togglePublication($baiGiang);
 
         $msg = $trangThaiMoi === BaiGiang::CONG_BO_DA_CONG_BO ? 'Da cong bo bai giang.' : 'Da an bai giang.';
+
         return back()->with('success', $msg);
     }
 
@@ -260,7 +260,7 @@ class BaiGiangController extends Controller
 
     private function formatScheduleForLectureForm(LichHoc $lichHoc): array
     {
-        $signal = strtolower((string) $lichHoc->nen_tang . ' ' . (string) $lichHoc->link_online);
+        $signal = strtolower((string) $lichHoc->nen_tang.' '.(string) $lichHoc->link_online);
         $platform = str_contains($signal, 'google') || str_contains($signal, 'meet.google.com')
             ? PhongHocLive::PLATFORM_GOOGLE_MEET
             : (str_contains($signal, 'zoom') || filled($lichHoc->link_online) ? PhongHocLive::PLATFORM_ZOOM : PhongHocLive::PLATFORM_INTERNAL);
@@ -289,7 +289,7 @@ class BaiGiangController extends Controller
             ->where('trang_thai', 'da_nhan')
             ->first();
 
-        if (!$phanCong) {
+        if (! $phanCong) {
             throw ValidationException::withMessages([
                 'phan_cong_id' => 'Phan cong da chon khong hop le hoac chua duoc xac nhan.',
             ]);
@@ -310,7 +310,7 @@ class BaiGiangController extends Controller
             ->where('module_hoc_id', $phanCong->module_hoc_id)
             ->exists();
 
-        if (!$isValidLichHoc) {
+        if (! $isValidLichHoc) {
             throw ValidationException::withMessages([
                 'lich_hoc_id' => 'Buoi hoc da chon khong thuoc module cua phan cong nay.',
             ]);
@@ -320,7 +320,7 @@ class BaiGiangController extends Controller
     }
 
     /**
-     * @param array<int, mixed> $taiNguyenPhuIds
+     * @param  array<int, mixed>  $taiNguyenPhuIds
      * @return array{0: int|null, 1: array<int, int>}
      */
     private function resolveApprovedResources(?int $taiNguyenChinhId, array $taiNguyenPhuIds): array
@@ -348,7 +348,7 @@ class BaiGiangController extends Controller
             ->map(fn ($id) => (int) $id)
             ->all();
 
-        if ($taiNguyenChinhId !== null && !in_array($taiNguyenChinhId, $approvedIds, true)) {
+        if ($taiNguyenChinhId !== null && ! in_array($taiNguyenChinhId, $approvedIds, true)) {
             throw ValidationException::withMessages([
                 'tai_nguyen_chinh_id' => 'Tai nguyen chinh da chon khong hop le hoac chua duoc duyet.',
             ]);

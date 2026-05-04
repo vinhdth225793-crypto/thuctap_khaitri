@@ -37,14 +37,14 @@ class UpsertBaiGiangRequest extends FormRequest
             'hanh_dong' => ['nullable', Rule::in(['luu_nhap', 'gui_duyet', 'duyet_ngay'])],
 
             'live' => ['nullable', 'array'],
-            'live.nen_tang_live' => ['required_if:loai_bai_giang,' . BaiGiang::TYPE_LIVE, Rule::in($platforms)],
+            'live.nen_tang_live' => ['required_if:loai_bai_giang,'.BaiGiang::TYPE_LIVE, Rule::in($platforms)],
             'live.loai_live' => ['nullable', Rule::in([PhongHocLive::TYPE_MEETING, PhongHocLive::TYPE_CLASS, PhongHocLive::TYPE_WEBINAR])],
             'live.tieu_de' => ['nullable', 'string', 'max:255'],
             'live.mo_ta' => ['nullable', 'string'],
-            'live.moderator_id' => ['required_if:loai_bai_giang,' . BaiGiang::TYPE_LIVE, 'exists:nguoi_dung,ma_nguoi_dung'],
+            'live.moderator_id' => ['required_if:loai_bai_giang,'.BaiGiang::TYPE_LIVE, 'exists:nguoi_dung,ma_nguoi_dung'],
             'live.tro_giang_id' => ['nullable', 'different:live.moderator_id', 'exists:nguoi_dung,ma_nguoi_dung'],
-            'live.thoi_gian_bat_dau' => ['required_if:loai_bai_giang,' . BaiGiang::TYPE_LIVE, 'date'],
-            'live.thoi_luong_phut' => ['required_if:loai_bai_giang,' . BaiGiang::TYPE_LIVE, 'integer', 'min:15', 'max:480'],
+            'live.thoi_gian_bat_dau' => ['required_if:loai_bai_giang,'.BaiGiang::TYPE_LIVE, 'date'],
+            'live.thoi_luong_phut' => ['required_if:loai_bai_giang,'.BaiGiang::TYPE_LIVE, 'integer', 'min:15', 'max:480'],
             'live.mo_phong_truoc_phut' => ['nullable', 'integer', 'min:0', 'max:180'],
             'live.nhac_truoc_phut' => ['nullable', 'integer', 'min:0', 'max:180'],
             'live.suc_chua_toi_da' => ['nullable', 'integer', 'min:1', 'max:1000'],
@@ -150,7 +150,7 @@ class UpsertBaiGiangRequest extends FormRequest
 
     private function inferPlatformFromSchedule(LichHoc $lichHoc): string
     {
-        $signal = strtolower((string) $lichHoc->nen_tang . ' ' . (string) $lichHoc->link_online);
+        $signal = strtolower((string) $lichHoc->nen_tang.' '.(string) $lichHoc->link_online);
 
         if (str_contains($signal, 'google') || str_contains($signal, 'meet.google.com')) {
             return PhongHocLive::PLATFORM_GOOGLE_MEET;

@@ -21,7 +21,7 @@ class GiangVienController extends Controller
     {
         $giangVien = auth()->user()->giangVien;
 
-        if (!$giangVien) {
+        if (! $giangVien) {
             return redirect()->route('home')->with('error', 'Tài khoản của bạn chưa được thiết lập hồ sơ giảng viên.');
         }
 
@@ -72,8 +72,8 @@ class GiangVienController extends Controller
 
         $assignmentMap = app(TeacherAssignmentResolver::class)->mapAcceptedAssignmentsForSchedules($giangVienId, $lichHomNay);
         $lichHomNay->each(function ($lichHoc) use ($assignmentMap) {
-            $specificKey = (int) $lichHoc->khoa_hoc_id . ':' . ($lichHoc->module_hoc_id !== null ? (int) $lichHoc->module_hoc_id : '*');
-            $fallbackKey = (int) $lichHoc->khoa_hoc_id . ':*';
+            $specificKey = (int) $lichHoc->khoa_hoc_id.':'.($lichHoc->module_hoc_id !== null ? (int) $lichHoc->module_hoc_id : '*');
+            $fallbackKey = (int) $lichHoc->khoa_hoc_id.':*';
 
             $lichHoc->setAttribute('phan_cong_id', $assignmentMap[$specificKey] ?? $assignmentMap[$fallbackKey] ?? null);
         });
@@ -85,6 +85,7 @@ class GiangVienController extends Controller
     {
         $user = auth()->user();
         $user->load('giangVien');
+
         return view('pages.giang-vien.profile', compact('user'));
     }
 
@@ -94,7 +95,7 @@ class GiangVienController extends Controller
 
         $validator = Validator::make($request->all(), [
             'ho_ten' => 'required|string|max:255',
-            'email' => 'required|email|unique:nguoi_dung,email,' . $user->id . ',ma_nguoi_dung',
+            'email' => 'required|email|unique:nguoi_dung,email,'.$user->id.',ma_nguoi_dung',
             'so_dien_thoai' => 'nullable|string|max:15',
             'ngay_sinh' => 'nullable|date|before:today',
             'dia_chi' => 'nullable|string|max:500',
@@ -129,7 +130,7 @@ class GiangVienController extends Controller
         $user->update($data);
 
         $giang = $user->giangVien;
-        if (!$giang) {
+        if (! $giang) {
             $giang = $user->giangVien()->create([]);
         }
         $giang->update($request->only(['chuyen_nganh', 'hoc_vi']));

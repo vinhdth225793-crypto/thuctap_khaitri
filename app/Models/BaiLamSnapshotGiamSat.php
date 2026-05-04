@@ -42,6 +42,6 @@ class BaiLamSnapshotGiamSat extends Model
             return asset($this->duong_dan_file);
         }
 
-        return asset('storage/' . ltrim($this->duong_dan_file, '/'));
+        return asset('storage/'.ltrim($this->duong_dan_file, '/'));
     }
 }

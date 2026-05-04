@@ -123,7 +123,7 @@ class BaiLamBaiKiemTra extends Model
 
     public function getCanResumeAttribute(): bool
     {
-        return $this->trang_thai === 'dang_lam' && !$this->is_submitted;
+        return $this->trang_thai === 'dang_lam' && ! $this->is_submitted;
     }
 
     public function getNeedManualGradingAttribute(): bool

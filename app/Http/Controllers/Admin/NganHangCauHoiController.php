@@ -7,8 +7,8 @@ use App\Http\Requests\ImportQuestionDocumentRequest;
 use App\Http\Requests\UpsertNganHangCauHoiRequest;
 use App\Models\ModuleHoc;
 use App\Models\NganHangCauHoi;
-use App\Services\QuestionBankImportService;
 use App\Services\QuestionBankCourseCatalogService;
+use App\Services\QuestionBankImportService;
 use App\Services\QuestionImport\ParsedQuestionExportService;
 use App\Support\Imports\ImportTemplateRegistry;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,8 +26,7 @@ class NganHangCauHoiController extends Controller
         private readonly QuestionBankImportService $questionBankImportService,
         private readonly QuestionBankCourseCatalogService $questionBankCourseCatalogService,
         private readonly ParsedQuestionExportService $parsedQuestionExportService,
-    ) {
-    }
+    ) {}
 
     private function getCourseCatalog(): array
     {
@@ -190,7 +189,7 @@ class NganHangCauHoiController extends Controller
             ->orderBy('module_hoc_id')
             ->get()
             ->groupBy(function (NganHangCauHoi $item) {
-                return $item->khoa_hoc_id . '::' . ($item->module_hoc_id ?? 'course');
+                return $item->khoa_hoc_id.'::'.($item->module_hoc_id ?? 'course');
             })
             ->map(function (Collection $items) {
                 /** @var NganHangCauHoi $first */
@@ -221,7 +220,7 @@ class NganHangCauHoiController extends Controller
                     'module_hoc_ten' => $first->moduleHoc?->ten_module,
                     'module_hoc_ma' => $first->moduleHoc?->ma_module,
                     'group_label' => $first->moduleHoc?->ten_module
-                        ? ($first->khoaHoc?->ten_khoa_hoc . ' / ' . $first->moduleHoc->ten_module)
+                        ? ($first->khoaHoc?->ten_khoa_hoc.' / '.$first->moduleHoc->ten_module)
                         : ($first->khoaHoc?->ten_khoa_hoc ?? 'Không rõ khóa học'),
                     'total_questions' => $items->count(),
                     'objective_questions' => $items->where('loai_cau_hoi', NganHangCauHoi::LOAI_TRAC_NGHIEM)->count(),
@@ -398,7 +397,7 @@ class NganHangCauHoiController extends Controller
         $this->authorizeCourseAccess(auth()->user(), (int) $cauHoi->khoa_hoc_id);
 
         $cauHoi->update([
-            'co_the_tai_su_dung' => !$cauHoi->co_the_tai_su_dung,
+            'co_the_tai_su_dung' => ! $cauHoi->co_the_tai_su_dung,
         ]);
 
         return back()->with('success', 'Đã cập nhật cờ tái sử dụng của câu hỏi.');
@@ -411,7 +410,7 @@ class NganHangCauHoiController extends Controller
 
         clearstatcache(true, $templatePath);
 
-        if (!is_file($templatePath) || !is_readable($templatePath)) {
+        if (! is_file($templatePath) || ! is_readable($templatePath)) {
             $fallbackRoute = request()->routeIs('giang-vien.*')
                 ? 'giang-vien.bai-kiem-tra.index'
                 : 'admin.kiem-tra-online.cau-hoi.index';
@@ -571,7 +570,7 @@ class NganHangCauHoiController extends Controller
     private function getOwnedImportPreview(): ?array
     {
         $preview = session('import_preview');
-        if (!is_array($preview)) {
+        if (! is_array($preview)) {
             return null;
         }
 
@@ -586,7 +585,7 @@ class NganHangCauHoiController extends Controller
 
     private function authorizeCourseAccess($user, int $khoaHocId, ?int $secondKhoaHocId = null): void
     {
-        if (!$user->isGiangVien()) {
+        if (! $user->isGiangVien()) {
             return;
         }
 
@@ -615,7 +614,7 @@ class NganHangCauHoiController extends Controller
             ->where('khoa_hoc_id', $khoaHocId)
             ->exists();
 
-        if (!$moduleBelongsToCourse) {
+        if (! $moduleBelongsToCourse) {
             throw ValidationException::withMessages([
                 'module_hoc_id' => 'Module không thuộc khóa học đã chọn.',
             ]);
@@ -650,7 +649,7 @@ class NganHangCauHoiController extends Controller
                 ->where('khoa_hoc_id', $khoaHocId)
                 ->exists();
 
-            if (!$moduleBelongsToCourse) {
+            if (! $moduleBelongsToCourse) {
                 throw ValidationException::withMessages([
                     'module_hoc_id' => 'Module không thuộc khóa học đã chọn.',
                 ]);
@@ -697,7 +696,7 @@ class NganHangCauHoiController extends Controller
             return $answers;
         }
 
-        $answers = !empty($validated['dap_ans'])
+        $answers = ! empty($validated['dap_ans'])
             ? $this->normalizeStructuredAnswers($validated, $kieuDapAn ?? NganHangCauHoi::KIEU_MOT_DAP_AN)
             : $this->normalizeLegacyAnswers($validated);
 
@@ -710,7 +709,7 @@ class NganHangCauHoiController extends Controller
     {
         $dapAnDungSai = (string) ($validated['dap_an_dung_sai'] ?? '');
 
-        if (!in_array($dapAnDungSai, ['dung', 'sai'], true)) {
+        if (! in_array($dapAnDungSai, ['dung', 'sai'], true)) {
             throw ValidationException::withMessages([
                 'dap_an_dung_sai' => 'Vui lòng chọn đáp án đúng cho câu hỏi Đúng / Sai.',
             ]);

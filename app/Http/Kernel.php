@@ -55,7 +55,7 @@ class Kernel extends HttpKernel
         'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
-        
+
         // THÊM 3 DÒNG NÀY - QUAN TRỌNG!
         'admin' => \App\Http\Middleware\CheckAdmin::class,
         'giang_vien' => \App\Http\Middleware\CheckGiangVien::class,

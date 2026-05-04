@@ -10,8 +10,11 @@ use Illuminate\Http\Request;
 class ExamSurveillanceService
 {
     public const DEFAULT_MAX_VIOLATIONS = 3;
+
     public const DEFAULT_SNAPSHOT_INTERVAL = 30;
+
     public const MIN_SNAPSHOT_INTERVAL = 10;
+
     public const MAX_SNAPSHOT_INTERVAL = 300;
 
     /**
@@ -22,7 +25,7 @@ class ExamSurveillanceService
     {
         $coGiamSat = $request->boolean('co_giam_sat');
 
-        if (!$coGiamSat) {
+        if (! $coGiamSat) {
             return [
                 'co_giam_sat' => false,
                 'bat_buoc_fullscreen' => false,
@@ -78,7 +81,7 @@ class ExamSurveillanceService
     {
         $baiLam->loadMissing('baiKiemTra');
 
-        if (!$baiLam->baiKiemTra || !$baiLam->baiKiemTra->co_giam_sat) {
+        if (! $baiLam->baiKiemTra || ! $baiLam->baiKiemTra->co_giam_sat) {
             $baiLam->forceFill([
                 'trang_thai_giam_sat' => 'khong_ap_dung',
             ])->save();

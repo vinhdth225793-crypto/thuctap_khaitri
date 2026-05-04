@@ -16,16 +16,16 @@ return new class extends Migration
             $table->unsignedBigInteger('nguoi_nhan_id');
             $table->string('tieu_de', 255);
             $table->text('noi_dung');
-            $table->enum('loai', ['phan_cong','xac_nhan_gv','mo_lop','he_thong'])
-                  ->default('he_thong');
+            $table->enum('loai', ['phan_cong', 'xac_nhan_gv', 'mo_lop', 'he_thong'])
+                ->default('he_thong');
             $table->string('url', 500)->nullable();   // redirect khi click
             $table->boolean('da_doc')->default(0);
             $table->timestamps();
 
             $table->foreign('nguoi_nhan_id')
-                  ->references('ma_nguoi_dung')
-                  ->on('nguoi_dung')
-                  ->onDelete('cascade');
+                ->references('ma_nguoi_dung')
+                ->on('nguoi_dung')
+                ->onDelete('cascade');
 
             $table->index(['nguoi_nhan_id', 'da_doc']);
         });

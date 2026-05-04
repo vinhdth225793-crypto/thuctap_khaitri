@@ -14,8 +14,7 @@ class TeacherScheduleLiveRoomService
     public function __construct(
         private readonly TeacherAttendanceService $teacherAttendanceService,
         private readonly LiveLectureService $liveLectureService,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{0:BaiGiang,1:PhongHocLive}
@@ -28,14 +27,14 @@ class TeacherScheduleLiveRoomService
         $lecture = $this->resolveInternalLecture($lichHoc);
 
         if (
-            !$lecture
-            || !$lecture->phongHocLive
+            ! $lecture
+            || ! $lecture->phongHocLive
             || $lecture->phongHocLive->nen_tang_live !== PhongHocLive::PLATFORM_INTERNAL
         ) {
             $this->ensureRoomCanBeProvisioned($lichHoc);
         }
 
-        if (!$lecture) {
+        if (! $lecture) {
             $lecture = BaiGiang::create([
                 'khoa_hoc_id' => $lichHoc->khoa_hoc_id,
                 'module_hoc_id' => $lichHoc->module_hoc_id,
@@ -53,7 +52,7 @@ class TeacherScheduleLiveRoomService
 
         $room = $lecture->phongHocLive;
 
-        if (!$room || $room->nen_tang !== PhongHocLive::PLATFORM_INTERNAL) {
+        if (! $room || $room->nen_tang !== PhongHocLive::PLATFORM_INTERNAL) {
             $room = $this->liveLectureService->syncLiveRoom($lecture, [
                 'loai_bai_giang' => BaiGiang::TYPE_LIVE,
                 'hanh_dong' => 'luu_nhap',
@@ -123,27 +122,27 @@ class TeacherScheduleLiveRoomService
 
     private function buildLectureTitle(LichHoc $lichHoc): string
     {
-        return 'Phòng học trực tuyến nội bộ - Buổi ' . ($lichHoc->buoi_so ?? $lichHoc->id);
+        return 'Phòng học trực tuyến nội bộ - Buổi '.($lichHoc->buoi_so ?? $lichHoc->id);
     }
 
     private function buildLectureDescription(LichHoc $lichHoc): string
     {
-        return 'Phòng học trực tuyến nội bộ được tạo tự động cho buổi học online ngày ' . optional($lichHoc->ngay_hoc)->format('d/m/Y') . '.';
+        return 'Phòng học trực tuyến nội bộ được tạo tự động cho buổi học online ngày '.optional($lichHoc->ngay_hoc)->format('d/m/Y').'.';
     }
 
     private function buildRoomTitle(LichHoc $lichHoc): string
     {
-        return 'Lớp học trực tuyến buổi ' . ($lichHoc->buoi_so ?? $lichHoc->id);
+        return 'Lớp học trực tuyến buổi '.($lichHoc->buoi_so ?? $lichHoc->id);
     }
 
     private function buildRoomDescription(LichHoc $lichHoc): string
     {
-        return 'Phòng học nội bộ gắn với lịch học #' . $lichHoc->id . ' để giảng viên demo và điều hành buổi học ngay trên hệ thống.';
+        return 'Phòng học nội bộ gắn với lịch học #'.$lichHoc->id.' để giảng viên demo và điều hành buổi học ngay trên hệ thống.';
     }
 
     private function buildRoomCode(LichHoc $lichHoc): string
     {
-        return 'LH-' . $lichHoc->id . '-B' . ($lichHoc->buoi_so ?? 0);
+        return 'LH-'.$lichHoc->id.'-B'.($lichHoc->buoi_so ?? 0);
     }
 
     private function resolveRoomDuration(LichHoc $lichHoc): int

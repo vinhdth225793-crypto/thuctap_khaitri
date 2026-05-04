@@ -12,8 +12,7 @@ class ScheduleSuggestionService
         private readonly TeacherScheduleRuleService $ruleService,
         private readonly TeacherScheduleConflictService $conflictService,
         private readonly TeacherLeaveRequestService $leaveRequestService,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<int, array<string, string|int>>
@@ -38,7 +37,7 @@ class ScheduleSuggestionService
 
         for ($offset = 0; $offset <= 30 && count($suggestions) < $limit; $offset++) {
             $date = $fromDate->copy()->addDays($offset);
-            if (!$this->ruleService->isAllowedWeekday($date)) {
+            if (! $this->ruleService->isAllowedWeekday($date)) {
                 continue;
             }
 
@@ -51,7 +50,7 @@ class ScheduleSuggestionService
                 }
 
                 $times = TeachingPeriodCatalog::timeRangeFromPeriods($startPeriod, $endPeriod);
-                if (!$this->ruleService->isWithinStandardHours($times['start_time'], $times['end_time'])) {
+                if (! $this->ruleService->isWithinStandardHours($times['start_time'], $times['end_time'])) {
                     continue;
                 }
 
@@ -78,7 +77,7 @@ class ScheduleSuggestionService
                     continue;
                 }
 
-                $key = $date->toDateString() . '|' . $startPeriod . '|' . $endPeriod;
+                $key = $date->toDateString().'|'.$startPeriod.'|'.$endPeriod;
                 if (isset($seenKeys[$key])) {
                     continue;
                 }

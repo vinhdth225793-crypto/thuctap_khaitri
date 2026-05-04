@@ -9,9 +9,13 @@ use Illuminate\Support\Collection;
 class CourseResultAggregationService
 {
     public const AVERAGE_ALL_MODULES = 'average_all_modules';
+
     public const AVERAGE_SELECTED_MODULES = 'average_selected_modules';
+
     public const WEIGHTED_MODULES = 'weighted_modules';
+
     public const FINAL_EXAM_BASED = 'final_exam_based';
+
     public const SELECTED_EXAMS_AVERAGE = 'selected_exams_average';
 
     /**

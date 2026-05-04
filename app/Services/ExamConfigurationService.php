@@ -12,8 +12,7 @@ class ExamConfigurationService
 
     public function __construct(
         private readonly ExamScoringPackageService $scoringPackageService,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, mixed>  $validated
@@ -60,7 +59,7 @@ class ExamConfigurationService
             $errors['ngay_dong'] = 'Ngày đóng đề phải sau ngày mở đề.';
         }
 
-        if ($contentMode === BaiKiemTra::CHE_DO_TU_LUAN_TU_DO && !$hasQuestionDetails && blank($baiKiemTra->mo_ta)) {
+        if ($contentMode === BaiKiemTra::CHE_DO_TU_LUAN_TU_DO && ! $hasQuestionDetails && blank($baiKiemTra->mo_ta)) {
             $errors['mo_ta'] = 'Hãy thêm câu hỏi hoặc mô tả đề bài trước khi gửi duyệt.';
         }
 
@@ -79,11 +78,11 @@ class ExamConfigurationService
             if ((float) $baiKiemTra->tong_diem <= 0) {
                 $errors['tong_diem'] = 'Tong diem cua de phai lon hon 0.';
             }
-        } elseif (!$hasQuestionDetails) {
+        } elseif (! $hasQuestionDetails) {
             $errors['question_ids'] = 'Vui lÃ²ng chá»n cÃ¢u há»i phÃ¹ há»£p vá»›i cháº¿ Ä‘á»™ ná»™i dung trÆ°á»›c khi gá»­i duyá»‡t.';
         }
 
-        if ($contentMode !== BaiKiemTra::CHE_DO_TU_LUAN_TU_DO && !$hasQuestionDetails) {
+        if ($contentMode !== BaiKiemTra::CHE_DO_TU_LUAN_TU_DO && ! $hasQuestionDetails) {
             $errors['question_ids'] = 'Vui long chon cau hoi phu hop voi che do noi dung truoc khi gui duyet.';
         }
 
@@ -93,7 +92,7 @@ class ExamConfigurationService
             }
 
             if ($baiKiemTra->chiTietCauHois->contains(fn ($detail) => (float) $detail->diem_so < self::MIN_QUESTION_SCORE)) {
-                $errors['question_scores'] = 'Mỗi câu hỏi phải có điểm số hợp lệ từ ' . number_format(self::MIN_QUESTION_SCORE, 2) . ' trở lên.';
+                $errors['question_scores'] = 'Mỗi câu hỏi phải có điểm số hợp lệ từ '.number_format(self::MIN_QUESTION_SCORE, 2).' trở lên.';
             }
             if ($contentMode === BaiKiemTra::CHE_DO_TRAC_NGHIEM && $essayCount > 0) {
                 $errors['question_ids'] = 'Che do trac nghiem chi duoc gan cau hoi trac nghiem.';
@@ -109,7 +108,7 @@ class ExamConfigurationService
         }
 
         if ($baiKiemTra->che_do_tinh_diem === 'goi_diem' && $contentMode !== BaiKiemTra::CHE_DO_TU_LUAN_TU_DO) {
-            if (!$hasQuestionDetails) {
+            if (! $hasQuestionDetails) {
                 $errors['question_ids'] = 'Chế độ gói điểm yêu cầu chọn đủ câu hỏi trước khi gửi duyệt.';
             }
 
@@ -139,7 +138,7 @@ class ExamConfigurationService
             }
 
             if ($baiKiemTra->bat_buoc_camera && (int) $baiKiemTra->chu_ky_snapshot_giay < ExamSurveillanceService::MIN_SNAPSHOT_INTERVAL) {
-                $errors['chu_ky_snapshot_giay'] = 'Chu kỳ snapshot phải từ ' . ExamSurveillanceService::MIN_SNAPSHOT_INTERVAL . ' giây trở lên.';
+                $errors['chu_ky_snapshot_giay'] = 'Chu kỳ snapshot phải từ '.ExamSurveillanceService::MIN_SNAPSHOT_INTERVAL.' giây trở lên.';
             }
         }
 
@@ -166,14 +165,14 @@ class ExamConfigurationService
 
         if (count($questionIds) !== $soCau) {
             throw ValidationException::withMessages([
-                'question_ids' => 'Số câu hỏi đã chọn (' . count($questionIds) . ') phải bằng số câu trong gói điểm (' . $soCau . ').',
+                'question_ids' => 'Số câu hỏi đã chọn ('.count($questionIds).') phải bằng số câu trong gói điểm ('.$soCau.').',
             ]);
         }
 
         $tongDiemToiThieu = round($soCau * self::MIN_QUESTION_SCORE, 2);
         if ($tongDiem < $tongDiemToiThieu) {
             throw ValidationException::withMessages([
-                'tong_diem_goi_diem' => 'Tổng điểm tối thiểu cho ' . $soCau . ' câu là ' . number_format($tongDiemToiThieu, 2) . '.',
+                'tong_diem_goi_diem' => 'Tổng điểm tối thiểu cho '.$soCau.' câu là '.number_format($tongDiemToiThieu, 2).'.',
             ]);
         }
 
@@ -215,12 +214,14 @@ class ExamConfigurationService
             $rawScore = $rawScores[$questionId] ?? $rawScores[$index] ?? null;
 
             if ($rawScore === null || $rawScore === '') {
-                $errors['question_scores.' . $questionId] = 'Vui lòng nhập điểm cho từng câu hỏi đã chọn.';
+                $errors['question_scores.'.$questionId] = 'Vui lòng nhập điểm cho từng câu hỏi đã chọn.';
+
                 continue;
             }
 
-            if (!is_numeric($rawScore) || (float) $rawScore < self::MIN_QUESTION_SCORE) {
-                $errors['question_scores.' . $questionId] = 'Điểm mỗi câu phải từ ' . number_format(self::MIN_QUESTION_SCORE, 2) . ' trở lên.';
+            if (! is_numeric($rawScore) || (float) $rawScore < self::MIN_QUESTION_SCORE) {
+                $errors['question_scores.'.$questionId] = 'Điểm mỗi câu phải từ '.number_format(self::MIN_QUESTION_SCORE, 2).' trở lên.';
+
                 continue;
             }
 

@@ -18,7 +18,7 @@ class ThongBaoController extends Controller
         }
 
         $thongBaos = $query->paginate(20)->withQueryString();
-        $tongChua  = ThongBao::ofUser($userId)->chuaDoc()->count();
+        $tongChua = ThongBao::ofUser($userId)->chuaDoc()->count();
         $tongTatCa = ThongBao::ofUser($userId)->count();
 
         return view('pages.thong-bao.index', compact('thongBaos', 'tongChua', 'tongTatCa', 'filter'));
@@ -39,18 +39,21 @@ class ThongBaoController extends Controller
         if ($tb->url) {
             return redirect()->to($tb->url);
         }
+
         return redirect()->route('thong-bao.index');
     }
 
     public function markAllRead()
     {
         ThongBao::ofUser(auth()->id())->chuaDoc()->update(['da_doc' => true]);
+
         return back()->with('success', 'Đã đánh dấu tất cả thông báo là đã đọc.');
     }
 
     public function destroy(int $id)
     {
         ThongBao::ofUser(auth()->id())->where('id', $id)->delete();
+
         return back()->with('success', 'Đã xóa thông báo.');
     }
 
@@ -58,20 +61,20 @@ class ThongBaoController extends Controller
     public function jsonRecent()
     {
         $userId = auth()->id();
-        $items  = ThongBao::ofUser($userId)->moiNhat()->limit(8)->get();
+        $items = ThongBao::ofUser($userId)->moiNhat()->limit(8)->get();
         $tongChua = ThongBao::ofUser($userId)->chuaDoc()->count();
 
         return response()->json([
             'unread_count' => $tongChua,
             'items' => $items->map(fn ($tb) => [
-                'id'        => $tb->id,
-                'tieu_de'   => $tb->tieu_de,
-                'noi_dung'  => $tb->noi_dung,
-                'level'     => $tb->level,
-                'icon'      => $tb->icon_class,
-                'url'       => $tb->url ? route('thong-bao.read', $tb->id) : null,
-                'da_doc'    => (bool) $tb->da_doc,
-                'time_ago'  => optional($tb->created_at)->diffForHumans(),
+                'id' => $tb->id,
+                'tieu_de' => $tb->tieu_de,
+                'noi_dung' => $tb->noi_dung,
+                'level' => $tb->level,
+                'icon' => $tb->icon_class,
+                'url' => $tb->url ? route('thong-bao.read', $tb->id) : null,
+                'da_doc' => (bool) $tb->da_doc,
+                'time_ago' => optional($tb->created_at)->diffForHumans(),
             ]),
         ]);
     }

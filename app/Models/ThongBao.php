@@ -9,12 +9,13 @@ class ThongBao extends Model
 {
     use HasFactory;
 
-    protected $table    = 'thong_bao';
+    protected $table = 'thong_bao';
+
     protected $fillable = ['nguoi_nhan_id', 'tieu_de', 'noi_dung', 'loai', 'level', 'icon', 'url', 'metadata', 'da_doc'];
 
     protected $casts = [
         'metadata' => 'array',
-        'da_doc'   => 'boolean',
+        'da_doc' => 'boolean',
     ];
 
     public function nguoiNhan()
@@ -44,22 +45,23 @@ class ThongBao extends Model
         return match ($this->level) {
             'success' => 'is-success',
             'warning' => 'is-warning',
-            'danger'  => 'is-danger',
-            'info'    => 'is-info',
-            default   => 'is-info',
+            'danger' => 'is-danger',
+            'info' => 'is-info',
+            default => 'is-info',
         };
     }
 
     public function getIconClassAttribute(): string
     {
         if ($this->icon) {
-            return 'fas ' . $this->icon;
+            return 'fas '.$this->icon;
         }
-        return 'fas ' . match ($this->level) {
+
+        return 'fas '.match ($this->level) {
             'success' => 'fa-circle-check',
             'warning' => 'fa-triangle-exclamation',
-            'danger'  => 'fa-circle-xmark',
-            default   => 'fa-bell',
+            'danger' => 'fa-circle-xmark',
+            default => 'fa-bell',
         };
     }
 }

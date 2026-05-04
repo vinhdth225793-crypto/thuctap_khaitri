@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
-use App\Models\ThongBao;
-use App\Models\NguoiDung;
 use App\Models\GiangVien;
-use App\Models\ModuleHoc;
 use App\Models\KhoaHoc;
+use App\Models\ModuleHoc;
+use App\Models\NguoiDung;
+use App\Models\ThongBao;
 
 class ThongBaoService
 {
@@ -17,18 +17,18 @@ class ThongBaoService
     public static function guiPhanCongGV(
         GiangVien $gv,
         ModuleHoc $module,
-        KhoaHoc   $khoaHoc
+        KhoaHoc $khoaHoc
     ): void {
         ThongBao::create([
             'nguoi_nhan_id' => $gv->nguoi_dung_id,
-            'tieu_de'       => "Bạn được phân công dạy module: {$module->ten_module}",
-            'noi_dung'      => "Khóa học: {$khoaHoc->ten_khoa_hoc}\n"
-                             . "Module: {$module->ten_module} (Mã: {$module->ma_module})\n"
-                             . "Dự kiến khai giảng: "
-                             . ($khoaHoc->ngay_khai_giang ? $khoaHoc->ngay_khai_giang->format('d/m/Y') : '—')
-                             . "\nVui lòng vào mục \"Xác nhận phân công\" để xác nhận dạy.",
-            'loai'          => 'phan_cong',
-            'url'           => route('giang-vien.khoa-hoc'),
+            'tieu_de' => "Bạn được phân công dạy module: {$module->ten_module}",
+            'noi_dung' => "Khóa học: {$khoaHoc->ten_khoa_hoc}\n"
+                             ."Module: {$module->ten_module} (Mã: {$module->ma_module})\n"
+                             .'Dự kiến khai giảng: '
+                             .($khoaHoc->ngay_khai_giang ? $khoaHoc->ngay_khai_giang->format('d/m/Y') : '—')
+                             ."\nVui lòng vào mục \"Xác nhận phân công\" để xác nhận dạy.",
+            'loai' => 'phan_cong',
+            'url' => route('giang-vien.khoa-hoc'),
         ]);
     }
 
@@ -41,12 +41,12 @@ class ThongBaoService
         foreach ($admins as $admin) {
             ThongBao::create([
                 'nguoi_nhan_id' => $admin->ma_nguoi_dung,
-                'tieu_de'       => "✅ Lớp học sẵn sàng: {$khoaHoc->ten_khoa_hoc}",
-                'noi_dung'      => "Tất cả giảng viên đã xác nhận dạy cho khóa học "
-                                 . "\"{$khoaHoc->ten_khoa_hoc}\".\n"
-                                 . "Bạn có thể xác nhận mở lớp chính thức.",
-                'loai'          => 'xac_nhan_gv',
-                'url'           => route('admin.khoa-hoc.show', $khoaHoc->id),
+                'tieu_de' => "✅ Lớp học sẵn sàng: {$khoaHoc->ten_khoa_hoc}",
+                'noi_dung' => 'Tất cả giảng viên đã xác nhận dạy cho khóa học '
+                                 ."\"{$khoaHoc->ten_khoa_hoc}\".\n"
+                                 .'Bạn có thể xác nhận mở lớp chính thức.',
+                'loai' => 'xac_nhan_gv',
+                'url' => route('admin.khoa-hoc.show', $khoaHoc->id),
             ]);
         }
     }

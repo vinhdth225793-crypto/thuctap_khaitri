@@ -14,14 +14,19 @@ class NganHangCauHoi extends Model
     use HasFactory, SoftDeletes;
 
     public const LOAI_TRAC_NGHIEM = 'trac_nghiem';
+
     public const LOAI_TU_LUAN = 'tu_luan';
 
     public const KIEU_MOT_DAP_AN = 'mot_dap_an';
+
     public const KIEU_NHIEU_DAP_AN = 'nhieu_dap_an';
+
     public const KIEU_DUNG_SAI = 'dung_sai';
 
     public const TRANG_THAI_NHAP = 'nhap';
+
     public const TRANG_THAI_SAN_SANG = 'san_sang';
+
     public const TRANG_THAI_TAM_AN = 'tam_an';
 
     protected $table = 'ngan_hang_cau_hoi';
@@ -82,7 +87,7 @@ class NganHangCauHoi extends Model
 
     public function scopeTheoLoaiKhoaHoc($query, ?string $courseType)
     {
-        if (!in_array($courseType, ['mau', 'hoat_dong'], true)) {
+        if (! in_array($courseType, ['mau', 'hoat_dong'], true)) {
             return $query;
         }
 
@@ -223,7 +228,7 @@ class NganHangCauHoi extends Model
     public function getLoaiHienThiLabelAttribute(): string
     {
         return $this->moduleHoc?->ten_module
-            ? ($this->khoaHoc?->ten_khoa_hoc . ' / ' . $this->moduleHoc->ten_module)
+            ? ($this->khoaHoc?->ten_khoa_hoc.' / '.$this->moduleHoc->ten_module)
             : ($this->khoaHoc?->ten_khoa_hoc ?? 'Chưa gắn khóa học');
     }
 
@@ -313,7 +318,7 @@ class NganHangCauHoi extends Model
 
     public static function generateQuestionCode(): string
     {
-        return 'CH-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(6));
+        return 'CH-'.now()->format('YmdHis').'-'.Str::upper(Str::random(6));
     }
 
     private function resolvedAnswers()

@@ -24,10 +24,10 @@ return new class extends Migration
         Schema::table('khoa_hoc', function (Blueprint $table) {
             // Xóa khóa ngoại cũ (theo tên mặc định của Laravel)
             $table->dropForeign(['mon_hoc_id']);
-            
+
             // Rename cột
             $table->renameColumn('mon_hoc_id', 'nhom_nganh_id');
-            
+
             // Tạo khóa ngoại mới
             $table->foreign('nhom_nganh_id')->references('id')->on('nhom_nganh')->onDelete('cascade');
         });

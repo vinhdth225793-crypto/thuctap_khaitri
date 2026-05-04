@@ -14,8 +14,7 @@ class LearningResultFinalizationService
     public function __construct(
         private readonly KetQuaHocTapService $ketQuaHocTapService,
         private readonly ModuleFinalScoreService $moduleFinalScoreService,
-    ) {
-    }
+    ) {}
 
     public function finalizeModuleResult(
         PhanCongModuleGiangVien $assignment,
@@ -24,7 +23,7 @@ class LearningResultFinalizationService
         ?string $note = null
     ): KetQuaHocTap {
         $moduleId = (int) $assignment->module_hoc_id;
-        
+
         return DB::transaction(function () use ($assignment, $hocVienId, $teacherUserId, $note, $moduleId) {
             // 1. Refresh dữ liệu tạm tính mới nhất
             $data = $this->moduleFinalScoreService->calculateForStudent($moduleId, $hocVienId);
@@ -99,7 +98,7 @@ class LearningResultFinalizationService
         int $userId,
         string $reason
     ): KetQuaHocTap {
-        if (!$result->da_chot) {
+        if (! $result->da_chot) {
             throw ValidationException::withMessages(['result_id' => 'Kết quả này chưa được chốt.']);
         }
 

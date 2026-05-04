@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::table('yeu_cau_hoc_vien', function (Blueprint $table) {
             $table->unsignedBigInteger('admin_duyet_id')->nullable()->after('trang_thai');
             $table->timestamp('thoi_gian_duyet')->nullable()->after('admin_duyet_id');
-            
+
             $table->foreign('admin_duyet_id')->references('ma_nguoi_dung')->on('nguoi_dung')->onDelete('set null');
         });
     }

@@ -21,7 +21,7 @@ class YeuCauHocVien extends Model
         'trang_thai',
         'admin_duyet_id',
         'thoi_gian_duyet',
-        'phan_hoi_admin'
+        'phan_hoi_admin',
     ];
 
     protected $casts = [
@@ -56,10 +56,10 @@ class YeuCauHocVien extends Model
             return 'Xin vào lớp';
         }
 
-        return match($this->loai_yeu_cau) {
+        return match ($this->loai_yeu_cau) {
             'them' => 'Thêm học viên',
-            'xoa'  => 'Xóa học viên',
-            'sua'  => 'Cập nhật thông tin',
+            'xoa' => 'Xóa học viên',
+            'sua' => 'Cập nhật thông tin',
             default => $this->loai_yeu_cau
         };
     }
@@ -85,26 +85,26 @@ class YeuCauHocVien extends Model
         }
 
         return $this->giangVien?->nguoiDung?->email
-            ?? ('#GV-' . ($this->giangVien?->id ?? 'N/A'));
+            ?? ('#GV-'.($this->giangVien?->id ?? 'N/A'));
     }
 
     public function getTrangThaiLabelAttribute()
     {
-        return match($this->trang_thai) {
+        return match ($this->trang_thai) {
             'cho_duyet' => 'Chờ duyệt',
-            'da_duyet'  => 'Đã duyệt',
-            'tu_choi'   => 'Từ chối',
-            default     => 'Không xác định',
+            'da_duyet' => 'Đã duyệt',
+            'tu_choi' => 'Từ chối',
+            default => 'Không xác định',
         };
     }
 
     public function getTrangThaiBadgeAttribute()
     {
-        return match($this->trang_thai) {
+        return match ($this->trang_thai) {
             'cho_duyet' => 'warning',
-            'da_duyet'  => 'success',
-            'tu_choi'   => 'danger',
-            default     => 'secondary',
+            'da_duyet' => 'success',
+            'tu_choi' => 'danger',
+            default => 'secondary',
         };
     }
 }

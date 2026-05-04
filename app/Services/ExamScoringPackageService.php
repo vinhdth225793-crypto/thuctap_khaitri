@@ -6,9 +6,7 @@ class ExamScoringPackageService
 {
     /**
      * Splits a total score across a number of questions.
-     * 
-     * @param float $totalScore
-     * @param int $questionCount
+     *
      * @return array<int, float>
      */
     public function splitPoints(float $totalScore, int $questionCount): array

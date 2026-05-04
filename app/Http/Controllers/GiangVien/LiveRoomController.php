@@ -26,8 +26,7 @@ class LiveRoomController extends Controller
         private readonly TeacherScheduleLiveRoomService $teacherScheduleLiveRoomService,
         private readonly TeacherAttendanceService $teacherAttendanceService,
         private readonly LiveRoomLinkService $liveRoomLinkService,
-    ) {
-    }
+    ) {}
 
     public function createForSchedule(int $lichHocId): RedirectResponse
     {
@@ -230,7 +229,7 @@ class LiveRoomController extends Controller
         $user = auth()->user();
         $giangVien = $user?->giangVien;
 
-        abort_if(!$user || !$giangVien, 403);
+        abort_if(! $user || ! $giangVien, 403);
 
         $lichHoc = LichHoc::with(['khoaHoc', 'moduleHoc', 'baiGiangs.phongHocLive'])->findOrFail($lichHocId);
         [$lecture, $room] = $this->teacherScheduleLiveRoomService->ensureInternalRoom($lichHoc, $giangVien, $user);
@@ -311,11 +310,11 @@ class LiveRoomController extends Controller
     private function ensureOptionalRoomRelations(PhongHocLive $phongHocLive): void
     {
         if (! Schema::hasTable('phong_hoc_live_ban_ghi') && ! $phongHocLive->relationLoaded('banGhis')) {
-            $phongHocLive->setRelation('banGhis', new EloquentCollection());
+            $phongHocLive->setRelation('banGhis', new EloquentCollection);
         }
 
         if (! Schema::hasTable('phong_hoc_live_nguoi_tham_gia') && ! $phongHocLive->relationLoaded('nguoiThamGia')) {
-            $phongHocLive->setRelation('nguoiThamGia', new EloquentCollection());
+            $phongHocLive->setRelation('nguoiThamGia', new EloquentCollection);
         }
     }
 
@@ -329,7 +328,7 @@ class LiveRoomController extends Controller
 
         $freshSchedule->baiGiangs?->each(function (BaiGiang $lecture): void {
             if ($lecture->phongHocLive) {
-                $lecture->phongHocLive->setRelation('nguoiThamGia', new EloquentCollection());
+                $lecture->phongHocLive->setRelation('nguoiThamGia', new EloquentCollection);
             }
         });
 
@@ -343,7 +342,7 @@ class LiveRoomController extends Controller
         }
 
         $freshRoom = $phongHocLive->fresh() ?? $phongHocLive;
-        $freshRoom->setRelation('nguoiThamGia', new EloquentCollection());
+        $freshRoom->setRelation('nguoiThamGia', new EloquentCollection);
 
         return $freshRoom;
     }
@@ -373,7 +372,7 @@ class LiveRoomController extends Controller
      */
     private function buildScheduleActionLinks(?LichHoc $lichHoc): array
     {
-        if (!$lichHoc) {
+        if (! $lichHoc) {
             return [];
         }
 
@@ -396,13 +395,14 @@ class LiveRoomController extends Controller
             $params['quick_action'] = $quickAction;
         }
 
-        return route('giang-vien.khoa-hoc.show', $params) . '#session-' . $lichHoc->id;
+        return route('giang-vien.khoa-hoc.show', $params).'#session-'.$lichHoc->id;
     }
+
     private function ensureScheduleRoomActionAllowed(BaiGiang $baiGiang, string $action): void
     {
         $lichHoc = $baiGiang->lichHoc;
 
-        if (!$lichHoc) {
+        if (! $lichHoc) {
             return;
         }
 
@@ -455,11 +455,11 @@ class LiveRoomController extends Controller
     private function resolvePlayerState(PhongHocLive $phongHocLive, bool $isTeacherContext): array
     {
         $playerMode = request()->query('player');
-        if (!in_array($playerMode, ['host', 'participant'], true)) {
+        if (! in_array($playerMode, ['host', 'participant'], true)) {
             return [null, null, false];
         }
 
-        if (!$isTeacherContext && $playerMode === 'host') {
+        if (! $isTeacherContext && $playerMode === 'host') {
             $playerMode = 'participant';
         }
 
@@ -468,7 +468,7 @@ class LiveRoomController extends Controller
             : ($phongHocLive->embed_url ?? $phongHocLive->join_url ?? $phongHocLive->start_url);
 
         $playerSupportsEmbed = filled($phongHocLive->embed_url)
-            || (bool) config('live_room.platforms.' . $phongHocLive->nen_tang_live . '.supports_embed', false);
+            || (bool) config('live_room.platforms.'.$phongHocLive->nen_tang_live.'.supports_embed', false);
 
         return [$playerMode, $playerUrl, $playerSupportsEmbed];
     }

@@ -17,20 +17,31 @@ class LichHoc extends Model
     use HasFactory;
 
     public const ONLINE_JOIN_EARLY_MINUTES = 15;
+
     public const DEFAULT_TEACHER_OPEN_BEFORE_MINUTES = 30;
+
     public const DEFAULT_TEACHER_CLOSE_AFTER_MINUTES = 60;
+
     public const DEFAULT_ATTENDANCE_REMIND_AFTER_FINISH_MINUTES = 15;
 
     public const ONLINE_LINK_SOURCE_ADMIN_MANUAL = 'admin_manual';
+
     public const ONLINE_LINK_SOURCE_TEACHER_MANUAL = 'teacher_manual';
+
     public const ONLINE_LINK_SOURCE_TEACHER_GENERATED = 'teacher_generated';
+
     public const ONLINE_LINK_SOURCE_SYSTEM_GENERATED = 'system_generated';
 
     public const TEACHER_MONITORING_BINH_THUONG = 'binh_thuong';
+
     public const TEACHER_MONITORING_VAO_TRE = 'vao_tre';
+
     public const TEACHER_MONITORING_KHONG_DAY = 'khong_day';
+
     public const TEACHER_MONITORING_CHUA_CHECKOUT = 'chua_checkout';
+
     public const TEACHER_MONITORING_DONG_SOM = 'dong_som';
+
     public const TEACHER_MONITORING_BAT_THUONG = 'bat_thuong';
 
     protected $table = 'lich_hoc';
@@ -242,7 +253,7 @@ class LichHoc extends Model
     public function getScheduleRangeLabelAttribute(): string
     {
         if ($this->buoi_hoc_label !== null) {
-            return $this->buoi_hoc_label . ' (' . $this->tiet_range_label . ')';
+            return $this->buoi_hoc_label.' ('.$this->tiet_range_label.')';
         }
 
         return $this->tiet_range_label;
@@ -250,7 +261,7 @@ class LichHoc extends Model
 
     public function getStartsAtAttribute(): ?Carbon
     {
-        if (!$this->ngay_hoc || blank($this->gio_bat_dau)) {
+        if (! $this->ngay_hoc || blank($this->gio_bat_dau)) {
             return null;
         }
 
@@ -259,7 +270,7 @@ class LichHoc extends Model
 
     public function getEndsAtAttribute(): ?Carbon
     {
-        if (!$this->ngay_hoc || blank($this->gio_ket_thuc)) {
+        if (! $this->ngay_hoc || blank($this->gio_ket_thuc)) {
             return null;
         }
 
@@ -570,7 +581,7 @@ class LichHoc extends Model
 
         return match ($this->timeline_trang_thai) {
             'dang_hoc' => 'Buổi học online đang diễn ra nhưng bạn chưa thể vào phòng học lúc này.',
-            'cho' => 'Phòng học sẽ mở trước giờ bắt đầu khoảng ' . self::ONLINE_JOIN_EARLY_MINUTES . ' phút.',
+            'cho' => 'Phòng học sẽ mở trước giờ bắt đầu khoảng '.self::ONLINE_JOIN_EARLY_MINUTES.' phút.',
             'hoan_thanh' => 'Buổi học online này đã hoàn thành, phòng học không còn mở cho học viên.',
             'huy' => 'Buổi học online này đã bị hủy. Vui lòng theo dõi thông báo mới từ giảng viên hoặc trung tâm.',
             default => 'Hiện chưa đủ điều kiện để vào phòng học online.',
@@ -704,4 +715,3 @@ class LichHoc extends Model
             ?: ($this->attributes['nen_tang'] ?? null);
     }
 }
-

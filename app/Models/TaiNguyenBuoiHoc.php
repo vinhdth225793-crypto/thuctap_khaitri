@@ -49,19 +49,29 @@ class TaiNguyenBuoiHoc extends Model
 
     // Constants for Status
     public const STATUS_DUYET_NHAP = 'nhap';
+
     public const STATUS_DUYET_CHO = 'cho_duyet';
+
     public const STATUS_DUYET_DA_DUYET = 'da_duyet';
+
     public const STATUS_DUYET_CAN_SUA = 'can_chinh_sua';
+
     public const STATUS_DUYET_TU_CHOI = 'tu_choi';
 
     public const STATUS_XU_LY_NONE = 'khong_ap_dung';
+
     public const STATUS_XU_LY_CHO = 'cho_xu_ly';
+
     public const STATUS_XU_LY_DANG = 'dang_xu_ly';
+
     public const STATUS_XU_LY_SAN_SANG = 'san_sang';
+
     public const STATUS_XU_LY_LOI = 'loi_xu_ly';
 
     public const PHAM_VI_CA_NHAN = 'ca_nhan';
+
     public const PHAM_VI_KHOA_HOC = 'khoa_hoc';
+
     public const PHAM_VI_CONG_KHAI = 'cong_khai';
 
     /**
@@ -95,7 +105,7 @@ class TaiNguyenBuoiHoc extends Model
      */
     public function getFileUrlAttribute()
     {
-        if (!empty($this->link_ngoai)) {
+        if (! empty($this->link_ngoai)) {
             return $this->link_ngoai;
         }
 
@@ -109,7 +119,7 @@ class TaiNguyenBuoiHoc extends Model
             return asset($this->duong_dan_file);
         }
 
-        return asset('storage/' . $this->duong_dan_file);
+        return asset('storage/'.$this->duong_dan_file);
     }
 
     /**
@@ -117,7 +127,7 @@ class TaiNguyenBuoiHoc extends Model
      */
     public function getIsExternalAttribute()
     {
-        return !empty($this->link_ngoai);
+        return ! empty($this->link_ngoai);
     }
 
     /**
@@ -152,10 +162,10 @@ class TaiNguyenBuoiHoc extends Model
         }
 
         if (file_exists(public_path($this->duong_dan_file))) {
-            return 'public/' . $this->duong_dan_file;
+            return 'public/'.$this->duong_dan_file;
         }
 
-        return 'storage/app/public/' . $this->duong_dan_file;
+        return 'storage/app/public/'.$this->duong_dan_file;
     }
 
     /**
@@ -168,6 +178,7 @@ class TaiNguyenBuoiHoc extends Model
         }
 
         $parts = explode('_', basename($this->duong_dan_file), 2);
+
         return count($parts) > 1 ? $parts[1] : $parts[0];
     }
 
@@ -176,7 +187,7 @@ class TaiNguyenBuoiHoc extends Model
      */
     public function getIsDownloadableAttribute()
     {
-        return !$this->getIsExternalAttribute() && !empty($this->duong_dan_file) && $this->getIsFileExistsAttribute();
+        return ! $this->getIsExternalAttribute() && ! empty($this->duong_dan_file) && $this->getIsFileExistsAttribute();
     }
 
     /**
@@ -184,20 +195,20 @@ class TaiNguyenBuoiHoc extends Model
      */
     public function getLoaiLabelAttribute()
     {
-        return match($this->loai_tai_nguyen) {
-            'video'         => 'Video bài giảng',
-            'pdf'           => 'Tài liệu PDF',
-            'word'          => 'Tài liệu Word',
-            'powerpoint'    => 'Bài thuyết trình',
-            'excel'         => 'Bảng tính Excel',
-            'image'         => 'Hình ảnh',
-            'audio'         => 'Âm thanh',
-            'archive'       => 'File nén',
-            'link_ngoai'    => 'Liên kết ngoài',
-            'bai_giang'     => 'Bài giảng (Cũ)',
-            'tai_lieu'      => 'Tài liệu (Cũ)',
-            'bai_tap'       => 'Bài tập (Cũ)',
-            default         => 'Đính kèm'
+        return match ($this->loai_tai_nguyen) {
+            'video' => 'Video bài giảng',
+            'pdf' => 'Tài liệu PDF',
+            'word' => 'Tài liệu Word',
+            'powerpoint' => 'Bài thuyết trình',
+            'excel' => 'Bảng tính Excel',
+            'image' => 'Hình ảnh',
+            'audio' => 'Âm thanh',
+            'archive' => 'File nén',
+            'link_ngoai' => 'Liên kết ngoài',
+            'bai_giang' => 'Bài giảng (Cũ)',
+            'tai_lieu' => 'Tài liệu (Cũ)',
+            'bai_tap' => 'Bài tập (Cũ)',
+            default => 'Đính kèm'
         };
     }
 
@@ -206,20 +217,20 @@ class TaiNguyenBuoiHoc extends Model
      */
     public function getLoaiIconAttribute()
     {
-        return match($this->loai_tai_nguyen) {
-            'video'         => 'fa-video',
-            'pdf'           => 'fa-file-pdf',
-            'word'          => 'fa-file-word',
-            'powerpoint'    => 'fa-file-powerpoint',
-            'excel'         => 'fa-file-excel',
-            'image'         => 'fa-file-image',
-            'audio'         => 'fa-file-audio',
-            'archive'       => 'fa-file-archive',
-            'link_ngoai'    => 'fa-link',
-            'bai_giang'     => 'fa-chalkboard',
-            'tai_lieu'      => 'fa-file-alt',
-            'bai_tap'       => 'fa-pencil-alt',
-            default         => 'fa-paperclip'
+        return match ($this->loai_tai_nguyen) {
+            'video' => 'fa-video',
+            'pdf' => 'fa-file-pdf',
+            'word' => 'fa-file-word',
+            'powerpoint' => 'fa-file-powerpoint',
+            'excel' => 'fa-file-excel',
+            'image' => 'fa-file-image',
+            'audio' => 'fa-file-audio',
+            'archive' => 'fa-file-archive',
+            'link_ngoai' => 'fa-link',
+            'bai_giang' => 'fa-chalkboard',
+            'tai_lieu' => 'fa-file-alt',
+            'bai_tap' => 'fa-pencil-alt',
+            default => 'fa-paperclip'
         };
     }
 
@@ -228,20 +239,20 @@ class TaiNguyenBuoiHoc extends Model
      */
     public function getLoaiColorAttribute()
     {
-        return match($this->loai_tai_nguyen) {
-            'video'         => 'primary',
-            'pdf'           => 'danger',
-            'word'          => 'info',
-            'powerpoint'    => 'warning',
-            'excel'         => 'success',
-            'image'         => 'primary',
-            'audio'         => 'secondary',
-            'archive'       => 'dark',
-            'link_ngoai'    => 'info',
-            'bai_giang'     => 'primary',
-            'tai_lieu'      => 'success',
-            'bai_tap'       => 'warning',
-            default         => 'secondary'
+        return match ($this->loai_tai_nguyen) {
+            'video' => 'primary',
+            'pdf' => 'danger',
+            'word' => 'info',
+            'powerpoint' => 'warning',
+            'excel' => 'success',
+            'image' => 'primary',
+            'audio' => 'secondary',
+            'archive' => 'dark',
+            'link_ngoai' => 'info',
+            'bai_giang' => 'primary',
+            'tai_lieu' => 'success',
+            'bai_tap' => 'warning',
+            default => 'secondary'
         };
     }
 

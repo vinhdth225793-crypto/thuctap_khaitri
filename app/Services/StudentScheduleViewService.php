@@ -20,7 +20,7 @@ class StudentScheduleViewService
     public function buildCourseDetail(NguoiDung $user, int $courseId): ?array
     {
         $ghiDanh = $this->findAccessibleEnrollment($user->ma_nguoi_dung, $courseId);
-        if (!$ghiDanh) {
+        if (! $ghiDanh) {
             return null;
         }
 
@@ -140,7 +140,7 @@ class StudentScheduleViewService
         ])->findOrFail($scheduleId);
 
         $ghiDanh = $this->findAccessibleEnrollment($user->ma_nguoi_dung, (int) $lichHoc->khoa_hoc_id);
-        if (!$ghiDanh) {
+        if (! $ghiDanh) {
             return null;
         }
 

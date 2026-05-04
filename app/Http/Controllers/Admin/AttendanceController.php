@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\BaiGiang;
 use App\Models\GiangVien;
 use App\Models\LichHoc;
-use App\Models\BaiGiang;
 use App\Services\AttendanceReportService;
 use Illuminate\Http\Request;
 
@@ -13,8 +13,7 @@ class AttendanceController extends Controller
 {
     public function __construct(
         private readonly AttendanceReportService $attendanceReportService,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request)
     {
@@ -74,8 +73,8 @@ class AttendanceController extends Controller
         $studentAttendances = $schedule->diemDanhs()
             ->with(['hocVien.nguoiDung'])
             ->get()
-            ->filter(fn($item) => $item->hocVien !== null)
-            ->sortBy(fn($item) => $item->hocVien->nguoiDung->ho_ten ?? '');
+            ->filter(fn ($item) => $item->hocVien !== null)
+            ->sortBy(fn ($item) => $item->hocVien->nguoiDung->ho_ten ?? '');
 
         return view('pages.admin.diem-danh.teacher-show', [
             'schedule' => $schedule,
@@ -92,7 +91,7 @@ class AttendanceController extends Controller
         $lichHoc = LichHoc::findOrFail($lichHocId);
         $lichHoc->update([
             'teacher_monitoring_status' => 'binh_thuong',
-            'teacher_monitoring_note' => $lichHoc->teacher_monitoring_note . "\nAdmin đã xác nhận xử lý lúc " . now()->format('H:i d/m/Y'),
+            'teacher_monitoring_note' => $lichHoc->teacher_monitoring_note."\nAdmin đã xác nhận xử lý lúc ".now()->format('H:i d/m/Y'),
         ]);
 
         // Đánh dấu tất cả alerts của buổi này là resolved

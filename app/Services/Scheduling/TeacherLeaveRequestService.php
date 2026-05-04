@@ -15,8 +15,7 @@ class TeacherLeaveRequestService
 {
     public function __construct(
         private readonly TeacherScheduleRuleService $ruleService,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, mixed>  $payload
@@ -24,7 +23,7 @@ class TeacherLeaveRequestService
     public function createForTeacher(GiangVien $teacher, array $payload): GiangVienDonXinNghi
     {
         $schedule = null;
-        if (!empty($payload['lich_hoc_id'])) {
+        if (! empty($payload['lich_hoc_id'])) {
             $schedule = LichHoc::query()
                 ->where('giang_vien_id', $teacher->id)
                 ->findOrFail((int) $payload['lich_hoc_id']);
@@ -158,7 +157,7 @@ class TeacherLeaveRequestService
         $times = TeachingPeriodCatalog::timeRangeFromPeriods($range['start'], $range['end']);
         $ruleCheck = $this->ruleService->inspect($date, $times['start_time'], $times['end_time']);
 
-        if (!$ruleCheck['ok']) {
+        if (! $ruleCheck['ok']) {
             throw ValidationException::withMessages([
                 'ngay_xin_nghi' => $ruleCheck['message'],
             ]);
@@ -179,4 +178,3 @@ class TeacherLeaveRequestService
         ];
     }
 }
-

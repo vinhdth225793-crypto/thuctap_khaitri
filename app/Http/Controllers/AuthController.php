@@ -1,12 +1,13 @@
 <?php
+
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use App\Models\NguoiDung;
 use App\Models\TaiKhoanChoPheDuyet;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
@@ -46,7 +47,7 @@ class AuthController extends Controller
 
                 // Chuyển hướng theo vai trò
                 $vai_tro = $user->vai_tro ?? 'hoc_vien';
-                
+
                 if ($vai_tro === 'admin') {
                     return redirect()->route('admin.dashboard');
                 } elseif ($vai_tro === 'giang_vien') {
@@ -57,7 +58,7 @@ class AuthController extends Controller
             }
         } catch (\RuntimeException $e) {
             // Log lỗi nếu cần
-            \Log::error("Hashing error for user {$credentials['email']}: " . $e->getMessage());
+            \Log::error("Hashing error for user {$credentials['email']}: ".$e->getMessage());
         }
 
         return back()->withErrors([

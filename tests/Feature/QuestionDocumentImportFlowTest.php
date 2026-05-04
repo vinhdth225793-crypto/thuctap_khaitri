@@ -345,8 +345,8 @@ class QuestionDocumentImportFlowTest extends TestCase
         $index = $this->sequence++;
 
         return NguoiDung::create(array_merge([
-            'ho_ten' => strtoupper($role) . ' ' . $index,
-            'email' => $role . $index . '@example.com',
+            'ho_ten' => strtoupper($role).' '.$index,
+            'email' => $role.$index.'@example.com',
             'mat_khau' => bcrypt('password'),
             'vai_tro' => $role,
             'trang_thai' => true,
@@ -357,15 +357,15 @@ class QuestionDocumentImportFlowTest extends TestCase
     {
         $index = $this->sequence++;
         $group = NhomNganh::create([
-            'ma_nhom_nganh' => 'NN' . str_pad((string) $index, 3, '0', STR_PAD_LEFT),
-            'ten_nhom_nganh' => 'Group ' . $index,
+            'ma_nhom_nganh' => 'NN'.str_pad((string) $index, 3, '0', STR_PAD_LEFT),
+            'ten_nhom_nganh' => 'Group '.$index,
             'trang_thai' => true,
         ]);
 
         return KhoaHoc::create([
             'nhom_nganh_id' => $group->id,
-            'ma_khoa_hoc' => 'KH-' . str_pad((string) $index, 3, '0', STR_PAD_LEFT),
-            'ten_khoa_hoc' => 'Course ' . $index,
+            'ma_khoa_hoc' => 'KH-'.str_pad((string) $index, 3, '0', STR_PAD_LEFT),
+            'ten_khoa_hoc' => 'Course '.$index,
             'cap_do' => 'co_ban',
             'tong_so_module' => 1,
             'phuong_thuc_danh_gia' => 'cuoi_khoa',
@@ -388,7 +388,7 @@ class QuestionDocumentImportFlowTest extends TestCase
             throw new \RuntimeException('Unable to create temp docx file.');
         }
 
-        $docxPath = $filePath . '.docx';
+        $docxPath = $filePath.'.docx';
         @rename($filePath, $docxPath);
 
         $paragraphXml = [];
@@ -401,47 +401,47 @@ class QuestionDocumentImportFlowTest extends TestCase
             $runXml = [];
             foreach ($runs as $run) {
                 $properties = '';
-                if (!empty($run['bold'])) {
+                if (! empty($run['bold'])) {
                     $properties .= '<w:b/>';
                 }
-                if (!empty($run['highlight'])) {
+                if (! empty($run['highlight'])) {
                     $properties .= '<w:highlight w:val="yellow"/>';
                 }
 
-                $propertyXml = $properties !== '' ? '<w:rPr>' . $properties . '</w:rPr>' : '';
-                $runXml[] = '<w:r>' . $propertyXml . '<w:t xml:space="preserve">' . $this->escapeXml((string) ($run['text'] ?? '')) . '</w:t></w:r>';
+                $propertyXml = $properties !== '' ? '<w:rPr>'.$properties.'</w:rPr>' : '';
+                $runXml[] = '<w:r>'.$propertyXml.'<w:t xml:space="preserve">'.$this->escapeXml((string) ($run['text'] ?? '')).'</w:t></w:r>';
             }
 
             $paragraphProperties = [];
             if (isset($paragraph['num_id'])) {
                 $usesNumbering = true;
                 $paragraphProperties[] = '<w:pStyle w:val="ListParagraph"/>';
-                $paragraphProperties[] = '<w:numPr><w:ilvl w:val="' . (int) ($paragraph['ilvl'] ?? 0) . '"/><w:numId w:val="' . (int) $paragraph['num_id'] . '"/></w:numPr>';
+                $paragraphProperties[] = '<w:numPr><w:ilvl w:val="'.(int) ($paragraph['ilvl'] ?? 0).'"/><w:numId w:val="'.(int) $paragraph['num_id'].'"/></w:numPr>';
             }
 
-            $paragraphPropertyXml = $paragraphProperties !== [] ? '<w:pPr>' . implode('', $paragraphProperties) . '</w:pPr>' : '';
-            $paragraphXml[] = '<w:p>' . $paragraphPropertyXml . implode('', $runXml) . '</w:p>';
+            $paragraphPropertyXml = $paragraphProperties !== [] ? '<w:pPr>'.implode('', $paragraphProperties).'</w:pPr>' : '';
+            $paragraphXml[] = '<w:p>'.$paragraphPropertyXml.implode('', $runXml).'</w:p>';
         }
 
         $documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-            . '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
-            . '<w:body>' . implode('', $paragraphXml) . '</w:body>'
-            . '</w:document>';
+            .'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+            .'<w:body>'.implode('', $paragraphXml).'</w:body>'
+            .'</w:document>';
 
         $contentTypesXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-            . '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
-            . '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
-            . '<Default Extension="xml" ContentType="application/xml"/>'
-            . '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
-            . '</Types>';
+            .'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+            .'<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+            .'<Default Extension="xml" ContentType="application/xml"/>'
+            .'<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
+            .'</Types>';
 
         $rootRelsXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-            . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
-            . '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
-            . '</Relationships>';
+            .'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            .'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
+            .'</Relationships>';
 
         $documentRelsXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-            . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
+            .'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
 
         if ($usesNumbering) {
             $documentRelsXml .= '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>';
@@ -450,15 +450,15 @@ class QuestionDocumentImportFlowTest extends TestCase
         $documentRelsXml .= '</Relationships>';
 
         $numberingXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-            . '<w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
-            . '<w:abstractNum w:abstractNumId="0">'
-            . '<w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%1."/></w:lvl>'
-            . '<w:lvl w:ilvl="1"><w:start w:val="1"/><w:numFmt w:val="upperLetter"/><w:lvlText w:val="%2."/></w:lvl>'
-            . '</w:abstractNum>'
-            . '<w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>'
-            . '</w:numbering>';
+            .'<w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+            .'<w:abstractNum w:abstractNumId="0">'
+            .'<w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%1."/></w:lvl>'
+            .'<w:lvl w:ilvl="1"><w:start w:val="1"/><w:numFmt w:val="upperLetter"/><w:lvlText w:val="%2."/></w:lvl>'
+            .'</w:abstractNum>'
+            .'<w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>'
+            .'</w:numbering>';
 
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($docxPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             throw new \RuntimeException('Unable to create docx fixture.');
         }
@@ -485,7 +485,7 @@ class QuestionDocumentImportFlowTest extends TestCase
             throw new \RuntimeException('Unable to create temp pdf file.');
         }
 
-        $pdfPath = $filePath . '.pdf';
+        $pdfPath = $filePath.'.pdf';
         @rename($filePath, $pdfPath);
 
         $streamLines = array_map(function (string $line) {
@@ -495,18 +495,18 @@ class QuestionDocumentImportFlowTest extends TestCase
                 ')' => '\\)',
             ]);
 
-            return '(' . $escaped . ') Tj';
+            return '('.$escaped.') Tj';
         }, $lines);
 
-        $stream = "BT\n" . implode("\n", $streamLines) . "\nET";
+        $stream = "BT\n".implode("\n", $streamLines)."\nET";
         $content = "%PDF-1.4\n"
-            . "1 0 obj\n"
-            . "<< /Length " . strlen($stream) . " >>\n"
-            . "stream\n"
-            . $stream . "\n"
-            . "endstream\n"
-            . "endobj\n"
-            . "%%EOF";
+            ."1 0 obj\n"
+            .'<< /Length '.strlen($stream)." >>\n"
+            ."stream\n"
+            .$stream."\n"
+            ."endstream\n"
+            ."endobj\n"
+            .'%%EOF';
 
         file_put_contents($pdfPath, $content);
 

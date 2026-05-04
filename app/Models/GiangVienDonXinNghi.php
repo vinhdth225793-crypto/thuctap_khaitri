@@ -12,7 +12,9 @@ class GiangVienDonXinNghi extends Model
     use HasFactory;
 
     public const TRANG_THAI_CHO_DUYET = 'cho_duyet';
+
     public const TRANG_THAI_DA_DUYET = 'da_duyet';
+
     public const TRANG_THAI_TU_CHOI = 'tu_choi';
 
     protected $table = 'giang_vien_don_xin_nghi';
@@ -106,7 +108,7 @@ class GiangVienDonXinNghi extends Model
     public function getScheduleRangeLabelAttribute(): string
     {
         if ($this->buoi_hoc_label !== null) {
-            return $this->buoi_hoc_label . ' (' . $this->tiet_range_label . ')';
+            return $this->buoi_hoc_label.' ('.$this->tiet_range_label.')';
         }
 
         return $this->tiet_range_label;

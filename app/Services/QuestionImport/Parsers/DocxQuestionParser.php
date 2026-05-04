@@ -16,8 +16,7 @@ class DocxQuestionParser implements QuestionFileParser
 
     public function __construct(
         private readonly QuestionTextPatternParser $textPatternParser,
-    ) {
-    }
+    ) {}
 
     public function supports(string $extension): bool
     {
@@ -26,7 +25,7 @@ class DocxQuestionParser implements QuestionFileParser
 
     public function parse(UploadedFile $file): array
     {
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($file->getRealPath()) !== true) {
             throw ValidationException::withMessages([
                 'file_import' => 'Không thể mở tệp Word để phân tích.',
@@ -41,8 +40,8 @@ class DocxQuestionParser implements QuestionFileParser
                 ]);
             }
 
-            $document = new DOMDocument();
-            if (!@$document->loadXML($documentXml)) {
+            $document = new DOMDocument;
+            if (! @$document->loadXML($documentXml)) {
                 throw ValidationException::withMessages([
                     'file_import' => 'Không thể đọc nội dung tệp Word.',
                 ]);
@@ -58,7 +57,7 @@ class DocxQuestionParser implements QuestionFileParser
 
             // Read paragraph/run granularity so we can preserve style hints like bold/highlight.
             foreach ($xpath->query('//w:body/w:p') as $paragraphNode) {
-                if (!$paragraphNode instanceof DOMElement) {
+                if (! $paragraphNode instanceof DOMElement) {
                     continue;
                 }
 
@@ -68,7 +67,7 @@ class DocxQuestionParser implements QuestionFileParser
                 $hasHighlight = false;
 
                 foreach ($xpath->query('.//w:r', $paragraphNode) as $runNode) {
-                    if (!$runNode instanceof DOMElement) {
+                    if (! $runNode instanceof DOMElement) {
                         continue;
                     }
 
@@ -97,8 +96,8 @@ class DocxQuestionParser implements QuestionFileParser
                 }
 
                 $listPrefix = $this->resolveListPrefix($xpath, $paragraphNode, $numberingDefinitions, $listState);
-                if ($listPrefix !== '' && !$this->hasVisibleQuestionOrAnswerPrefix($paragraphText)) {
-                    $paragraphText = trim($listPrefix . ' ' . $paragraphText);
+                if ($listPrefix !== '' && ! $this->hasVisibleQuestionOrAnswerPrefix($paragraphText)) {
+                    $paragraphText = trim($listPrefix.' '.$paragraphText);
                 }
 
                 $blocks[] = [
@@ -137,8 +136,8 @@ class DocxQuestionParser implements QuestionFileParser
             return [];
         }
 
-        $document = new DOMDocument();
-        if (!@$document->loadXML($numberingXml)) {
+        $document = new DOMDocument;
+        if (! @$document->loadXML($numberingXml)) {
             return [];
         }
 
@@ -147,7 +146,7 @@ class DocxQuestionParser implements QuestionFileParser
 
         $abstractMap = [];
         foreach ($xpath->query('//w:num') as $numNode) {
-            if (!$numNode instanceof DOMElement) {
+            if (! $numNode instanceof DOMElement) {
                 continue;
             }
 
@@ -161,7 +160,7 @@ class DocxQuestionParser implements QuestionFileParser
 
         $definitions = [];
         foreach ($xpath->query('//w:abstractNum') as $abstractNode) {
-            if (!$abstractNode instanceof DOMElement) {
+            if (! $abstractNode instanceof DOMElement) {
                 continue;
             }
 
@@ -172,14 +171,14 @@ class DocxQuestionParser implements QuestionFileParser
 
             $levelDefinitions = [];
             foreach ($xpath->query('./w:lvl', $abstractNode) as $levelNode) {
-                if (!$levelNode instanceof DOMElement) {
+                if (! $levelNode instanceof DOMElement) {
                     continue;
                 }
 
                 $level = (int) $xpath->evaluate('string(@w:ilvl)', $levelNode);
                 $levelDefinitions[$level] = [
                     'format' => $xpath->evaluate('string(./w:numFmt/@w:val)', $levelNode) ?: 'decimal',
-                    'pattern' => $xpath->evaluate('string(./w:lvlText/@w:val)', $levelNode) ?: '%' . ($level + 1) . '.',
+                    'pattern' => $xpath->evaluate('string(./w:lvlText/@w:val)', $levelNode) ?: '%'.($level + 1).'.',
                 ];
             }
 
@@ -214,7 +213,7 @@ class DocxQuestionParser implements QuestionFileParser
             }
         }
 
-        $pattern = $numberingDefinitions[$numId][$level]['pattern'] ?? '%' . ($level + 1) . '.';
+        $pattern = $numberingDefinitions[$numId][$level]['pattern'] ?? '%'.($level + 1).'.';
 
         return preg_replace_callback('/%([1-9])/u', function (array $matches) use ($listState, $numberingDefinitions, $numId) {
             $targetLevel = ((int) $matches[1]) - 1;
@@ -243,7 +242,7 @@ class DocxQuestionParser implements QuestionFileParser
 
         while ($current > 0) {
             $current--;
-            $result = chr(65 + ($current % 26)) . $result;
+            $result = chr(65 + ($current % 26)).$result;
             $current = intdiv($current, 26);
         }
 

@@ -16,11 +16,11 @@ class TaiKhoanChoPheDuyet extends Model
         'so_dien_thoai',
         'dia_chi',
         'ngay_sinh',
-        'trang_thai'
+        'trang_thai',
     ];
 
     protected $casts = [
         'ngay_sinh' => 'date',
-        'trang_thai' => 'string'
+        'trang_thai' => 'string',
     ];
 }

@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -16,11 +16,11 @@ return new class extends Migration
         $questions = DB::table('ngan_hang_cau_hoi')->get();
         foreach ($questions as $q) {
             $updateData = [];
-            if (empty($q->noi_dung) && !empty($q->noi_dung_cau_hoi)) {
+            if (empty($q->noi_dung) && ! empty($q->noi_dung_cau_hoi)) {
                 $updateData['noi_dung'] = $q->noi_dung_cau_hoi;
             }
-            
-            if (!empty($updateData)) {
+
+            if (! empty($updateData)) {
                 DB::table('ngan_hang_cau_hoi')->where('id', $q->id)->update($updateData);
             }
         }
@@ -28,8 +28,8 @@ return new class extends Migration
         // 2. Migrate existing answers to 'dap_an_cau_hoi' table
         foreach ($questions as $q) {
             $exists = DB::table('dap_an_cau_hoi')->where('ngan_hang_cau_hoi_id', $q->id)->exists();
-            
-            if (!$exists && isset($q->dap_an_dung) && !empty($q->dap_an_dung)) {
+
+            if (! $exists && isset($q->dap_an_dung) && ! empty($q->dap_an_dung)) {
                 // Insert Correct Answer
                 DB::table('dap_an_cau_hoi')->insert([
                     'ngan_hang_cau_hoi_id' => $q->id,
@@ -39,10 +39,10 @@ return new class extends Migration
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
-                
+
                 // Insert Wrong Answers
                 foreach (['dap_an_sai_1', 'dap_an_sai_2', 'dap_an_sai_3'] as $idx => $col) {
-                    if (!empty($q->$col)) {
+                    if (! empty($q->$col)) {
                         DB::table('dap_an_cau_hoi')->insert([
                             'ngan_hang_cau_hoi_id' => $q->id,
                             'noi_dung' => $q->$col,
@@ -59,13 +59,23 @@ return new class extends Migration
         // 3. Drop redundant columns and fix constraints
         Schema::table('ngan_hang_cau_hoi', function (Blueprint $table) {
             $columnsToDrop = [];
-            if (Schema::hasColumn('ngan_hang_cau_hoi', 'dap_an_sai_1')) $columnsToDrop[] = 'dap_an_sai_1';
-            if (Schema::hasColumn('ngan_hang_cau_hoi', 'dap_an_sai_2')) $columnsToDrop[] = 'dap_an_sai_2';
-            if (Schema::hasColumn('ngan_hang_cau_hoi', 'dap_an_sai_3')) $columnsToDrop[] = 'dap_an_sai_3';
-            if (Schema::hasColumn('ngan_hang_cau_hoi', 'dap_an_dung')) $columnsToDrop[] = 'dap_an_dung';
-            if (Schema::hasColumn('ngan_hang_cau_hoi', 'noi_dung_cau_hoi')) $columnsToDrop[] = 'noi_dung_cau_hoi';
-            
-            if (!empty($columnsToDrop)) {
+            if (Schema::hasColumn('ngan_hang_cau_hoi', 'dap_an_sai_1')) {
+                $columnsToDrop[] = 'dap_an_sai_1';
+            }
+            if (Schema::hasColumn('ngan_hang_cau_hoi', 'dap_an_sai_2')) {
+                $columnsToDrop[] = 'dap_an_sai_2';
+            }
+            if (Schema::hasColumn('ngan_hang_cau_hoi', 'dap_an_sai_3')) {
+                $columnsToDrop[] = 'dap_an_sai_3';
+            }
+            if (Schema::hasColumn('ngan_hang_cau_hoi', 'dap_an_dung')) {
+                $columnsToDrop[] = 'dap_an_dung';
+            }
+            if (Schema::hasColumn('ngan_hang_cau_hoi', 'noi_dung_cau_hoi')) {
+                $columnsToDrop[] = 'noi_dung_cau_hoi';
+            }
+
+            if (! empty($columnsToDrop)) {
                 $table->dropColumn($columnsToDrop);
             }
 
@@ -86,7 +96,7 @@ return new class extends Migration
             $table->text('dap_an_sai_2')->nullable();
             $table->text('dap_an_sai_3')->nullable();
             $table->text('dap_an_dung')->nullable();
-            
+
             $table->longText('noi_dung')->nullable()->change();
         });
     }

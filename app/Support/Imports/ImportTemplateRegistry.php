@@ -7,14 +7,16 @@ use InvalidArgumentException;
 class ImportTemplateRegistry
 {
     public const QUESTION_BANK_MCQ = 'question_bank_mcq';
+
     public const QUESTION_BANK_ESSAY = 'question_bank_essay';
+
     public const QUESTION_BANK_MCQ_LEGACY_CSV = 'question_bank_mcq_csv';
 
     public function get(string $key): array
     {
         $template = config("import_templates.templates.{$key}");
 
-        if (!is_array($template)) {
+        if (! is_array($template)) {
             throw new InvalidArgumentException("Import template [{$key}] is not configured.");
         }
 
@@ -25,7 +27,7 @@ class ImportTemplateRegistry
             'key' => $key,
             'disk' => $disk,
             'path' => $path,
-            'absolute_path' => storage_path('app/' . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path)),
+            'absolute_path' => storage_path('app/'.str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path)),
         ]);
     }
 
@@ -43,7 +45,7 @@ class ImportTemplateRegistry
     {
         $profile = config("import_templates.legacy_profiles.{$key}");
 
-        if (!is_array($profile)) {
+        if (! is_array($profile)) {
             throw new InvalidArgumentException("Import legacy profile [{$key}] is not configured.");
         }
 

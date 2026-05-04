@@ -87,7 +87,7 @@ class StoreAdminScheduleRequest extends FormRequest
                 (string) $this->input('gio_ket_thuc'),
             );
 
-            if (!$ruleCheck['ok']) {
+            if (! $ruleCheck['ok']) {
                 $validator->errors()->add('ngay_hoc', $ruleCheck['message']);
             }
         });

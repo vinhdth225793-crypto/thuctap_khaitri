@@ -20,23 +20,22 @@ class BaiGiangController extends Controller
 {
     public function __construct(
         private readonly LiveLectureService $liveLectureService
-    ) {
-    }
+    ) {}
 
     public function index()
     {
         $giangVien = auth()->user()->giangVien;
-        if (!$giangVien) {
+        if (! $giangVien) {
             return redirect()->route('home')->with('error', 'Tài khoản chưa được liên kết với giảng viên.');
         }
 
         $baiGiangs = BaiGiang::with([
-                'khoaHoc',
-                'moduleHoc',
-                'lichHoc',
-                'taiNguyenChinh',
-                'phongHocLive.moderator',
-            ])
+            'khoaHoc',
+            'moduleHoc',
+            'lichHoc',
+            'taiNguyenChinh',
+            'phongHocLive.moderator',
+        ])
             ->where('nguoi_tao_id', auth()->user()->id)
             ->orderByDesc('created_at')
             ->paginate(15);
@@ -262,7 +261,7 @@ class BaiGiangController extends Controller
             ->where('nguoi_tao_id', auth()->user()->id)
             ->findOrFail($id);
 
-        if ($baiGiang->isLive() && !$baiGiang->phongHocLive) {
+        if ($baiGiang->isLive() && ! $baiGiang->phongHocLive) {
             return back()->with('error', 'Bài giảng live cần có cấu hình phòng học trước khi gửi duyệt.');
         }
 
@@ -316,7 +315,7 @@ class BaiGiangController extends Controller
             ->where('trang_thai', 'da_nhan')
             ->first();
 
-        abort_if(!$phanCong, 403, 'Bạn không có quyền xem lịch học của phân công này.');
+        abort_if(! $phanCong, 403, 'Bạn không có quyền xem lịch học của phân công này.');
 
         $lichHocs = LichHoc::where('khoa_hoc_id', $phanCong->khoa_hoc_id)
             ->where('module_hoc_id', $phanCong->module_hoc_id)
@@ -329,7 +328,7 @@ class BaiGiangController extends Controller
 
     private function formatScheduleForLectureForm(LichHoc $lichHoc): array
     {
-        $signal = strtolower((string) $lichHoc->nen_tang . ' ' . (string) $lichHoc->link_online);
+        $signal = strtolower((string) $lichHoc->nen_tang.' '.(string) $lichHoc->link_online);
         $platform = str_contains($signal, 'google') || str_contains($signal, 'meet.google.com')
             ? PhongHocLive::PLATFORM_GOOGLE_MEET
             : (str_contains($signal, 'zoom') || filled($lichHoc->link_online) ? PhongHocLive::PLATFORM_ZOOM : PhongHocLive::PLATFORM_INTERNAL);
@@ -353,7 +352,7 @@ class BaiGiangController extends Controller
     private function resolveCurrentGiangVien(): GiangVien
     {
         $giangVien = auth()->user()?->giangVien;
-        abort_if(!$giangVien, 403, 'Tài khoản chưa được liên kết với giảng viên.');
+        abort_if(! $giangVien, 403, 'Tài khoản chưa được liên kết với giảng viên.');
 
         return $giangVien;
     }
@@ -366,7 +365,7 @@ class BaiGiangController extends Controller
             ->where('trang_thai', 'da_nhan')
             ->first();
 
-        if (!$phanCong) {
+        if (! $phanCong) {
             throw ValidationException::withMessages([
                 'phan_cong_id' => 'Phân công đã chọn không hợp lệ hoặc không thuộc quyền của bạn.',
             ]);
@@ -387,7 +386,7 @@ class BaiGiangController extends Controller
             ->where('module_hoc_id', $phanCong->module_hoc_id)
             ->exists();
 
-        if (!$isValidLichHoc) {
+        if (! $isValidLichHoc) {
             throw ValidationException::withMessages([
                 'lich_hoc_id' => 'Buổi học đã chọn không thuộc module được phân công.',
             ]);
@@ -433,7 +432,7 @@ class BaiGiangController extends Controller
             ->map(fn ($id) => (int) $id)
             ->all();
 
-        if ($taiNguyenChinhId !== null && !in_array($taiNguyenChinhId, $accessibleIds, true)) {
+        if ($taiNguyenChinhId !== null && ! in_array($taiNguyenChinhId, $accessibleIds, true)) {
             throw ValidationException::withMessages([
                 'tai_nguyen_chinh_id' => 'Tài nguyên chính đã chọn không hợp lệ hoặc chưa được duyệt cho bạn sử dụng.',
             ]);

@@ -192,7 +192,7 @@ class QuestionTextPatternParser
             return $append;
         }
 
-        return trim($base . "\n" . $append);
+        return trim($base."\n".$append);
     }
 
     private function isDecorativeCounterLine(string $text): bool

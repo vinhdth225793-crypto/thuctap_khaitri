@@ -10,8 +10,8 @@ use App\Models\GiangVien;
 use App\Models\KhoaHoc;
 use App\Models\LichHoc;
 use App\Models\ModuleHoc;
-use App\Services\Scheduling\AdminSchedulePlanningService;
 use App\Services\LearningProgressStatusService;
+use App\Services\Scheduling\AdminSchedulePlanningService;
 use App\Support\Scheduling\TeachingPeriodCatalog;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -22,16 +22,15 @@ class LichHocController extends Controller
     public function __construct(
         private readonly AdminSchedulePlanningService $planningService,
         private readonly LearningProgressStatusService $learningProgressStatusService,
-    ) {
-    }
+    ) {}
 
     public function index(int $khoaHocId)
     {
         $khoaHoc = KhoaHoc::with([
             'nhomNganh',
             'lichHocs',
-            'moduleHocs' => fn($q) => $q->orderBy('thu_tu_module'),
-            'moduleHocs.lichHocs' => fn($q) => $q->orderBy('ngay_hoc')->orderBy('gio_bat_dau'),
+            'moduleHocs' => fn ($q) => $q->orderBy('thu_tu_module'),
+            'moduleHocs.lichHocs' => fn ($q) => $q->orderBy('ngay_hoc')->orderBy('gio_bat_dau'),
             'moduleHocs.lichHocs.giangVien.nguoiDung',
             'moduleHocs.lichHocs.baiGiangs',
             'moduleHocs.lichHocs.taiNguyen',
@@ -133,7 +132,7 @@ class LichHocController extends Controller
         $validated = $request->validated();
 
         $planningContext = $this->planningService->inspect($khoaHocId, $validated);
-        if (!$planningContext['can_schedule']) {
+        if (! $planningContext['can_schedule']) {
             return back()
                 ->withErrors($planningContext['errors'])
                 ->withInput()
@@ -194,7 +193,7 @@ class LichHocController extends Controller
 
                         return back()
                             ->withInput()
-                            ->with('error', 'Không tìm thấy ca học hợp lệ ở dòng xem trước thứ ' . ($index + 1) . '.');
+                            ->with('error', 'Không tìm thấy ca học hợp lệ ở dòng xem trước thứ '.($index + 1).'.');
                     }
 
                     $scheduleDate = Carbon::parse($previewDate);
@@ -213,12 +212,12 @@ class LichHocController extends Controller
                     ];
 
                     $planningContext = $this->planningService->inspect($khoaHocId, $singlePayload);
-                    if (!$planningContext['can_schedule']) {
+                    if (! $planningContext['can_schedule']) {
                         DB::rollBack();
 
                         return back()
                             ->withInput()
-                            ->with('error', 'Không thể lưu buổi xem trước ngày ' . $scheduleDate->format('d/m/Y') . ': ' . $this->buildPlanningErrorMessage($planningContext));
+                            ->with('error', 'Không thể lưu buổi xem trước ngày '.$scheduleDate->format('d/m/Y').': '.$this->buildPlanningErrorMessage($planningContext));
                     }
 
                     LichHoc::create($this->prepareSchedulePayload(
@@ -254,12 +253,12 @@ class LichHocController extends Controller
                         ];
 
                         $planningContext = $this->planningService->inspect($khoaHocId, $singlePayload);
-                        if (!$planningContext['can_schedule']) {
+                        if (! $planningContext['can_schedule']) {
                             DB::rollBack();
 
                             return back()
                                 ->withInput()
-                                ->with('error', 'Không thể tạo lịch vào ngày ' . $currentDate->format('d/m/Y') . ': ' . $this->buildPlanningErrorMessage($planningContext));
+                                ->with('error', 'Không thể tạo lịch vào ngày '.$currentDate->format('d/m/Y').': '.$this->buildPlanningErrorMessage($planningContext));
                         }
 
                         LichHoc::create($this->prepareSchedulePayload(
@@ -285,7 +284,7 @@ class LichHocController extends Controller
 
             report($exception);
 
-            return back()->with('error', 'Lỗi: ' . $exception->getMessage());
+            return back()->with('error', 'Lỗi: '.$exception->getMessage());
         }
     }
 
@@ -336,7 +335,7 @@ class LichHocController extends Controller
                 'giang_vien_id' => $validated['giang_vien_id'] ?? null,
             ], $lichHoc->id);
 
-            if (!$planningContext['can_schedule']) {
+            if (! $planningContext['can_schedule']) {
                 return back()
                     ->withErrors($planningContext['errors'])
                     ->withInput()
@@ -445,7 +444,7 @@ class LichHocController extends Controller
             'buoi_hoc' => $data['buoi_hoc'] ?? null,
             'thu_trong_tuan' => $this->resolveThuTrongTuan($date),
             'buoi_so' => $sessionNumber,
-            'phong_hoc' => !$isOnline ? $locationValue : null,
+            'phong_hoc' => ! $isOnline ? $locationValue : null,
             'hinh_thuc' => $data['hinh_thuc'],
             'link_online' => $isOnline ? $locationValue : null,
             'online_link_source' => $this->resolveAdminOnlineLinkSource($isOnline, $locationValue),
@@ -517,7 +516,7 @@ class LichHocController extends Controller
             ->values();
 
         $currentTeacher = $schedule->giangVien;
-        if ($currentTeacher && !$teachers->contains(fn (GiangVien $teacher) => $teacher->id === $currentTeacher->id)) {
+        if ($currentTeacher && ! $teachers->contains(fn (GiangVien $teacher) => $teacher->id === $currentTeacher->id)) {
             $teachers->push($currentTeacher);
         }
 
@@ -534,24 +533,18 @@ class LichHocController extends Controller
             return (string) $errors[0];
         }
 
-        if (!empty($planningContext['conflicts']['message'])) {
+        if (! empty($planningContext['conflicts']['message'])) {
             return (string) $planningContext['conflicts']['message'];
         }
 
-        if (!empty($planningContext['leave_requests']['message']) && ($planningContext['leave_requests']['ok'] ?? null) === false) {
+        if (! empty($planningContext['leave_requests']['message']) && ($planningContext['leave_requests']['ok'] ?? null) === false) {
             return (string) $planningContext['leave_requests']['message'];
         }
 
-        if (!empty($planningContext['standard_window']['message']) && ($planningContext['standard_window']['ok'] ?? null) === false) {
+        if (! empty($planningContext['standard_window']['message']) && ($planningContext['standard_window']['ok'] ?? null) === false) {
             return (string) $planningContext['standard_window']['message'];
         }
 
         return 'Không thể lưu lịch học với dữ liệu hiện tại.';
     }
 }
-
-
-
-
-
-

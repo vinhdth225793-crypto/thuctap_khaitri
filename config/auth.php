@@ -59,12 +59,12 @@ return [
     |
     */
 
-   'providers' => [
-    'users' => [
-        'driver' => 'eloquent',
-        'model' => App\Models\NguoiDung::class,
+    'providers' => [
+        'users' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\NguoiDung::class,
+        ],
     ],
-],
     /*
     |--------------------------------------------------------------------------
     | Resetting Passwords

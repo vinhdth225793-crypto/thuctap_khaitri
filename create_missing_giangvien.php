@@ -1,10 +1,11 @@
 <?php
+
 require 'vendor/autoload.php';
 $app = require_once 'bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
 $users = App\Models\NguoiDung::where('vai_tro', 'giang_vien')->whereDoesntHave('giangVien')->get();
-foreach($users as $user) {
+foreach ($users as $user) {
     App\Models\GiangVien::create([
         'nguoi_dung_id' => $user->ma_nguoi_dung,
         'chuyen_nganh' => 'Chưa cập nhật',
@@ -14,7 +15,6 @@ foreach($users as $user) {
         'mo_ta_ngan' => null,
         'avatar_url' => null,
     ]);
-    echo 'Created GiangVien record for: ' . $user->ho_ten . PHP_EOL;
+    echo 'Created GiangVien record for: '.$user->ho_ten.PHP_EOL;
 }
 echo 'Done!';
-?>

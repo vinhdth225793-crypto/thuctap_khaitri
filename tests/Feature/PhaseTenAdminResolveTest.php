@@ -38,7 +38,7 @@ class PhaseTenAdminResolveTest extends TestCase
         TeachingSessionAlert::create([
             'lich_hoc_id' => $schedule->id,
             'giang_vien_id' => $teacher->id,
-            'alert_key' => 'vao_tre_' . $schedule->id,
+            'alert_key' => 'vao_tre_'.$schedule->id,
             'alert_type' => 'vao_tre',
             'severity' => 'danger',
             'status' => 'open',
@@ -62,9 +62,10 @@ class PhaseTenAdminResolveTest extends TestCase
     private function createUser(string $role): NguoiDung
     {
         $id = uniqid();
+
         return NguoiDung::create([
-            'ho_ten' => 'User ' . $role,
-            'email' => $role . $id . '@example.com',
+            'ho_ten' => 'User '.$role,
+            'email' => $role.$id.'@example.com',
             'mat_khau' => bcrypt('password'),
             'vai_tro' => $role,
             'trang_thai' => 1,
@@ -78,6 +79,7 @@ class PhaseTenAdminResolveTest extends TestCase
         $giangVien = GiangVien::create([
             'nguoi_dung_id' => $user->ma_nguoi_dung,
         ]);
+
         return [$user, $giangVien];
     }
 
@@ -85,17 +87,17 @@ class PhaseTenAdminResolveTest extends TestCase
     {
         $admin = $this->createUser('admin');
         [$user, $teacher] = $this->createTeacher();
-        
-        $nhomNganh = NhomNganh::create(['ten_nhom_nganh' => 'Test', 'ma_nhom_nganh' => 'TEST' . uniqid()]);
+
+        $nhomNganh = NhomNganh::create(['ten_nhom_nganh' => 'Test', 'ma_nhom_nganh' => 'TEST'.uniqid()]);
         $course = KhoaHoc::create([
             'ten_khoa_hoc' => 'Test Course',
-            'ma_khoa_hoc' => 'TEST' . uniqid(),
+            'ma_khoa_hoc' => 'TEST'.uniqid(),
             'nhom_nganh_id' => $nhomNganh->id,
             'loai' => 'hoat_dong',
         ]);
         $module = ModuleHoc::create([
             'khoa_hoc_id' => $course->id,
-            'ma_module' => 'MOD' . uniqid(),
+            'ma_module' => 'MOD'.uniqid(),
             'ten_module' => 'Test Module',
             'so_buoi' => 10,
             'thu_tu_module' => 1,

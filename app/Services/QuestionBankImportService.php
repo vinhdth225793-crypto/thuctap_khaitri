@@ -11,8 +11,7 @@ class QuestionBankImportService
     public function __construct(
         private readonly QuestionDocumentImportService $questionDocumentImportService,
         private readonly QuestionImportPersistenceService $questionImportPersistenceService,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{

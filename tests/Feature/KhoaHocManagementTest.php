@@ -4,8 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\KhoaHoc;
 use App\Models\ModuleHoc;
-use App\Models\NhomNganh;
 use App\Models\NguoiDung;
+use App\Models\NhomNganh;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

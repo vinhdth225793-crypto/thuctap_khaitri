@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('module_hoc', function (Blueprint $table) {
             $table->integer('so_buoi')->default(1)->after('thoi_luong_du_kien')
-                  ->comment('Số buổi học quy định cho module này');
+                ->comment('Số buổi học quy định cho module này');
         });
     }
 

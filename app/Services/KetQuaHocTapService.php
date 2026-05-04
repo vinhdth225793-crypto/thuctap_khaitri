@@ -17,8 +17,7 @@ class KetQuaHocTapService
         private readonly CourseResultAggregationService $courseAggregationService,
         private readonly ModuleFinalScoreService $moduleFinalScoreService,
         private readonly CourseAttendanceScoreService $attendanceScoreService,
-    ) {
-    }
+    ) {}
 
     public function refreshAllForCourseStudent(int $khoaHocId, int $hocVienId): void
     {

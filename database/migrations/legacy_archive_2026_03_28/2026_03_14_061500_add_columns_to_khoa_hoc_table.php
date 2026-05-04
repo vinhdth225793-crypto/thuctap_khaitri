@@ -16,29 +16,51 @@ return new class extends Migration
             Schema::table('khoa_hoc', function (Blueprint $table) {
                 $table->dropForeign(['khoa_hoc_mau_id']);
             });
-        } catch (\Exception $e) {}
+        } catch (\Exception $e) {
+        }
 
         try {
             Schema::table('khoa_hoc', function (Blueprint $table) {
                 $table->dropForeign(['created_by']);
             });
-        } catch (\Exception $e) {}
+        } catch (\Exception $e) {
+        }
 
         Schema::table('khoa_hoc', function (Blueprint $table) {
             // Drop existing columns if they conflict with the new spec to ensure clean state
             // These were added in a previous migration but with slightly different specs
             $colsToDrop = [];
-            if (Schema::hasColumn('khoa_hoc', 'loai')) $colsToDrop[] = 'loai';
-            if (Schema::hasColumn('khoa_hoc', 'trang_thai_van_hanh')) $colsToDrop[] = 'trang_thai_van_hanh';
-            if (Schema::hasColumn('khoa_hoc', 'khoa_hoc_mau_id')) $colsToDrop[] = 'khoa_hoc_mau_id';
-            if (Schema::hasColumn('khoa_hoc', 'lan_mo_thu')) $colsToDrop[] = 'lan_mo_thu';
-            if (Schema::hasColumn('khoa_hoc', 'ngay_khai_giang')) $colsToDrop[] = 'ngay_khai_giang';
-            if (Schema::hasColumn('khoa_hoc', 'ngay_mo_lop')) $colsToDrop[] = 'ngay_mo_lop';
-            if (Schema::hasColumn('khoa_hoc', 'ngay_ket_thuc_du_kien')) $colsToDrop[] = 'ngay_ket_thuc_du_kien';
-            if (Schema::hasColumn('khoa_hoc', 'ngay_ket_thuc')) $colsToDrop[] = 'ngay_ket_thuc';
-            if (Schema::hasColumn('khoa_hoc', 'ghi_chu_noi_bo')) $colsToDrop[] = 'ghi_chu_noi_bo';
-            if (Schema::hasColumn('khoa_hoc', 'created_by')) $colsToDrop[] = 'created_by';
-            
+            if (Schema::hasColumn('khoa_hoc', 'loai')) {
+                $colsToDrop[] = 'loai';
+            }
+            if (Schema::hasColumn('khoa_hoc', 'trang_thai_van_hanh')) {
+                $colsToDrop[] = 'trang_thai_van_hanh';
+            }
+            if (Schema::hasColumn('khoa_hoc', 'khoa_hoc_mau_id')) {
+                $colsToDrop[] = 'khoa_hoc_mau_id';
+            }
+            if (Schema::hasColumn('khoa_hoc', 'lan_mo_thu')) {
+                $colsToDrop[] = 'lan_mo_thu';
+            }
+            if (Schema::hasColumn('khoa_hoc', 'ngay_khai_giang')) {
+                $colsToDrop[] = 'ngay_khai_giang';
+            }
+            if (Schema::hasColumn('khoa_hoc', 'ngay_mo_lop')) {
+                $colsToDrop[] = 'ngay_mo_lop';
+            }
+            if (Schema::hasColumn('khoa_hoc', 'ngay_ket_thuc_du_kien')) {
+                $colsToDrop[] = 'ngay_ket_thuc_du_kien';
+            }
+            if (Schema::hasColumn('khoa_hoc', 'ngay_ket_thuc')) {
+                $colsToDrop[] = 'ngay_ket_thuc';
+            }
+            if (Schema::hasColumn('khoa_hoc', 'ghi_chu_noi_bo')) {
+                $colsToDrop[] = 'ghi_chu_noi_bo';
+            }
+            if (Schema::hasColumn('khoa_hoc', 'created_by')) {
+                $colsToDrop[] = 'created_by';
+            }
+
             if (count($colsToDrop) > 0) {
                 $table->dropColumn($colsToDrop);
             }
@@ -47,7 +69,7 @@ return new class extends Migration
         Schema::table('khoa_hoc', function (Blueprint $table) {
             $table->enum('loai', ['mau', 'hoat_dong'])->default('mau')->after('trang_thai');
             $table->enum('trang_thai_van_hanh', ['cho_mo', 'cho_giang_vien', 'san_sang', 'dang_day', 'ket_thuc'])
-                  ->default('cho_mo')->after('loai');
+                ->default('cho_mo')->after('loai');
             $table->bigInteger('khoa_hoc_mau_id')->unsigned()->nullable()->after('trang_thai_van_hanh');
             $table->integer('lan_mo_thu')->unsigned()->default(0)->after('khoa_hoc_mau_id');
             $table->date('ngay_khai_giang')->nullable()->after('lan_mo_thu');
@@ -71,15 +93,15 @@ return new class extends Migration
             $table->dropForeign(['khoa_hoc_mau_id']);
             $table->dropForeign(['created_by']);
             $table->dropColumn([
-                'loai', 
-                'trang_thai_van_hanh', 
-                'khoa_hoc_mau_id', 
-                'lan_mo_thu', 
-                'ngay_khai_giang', 
-                'ngay_mo_lop', 
-                'ngay_ket_thuc', 
-                'ghi_chu_noi_bo', 
-                'created_by'
+                'loai',
+                'trang_thai_van_hanh',
+                'khoa_hoc_mau_id',
+                'lan_mo_thu',
+                'ngay_khai_giang',
+                'ngay_mo_lop',
+                'ngay_ket_thuc',
+                'ghi_chu_noi_bo',
+                'created_by',
             ]);
         });
     }

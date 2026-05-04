@@ -8,7 +8,9 @@ class TeachingPeriodCatalog
      * Define the center's standard shifts.
      */
     public const SHIFT_SANG = 'sang';
+
     public const SHIFT_CHIEU = 'chieu';
+
     public const SHIFT_TOI = 'toi';
 
     /**
@@ -16,7 +18,9 @@ class TeachingPeriodCatalog
      * 2 = Monday, ..., 7 = Saturday, 8 = Sunday (as used in existing system)
      */
     public const PATTERN_246 = [2, 4, 6];
+
     public const PATTERN_357 = [3, 5, 7];
+
     public const PATTERN_CUOI_TUAN = [7, 8];
 
     /**
@@ -159,7 +163,7 @@ class TeachingPeriodCatalog
     {
         $periods = self::periods();
 
-        if (!isset($periods[$startPeriod]) || !isset($periods[$endPeriod])) {
+        if (! isset($periods[$startPeriod]) || ! isset($periods[$endPeriod])) {
             foreach (self::sessions() as $definition) {
                 if ($definition['start'] === $startPeriod && $definition['end'] === $endPeriod) {
                     return [
@@ -238,8 +242,8 @@ class TeachingPeriodCatalog
         }
 
         return $startPeriod === $endPeriod
-            ? 'Tiết ' . $startPeriod
-            : 'Tiết ' . $startPeriod . ' - ' . $endPeriod;
+            ? 'Tiết '.$startPeriod
+            : 'Tiết '.$startPeriod.' - '.$endPeriod;
     }
 
     public static function standardStartTime(): string

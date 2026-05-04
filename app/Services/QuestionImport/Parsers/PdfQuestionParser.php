@@ -10,8 +10,7 @@ class PdfQuestionParser implements QuestionFileParser
 {
     public function __construct(
         private readonly QuestionTextPatternParser $textPatternParser,
-    ) {
-    }
+    ) {}
 
     public function supports(string $extension): bool
     {
@@ -66,7 +65,7 @@ class PdfQuestionParser implements QuestionFileParser
 
     private function extractTextFromPdf(string $content): string
     {
-        if (!str_contains($content, '%PDF')) {
+        if (! str_contains($content, '%PDF')) {
             return '';
         }
 
@@ -100,7 +99,7 @@ class PdfQuestionParser implements QuestionFileParser
 
     private function decodeStream(string $stream, string $dictionary): string
     {
-        if (!str_contains($dictionary, '/FlateDecode')) {
+        if (! str_contains($dictionary, '/FlateDecode')) {
             return $stream;
         }
 

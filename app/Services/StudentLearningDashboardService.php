@@ -18,8 +18,7 @@ class StudentLearningDashboardService
 {
     public function __construct(
         private readonly ModuleFinalScoreService $moduleFinalScoreService
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

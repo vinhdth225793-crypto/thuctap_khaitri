@@ -23,7 +23,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Re-creating them is not strictly necessary for this refactor 
+        // Re-creating them is not strictly necessary for this refactor
         // as they were never used, but for safety:
         Schema::create('users', function (Blueprint $table) {
             $table->id();

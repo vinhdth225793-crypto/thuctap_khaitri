@@ -11,7 +11,7 @@ class ShowCreateTable extends Command
 
     public function handle()
     {
-        $res = DB::select("SHOW CREATE TABLE nguoi_dung");
+        $res = DB::select('SHOW CREATE TABLE nguoi_dung');
         $this->info(json_encode($res, JSON_PRETTY_PRINT));
     }
 }

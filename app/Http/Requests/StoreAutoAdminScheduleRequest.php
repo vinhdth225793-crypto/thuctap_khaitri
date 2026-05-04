@@ -93,7 +93,7 @@ class StoreAutoAdminScheduleRequest extends FormRequest
                 (string) $this->input('gio_ket_thuc'),
             );
 
-            if (!$ruleCheck['ok'] && !str_contains($ruleCheck['message'], 'Thu')) {
+            if (! $ruleCheck['ok'] && ! str_contains($ruleCheck['message'], 'Thu')) {
                 $validator->errors()->add('gio_bat_dau', $ruleCheck['message']);
             }
         });

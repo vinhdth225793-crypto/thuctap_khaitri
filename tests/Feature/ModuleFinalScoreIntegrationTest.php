@@ -9,7 +9,6 @@ use App\Models\GiangVien;
 use App\Models\HocVien;
 use App\Models\HocVienKhoaHoc;
 use App\Models\KetQuaHocTap;
-use App\Models\KetQuaHocTapChotLog;
 use App\Models\KhoaHoc;
 use App\Models\LichHoc;
 use App\Models\ModuleHoc;
@@ -32,12 +31,12 @@ class ModuleFinalScoreIntegrationTest extends TestCase
         $admin = $this->createUser('admin');
         [$teacherUser, $teacher] = $this->createTeacher();
         $studentUser = $this->createStudent();
-        
+
         $course = $this->createCourse($admin);
         $course->update(['ty_trong_diem_danh' => 20, 'ty_trong_kiem_tra' => 80]);
-        
+
         $module = $this->createModule($course);
-        
+
         // Ghi danh học viên
         HocVienKhoaHoc::create([
             'khoa_hoc_id' => $course->id,
@@ -56,7 +55,7 @@ class ModuleFinalScoreIntegrationTest extends TestCase
         // Tạo 2 buổi học và điểm danh 1 buổi (50%) -> Điểm danh = 5.0
         $session1 = $this->createLichHoc($course, $module, ['buoi_so' => 1]);
         $session2 = $this->createLichHoc($course, $module, ['buoi_so' => 2]);
-        
+
         DiemDanh::create([
             'lich_hoc_id' => $session1->id,
             'hoc_vien_id' => $studentUser->ma_nguoi_dung,
@@ -75,7 +74,7 @@ class ModuleFinalScoreIntegrationTest extends TestCase
             'trang_thai_duyet' => 'da_duyet',
             'trang_thai_phat_hanh' => 'phat_hanh',
         ]);
-        
+
         $largeExam = BaiKiemTra::create([
             'khoa_hoc_id' => $course->id,
             'module_hoc_id' => $module->id,
@@ -129,7 +128,7 @@ class ModuleFinalScoreIntegrationTest extends TestCase
             dump($e->getTraceAsString());
             throw $e;
         }
-        
+
         if ($response->status() !== 302) {
             dump($response->getContent());
         }
@@ -169,7 +168,7 @@ class ModuleFinalScoreIntegrationTest extends TestCase
             ->post(route('admin.ket-qua.approve', $result->id), [
                 'ghi_chu_duyet' => 'Admin dong y luu ho so',
             ]);
-        
+
         if ($response->status() !== 302) {
             dump($response->getContent());
         }
@@ -198,7 +197,7 @@ class ModuleFinalScoreIntegrationTest extends TestCase
         // 4. Học viên XEM KẾT QUẢ CHÍNH THỨC
         $response = $this->actingAs($studentUser)
             ->get(route('hoc-vien.ket-qua'));
-        
+
         $response->assertStatus(200);
         $response->assertSee('6.60');
         $response->assertSee('Da duyet, luu ho so');
@@ -229,9 +228,10 @@ class ModuleFinalScoreIntegrationTest extends TestCase
     private function createUser(string $role, array $overrides = []): NguoiDung
     {
         $index = $this->sequence++;
+
         return NguoiDung::create(array_merge([
-            'ho_ten' => strtoupper($role) . ' ' . $index,
-            'email' => $role . $index . '@example.com',
+            'ho_ten' => strtoupper($role).' '.$index,
+            'email' => $role.$index.'@example.com',
             'mat_khau' => bcrypt('password'),
             'vai_tro' => $role,
             'trang_thai' => true,
@@ -242,6 +242,7 @@ class ModuleFinalScoreIntegrationTest extends TestCase
     {
         $user = $this->createUser('giang_vien');
         $giangVien = GiangVien::create(['nguoi_dung_id' => $user->ma_nguoi_dung]);
+
         return [$user, $giangVien];
     }
 
@@ -249,6 +250,7 @@ class ModuleFinalScoreIntegrationTest extends TestCase
     {
         $user = $this->createUser('hoc_vien');
         HocVien::create(['nguoi_dung_id' => $user->ma_nguoi_dung]);
+
         return $user;
     }
 
@@ -256,15 +258,15 @@ class ModuleFinalScoreIntegrationTest extends TestCase
     {
         $index = $this->sequence++;
         $nhomNganh = NhomNganh::create([
-            'ma_nhom_nganh' => 'NN' . $index,
-            'ten_nhom_nganh' => 'Nhom nganh ' . $index,
+            'ma_nhom_nganh' => 'NN'.$index,
+            'ten_nhom_nganh' => 'Nhom nganh '.$index,
             'trang_thai' => true,
         ]);
 
         return KhoaHoc::create([
             'nhom_nganh_id' => $nhomNganh->id,
-            'ma_khoa_hoc' => 'KH-' . $index,
-            'ten_khoa_hoc' => 'Khoa hoc ' . $index,
+            'ma_khoa_hoc' => 'KH-'.$index,
+            'ten_khoa_hoc' => 'Khoa hoc '.$index,
             'cap_do' => 'co_ban',
             'tong_so_module' => 1,
             'trang_thai' => true,
@@ -279,8 +281,8 @@ class ModuleFinalScoreIntegrationTest extends TestCase
     {
         return ModuleHoc::create([
             'khoa_hoc_id' => $course->id,
-            'ma_module' => $course->ma_khoa_hoc . '-M' . $order,
-            'ten_module' => 'Module ' . $order,
+            'ma_module' => $course->ma_khoa_hoc.'-M'.$order,
+            'ten_module' => 'Module '.$order,
             'thu_tu_module' => $order,
             'so_buoi' => 2,
             'trang_thai' => true,

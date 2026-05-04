@@ -33,7 +33,7 @@ class PhaseEightMonitoringTest extends TestCase
         // Tiết 2-3: 08:30 - 10:30
         // Giả sử bây giờ là 08:40 (trễ 10 phút)
         Carbon::setTestNow('2026-04-03 08:40:00');
-        
+
         $admin = NguoiDung::where('vai_tro', 'admin')->first();
         [$teacherUser, $teacher] = $this->createTeacher();
         [$course, , $schedule] = $this->createAssignedSchedule($admin, $teacher);
@@ -44,11 +44,11 @@ class PhaseEightMonitoringTest extends TestCase
         $schedule->refresh();
         $this->assertSame(LichHoc::TEACHER_MONITORING_VAO_TRE, $schedule->teacher_monitoring_status);
         $this->assertStringContainsString('Buoi hoc da bat dau duoc 10 phut nhung chua ghi nhan check-in', $schedule->teacher_monitoring_note);
-        
+
         // Kiểm tra có thông báo cho admin
         $this->assertDatabaseHas('thong_bao', [
             'nguoi_nhan_id' => $admin->ma_nguoi_dung,
-            'loai' => 'he_thong'
+            'loai' => 'he_thong',
         ]);
 
         Carbon::setTestNow();
@@ -60,7 +60,7 @@ class PhaseEightMonitoringTest extends TestCase
         // Deadline checkout là 10:30 + 60p = 11:30
         // Giả sử bây giờ là 11:40 (đã qua deadline mà chưa check-in)
         Carbon::setTestNow('2026-04-03 11:40:00');
-        
+
         $admin = NguoiDung::where('vai_tro', 'admin')->first();
         [$teacherUser, $teacher] = $this->createTeacher();
         [$course, , $schedule] = $this->createAssignedSchedule($admin, $teacher);
@@ -69,7 +69,7 @@ class PhaseEightMonitoringTest extends TestCase
 
         $schedule->refresh();
         $this->assertSame(LichHoc::TEACHER_MONITORING_KHONG_DAY, $schedule->teacher_monitoring_status);
-        
+
         Carbon::setTestNow();
     }
 
@@ -79,7 +79,7 @@ class PhaseEightMonitoringTest extends TestCase
         // Deadline checkout là 11:30
         // Giảng viên đã check-in lúc 08:30 nhưng đến 11:40 vẫn chưa check-out
         Carbon::setTestNow('2026-04-03 08:30:00');
-        
+
         $admin = NguoiDung::where('vai_tro', 'admin')->first();
         [$teacherUser, $teacher] = $this->createTeacher();
         [$course, , $schedule] = $this->createAssignedSchedule($admin, $teacher);
@@ -87,7 +87,7 @@ class PhaseEightMonitoringTest extends TestCase
         // Giả lập check-in
         $schedule->update([
             'actual_started_at' => now(),
-            'trang_thai' => 'dang_hoc'
+            'trang_thai' => 'dang_hoc',
         ]);
 
         // Nhảy đến lúc quá deadline
@@ -97,7 +97,7 @@ class PhaseEightMonitoringTest extends TestCase
 
         $schedule->refresh();
         $this->assertSame(LichHoc::TEACHER_MONITORING_CHUA_CHECKOUT, $schedule->teacher_monitoring_status);
-        
+
         Carbon::setTestNow();
     }
 
@@ -124,9 +124,10 @@ class PhaseEightMonitoringTest extends TestCase
     private function createUser(string $role): NguoiDung
     {
         $index = $this->sequence++;
+
         return NguoiDung::create([
-            'ho_ten' => strtoupper($role) . ' ' . $index,
-            'email' => $role . $index . '@example.com',
+            'ho_ten' => strtoupper($role).' '.$index,
+            'email' => $role.$index.'@example.com',
             'mat_khau' => bcrypt('password'),
             'vai_tro' => $role,
             'trang_thai' => true,
@@ -139,6 +140,7 @@ class PhaseEightMonitoringTest extends TestCase
         $giangVien = GiangVien::create([
             'nguoi_dung_id' => $user->ma_nguoi_dung,
         ]);
+
         return [$user, $giangVien];
     }
 
@@ -146,15 +148,15 @@ class PhaseEightMonitoringTest extends TestCase
     {
         $index = $this->sequence++;
         $nhomNganh = NhomNganh::create([
-            'ma_nhom_nganh' => 'NN' . $index,
-            'ten_nhom_nganh' => 'Nhom nganh ' . $index,
+            'ma_nhom_nganh' => 'NN'.$index,
+            'ten_nhom_nganh' => 'Nhom nganh '.$index,
             'trang_thai' => true,
         ]);
 
         $course = KhoaHoc::create([
             'nhom_nganh_id' => $nhomNganh->id,
-            'ma_khoa_hoc' => 'KH-' . $index,
-            'ten_khoa_hoc' => 'Khoa hoc ' . $index,
+            'ma_khoa_hoc' => 'KH-'.$index,
+            'ten_khoa_hoc' => 'Khoa hoc '.$index,
             'cap_do' => 'co_ban',
             'tong_so_module' => 1,
             'trang_thai' => true,
@@ -165,8 +167,8 @@ class PhaseEightMonitoringTest extends TestCase
 
         $module = ModuleHoc::create([
             'khoa_hoc_id' => $course->id,
-            'ma_module' => 'M-' . $index,
-            'ten_module' => 'Module ' . $index,
+            'ma_module' => 'M-'.$index,
+            'ten_module' => 'Module '.$index,
             'thu_tu_module' => 1,
             'so_buoi' => 1,
             'trang_thai' => true,

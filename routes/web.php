@@ -1,39 +1,39 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\HomeController;
-use App\Http\Controllers\Admin\NhomNganhController;
-use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\AdminController;
-use App\Http\Controllers\Admin\KhoaHocManagementController;
-use App\Http\Controllers\Admin\KetQuaHocTapController as AdminKetQuaHocTapController;
-use App\Http\Controllers\Admin\PhieuXetDuyetKetQuaController as AdminPhieuXetDuyetKetQuaController;
-use App\Http\Controllers\Admin\LiveRoomController as AdminLiveRoomController;
-use App\Http\Controllers\Admin\HocVienKhoaHocController;
-use App\Http\Controllers\Admin\ModuleHocController;
-use App\Http\Controllers\Admin\LichHocController;
-use App\Http\Controllers\Admin\TeacherScheduleController as AdminTeacherScheduleController;
-use App\Http\Controllers\Admin\TeacherLeaveRequestController as AdminTeacherLeaveRequestController;
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
-use App\Http\Controllers\Admin\NganHangCauHoiController;
 use App\Http\Controllers\Admin\BaiKiemTraPheDuyetController;
+use App\Http\Controllers\Admin\BannerController;
+use App\Http\Controllers\Admin\HocVienKhoaHocController;
+use App\Http\Controllers\Admin\KetQuaHocTapController as AdminKetQuaHocTapController;
+use App\Http\Controllers\Admin\KhoaHocManagementController;
+use App\Http\Controllers\Admin\LichHocController;
+use App\Http\Controllers\Admin\LiveRoomController as AdminLiveRoomController;
+use App\Http\Controllers\Admin\ModuleHocController;
+use App\Http\Controllers\Admin\NganHangCauHoiController;
+use App\Http\Controllers\Admin\NhomNganhController;
 use App\Http\Controllers\Admin\PhanCongController as AdminPhanCongController;
-use App\Http\Controllers\GiangVien\TeacherScheduleController as GiangVienTeacherScheduleController;
-use App\Http\Controllers\GiangVien\TeacherLeaveRequestController as GiangVienTeacherLeaveRequestController;
-use App\Http\Controllers\GiangVien\PhanCongController;
-use App\Http\Controllers\GiangVien\TaiNguyenController;
-use App\Http\Controllers\GiangVien\DiemDanhController;
-use App\Http\Controllers\GiangVien\TeacherAttendanceController;
-use App\Http\Controllers\GiangVien\BaiKiemTraController;
+use App\Http\Controllers\Admin\PhieuXetDuyetKetQuaController as AdminPhieuXetDuyetKetQuaController;
+use App\Http\Controllers\Admin\TeacherLeaveRequestController as AdminTeacherLeaveRequestController;
+use App\Http\Controllers\Admin\TeacherScheduleController as AdminTeacherScheduleController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GiangVien\BaiGiangController;
-use App\Http\Controllers\GiangVien\PhieuXetDuyetKetQuaController as GiangVienPhieuXetDuyetKetQuaController;
+use App\Http\Controllers\GiangVien\BaiKiemTraController;
+use App\Http\Controllers\GiangVien\DiemDanhController;
 use App\Http\Controllers\GiangVien\LiveRoomController as GiangVienLiveRoomController;
+use App\Http\Controllers\GiangVien\PhanCongController;
+use App\Http\Controllers\GiangVien\PhieuXetDuyetKetQuaController as GiangVienPhieuXetDuyetKetQuaController;
+use App\Http\Controllers\GiangVien\TaiNguyenController;
+use App\Http\Controllers\GiangVien\TeacherAttendanceController;
+use App\Http\Controllers\GiangVien\TeacherLeaveRequestController as GiangVienTeacherLeaveRequestController;
+use App\Http\Controllers\GiangVien\TeacherScheduleController as GiangVienTeacherScheduleController;
+use App\Http\Controllers\GiangVienController;
 use App\Http\Controllers\HocVien\BaiKiemTraController as HocVienBaiKiemTraController;
 use App\Http\Controllers\HocVien\LiveRoomController as HocVienLiveRoomController;
-use App\Http\Controllers\GiangVienController;
 use App\Http\Controllers\HocVienController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ThongBaoController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------

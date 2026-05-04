@@ -12,13 +12,19 @@ class PhieuXetDuyetKetQua extends Model
     use HasFactory;
 
     public const PHUONG_AN_FINAL_EXAM_ATTENDANCE = 'final_exam_attendance';
+
     public const PHUONG_AN_SELECTED_EXAMS_ATTENDANCE = 'selected_exams_attendance';
 
     public const TRANG_THAI_DRAFT = 'draft';
+
     public const TRANG_THAI_SUBMITTED = 'submitted';
+
     public const TRANG_THAI_REVIEWING = 'reviewing';
+
     public const TRANG_THAI_REJECTED = 'rejected';
+
     public const TRANG_THAI_APPROVED = 'approved';
+
     public const TRANG_THAI_FINALIZED = 'finalized';
 
     protected $table = 'phieu_xet_duyet_ket_qua';

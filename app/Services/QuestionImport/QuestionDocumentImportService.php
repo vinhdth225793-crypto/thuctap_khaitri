@@ -15,8 +15,7 @@ class QuestionDocumentImportService
         private readonly DocxQuestionParser $docxQuestionParser,
         private readonly PdfQuestionParser $pdfQuestionParser,
         private readonly ParsedQuestionValidator $parsedQuestionValidator,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{

@@ -2,37 +2,50 @@
 
 namespace App\Models;
 
+use App\Support\OnlineMeetingUrl;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
-use App\Support\OnlineMeetingUrl;
 
 class PhongHocLive extends Model
 {
     use HasFactory;
 
     public const PLATFORM_INTERNAL = 'internal';
+
     public const PLATFORM_ZOOM = 'zoom';
+
     public const PLATFORM_GOOGLE_MEET = 'google_meet';
 
     public const TYPE_MEETING = 'meeting';
+
     public const TYPE_CLASS = 'class';
+
     public const TYPE_WEBINAR = 'webinar';
 
     public const ROOM_STATE_CHUA_MO = 'chua_mo';
+
     public const ROOM_STATE_SAP_DIEN_RA = 'sap_dien_ra';
+
     public const ROOM_STATE_DANG_DIEN_RA = 'dang_dien_ra';
+
     public const ROOM_STATE_DA_KET_THUC = 'da_ket_thuc';
+
     public const ROOM_STATE_DA_HUY = 'da_huy';
 
     public const APPROVAL_NHAP = 'nhap';
+
     public const APPROVAL_CHO_DUYET = 'cho_duyet';
+
     public const APPROVAL_DA_DUYET = 'da_duyet';
+
     public const APPROVAL_CAN_CHINH_SUA = 'can_chinh_sua';
+
     public const APPROVAL_TU_CHOI = 'tu_choi';
 
     public const PUBLISH_AN = 'an';
+
     public const PUBLISH_DA_CONG_BO = 'da_cong_bo';
 
     protected $table = 'phong_hoc_live';
@@ -365,12 +378,14 @@ class PhongHocLive extends Model
     {
         // Fallback if null
         $start = $this->bat_dau_du_kien ?? $this->created_at ?? now();
+
         return $start->copy()->subMinutes(15);
     }
 
     public function getEndsAtAttribute(): Carbon
     {
         $start = $this->bat_dau_du_kien ?? $this->created_at ?? now();
+
         return $start->copy()->addMinutes(90);
     }
 
@@ -440,7 +455,7 @@ class PhongHocLive extends Model
 
     public function getCanModeratorStartAttribute(): bool
     {
-        return !in_array($this->trang_thai, ['da_ket_thuc', 'huy'], true)
+        return ! in_array($this->trang_thai, ['da_ket_thuc', 'huy'], true)
             && $this->trang_thai !== 'dang_dien_ra';
     }
 

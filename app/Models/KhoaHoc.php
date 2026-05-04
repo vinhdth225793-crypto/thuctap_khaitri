@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -12,7 +12,9 @@ class KhoaHoc extends Model
     use HasFactory;
 
     public const LEARNING_STATUS_CHUA_BAT_DAU = 'chua_bat_dau';
+
     public const LEARNING_STATUS_DANG_HOC = 'dang_hoc';
+
     public const LEARNING_STATUS_HOAN_THANH = 'hoan_thanh';
 
     protected $table = 'khoa_hoc';
@@ -41,7 +43,7 @@ class KhoaHoc extends Model
         'ngay_mo_lop',
         'ngay_ket_thuc',
         'ghi_chu_noi_bo',
-        'created_by'
+        'created_by',
     ];
 
     protected $casts = [
@@ -140,8 +142,8 @@ class KhoaHoc extends Model
     public function lichHocs(): HasMany
     {
         return $this->hasMany(LichHoc::class, 'khoa_hoc_id')
-                    ->orderBy('ngay_hoc')
-                    ->orderBy('gio_bat_dau');
+            ->orderBy('ngay_hoc')
+            ->orderBy('gio_bat_dau');
     }
 
     public function baiKiemTras(): HasMany
@@ -189,8 +191,8 @@ class KhoaHoc extends Model
     public function giangViens()
     {
         return $this->belongsToMany(GiangVien::class, 'phan_cong_module_giang_vien', 'khoa_hoc_id', 'giang_vien_id')
-                    ->withPivot('module_hoc_id', 'trang_thai', 'ghi_chu')
-                    ->withTimestamps();
+            ->withPivot('module_hoc_id', 'trang_thai', 'ghi_chu')
+            ->withTimestamps();
     }
 
     /**
@@ -212,7 +214,7 @@ class KhoaHoc extends Model
     public function scopeSearch($query, $search)
     {
         return $query->where('ten_khoa_hoc', 'LIKE', "%{$search}%")
-                     ->orWhere('ma_khoa_hoc', 'LIKE', "%{$search}%");
+            ->orWhere('ma_khoa_hoc', 'LIKE', "%{$search}%");
     }
 
     public function scopeMau($query)
@@ -251,25 +253,25 @@ class KhoaHoc extends Model
 
     public function getLabelTrangThaiVanHanhAttribute(): string
     {
-        return match($this->trang_thai_van_hanh) {
-            'cho_mo'          => 'Chờ mở lớp',
-            'cho_giang_vien'  => 'Chờ giảng viên xác nhận',
-            'san_sang'        => 'Sẵn sàng khai giảng',
-            'dang_day'        => 'Đang giảng dạy',
-            'ket_thuc'        => 'Đã kết thúc',
-            default           => 'Không xác định',
+        return match ($this->trang_thai_van_hanh) {
+            'cho_mo' => 'Chờ mở lớp',
+            'cho_giang_vien' => 'Chờ giảng viên xác nhận',
+            'san_sang' => 'Sẵn sàng khai giảng',
+            'dang_day' => 'Đang giảng dạy',
+            'ket_thuc' => 'Đã kết thúc',
+            default => 'Không xác định',
         };
     }
 
     public function getBadgeTrangThaiAttribute(): string
     {
-        return match($this->trang_thai_van_hanh) {
-            'cho_mo'          => 'secondary',
-            'cho_giang_vien'  => 'warning',
-            'san_sang'        => 'primary',
-            'dang_day'        => 'info',
-            'ket_thuc'        => 'success',
-            default           => 'light',
+        return match ($this->trang_thai_van_hanh) {
+            'cho_mo' => 'secondary',
+            'cho_giang_vien' => 'warning',
+            'san_sang' => 'primary',
+            'dang_day' => 'info',
+            'ket_thuc' => 'success',
+            default => 'light',
         };
     }
 
@@ -277,22 +279,23 @@ class KhoaHoc extends Model
     public function getTrangThaiVanHanhLabelAttribute(): array
     {
         $map = [
-            'cho_mo'         => ['label'=>'Chờ mở',          'color'=>'secondary', 'icon'=>'fa-pause-circle'],
-            'cho_giang_vien' => ['label'=>'Chờ GV xác nhận', 'color'=>'warning',   'icon'=>'fa-clock'],
-            'san_sang'       => ['label'=>'Sẵn sàng',         'color'=>'primary',   'icon'=>'fa-check-circle'],
-            'dang_day'       => ['label'=>'Đang dạy',          'color'=>'info',      'icon'=>'fa-play-circle'],
-            'ket_thuc'       => ['label'=>'Kết thúc',          'color'=>'success',   'icon'=>'fa-flag-checkered'],
+            'cho_mo' => ['label' => 'Chờ mở',          'color' => 'secondary', 'icon' => 'fa-pause-circle'],
+            'cho_giang_vien' => ['label' => 'Chờ GV xác nhận', 'color' => 'warning',   'icon' => 'fa-clock'],
+            'san_sang' => ['label' => 'Sẵn sàng',         'color' => 'primary',   'icon' => 'fa-check-circle'],
+            'dang_day' => ['label' => 'Đang dạy',          'color' => 'info',      'icon' => 'fa-play-circle'],
+            'ket_thuc' => ['label' => 'Kết thúc',          'color' => 'success',   'icon' => 'fa-flag-checkered'],
         ];
+
         return $map[$this->trang_thai_van_hanh]
-            ?? ['label'=>'Không xác định','color'=>'secondary','icon'=>'fa-question'];
+            ?? ['label' => 'Không xác định', 'color' => 'secondary', 'icon' => 'fa-question'];
     }
 
     public function getLoaiLabelAttribute(): array
     {
         return [
-            'mau'       => ['label'=>'Khóa mẫu',  'color'=>'info'],
-            'hoat_dong' => ['label'=>'Hoạt động', 'color'=>'primary'],
-        ][$this->loai] ?? ['label'=>'?','color'=>'secondary'];
+            'mau' => ['label' => 'Khóa mẫu',  'color' => 'info'],
+            'hoat_dong' => ['label' => 'Hoạt động', 'color' => 'primary'],
+        ][$this->loai] ?? ['label' => '?', 'color' => 'secondary'];
     }
 
     public function getSoModuleThucTeAttribute(): int
@@ -302,7 +305,7 @@ class KhoaHoc extends Model
 
     public function getSoModuleDaNhanAttribute(): int
     {
-        return $this->moduleHocs->filter(function($module) {
+        return $this->moduleHocs->filter(function ($module) {
             return $module->phanCongGiangViens->where('trang_thai', 'da_nhan')->count() > 0;
         })->count();
     }
@@ -310,7 +313,10 @@ class KhoaHoc extends Model
     public function getTienDoPhanCongAttribute(): int
     {
         $total = $this->moduleHocs->count();
-        if ($total === 0) return 0;
+        if ($total === 0) {
+            return 0;
+        }
+
         return round(($this->so_module_da_nhan / $total) * 100);
     }
 
@@ -327,12 +333,14 @@ class KhoaHoc extends Model
      */
     public function isFullyAssigned(): bool
     {
-        if ($this->tong_so_module === 0) return false;
-        
+        if ($this->tong_so_module === 0) {
+            return false;
+        }
+
         $co = $this->moduleHocs()
-            ->whereHas('phanCongGiangViens', fn($q) => $q->where('trang_thai','da_nhan'))
+            ->whereHas('phanCongGiangViens', fn ($q) => $q->where('trang_thai', 'da_nhan'))
             ->count();
-            
+
         return $co >= $this->tong_so_module;
     }
 
@@ -414,7 +422,8 @@ class KhoaHoc extends Model
     public function getProgressTextAttribute(): string
     {
         $snapshot = $this->learning_progress_snapshot;
-        return $snapshot['completed_modules'] . '/' . $snapshot['total_modules'] . ' module';
+
+        return $snapshot['completed_modules'].'/'.$snapshot['total_modules'].' module';
     }
 
     public function getTienDoHocTapAttribute(): int
@@ -447,4 +456,3 @@ class KhoaHoc extends Model
         };
     }
 }
-

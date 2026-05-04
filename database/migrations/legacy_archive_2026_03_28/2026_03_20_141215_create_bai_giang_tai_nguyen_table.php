@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('bai_giang_id');
             $table->unsignedBigInteger('tai_nguyen_id');
-            $table->string('vai_tro_tai_nguyen')->default('phu'); 
+            $table->string('vai_tro_tai_nguyen')->default('phu');
             // values: chinh, phu
             $table->integer('thu_tu_hien_thi')->default(0);
             $table->timestamps();

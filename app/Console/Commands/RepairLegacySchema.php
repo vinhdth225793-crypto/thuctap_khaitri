@@ -51,7 +51,7 @@ class RepairLegacySchema extends Command
                 try {
                     $this->statement('ALTER TABLE `nguoi_dung` ADD COLUMN `ma_nguoi_dung` BIGINT UNSIGNED GENERATED ALWAYS AS (`id`) STORED AFTER `id`');
                 } catch (Throwable $exception) {
-                    $this->warn('Generated column failed, falling back to a copied ma_nguoi_dung column: ' . $exception->getMessage());
+                    $this->warn('Generated column failed, falling back to a copied ma_nguoi_dung column: '.$exception->getMessage());
                     $this->statement('ALTER TABLE `nguoi_dung` ADD COLUMN `ma_nguoi_dung` BIGINT UNSIGNED NULL AFTER `id`');
                     $this->statement('UPDATE `nguoi_dung` SET `ma_nguoi_dung` = `id` WHERE `ma_nguoi_dung` IS NULL');
                 }
@@ -433,7 +433,7 @@ class RepairLegacySchema extends Command
             $courseParts[] = 'lop.`khoa_hoc_id`';
         }
 
-        $courseColumn = $courseParts === [] ? 'NULL' : 'COALESCE(' . implode(', ', $courseParts) . ')';
+        $courseColumn = $courseParts === [] ? 'NULL' : 'COALESCE('.implode(', ', $courseParts).')';
         $moduleColumn = $this->sourceColumn($sourceColumns, 'bg', 'module_hoc_id');
         $scheduleColumn = $this->sourceColumn($sourceColumns, 'bg', 'lich_hoc_id');
         $creatorColumn = $this->sourceColumn($sourceColumns, 'bg', 'nguoi_dang_id');
@@ -642,8 +642,8 @@ class RepairLegacySchema extends Command
                 $dateParts[] = 'DATE(dx.`created_at`)';
             }
 
-            $khoaHocColumn = $courseParts === [] ? 'NULL' : 'COALESCE(' . implode(', ', $courseParts) . ')';
-            $ngayXinNghiColumn = $dateParts === [] ? 'CURRENT_DATE' : 'COALESCE(' . implode(', ', [...$dateParts, 'CURRENT_DATE']) . ')';
+            $khoaHocColumn = $courseParts === [] ? 'NULL' : 'COALESCE('.implode(', ', $courseParts).')';
+            $ngayXinNghiColumn = $dateParts === [] ? 'CURRENT_DATE' : 'COALESCE('.implode(', ', [...$dateParts, 'CURRENT_DATE']).')';
             $moduleHocColumn = $joinLichHoc !== '' && Schema::hasColumn('lich_hoc', 'module_hoc_id') ? 'lh.`module_hoc_id`' : 'NULL';
             $lichHocColumn = $hasLichHocId ? 'dx.`lich_hoc_id`' : 'NULL';
             $buoiHocColumn = $joinLichHoc !== '' && Schema::hasColumn('lich_hoc', 'buoi_hoc') ? 'lh.`buoi_hoc`' : 'NULL';
@@ -720,7 +720,6 @@ class RepairLegacySchema extends Command
             $this->statement('ALTER TABLE `giang_vien_don_xin_nghi` ADD COLUMN `updated_at` TIMESTAMP NULL AFTER `created_at`');
         }
     }
-
 
     private function repairCourseCatalog(): void
     {
@@ -968,7 +967,7 @@ class RepairLegacySchema extends Command
         }
 
         if (! Schema::hasColumn('ngan_hang_cau_hoi', 'noi_dung')) {
-            $this->statement("ALTER TABLE `ngan_hang_cau_hoi` ADD COLUMN `noi_dung` LONGTEXT NOT NULL AFTER `ma_cau_hoi`");
+            $this->statement('ALTER TABLE `ngan_hang_cau_hoi` ADD COLUMN `noi_dung` LONGTEXT NOT NULL AFTER `ma_cau_hoi`');
         }
 
         if (! Schema::hasColumn('ngan_hang_cau_hoi', 'loai_cau_hoi')) {
@@ -1302,7 +1301,7 @@ class RepairLegacySchema extends Command
         try {
             $this->statement($sql);
         } catch (Throwable $exception) {
-            $this->warn('Skipped: ' . $sql);
+            $this->warn('Skipped: '.$sql);
             $this->warn($exception->getMessage());
         }
     }

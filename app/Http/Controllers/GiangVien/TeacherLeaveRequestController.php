@@ -12,13 +12,12 @@ class TeacherLeaveRequestController extends Controller
 {
     public function __construct(
         private readonly TeacherLeaveRequestService $leaveRequestService,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request)
     {
         $teacher = auth()->user()->giangVien;
-        abort_if(!$teacher, 404);
+        abort_if(! $teacher, 404);
 
         $query = $teacher->donXinNghis()->with(['khoaHoc', 'moduleHoc', 'lichHoc', 'nguoiDuyet']);
 
@@ -38,7 +37,7 @@ class TeacherLeaveRequestController extends Controller
     public function create(Request $request)
     {
         $teacher = auth()->user()->giangVien;
-        abort_if(!$teacher, 404);
+        abort_if(! $teacher, 404);
 
         $selectedSchedule = null;
         if ($request->filled('lich_hoc_id')) {
@@ -65,7 +64,7 @@ class TeacherLeaveRequestController extends Controller
     public function store(StoreTeacherLeaveRequest $request)
     {
         $teacher = auth()->user()->giangVien;
-        abort_if(!$teacher, 404);
+        abort_if(! $teacher, 404);
 
         $leave = $this->leaveRequestService->createForTeacher($teacher, $request->validated());
 
@@ -73,7 +72,9 @@ class TeacherLeaveRequestController extends Controller
             $tenGV = auth()->user()->ho_ten ?? 'Giảng viên';
             $leaveId = is_object($leave) ? ($leave->id ?? 0) : 0;
             app(\App\Services\NotificationService::class)->notifyLeaveSubmitted($tenGV, (int) $leaveId);
-        } catch (\Throwable $e) { report($e); }
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return redirect()
             ->route('giang-vien.don-xin-nghi.index')

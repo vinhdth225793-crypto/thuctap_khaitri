@@ -242,8 +242,8 @@ class StudentLearningFlowTest extends TestCase
         $index = $this->sequence++;
 
         $user = NguoiDung::create([
-            'ho_ten' => 'Hoc vien ' . $index,
-            'email' => 'student' . $index . '@example.com',
+            'ho_ten' => 'Hoc vien '.$index,
+            'email' => 'student'.$index.'@example.com',
             'mat_khau' => bcrypt('password123'),
             'vai_tro' => 'hoc_vien',
             'trang_thai' => true,
@@ -261,15 +261,15 @@ class StudentLearningFlowTest extends TestCase
         $index = $this->sequence++;
 
         $nhomNganh = NhomNganh::create([
-            'ma_nhom_nganh' => 'NN' . str_pad((string) $index, 3, '0', STR_PAD_LEFT),
-            'ten_nhom_nganh' => 'Nhom nganh ' . $index,
+            'ma_nhom_nganh' => 'NN'.str_pad((string) $index, 3, '0', STR_PAD_LEFT),
+            'ten_nhom_nganh' => 'Nhom nganh '.$index,
             'trang_thai' => true,
         ]);
 
         return KhoaHoc::create([
             'nhom_nganh_id' => $nhomNganh->id,
-            'ma_khoa_hoc' => 'KH-' . str_pad((string) $index, 3, '0', STR_PAD_LEFT),
-            'ten_khoa_hoc' => 'Khoa hoc ' . $index,
+            'ma_khoa_hoc' => 'KH-'.str_pad((string) $index, 3, '0', STR_PAD_LEFT),
+            'ten_khoa_hoc' => 'Khoa hoc '.$index,
             'cap_do' => 'co_ban',
             'tong_so_module' => 1,
             'trang_thai' => true,
@@ -282,7 +282,7 @@ class StudentLearningFlowTest extends TestCase
     {
         return ModuleHoc::create([
             'khoa_hoc_id' => $course->id,
-            'ma_module' => $course->ma_khoa_hoc . '-M1',
+            'ma_module' => $course->ma_khoa_hoc.'-M1',
             'ten_module' => 'Module 1',
             'thu_tu_module' => 1,
             'so_buoi' => 1,

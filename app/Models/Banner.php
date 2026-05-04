@@ -1,17 +1,21 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
 
-class Banner extends Model {
+class Banner extends Model
+{
     use HasFactory;
 
     protected $table = 'banners';
-    protected $fillable = ['tieu_de','mo_ta','duong_dan_anh','hinh_anh','link','lien_ket','thu_tu','trang_thai'];
-    protected $casts = ['trang_thai'=>'boolean','thu_tu'=>'integer'];
+
+    protected $fillable = ['tieu_de', 'mo_ta', 'duong_dan_anh', 'hinh_anh', 'link', 'lien_ket', 'thu_tu', 'trang_thai'];
+
+    protected $casts = ['trang_thai' => 'boolean', 'thu_tu' => 'integer'];
 
     public function getTable()
     {
@@ -26,7 +30,8 @@ class Banner extends Model {
         return parent::getTable();
     }
 
-    public function scopeHienThi($query) {
+    public function scopeHienThi($query)
+    {
         return $query->where('trang_thai', true)->orderBy('thu_tu');
     }
 

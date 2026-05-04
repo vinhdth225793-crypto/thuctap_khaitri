@@ -8,8 +8,11 @@ use Illuminate\Support\Collection;
 class ExamResultAggregationService
 {
     public const HIGHEST_SCORE = 'highest_score';
+
     public const LATEST_ATTEMPT = 'latest_attempt';
+
     public const AVERAGE_ATTEMPTS = 'average_attempts';
+
     public const FIRST_ATTEMPT = 'first_attempt';
 
     /**

@@ -14,8 +14,7 @@ class BaiKiemTraPheDuyetController extends Controller
     public function __construct(
         private readonly ExamConfigurationService $examConfigurationService,
         private readonly ExamSurveillanceService $surveillanceService,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request)
     {
@@ -32,8 +31,8 @@ class BaiKiemTraPheDuyetController extends Controller
                 $search = trim((string) $request->string('search'));
 
                 $query->where(function ($nestedQuery) use ($search) {
-                    $nestedQuery->where('tieu_de', 'like', '%' . $search . '%')
-                        ->orWhere('mo_ta', 'like', '%' . $search . '%');
+                    $nestedQuery->where('tieu_de', 'like', '%'.$search.'%')
+                        ->orWhere('mo_ta', 'like', '%'.$search.'%');
                 });
             })
             ->orderByRaw("
@@ -97,14 +96,14 @@ class BaiKiemTraPheDuyetController extends Controller
     {
         $baiLam = BaiLamBaiKiemTra::with('baiKiemTra')->findOrFail($baiLamId);
 
-        if (!$baiLam->baiKiemTra->co_giam_sat) {
+        if (! $baiLam->baiKiemTra->co_giam_sat) {
             return back()->with('error', 'Bài làm này không áp dụng giám sát.');
         }
 
         $reviewStatusOptions = array_keys($this->surveillanceService->reviewStatusOptions());
 
         $validated = $request->validate([
-            'trang_thai_giam_sat' => 'required|string|in:' . implode(',', $reviewStatusOptions),
+            'trang_thai_giam_sat' => 'required|string|in:'.implode(',', $reviewStatusOptions),
             'ghi_chu_giam_sat' => 'nullable|string|max:2000',
         ]);
 
@@ -135,7 +134,9 @@ class BaiKiemTraPheDuyetController extends Controller
                     $request->input('ghi_chu_duyet')
                 );
             }
-        } catch (\Throwable $e) { report($e); }
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return back()->with('success', 'Đã duyệt bài kiểm tra.');
     }
@@ -165,7 +166,9 @@ class BaiKiemTraPheDuyetController extends Controller
                     $request->input('ghi_chu_duyet')
                 );
             }
-        } catch (\Throwable $e) { report($e); }
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return back()->with('success', 'Đã từ chối bài kiểm tra.');
     }
@@ -194,7 +197,9 @@ class BaiKiemTraPheDuyetController extends Controller
                     $baiKiemTra->id
                 );
             }
-        } catch (\Throwable $e) { report($e); }
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return back()->with('success', 'Đã phát hành bài kiểm tra cho học viên.');
     }

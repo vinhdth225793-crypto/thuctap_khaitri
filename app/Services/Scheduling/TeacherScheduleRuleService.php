@@ -50,7 +50,7 @@ class TeacherScheduleRuleService
     {
         $date = $date instanceof Carbon ? $date : Carbon::parse($date);
 
-        if (!$this->isAllowedWeekday($date)) {
+        if (! $this->isAllowedWeekday($date)) {
             return [
                 'ok' => false,
                 'message' => 'Hệ thống chỉ cho phép xếp lịch từ Thứ 2 đến Chủ nhật.',
@@ -58,10 +58,10 @@ class TeacherScheduleRuleService
             ];
         }
 
-        if (!$this->isWithinStandardHours($startTime, $endTime)) {
+        if (! $this->isWithinStandardHours($startTime, $endTime)) {
             return [
                 'ok' => false,
-                'message' => 'Khung giờ phải nằm trong lịch dạy chuẩn ' . TeachingPeriodCatalog::standardStartTime() . ' - ' . TeachingPeriodCatalog::standardEndTime() . '.',
+                'message' => 'Khung giờ phải nằm trong lịch dạy chuẩn '.TeachingPeriodCatalog::standardStartTime().' - '.TeachingPeriodCatalog::standardEndTime().'.',
                 'rule_label' => $this->ruleLabel(),
             ];
         }
@@ -75,6 +75,6 @@ class TeacherScheduleRuleService
 
     public function ruleLabel(): string
     {
-        return 'Thứ 2 - Chủ nhật | ' . TeachingPeriodCatalog::standardStartTime() . ' - ' . TeachingPeriodCatalog::standardEndTime() . ' | 12 tiết';
+        return 'Thứ 2 - Chủ nhật | '.TeachingPeriodCatalog::standardStartTime().' - '.TeachingPeriodCatalog::standardEndTime().' | 12 tiết';
     }
 }

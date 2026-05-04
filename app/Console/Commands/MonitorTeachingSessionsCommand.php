@@ -7,7 +7,6 @@ use App\Models\NguoiDung;
 use App\Models\ThongBao;
 use App\Services\TeachingSessionWindowService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class MonitorTeachingSessionsCommand extends Command
@@ -53,7 +52,7 @@ class MonitorTeachingSessionsCommand extends Command
 
         foreach ($schedules as $schedule) {
             $violation = $this->detectViolation($schedule);
-            
+
             if ($violation) {
                 $this->processViolation($schedule, $violation);
                 $violationCount++;
@@ -65,15 +64,14 @@ class MonitorTeachingSessionsCommand extends Command
 
     /**
      * Phat hien vi pham cho mot buoi hoc.
-     * 
-     * @param LichHoc $schedule
+     *
      * @return array{status: string, note: string}|null
      */
     private function detectViolation(LichHoc $schedule): ?array
     {
         $now = now();
         $hasCheckedIn = $schedule->actual_started_at !== null;
-        
+
         // 1. Kiem tra Khong day (Qua deadline checkout ma chua check-in)
         if ($this->windowService->shouldFlagNoShow($schedule, $hasCheckedIn, $now)) {
             // Neu da flag roi thi bo qua (tranh duplicate alert)
@@ -83,7 +81,7 @@ class MonitorTeachingSessionsCommand extends Command
 
             return [
                 'status' => LichHoc::TEACHER_MONITORING_KHONG_DAY,
-                'note' => "Giao vien khong thuc hien check-in/day buoi hoc du da qua thoi han ket thuc.",
+                'note' => 'Giao vien khong thuc hien check-in/day buoi hoc du da qua thoi han ket thuc.',
             ];
         }
 
@@ -101,8 +99,8 @@ class MonitorTeachingSessionsCommand extends Command
 
         // 3. Kiem tra Vao tre (Da qua gio bat dau nhung chua check-in)
         // Lưu ý: Vao tre thuong duoc check khi giao vien check-in, nhung command nay check cho truong hop ho chua check-in luon
-        if (!$hasCheckedIn && $this->windowService->isLateCheckIn($schedule, $now)) {
-             if ($schedule->teacher_monitoring_status === LichHoc::TEACHER_MONITORING_VAO_TRE) {
+        if (! $hasCheckedIn && $this->windowService->isLateCheckIn($schedule, $now)) {
+            if ($schedule->teacher_monitoring_status === LichHoc::TEACHER_MONITORING_VAO_TRE) {
                 return null;
             }
 
@@ -128,7 +126,7 @@ class MonitorTeachingSessionsCommand extends Command
             $schedule->teacher_monitoring_status = $violation['status'];
             $schedule->teacher_monitoring_note = trim(implode(PHP_EOL, array_filter([
                 $schedule->teacher_monitoring_note,
-                $violation['note'] . " (Ghi nhan tu dong luc " . now()->format('H:i d/m/Y') . ")"
+                $violation['note'].' (Ghi nhan tu dong luc '.now()->format('H:i d/m/Y').')',
             ])));
             $schedule->teacher_monitoring_flagged_at = now();
             $schedule->save();
@@ -147,9 +145,9 @@ class MonitorTeachingSessionsCommand extends Command
         $admins = NguoiDung::where('vai_tro', 'admin')->get();
         $teacherName = $schedule->giangVien?->nguoiDung?->ho_ten ?? 'N/A';
         $courseName = $schedule->khoaHoc?->ten_khoa_hoc ?? 'N/A';
-        $timeStr = $schedule->ngay_hoc->format('d/m/Y') . " " . $schedule->gio_bat_dau . "-" . $schedule->gio_ket_thuc;
+        $timeStr = $schedule->ngay_hoc->format('d/m/Y').' '.$schedule->gio_bat_dau.'-'.$schedule->gio_ket_thuc;
 
-        $typeLabel = match($violation['status']) {
+        $typeLabel = match ($violation['status']) {
             LichHoc::TEACHER_MONITORING_VAO_TRE => 'Vào trễ',
             LichHoc::TEACHER_MONITORING_KHONG_DAY => 'Không dạy',
             LichHoc::TEACHER_MONITORING_CHUA_CHECKOUT => 'Chưa check-out',

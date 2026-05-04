@@ -9,9 +9,13 @@ use Illuminate\Support\Collection;
 class ModuleResultAggregationService
 {
     public const ALL_EXAMS_AVERAGE = 'all_exams_average';
+
     public const MODULE_EXAM_WITH_SESSION_AVERAGE = 'module_exam_with_session_average';
+
     public const SELECTED_EXAMS_AVERAGE = 'selected_exams_average';
+
     public const WEIGHTED_AVERAGE = 'weighted_average';
+
     public const TOP_N_AVERAGE = 'top_n_average';
 
     /**

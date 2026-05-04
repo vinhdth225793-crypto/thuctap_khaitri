@@ -45,7 +45,7 @@ class ExamSurveillanceLogService
             ->count() >= 3;
 
         $canXemXet = $soLanViPham >= $nguong || $coNhieuLoiSnapshot;
-        if ($canXemXet && !in_array($baiLam->trang_thai_giam_sat, ['da_xac_nhan', 'nghi_ngo'], true)) {
+        if ($canXemXet && ! in_array($baiLam->trang_thai_giam_sat, ['da_xac_nhan', 'nghi_ngo'], true)) {
             $baiLam->forceFill([
                 'trang_thai_giam_sat' => 'can_xem_xet',
             ])->save();
@@ -129,7 +129,7 @@ class ExamSurveillanceLogService
             return 'Thao tác chuột phải đã bị chặn trong bài thi giám sát.';
         }
 
-        if (!$this->isViolationEvent($eventType)) {
+        if (! $this->isViolationEvent($eventType)) {
             return null;
         }
 

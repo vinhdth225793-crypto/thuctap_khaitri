@@ -32,7 +32,7 @@ return new class extends Migration
             'hau_kiem_luc' => fn (Blueprint $table) => $table->dateTime('hau_kiem_luc')->nullable(),
         ]);
 
-        if (!Schema::hasTable('bai_lam_vi_pham_giam_sat')) {
+        if (! Schema::hasTable('bai_lam_vi_pham_giam_sat')) {
             Schema::create('bai_lam_vi_pham_giam_sat', function (Blueprint $table) {
                 $table->id();
                 $table->unsignedBigInteger('bai_lam_bai_kiem_tra_id');
@@ -49,7 +49,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('bai_lam_snapshot_giam_sat')) {
+        if (! Schema::hasTable('bai_lam_snapshot_giam_sat')) {
             Schema::create('bai_lam_snapshot_giam_sat', function (Blueprint $table) {
                 $table->id();
                 $table->unsignedBigInteger('bai_lam_bai_kiem_tra_id');
@@ -99,7 +99,7 @@ return new class extends Migration
 
     private function addMissingColumns(string $tableName, array $columnDefinitions): void
     {
-        if (!Schema::hasTable($tableName)) {
+        if (! Schema::hasTable($tableName)) {
             return;
         }
 
@@ -116,7 +116,7 @@ return new class extends Migration
 
     private function dropExistingColumns(string $tableName, array $columns): void
     {
-        if (!Schema::hasTable($tableName)) {
+        if (! Schema::hasTable($tableName)) {
             return;
         }
 

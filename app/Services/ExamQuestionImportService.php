@@ -9,8 +9,7 @@ class ExamQuestionImportService
 {
     public function __construct(
         private readonly QuestionBankImportService $questionBankImportService,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{
@@ -33,9 +32,9 @@ class ExamQuestionImportService
     public function importToBank(array $preview, BaiKiemTra $baiKiemTra, int $userId): array
     {
         $result = $this->questionBankImportService->confirmImport(
-            $preview, 
-            $baiKiemTra->khoa_hoc_id, 
-            $userId, 
+            $preview,
+            $baiKiemTra->khoa_hoc_id,
+            $userId,
             $baiKiemTra->module_hoc_id
         );
 

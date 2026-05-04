@@ -12,8 +12,7 @@ class ExamResultReportDataService
 {
     public function __construct(
         private readonly ModuleFinalScoreService $moduleFinalScoreService
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{khoa_hoc: KhoaHoc, student_results: array<int, array<string, mixed>>, summary: array<string, mixed>}
@@ -43,7 +42,7 @@ class ExamResultReportDataService
             ->orderBy('bai_kiem_tra_id')
             ->orderBy('lan_lam_thu')
             ->get()
-            ->groupBy(fn (BaiLamBaiKiemTra $attempt) => $attempt->hoc_vien_id . ':' . $attempt->bai_kiem_tra_id);
+            ->groupBy(fn (BaiLamBaiKiemTra $attempt) => $attempt->hoc_vien_id.':'.$attempt->bai_kiem_tra_id);
 
         $studentResults = $enrollments->map(function (HocVienKhoaHoc $enrollment) use ($resultsByStudent, $attemptsByStudentExam) {
             $allResults = $resultsByStudent->get($enrollment->hoc_vien_id, collect());
@@ -67,7 +66,7 @@ class ExamResultReportDataService
                 'exam_results' => $examResults,
                 'attempts_by_exam' => $examResults->mapWithKeys(function (KetQuaHocTap $result) use ($attemptsByStudentExam, $enrollment) {
                     return [
-                        $result->bai_kiem_tra_id => $attemptsByStudentExam->get($enrollment->hoc_vien_id . ':' . $result->bai_kiem_tra_id, collect()),
+                        $result->bai_kiem_tra_id => $attemptsByStudentExam->get($enrollment->hoc_vien_id.':'.$result->bai_kiem_tra_id, collect()),
                     ];
                 }),
             ];

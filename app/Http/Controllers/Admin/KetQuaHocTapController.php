@@ -13,8 +13,7 @@ class KetQuaHocTapController extends Controller
     public function __construct(
         private readonly ExamResultReportDataService $reportDataService,
         private readonly LearningResultFinalizationService $finalizationService,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request)
     {

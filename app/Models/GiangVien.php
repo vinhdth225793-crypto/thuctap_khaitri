@@ -69,7 +69,7 @@ class GiangVien extends Model
 
         // Chuyển từ phút sang giờ, làm tròn 2 chữ số thập phân
         $hours = round($totalMinutes / 60, 2);
-        
+
         $this->update(['so_gio_day' => (string) $hours]);
     }
 }

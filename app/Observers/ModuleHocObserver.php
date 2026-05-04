@@ -2,8 +2,8 @@
 
 namespace App\Observers;
 
-use App\Models\ModuleHoc;
 use App\Models\KhoaHoc;
+use App\Models\ModuleHoc;
 
 class ModuleHocObserver
 {

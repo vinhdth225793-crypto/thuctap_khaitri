@@ -9,55 +9,55 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('bai_kiem_tra', function (Blueprint $table) {
-            if (!Schema::hasColumn('bai_kiem_tra', 'loai_bai_kiem_tra')) {
+            if (! Schema::hasColumn('bai_kiem_tra', 'loai_bai_kiem_tra')) {
                 $table->string('loai_bai_kiem_tra', 50)->default('module')->after('pham_vi');
             }
 
-            if (!Schema::hasColumn('bai_kiem_tra', 'loai_noi_dung')) {
+            if (! Schema::hasColumn('bai_kiem_tra', 'loai_noi_dung')) {
                 $table->string('loai_noi_dung', 50)->default('tu_luan')->after('loai_bai_kiem_tra');
             }
 
-            if (!Schema::hasColumn('bai_kiem_tra', 'trang_thai_duyet')) {
+            if (! Schema::hasColumn('bai_kiem_tra', 'trang_thai_duyet')) {
                 $table->string('trang_thai_duyet', 50)->default('da_duyet')->after('loai_noi_dung');
             }
 
-            if (!Schema::hasColumn('bai_kiem_tra', 'trang_thai_phat_hanh')) {
+            if (! Schema::hasColumn('bai_kiem_tra', 'trang_thai_phat_hanh')) {
                 $table->string('trang_thai_phat_hanh', 50)->default('phat_hanh')->after('trang_thai_duyet');
             }
 
-            if (!Schema::hasColumn('bai_kiem_tra', 'tong_diem')) {
+            if (! Schema::hasColumn('bai_kiem_tra', 'tong_diem')) {
                 $table->decimal('tong_diem', 8, 2)->default(10)->after('trang_thai_phat_hanh');
             }
 
-            if (!Schema::hasColumn('bai_kiem_tra', 'so_lan_duoc_lam')) {
+            if (! Schema::hasColumn('bai_kiem_tra', 'so_lan_duoc_lam')) {
                 $table->unsignedInteger('so_lan_duoc_lam')->default(1)->after('tong_diem');
             }
 
-            if (!Schema::hasColumn('bai_kiem_tra', 'randomize_questions')) {
+            if (! Schema::hasColumn('bai_kiem_tra', 'randomize_questions')) {
                 $table->boolean('randomize_questions')->default(false)->after('so_lan_duoc_lam');
             }
 
-            if (!Schema::hasColumn('bai_kiem_tra', 'nguoi_tao_id')) {
+            if (! Schema::hasColumn('bai_kiem_tra', 'nguoi_tao_id')) {
                 $table->unsignedBigInteger('nguoi_tao_id')->nullable()->after('randomize_questions');
             }
 
-            if (!Schema::hasColumn('bai_kiem_tra', 'nguoi_duyet_id')) {
+            if (! Schema::hasColumn('bai_kiem_tra', 'nguoi_duyet_id')) {
                 $table->unsignedBigInteger('nguoi_duyet_id')->nullable()->after('nguoi_tao_id');
             }
 
-            if (!Schema::hasColumn('bai_kiem_tra', 'de_xuat_duyet_luc')) {
+            if (! Schema::hasColumn('bai_kiem_tra', 'de_xuat_duyet_luc')) {
                 $table->dateTime('de_xuat_duyet_luc')->nullable()->after('nguoi_duyet_id');
             }
 
-            if (!Schema::hasColumn('bai_kiem_tra', 'duyet_luc')) {
+            if (! Schema::hasColumn('bai_kiem_tra', 'duyet_luc')) {
                 $table->dateTime('duyet_luc')->nullable()->after('de_xuat_duyet_luc');
             }
 
-            if (!Schema::hasColumn('bai_kiem_tra', 'phat_hanh_luc')) {
+            if (! Schema::hasColumn('bai_kiem_tra', 'phat_hanh_luc')) {
                 $table->dateTime('phat_hanh_luc')->nullable()->after('duyet_luc');
             }
 
-            if (!Schema::hasColumn('bai_kiem_tra', 'ghi_chu_duyet')) {
+            if (! Schema::hasColumn('bai_kiem_tra', 'ghi_chu_duyet')) {
                 $table->text('ghi_chu_duyet')->nullable()->after('phat_hanh_luc');
             }
         });

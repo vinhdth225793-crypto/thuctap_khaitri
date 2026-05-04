@@ -40,13 +40,13 @@ class BannerController extends Controller
         }
 
         $file = $request->file('anh_banner');
-        $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+        $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
         $file->move(public_path('images/banners'), $filename);
 
         Banner::create([
             'tieu_de' => $request->tieu_de,
             'mo_ta' => $request->mo_ta,
-            'duong_dan_anh' => 'images/banners/' . $filename,
+            'duong_dan_anh' => 'images/banners/'.$filename,
             'link' => $request->link,
             'thu_tu' => $request->thu_tu,
             'trang_thai' => $request->boolean('trang_thai'),
@@ -94,9 +94,9 @@ class BannerController extends Controller
             }
 
             $file = $request->file('anh_banner');
-            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
             $file->move(public_path('images/banners'), $filename);
-            $data['duong_dan_anh'] = 'images/banners/' . $filename;
+            $data['duong_dan_anh'] = 'images/banners/'.$filename;
         }
 
         $banner->update($data);
@@ -143,7 +143,7 @@ class BannerController extends Controller
     public function updateOrder(Request $request)
     {
         try {
-            $bannerTable = (new Banner())->getTable();
+            $bannerTable = (new Banner)->getTable();
 
             $validator = Validator::make($request->all(), [
                 'order' => 'required|array',
@@ -185,6 +185,7 @@ class BannerController extends Controller
         foreach ($orders as $order) {
             if ($order === $nextOrder) {
                 $nextOrder++;
+
                 continue;
             }
 

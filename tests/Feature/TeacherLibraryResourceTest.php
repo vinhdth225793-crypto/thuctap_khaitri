@@ -153,8 +153,8 @@ class TeacherLibraryResourceTest extends TestCase
         $index = $this->sequence++;
 
         $user = NguoiDung::create([
-            'ho_ten' => 'Giang vien ' . $index,
-            'email' => 'teacher' . $index . '@example.com',
+            'ho_ten' => 'Giang vien '.$index,
+            'email' => 'teacher'.$index.'@example.com',
             'mat_khau' => bcrypt('password123'),
             'vai_tro' => 'giang_vien',
             'trang_thai' => true,

@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class ModuleHoc extends Model
 {
     use HasFactory;
 
     public const LEARNING_STATUS_CHUA_BAT_DAU = 'chua_bat_dau';
+
     public const LEARNING_STATUS_DANG_DIEN_RA = 'dang_dien_ra';
+
     public const LEARNING_STATUS_HOAN_THANH = 'hoan_thanh';
 
     protected $table = 'module_hoc';
@@ -83,8 +85,8 @@ class ModuleHoc extends Model
     public function giangViens()
     {
         return $this->belongsToMany(GiangVien::class, 'phan_cong_module_giang_vien', 'module_hoc_id', 'giang_vien_id')
-                    ->withPivot('khoa_hoc_id', 'trang_thai', 'ghi_chu')
-                    ->withTimestamps();
+            ->withPivot('khoa_hoc_id', 'trang_thai', 'ghi_chu')
+            ->withTimestamps();
     }
 
     /**
@@ -244,7 +246,8 @@ class ModuleHoc extends Model
     public function getProgressTextAttribute(): string
     {
         $snapshot = $this->learning_progress_snapshot;
-        return $snapshot['completed_schedules'] . '/' . $snapshot['valid_schedules'] . ' buổi';
+
+        return $snapshot['completed_schedules'].'/'.$snapshot['valid_schedules'].' buổi';
     }
 
     public function getTienDoHocTapAttribute(): int
@@ -280,7 +283,6 @@ class ModuleHoc extends Model
     public function scopeSearch($query, $search)
     {
         return $query->where('ten_module', 'LIKE', "%{$search}%")
-                     ->orWhere('ma_module', 'LIKE', "%{$search}%");
+            ->orWhere('ma_module', 'LIKE', "%{$search}%");
     }
 }
-

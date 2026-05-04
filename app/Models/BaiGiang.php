@@ -43,12 +43,17 @@ class BaiGiang extends Model
 
     // Constants
     public const STATUS_DUYET_NHAP = 'nhap';
+
     public const STATUS_DUYET_CHO = 'cho_duyet';
+
     public const STATUS_DUYET_DA_DUYET = 'da_duyet';
+
     public const STATUS_DUYET_CAN_SUA = 'can_chinh_sua';
+
     public const STATUS_DUYET_TU_CHOI = 'tu_choi';
 
     public const CONG_BO_AN = 'an';
+
     public const CONG_BO_DA_CONG_BO = 'da_cong_bo';
 
     /**
@@ -114,9 +119,9 @@ class BaiGiang extends Model
     {
         return $query->daDuyet()
             ->daCongBo()
-            ->where(function($q) {
+            ->where(function ($q) {
                 $q->whereNull('thoi_diem_mo')
-                  ->orWhere('thoi_diem_mo', '<=', now());
+                    ->orWhere('thoi_diem_mo', '<=', now());
             });
     }
 
@@ -135,8 +140,8 @@ class BaiGiang extends Model
 
     public function canHienThiChoHocVien(): bool
     {
-        return $this->isDaDuyet() && 
-               $this->isDaCongBo() && 
+        return $this->isDaDuyet() &&
+               $this->isDaCongBo() &&
                ($this->thoi_diem_mo === null || $this->thoi_diem_mo->isPast());
     }
 

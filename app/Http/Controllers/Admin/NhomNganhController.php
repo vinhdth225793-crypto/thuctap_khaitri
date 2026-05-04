@@ -32,10 +32,10 @@ class NhomNganhController extends Controller
 
         // Thống kê tổng quan để hiển thị trên đầu trang
         $stats = [
-            'tong'         => NhomNganh::count(),
-            'hoat_dong'    => NhomNganh::where('trang_thai', true)->count(),
-            'tam_dung'     => NhomNganh::where('trang_thai', false)->count(),
-            'co_khoa_hoc'  => NhomNganh::has('khoaHocs')->count(),
+            'tong' => NhomNganh::count(),
+            'hoat_dong' => NhomNganh::where('trang_thai', true)->count(),
+            'tam_dung' => NhomNganh::where('trang_thai', false)->count(),
+            'co_khoa_hoc' => NhomNganh::has('khoaHocs')->count(),
             'tong_khoa_hoc' => \App\Models\KhoaHoc::count(),
         ];
 
@@ -89,15 +89,15 @@ class NhomNganhController extends Controller
         // Xử lý upload hình ảnh
         if ($request->hasFile('hinh_anh')) {
             $image = $request->file('hinh_anh');
-            $imageName = time() . '_' . $image->getClientOriginalName();
+            $imageName = time().'_'.$image->getClientOriginalName();
             $image->move(public_path('images/nhom-nganh'), $imageName);
-            $data['hinh_anh'] = 'images/nhom-nganh/' . $imageName;
+            $data['hinh_anh'] = 'images/nhom-nganh/'.$imageName;
         }
 
         $nhomNganh = NhomNganh::create($data);
 
         return redirect()->route('admin.nhom-nganh.show', $nhomNganh->id)
-            ->with('success', 'Thêm nhóm ngành thành công! Mã: ' . $maNhomNganh);
+            ->with('success', 'Thêm nhóm ngành thành công! Mã: '.$maNhomNganh);
     }
 
     /**
@@ -119,7 +119,7 @@ class NhomNganhController extends Controller
         $nhomNganh = NhomNganh::findOrFail($id);
 
         return view('pages.admin.khoa-hoc.mon-hoc.edit', [
-            'nhomNganh' => $nhomNganh
+            'nhomNganh' => $nhomNganh,
         ]);
     }
 
@@ -135,7 +135,7 @@ class NhomNganhController extends Controller
         ];
 
         $validator = Validator::make($request->all(), [
-            'ten_nhom_nganh' => 'required|string|max:150|unique:nhom_nganh,ten_nhom_nganh,' . $id,
+            'ten_nhom_nganh' => 'required|string|max:150|unique:nhom_nganh,ten_nhom_nganh,'.$id,
             'mo_ta' => 'nullable|string',
             'hinh_anh' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ], $messages);
@@ -148,7 +148,7 @@ class NhomNganhController extends Controller
 
         $data = [
             'ten_nhom_nganh' => $request->ten_nhom_nganh,
-            'mo_ta' => $request->mo_ta
+            'mo_ta' => $request->mo_ta,
         ];
 
         // Xử lý upload hình ảnh
@@ -157,9 +157,9 @@ class NhomNganhController extends Controller
                 unlink(public_path($nhomNganh->hinh_anh));
             }
             $image = $request->file('hinh_anh');
-            $imageName = time() . '_' . $image->getClientOriginalName();
+            $imageName = time().'_'.$image->getClientOriginalName();
             $image->move(public_path('images/nhom-nganh'), $imageName);
-            $data['hinh_anh'] = 'images/nhom-nganh/' . $imageName;
+            $data['hinh_anh'] = 'images/nhom-nganh/'.$imageName;
         }
 
         $nhomNganh->update($data);
@@ -192,11 +192,11 @@ class NhomNganhController extends Controller
     public function toggleStatus($id)
     {
         $nhomNganh = NhomNganh::findOrFail($id);
-        $nhomNganh->update(['trang_thai' => !$nhomNganh->trang_thai]);
+        $nhomNganh->update(['trang_thai' => ! $nhomNganh->trang_thai]);
 
         $statusText = $nhomNganh->trang_thai ? 'kích hoạt' : 'tạm dừng';
 
         return redirect()->back()
-            ->with('success', 'Nhóm ngành "' . $nhomNganh->ten_nhom_nganh . '" đã được ' . $statusText . '.');
+            ->with('success', 'Nhóm ngành "'.$nhomNganh->ten_nhom_nganh.'" đã được '.$statusText.'.');
     }
 }

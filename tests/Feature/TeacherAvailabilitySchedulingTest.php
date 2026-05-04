@@ -332,8 +332,8 @@ class TeacherAvailabilitySchedulingTest extends TestCase
         $index = $this->sequence++;
 
         return NguoiDung::create(array_merge([
-            'ho_ten' => strtoupper($role) . ' ' . $index,
-            'email' => $role . $index . '@example.com',
+            'ho_ten' => strtoupper($role).' '.$index,
+            'email' => $role.$index.'@example.com',
             'mat_khau' => bcrypt('password123'),
             'vai_tro' => $role,
             'trang_thai' => true,
@@ -360,15 +360,15 @@ class TeacherAvailabilitySchedulingTest extends TestCase
         $index = $this->sequence++;
 
         $group = NhomNganh::create([
-            'ma_nhom_nganh' => 'NN' . str_pad((string) $index, 3, '0', STR_PAD_LEFT),
-            'ten_nhom_nganh' => 'Nhom nganh ' . $index,
+            'ma_nhom_nganh' => 'NN'.str_pad((string) $index, 3, '0', STR_PAD_LEFT),
+            'ten_nhom_nganh' => 'Nhom nganh '.$index,
             'trang_thai' => true,
         ]);
 
         return KhoaHoc::create([
             'nhom_nganh_id' => $group->id,
-            'ma_khoa_hoc' => 'KH-' . str_pad((string) $index, 3, '0', STR_PAD_LEFT),
-            'ten_khoa_hoc' => 'Khoa hoc ' . $index,
+            'ma_khoa_hoc' => 'KH-'.str_pad((string) $index, 3, '0', STR_PAD_LEFT),
+            'ten_khoa_hoc' => 'Khoa hoc '.$index,
             'cap_do' => 'co_ban',
             'tong_so_module' => 2,
             'trang_thai' => true,
@@ -382,8 +382,8 @@ class TeacherAvailabilitySchedulingTest extends TestCase
     {
         return ModuleHoc::create([
             'khoa_hoc_id' => $course->id,
-            'ma_module' => $course->ma_khoa_hoc . '-M' . $order,
-            'ten_module' => 'Module ' . $order,
+            'ma_module' => $course->ma_khoa_hoc.'-M'.$order,
+            'ten_module' => 'Module '.$order,
             'thu_tu_module' => $order,
             'so_buoi' => 3,
             'trang_thai' => true,
@@ -465,5 +465,3 @@ class TeacherAvailabilitySchedulingTest extends TestCase
         };
     }
 }
-
-

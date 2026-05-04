@@ -3,12 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\GiangVien;
 use App\Models\KhoaHoc;
 use App\Models\ModuleHoc;
-use App\Models\GiangVien;
 use App\Models\PhanCongModuleGiangVien;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 class ModuleHocController extends Controller
 {
@@ -21,25 +20,25 @@ class ModuleHocController extends Controller
         $khoaHocId = $request->get('khoa_hoc_id');
 
         // Query chung lấy tất cả khóa học (cả mẫu và hoạt động)
-        $query = KhoaHoc::with(['nhomNganh', 'moduleHocs' => function($q) use ($search) {
-                $q->when($search, function($q2) use ($search) {
-                    $q2->where('ten_module', 'like', "%{$search}%")
-                       ->orWhere('ma_module', 'like', "%{$search}%");
-                })
+        $query = KhoaHoc::with(['nhomNganh', 'moduleHocs' => function ($q) use ($search) {
+            $q->when($search, function ($q2) use ($search) {
+                $q2->where('ten_module', 'like', "%{$search}%")
+                    ->orWhere('ma_module', 'like', "%{$search}%");
+            })
                 ->orderBy('thu_tu_module');
-            }])
+        }])
             ->withCount('moduleHocs')
-            ->when($search, function($q) use ($search) {
-                $q->where(function($sub) use ($search) {
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($sub) use ($search) {
                     $sub->where('ten_khoa_hoc', 'like', "%{$search}%")
                         ->orWhere('ma_khoa_hoc', 'like', "%{$search}%")
-                        ->orWhereHas('moduleHocs', function($q2) use ($search) {
+                        ->orWhereHas('moduleHocs', function ($q2) use ($search) {
                             $q2->where('ten_module', 'like', "%{$search}%")
-                               ->orWhere('ma_module', 'like', "%{$search}%");
+                                ->orWhere('ma_module', 'like', "%{$search}%");
                         });
                 });
             })
-            ->when($khoaHocId, function($q) use ($khoaHocId) {
+            ->when($khoaHocId, function ($q) use ($khoaHocId) {
                 $q->where('id', $khoaHocId);
             })
             ->orderBy('id', 'desc');
@@ -48,40 +47,43 @@ class ModuleHocController extends Controller
 
         // PHÂN LOẠI Y HỆT TRANG KHOA HỌC
         // 1. Khóa học mẫu
-        $khoaHocsMau = $allResult->filter(fn($kh) => $kh->loai === 'mau');
+        $khoaHocsMau = $allResult->filter(fn ($kh) => $kh->loai === 'mau');
 
         // 2. Đang giảng dạy (Phải là hoat_dong, trang thái dang_day và TIẾN ĐỘ < 100)
-        $khoaHocsDangDay = $allResult->filter(function($kh) {
-            return $kh->loai === 'hoat_dong' && $kh->trang_thai_van_hanh === 'dang_day' && (int)$kh->tien_do_hoc_tap < 100;
+        $khoaHocsDangDay = $allResult->filter(function ($kh) {
+            return $kh->loai === 'hoat_dong' && $kh->trang_thai_van_hanh === 'dang_day' && (int) $kh->tien_do_hoc_tap < 100;
         });
 
         // 3. Chờ GV xác nhận
-        $khoaHocsChoXacNhan = $allResult->filter(function($kh) {
+        $khoaHocsChoXacNhan = $allResult->filter(function ($kh) {
             return $kh->loai === 'hoat_dong' && $kh->trang_thai_van_hanh === 'cho_giang_vien';
         });
 
         // 4. Sẵn sàng mở
-        $khoaHocsSanSang = $allResult->filter(function($kh) {
+        $khoaHocsSanSang = $allResult->filter(function ($kh) {
             return $kh->loai === 'hoat_dong' && $kh->trang_thai_van_hanh === 'san_sang';
         });
 
         // 5. Đã hoàn thành (ket_thuc HOẶC tiến độ 100%)
-        $khoaHocsHoanThanh = $allResult->filter(function($kh) {
-            if ($kh->loai === 'mau') return false;
-            return $kh->trang_thai_van_hanh === 'ket_thuc' || (int)$kh->tien_do_hoc_tap === 100;
+        $khoaHocsHoanThanh = $allResult->filter(function ($kh) {
+            if ($kh->loai === 'mau') {
+                return false;
+            }
+
+            return $kh->trang_thai_van_hanh === 'ket_thuc' || (int) $kh->tien_do_hoc_tap === 100;
         });
 
         $khoaHocsAll = KhoaHoc::with('nhomNganh')->orderBy('ma_khoa_hoc')->get();
 
         return view('pages.admin.khoa-hoc.module-hoc.index', [
-            'khoaHocsMau'        => $khoaHocsMau,
-            'khoaHocsDangDay'    => $khoaHocsDangDay,
+            'khoaHocsMau' => $khoaHocsMau,
+            'khoaHocsDangDay' => $khoaHocsDangDay,
             'khoaHocsChoXacNhan' => $khoaHocsChoXacNhan,
-            'khoaHocsSanSang'    => $khoaHocsSanSang,
-            'khoaHocsHoanThanh'  => $khoaHocsHoanThanh,
-            'khoaHocsAll'        => $khoaHocsAll,
-            'search'             => $search,
-            'khoaHocId'          => $khoaHocId
+            'khoaHocsSanSang' => $khoaHocsSanSang,
+            'khoaHocsHoanThanh' => $khoaHocsHoanThanh,
+            'khoaHocsAll' => $khoaHocsAll,
+            'search' => $search,
+            'khoaHocId' => $khoaHocId,
         ]);
     }
 
@@ -92,7 +94,7 @@ class ModuleHocController extends Controller
     {
         $khoaHocId = $request->get('khoa_hoc_id');
         $khoaHocs = KhoaHoc::with('nhomNganh')->active()->orderBy('ma_khoa_hoc')->get();
-        
+
         $thuTuGoiY = 1;
         if ($khoaHocId) {
             $thuTuGoiY = ModuleHoc::where('khoa_hoc_id', $khoaHocId)->count() + 1;
@@ -115,10 +117,10 @@ class ModuleHocController extends Controller
 
         try {
             $khoaHoc = KhoaHoc::findOrFail($request->khoa_hoc_id);
-            $maModule = $khoaHoc->ma_khoa_hoc . 'M' . str_pad($request->thu_tu_module, 2, '0', STR_PAD_LEFT);
+            $maModule = $khoaHoc->ma_khoa_hoc.'M'.str_pad($request->thu_tu_module, 2, '0', STR_PAD_LEFT);
 
             if (ModuleHoc::where('ma_module', $maModule)->exists()) {
-                $maModule .= '-' . time();
+                $maModule .= '-'.time();
             }
 
             ModuleHoc::create(array_merge($request->all(), ['ma_module' => $maModule]));
@@ -150,7 +152,7 @@ class ModuleHocController extends Controller
             ->values();
 
         $giangViens = GiangVien::with('nguoiDung')
-            ->whereHas('nguoiDung', fn($q) => $q->where('trang_thai', 1))
+            ->whereHas('nguoiDung', fn ($q) => $q->where('trang_thai', 1))
             ->get();
 
         return view('pages.admin.khoa-hoc.module-hoc.show', compact('moduleHoc', 'giangViens', 'cacModuleKhac'));
@@ -182,6 +184,7 @@ class ModuleHocController extends Controller
 
         try {
             $moduleHoc->update($request->all());
+
             return redirect()->route('admin.module-hoc.show', $id)->with('success', 'Cập nhật module thành công!');
         } catch (\Exception $e) {
             report($e);
@@ -209,7 +212,7 @@ class ModuleHocController extends Controller
     public function toggleStatus($id)
     {
         $moduleHoc = ModuleHoc::findOrFail($id);
-        $moduleHoc->update(['trang_thai' => !$moduleHoc->trang_thai]);
+        $moduleHoc->update(['trang_thai' => ! $moduleHoc->trang_thai]);
 
         return back()->with('success', 'Đã đổi trạng thái module.');
     }
@@ -221,7 +224,7 @@ class ModuleHocController extends Controller
     {
         $request->validate([
             'giang_vien_id' => 'required|exists:giang_vien,id',
-            'ghi_chu' => 'nullable|string|max:500'
+            'ghi_chu' => 'nullable|string|max:500',
         ]);
 
         $module = ModuleHoc::findOrFail($moduleId);
@@ -242,10 +245,9 @@ class ModuleHocController extends Controller
             'ngay_phan_cong' => now(),
             'trang_thai' => 'cho_xac_nhan',
             'ghi_chu' => $request->ghi_chu,
-            'created_by' => auth()->id()
+            'created_by' => auth()->id(),
         ]);
 
         return back()->with('success', 'Đã gửi yêu cầu phân công cho giảng viên.');
     }
 }
-

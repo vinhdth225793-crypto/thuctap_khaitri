@@ -549,8 +549,8 @@ class OnlineExamFlowTest extends TestCase
             ->assertSeeText('De cuoi khoa co diem')
             ->assertSeeText('8.50')
             ->assertSee('data-bs-toggle="modal"', false)
-            ->assertSee('scoreStudentsModal-' . $moduleExam->id, false)
-            ->assertSee('scoreStudentsModal-' . $finalExam->id, false)
+            ->assertSee('scoreStudentsModal-'.$moduleExam->id, false)
+            ->assertSee('scoreStudentsModal-'.$finalExam->id, false)
             ->assertDontSee('score-collapse-trigger', false)
             ->assertSeeText('Hoc vien diem module')
             ->assertSeeText('Hoc vien diem cuoi khoa')
@@ -568,14 +568,14 @@ class OnlineExamFlowTest extends TestCase
         $this->actingAs($teacherUser)
             ->get(route('giang-vien.diem-kiem-tra.index', ['bai_kiem_tra_id' => $moduleExam->id]))
             ->assertOk()
-            ->assertSee('scoreStudentsModal-' . $moduleExam->id, false)
-            ->assertDontSee('scoreStudentsModal-' . $finalExam->id, false);
+            ->assertSee('scoreStudentsModal-'.$moduleExam->id, false)
+            ->assertDontSee('scoreStudentsModal-'.$finalExam->id, false);
 
         $this->actingAs($teacherUser)
             ->get(route('giang-vien.diem-kiem-tra.index', ['loai_bai_kiem_tra' => 'cuoi_khoa']))
             ->assertOk()
-            ->assertSee('scoreStudentsModal-' . $finalExam->id, false)
-            ->assertDontSee('scoreStudentsModal-' . $moduleExam->id, false);
+            ->assertSee('scoreStudentsModal-'.$finalExam->id, false)
+            ->assertDontSee('scoreStudentsModal-'.$moduleExam->id, false);
     }
 
     public function test_student_can_submit_mixed_exam_and_mcq_is_auto_graded(): void
@@ -1542,7 +1542,7 @@ class OnlineExamFlowTest extends TestCase
 
         $previewId = 'preview-auto-attach';
         $preview = ['data' => [], 'summary' => ['valid' => 1]];
-        session()->put('exam_import_preview_' . $previewId, $preview);
+        session()->put('exam_import_preview_'.$previewId, $preview);
 
         $this->mock(ExamQuestionImportService::class, function ($mock) use ($preview, $exam, $question) {
             $mock->shouldReceive('importToBank')
@@ -1809,8 +1809,8 @@ class OnlineExamFlowTest extends TestCase
                 $admin,
                 $course,
                 $module,
-                'CH-PACKAGE-00' . $index,
-                'Package question ' . $index
+                'CH-PACKAGE-00'.$index,
+                'Package question '.$index
             )->id;
         }
 
@@ -1874,7 +1874,7 @@ class OnlineExamFlowTest extends TestCase
             'khoa_hoc_id' => $course->id,
             'module_hoc_id' => $module->id,
             'nguoi_tao_id' => $admin->ma_nguoi_dung,
-            'ma_cau_hoi' => 'CH-MCQ-' . $this->sequence++,
+            'ma_cau_hoi' => 'CH-MCQ-'.$this->sequence++,
             'noi_dung' => 'Laravel duoc viet bang ngon ngu nao?',
             'loai_cau_hoi' => 'trac_nghiem',
             'muc_do' => 'de',
@@ -1903,7 +1903,7 @@ class OnlineExamFlowTest extends TestCase
             'khoa_hoc_id' => $course->id,
             'module_hoc_id' => $module->id,
             'nguoi_tao_id' => $admin->ma_nguoi_dung,
-            'ma_cau_hoi' => 'CH-ESSAY-' . $this->sequence++,
+            'ma_cau_hoi' => 'CH-ESSAY-'.$this->sequence++,
             'noi_dung' => 'Trinh bay vai tro cua migration trong Laravel.',
             'loai_cau_hoi' => 'tu_luan',
             'muc_do' => 'trung_binh',
@@ -1971,8 +1971,8 @@ class OnlineExamFlowTest extends TestCase
         $index = $this->sequence++;
 
         return NguoiDung::create(array_merge([
-            'ho_ten' => strtoupper($role) . ' ' . $index,
-            'email' => $role . $index . '@example.com',
+            'ho_ten' => strtoupper($role).' '.$index,
+            'email' => $role.$index.'@example.com',
             'mat_khau' => bcrypt('password'),
             'vai_tro' => $role,
             'trang_thai' => true,
@@ -2004,15 +2004,15 @@ class OnlineExamFlowTest extends TestCase
     {
         $index = $this->sequence++;
         $nhomNganh = NhomNganh::create([
-            'ma_nhom_nganh' => 'NN' . str_pad((string) $index, 3, '0', STR_PAD_LEFT),
-            'ten_nhom_nganh' => 'Nhom nganh ' . $index,
+            'ma_nhom_nganh' => 'NN'.str_pad((string) $index, 3, '0', STR_PAD_LEFT),
+            'ten_nhom_nganh' => 'Nhom nganh '.$index,
             'trang_thai' => true,
         ]);
 
         return KhoaHoc::create(array_merge([
             'nhom_nganh_id' => $nhomNganh->id,
-            'ma_khoa_hoc' => 'KH-' . str_pad((string) $index, 3, '0', STR_PAD_LEFT),
-            'ten_khoa_hoc' => 'Khoa hoc ' . $index,
+            'ma_khoa_hoc' => 'KH-'.str_pad((string) $index, 3, '0', STR_PAD_LEFT),
+            'ten_khoa_hoc' => 'Khoa hoc '.$index,
             'cap_do' => 'co_ban',
             'tong_so_module' => 1,
             'phuong_thuc_danh_gia' => 'cuoi_khoa',
@@ -2029,8 +2029,8 @@ class OnlineExamFlowTest extends TestCase
     {
         return ModuleHoc::create([
             'khoa_hoc_id' => $course->id,
-            'ma_module' => $course->ma_khoa_hoc . '-M' . $order,
-            'ten_module' => 'Module ' . $order,
+            'ma_module' => $course->ma_khoa_hoc.'-M'.$order,
+            'ten_module' => 'Module '.$order,
             'thu_tu_module' => $order,
             'so_buoi' => 3,
             'trang_thai' => true,
@@ -2076,4 +2076,3 @@ class OnlineExamFlowTest extends TestCase
         ]);
     }
 }
-

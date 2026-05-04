@@ -7,8 +7,11 @@ use App\Models\NganHangCauHoi;
 class ParsedQuestionValidator
 {
     private const STATUS_VALID = 'hop_le';
+
     private const STATUS_DUPLICATE_FILE = 'trung_lap_trong_file';
+
     private const STATUS_DUPLICATE_DB = 'trung_lap_trong_he_thong';
+
     private const STATUS_INVALID = 'loi_du_lieu';
 
     /**
@@ -37,7 +40,7 @@ class ParsedQuestionValidator
                 if (isset($contentSetInFile[$normalizedContent])) {
                     $previewRow['status'] = self::STATUS_DUPLICATE_FILE;
                     $previewRow['validation_status'] = 'trung_trong_file';
-                    $previewRow['note'] = 'Trùng với câu hỏi tại dòng ' . $contentSetInFile[$normalizedContent] . ' trong file.';
+                    $previewRow['note'] = 'Trùng với câu hỏi tại dòng '.$contentSetInFile[$normalizedContent].' trong file.';
                 } else {
                     $contentSetInFile[$normalizedContent] = $previewRow['line'];
 
@@ -81,7 +84,7 @@ class ParsedQuestionValidator
     {
         $question = trim((string) ($parsedQuestion['noi_dung'] ?? ''));
         $questionType = (string) ($parsedQuestion['loai'] ?? NganHangCauHoi::LOAI_TRAC_NGHIEM);
-        if (!in_array($questionType, [NganHangCauHoi::LOAI_TRAC_NGHIEM, NganHangCauHoi::LOAI_TU_LUAN], true)) {
+        if (! in_array($questionType, [NganHangCauHoi::LOAI_TRAC_NGHIEM, NganHangCauHoi::LOAI_TU_LUAN], true)) {
             $questionType = NganHangCauHoi::LOAI_TRAC_NGHIEM;
         }
 
@@ -186,6 +189,7 @@ class ParsedQuestionValidator
 
             if ($matchedIndex === null) {
                 $unmatchedReferences[] = $reference;
+
                 continue;
             }
 
@@ -198,7 +202,7 @@ class ParsedQuestionValidator
             return [
                 $answers,
                 'dap_an_dung_khong_khop',
-                'Dòng đáp án đúng không khớp với bất kỳ đáp án nào: ' . implode(' | ', $unmatchedReferences) . '.',
+                'Dòng đáp án đúng không khớp với bất kỳ đáp án nào: '.implode(' | ', $unmatchedReferences).'.',
             ];
         }
 
@@ -282,15 +286,15 @@ class ParsedQuestionValidator
                 $label = (string) ($answer['ky_hieu'] ?? chr(65 + $index));
                 $content = trim((string) ($answer['noi_dung'] ?? ''));
 
-                return $label . ($content !== '' ? ' - ' . $content : '');
+                return $label.($content !== '' ? ' - '.$content : '');
             })
             ->implode(' | ');
 
         if ($styleIndexes !== [] && $explicitIndexes !== []) {
-            return 'Phát hiện mâu thuẫn giữa style đánh dấu và dòng đáp án đúng: ' . $labels . '.';
+            return 'Phát hiện mâu thuẫn giữa style đánh dấu và dòng đáp án đúng: '.$labels.'.';
         }
 
-        return 'Phát hiện nhiều hơn một đáp án đúng trong cùng một câu hỏi: ' . $labels . '.';
+        return 'Phát hiện nhiều hơn một đáp án đúng trong cùng một câu hỏi: '.$labels.'.';
     }
 
     /**
@@ -329,7 +333,7 @@ class ParsedQuestionValidator
         }
 
         if (count($answers) !== 4) {
-            return ['khong_du_4_dap_an', 'Flow import hiện tại chỉ hỗ trợ câu hỏi có đúng 4 đáp án. Phát hiện ' . count($answers) . ' đáp án.'];
+            return ['khong_du_4_dap_an', 'Flow import hiện tại chỉ hỗ trợ câu hỏi có đúng 4 đáp án. Phát hiện '.count($answers).' đáp án.'];
         }
 
         $normalizedContents = collect($answers)

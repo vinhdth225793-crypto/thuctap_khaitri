@@ -8,29 +8,29 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('ket_qua_hoc_tap')) {
+        if (! Schema::hasTable('ket_qua_hoc_tap')) {
             return;
         }
 
-        if (!Schema::hasColumn('ket_qua_hoc_tap', 'module_hoc_id')) {
+        if (! Schema::hasColumn('ket_qua_hoc_tap', 'module_hoc_id')) {
             Schema::table('ket_qua_hoc_tap', function (Blueprint $table) {
                 $table->unsignedBigInteger('module_hoc_id')->nullable()->after('hoc_vien_id');
             });
         }
 
-        if (!Schema::hasColumn('ket_qua_hoc_tap', 'bai_kiem_tra_id')) {
+        if (! Schema::hasColumn('ket_qua_hoc_tap', 'bai_kiem_tra_id')) {
             Schema::table('ket_qua_hoc_tap', function (Blueprint $table) {
                 $table->unsignedBigInteger('bai_kiem_tra_id')->nullable()->after('module_hoc_id');
             });
         }
 
-        if (!Schema::hasColumn('ket_qua_hoc_tap', 'trang_thai')) {
+        if (! Schema::hasColumn('ket_qua_hoc_tap', 'trang_thai')) {
             Schema::table('ket_qua_hoc_tap', function (Blueprint $table) {
                 $table->string('trang_thai', 50)->default('dang_hoc')->after('so_bai_kiem_tra_hoan_thanh');
             });
         }
 
-        if (!Schema::hasColumn('ket_qua_hoc_tap', 'nhan_xet_giang_vien')) {
+        if (! Schema::hasColumn('ket_qua_hoc_tap', 'nhan_xet_giang_vien')) {
             Schema::table('ket_qua_hoc_tap', function (Blueprint $table) {
                 $table->text('nhan_xet_giang_vien')->nullable()->after('trang_thai');
             });
@@ -51,7 +51,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (!Schema::hasTable('ket_qua_hoc_tap')) {
+        if (! Schema::hasTable('ket_qua_hoc_tap')) {
             return;
         }
 
@@ -83,7 +83,7 @@ return new class extends Migration
 
     private function hasForeignKey(string $column, string $targetTable, string $targetColumn): bool
     {
-        if (!Schema::hasColumn('ket_qua_hoc_tap', $column)) {
+        if (! Schema::hasColumn('ket_qua_hoc_tap', $column)) {
             return false;
         }
 

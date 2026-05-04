@@ -11,17 +11,25 @@ class TeachingSessionAlert extends Model
     use HasFactory;
 
     public const TYPE_VAO_TRE = 'vao_tre';
+
     public const TYPE_KHONG_DAY = 'khong_day';
+
     public const TYPE_CHUA_CHECKOUT = 'chua_checkout';
+
     public const TYPE_DONG_SOM = 'dong_som';
+
     public const TYPE_NGOAI_KHUNG = 'ngoai_khung';
 
     public const SEVERITY_INFO = 'info';
+
     public const SEVERITY_WARNING = 'warning';
+
     public const SEVERITY_DANGER = 'danger';
 
     public const STATUS_OPEN = 'open';
+
     public const STATUS_NOTIFIED = 'notified';
+
     public const STATUS_RESOLVED = 'resolved';
 
     protected $table = 'teaching_session_alerts';

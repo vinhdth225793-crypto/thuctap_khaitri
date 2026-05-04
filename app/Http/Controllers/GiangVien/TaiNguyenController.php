@@ -41,14 +41,14 @@ class TaiNguyenController extends Controller
                 'id' => $lichHoc->khoa_hoc_id,
                 'focus_lich_hoc_id' => $lichHoc->id,
                 'quick_action' => 'resources',
-            ]) . '#session-' . $lichHoc->id
+            ]).'#session-'.$lichHoc->id
         );
     }
 
     public function index(Request $request)
     {
         $giangVien = auth()->user()->giangVien;
-        if (!$giangVien) {
+        if (! $giangVien) {
             return redirect()->route('home')->with('error', 'Tài khoản chưa được liên kết với giảng viên.');
         }
 
@@ -111,10 +111,10 @@ class TaiNguyenController extends Controller
         $taiNguyens = (clone $baseQuery)
             ->when($filters['keyword'], function ($query, $keyword) {
                 $query->where(function ($searchQuery) use ($keyword) {
-                    $searchQuery->where('tieu_de', 'like', '%' . $keyword . '%')
-                        ->orWhere('mo_ta', 'like', '%' . $keyword . '%')
-                        ->orWhere('file_name', 'like', '%' . $keyword . '%')
-                        ->orWhere('link_ngoai', 'like', '%' . $keyword . '%');
+                    $searchQuery->where('tieu_de', 'like', '%'.$keyword.'%')
+                        ->orWhere('mo_ta', 'like', '%'.$keyword.'%')
+                        ->orWhere('file_name', 'like', '%'.$keyword.'%')
+                        ->orWhere('link_ngoai', 'like', '%'.$keyword.'%');
                 });
             })
             ->when($filters['trang_thai_duyet'], function ($query, $status) {
@@ -202,7 +202,9 @@ class TaiNguyenController extends Controller
                     $taiNguyen->id,
                     auth()->user()->ho_ten ?? null
                 );
-            } catch (\Throwable $e) { report($e); }
+            } catch (\Throwable $e) {
+                report($e);
+            }
 
             return back()->with('success', 'Đã gửi yêu cầu duyệt tài nguyên.');
         }
@@ -225,7 +227,7 @@ class TaiNguyenController extends Controller
 
     private function storeUploadedFileSimple(UploadedFile $file): string
     {
-        $fileName = now()->format('YmdHis') . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+        $fileName = now()->format('YmdHis').'_'.Str::random(10).'.'.$file->getClientOriginalExtension();
 
         return $file->storeAs('uploads/thu-vien', $fileName, 'public');
     }
@@ -277,7 +279,7 @@ class TaiNguyenController extends Controller
         ]);
 
         if (
-            !$request->hasFile('file_dinh_kem')
+            ! $request->hasFile('file_dinh_kem')
             && blank($validated['link_ngoai'] ?? null)
             && blank($taiNguyen->duong_dan_file)
             && blank($taiNguyen->link_ngoai)
@@ -358,7 +360,7 @@ class TaiNguyenController extends Controller
     {
         $giangVien = auth()->user()?->giangVien;
 
-        abort_if(!$giangVien, 403, 'Bạn không có quyền thực hiện thao tác này.');
+        abort_if(! $giangVien, 403, 'Bạn không có quyền thực hiện thao tác này.');
 
         $isAssigned = PhanCongModuleGiangVien::query()
             ->where('module_hoc_id', $lichHoc->module_hoc_id)
@@ -376,11 +378,11 @@ class TaiNguyenController extends Controller
         $sanitizedBaseName = Str::slug($baseName);
 
         $fileName = 'lich-hoc-'
-            . $lichHocId
-            . '-'
-            . now()->format('YmdHis')
-            . ($sanitizedBaseName !== '' ? '-' . $sanitizedBaseName : '')
-            . ($extension !== '' ? '.' . $extension : '');
+            .$lichHocId
+            .'-'
+            .now()->format('YmdHis')
+            .($sanitizedBaseName !== '' ? '-'.$sanitizedBaseName : '')
+            .($extension !== '' ? '.'.$extension : '');
 
         return Storage::disk('public')->putFileAs(
             'tai-lieu-buoi-hoc',
@@ -400,7 +402,7 @@ class TaiNguyenController extends Controller
             'mo_ta' => 'nullable|string',
             'loai_tai_nguyen' => 'required|in:video,pdf,word,powerpoint,excel,image,archive,link_ngoai,tai_lieu_khac',
             'link_ngoai' => 'nullable|url',
-            'file_dinh_kem' => 'nullable|file|mimes:' . implode(',', self::LIBRARY_ALLOWED_EXTENSIONS) . '|max:51200',
+            'file_dinh_kem' => 'nullable|file|mimes:'.implode(',', self::LIBRARY_ALLOWED_EXTENSIONS).'|max:51200',
             'pham_vi_su_dung' => 'required|in:ca_nhan,khoa_hoc,cong_khai',
         ], [
             'file_dinh_kem.max' => 'Kích thước tệp tối đa là 50MB.',
@@ -464,14 +466,14 @@ class TaiNguyenController extends Controller
         $hasLink = filled($validated['link_ngoai']);
         $hasExistingFile = $existing !== null && filled($existing->duong_dan_file);
 
-        if (!$hasUploadedFile && !$hasLink && !$hasExistingFile) {
+        if (! $hasUploadedFile && ! $hasLink && ! $hasExistingFile) {
             throw ValidationException::withMessages([
                 'file_dinh_kem' => 'Vui lòng tải lên file hoặc nhập link ngoài hợp lệ.',
                 'link_ngoai' => 'Vui lòng nhập link ngoài hợp lệ hoặc tải lên file.',
             ]);
         }
 
-        if ($validated['loai_tai_nguyen'] === 'link_ngoai' && !$hasLink) {
+        if ($validated['loai_tai_nguyen'] === 'link_ngoai' && ! $hasLink) {
             throw ValidationException::withMessages([
                 'link_ngoai' => 'Loại tài nguyên liên kết ngoài bắt buộc phải có URL hợp lệ.',
             ]);
@@ -510,7 +512,7 @@ class TaiNguyenController extends Controller
 
         $allowedExtensions = $this->allowedExtensionsForLibraryType($loaiTaiNguyen);
 
-        if (!in_array($extension, $allowedExtensions, true)) {
+        if (! in_array($extension, $allowedExtensions, true)) {
             throw ValidationException::withMessages([
                 'file_dinh_kem' => 'Tệp hiện tại không phù hợp với loại tài nguyên đã chọn.',
             ]);

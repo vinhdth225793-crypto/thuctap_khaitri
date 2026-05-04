@@ -76,19 +76,19 @@ class MigrateLegacyData extends Command
         $this->info('Migrating categories and courses...');
         $oldNhomNganh = DB::table('cu_nhom_nganh')->get();
         foreach ($oldNhomNganh as $row) {
-            DB::table('nhom_nganh')->insert((array)$row);
+            DB::table('nhom_nganh')->insert((array) $row);
         }
 
         $oldKhoaHocMau = DB::table('cu_khoa_hoc')->where('loai', 'mau')->get();
         foreach ($oldKhoaHocMau as $row) {
-            $data = (array)$row;
+            $data = (array) $row;
             unset($data['loai'], $data['trang_thai_van_hanh'], $data['khoa_hoc_mau_id'], $data['lan_mo_thu'], $data['ngay_khai_giang'], $data['ngay_mo_lop'], $data['ngay_ket_thuc']);
             DB::table('khoa_hoc')->insert($data);
         }
 
         $oldModules = DB::table('cu_module_hoc')->get();
         foreach ($oldModules as $row) {
-            DB::table('module_hoc')->insert((array)$row);
+            DB::table('module_hoc')->insert((array) $row);
         }
     }
 
@@ -119,10 +119,10 @@ class MigrateLegacyData extends Command
     private function migrateSimpleTables()
     {
         $this->info('Migrating schedules, attendance and others...');
-        
+
         $oldLichHoc = DB::table('cu_lich_hoc')->get();
         foreach ($oldLichHoc as $row) {
-            $data = (array)$row;
+            $data = (array) $row;
             $data['lop_hoc_id'] = $data['khoa_hoc_id']; // mapping
             unset($data['khoa_hoc_id']);
             $data['giang_vien_id'] = $this->getNewGiangVienId($data['giang_vien_id']);
@@ -140,28 +140,40 @@ class MigrateLegacyData extends Command
                 'updated_at' => $row->updated_at,
             ]);
         }
-        
+
         // ... more tables would be mapped here in a full script ...
     }
 
-    private function getNewUserId($oldId) {
-        if (!$oldId) return null;
+    private function getNewUserId($oldId)
+    {
+        if (! $oldId) {
+            return null;
+        }
         $user = DB::table('cu_nguoi_dung')->where('ma_nguoi_dung', $oldId)->first();
-        if (!$user) return null;
+        if (! $user) {
+            return null;
+        }
+
         return DB::table('nguoi_dung')->where('email', $user->email)->value('id');
     }
 
-    private function getNewHocVienId($oldUserMa) {
+    private function getNewHocVienId($oldUserMa)
+    {
         $newUserId = $this->getNewUserId($oldUserMa);
+
         return DB::table('hoc_vien')->where('nguoi_dung_id', $newUserId)->value('id');
     }
 
-    private function getNewGiangVienId($oldId) {
+    private function getNewGiangVienId($oldId)
+    {
         // old lich_hoc.giang_vien_id points to cu_giang_vien.id
         // and our giang_vien.id is generated fresh but still based on the same users
         $oldGV = DB::table('cu_giang_vien')->where('id', $oldId)->first();
-        if (!$oldGV) return null;
+        if (! $oldGV) {
+            return null;
+        }
         $newUserId = $this->getNewUserId($oldGV->nguoi_dung_id);
+
         return DB::table('giang_vien')->where('nguoi_dung_id', $newUserId)->value('id');
     }
 }

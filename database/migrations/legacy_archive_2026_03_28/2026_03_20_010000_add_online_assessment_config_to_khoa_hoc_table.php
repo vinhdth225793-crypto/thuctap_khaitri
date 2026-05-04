@@ -8,19 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasColumn('khoa_hoc', 'phuong_thuc_danh_gia')) {
+        if (! Schema::hasColumn('khoa_hoc', 'phuong_thuc_danh_gia')) {
             Schema::table('khoa_hoc', function (Blueprint $table) {
                 $table->string('phuong_thuc_danh_gia', 50)->default('cuoi_khoa')->after('tong_so_module');
             });
         }
 
-        if (!Schema::hasColumn('khoa_hoc', 'ty_trong_diem_danh')) {
+        if (! Schema::hasColumn('khoa_hoc', 'ty_trong_diem_danh')) {
             Schema::table('khoa_hoc', function (Blueprint $table) {
                 $table->decimal('ty_trong_diem_danh', 5, 2)->default(20)->after('phuong_thuc_danh_gia');
             });
         }
 
-        if (!Schema::hasColumn('khoa_hoc', 'ty_trong_kiem_tra')) {
+        if (! Schema::hasColumn('khoa_hoc', 'ty_trong_kiem_tra')) {
             Schema::table('khoa_hoc', function (Blueprint $table) {
                 $table->decimal('ty_trong_kiem_tra', 5, 2)->default(80)->after('ty_trong_diem_danh');
             });

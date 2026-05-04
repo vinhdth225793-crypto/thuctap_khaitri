@@ -11,11 +11,15 @@ class KetQuaHocTap extends Model
     use HasFactory;
 
     public const TRANG_THAI_CHOT_CHUA_CHOT = 'chua_chot';
+
     public const TRANG_THAI_CHOT_DA_CHOT = 'da_chot';
 
     public const TRANG_THAI_DUYET_CHUA_GUI = 'chua_gui';
+
     public const TRANG_THAI_DUYET_CHO_DUYET = 'cho_duyet';
+
     public const TRANG_THAI_DUYET_DA_DUYET = 'da_duyet';
+
     public const TRANG_THAI_DUYET_TU_CHOI = 'tu_choi';
 
     protected $table = 'ket_qua_hoc_tap';

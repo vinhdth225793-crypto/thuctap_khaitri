@@ -18,14 +18,15 @@ use Illuminate\Validation\ValidationException;
 class CourseApprovalReviewService
 {
     public const ASSESSMENT_WEIGHT = 80.0;
+
     public const ATTENDANCE_WEIGHT = 20.0;
+
     public const PASSING_SCORE = 5.0;
 
     public function __construct(
         private readonly CourseAttendanceScoreService $attendanceScoreService,
         private readonly KetQuaHocTapService $ketQuaHocTapService,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{final_exams: Collection<int, BaiKiemTra>, selectable_exams: Collection<int, BaiKiemTra>, all: Collection<int, BaiKiemTra>}

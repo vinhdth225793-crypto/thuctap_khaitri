@@ -28,6 +28,7 @@ class ThuVienController extends Controller
     public function show($id)
     {
         $taiNguyen = TaiNguyenBuoiHoc::with(['nguoiTao', 'nguoiDuyet'])->findOrFail($id);
+
         return view('pages.admin.thu-vien.show', compact('taiNguyen'));
     }
 
@@ -58,7 +59,9 @@ class ThuVienController extends Controller
                     $validated['ghi_chu_admin'] ?? null
                 );
             }
-        } catch (\Throwable $e) { report($e); }
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return back()->with('success', 'Đã cập nhật trạng thái phê duyệt tài nguyên.');
     }
@@ -66,7 +69,7 @@ class ThuVienController extends Controller
     public function destroy($id)
     {
         $taiNguyen = TaiNguyenBuoiHoc::findOrFail($id);
-        
+
         if ($taiNguyen->duong_dan_file) {
             \Storage::disk('public')->delete($taiNguyen->duong_dan_file);
         }

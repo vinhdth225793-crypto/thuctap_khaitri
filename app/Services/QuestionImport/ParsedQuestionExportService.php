@@ -13,16 +13,20 @@ use ZipArchive;
 class ParsedQuestionExportService
 {
     private const NS_MAIN = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+
     private const NS_REL_OFFICE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+
     private const NS_REL_PACKAGE = 'http://schemas.openxmlformats.org/package/2006/relationships';
+
     private const EXPORT_COLUMNS = ['A', 'B', 'C', 'D', 'E', 'F'];
+
     private const CORRECT_FILL_COLOR = 'ECFDF3';
+
     private const ERROR_FILL_COLOR = 'FDE2E1';
 
     public function __construct(
         private readonly ImportTemplateRegistry $templateRegistry,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, mixed>  $preview
@@ -31,7 +35,7 @@ class ParsedQuestionExportService
     public function export(array $preview, string $scope = 'all'): array
     {
         $scope = strtolower(trim($scope));
-        if (!in_array($scope, ['all', 'valid', 'error'], true)) {
+        if (! in_array($scope, ['all', 'valid', 'error'], true)) {
             throw new InvalidArgumentException('Pham vi export khong hop le.');
         }
 
@@ -39,7 +43,7 @@ class ParsedQuestionExportService
         $template = $this->templateRegistry->questionBankMcq();
         $templatePath = (string) ($template['absolute_path'] ?? '');
 
-        if (!is_file($templatePath)) {
+        if (! is_file($templatePath)) {
             throw new InvalidArgumentException('Không tìm thấy tệp mẫu Excel để xuất xem trước.');
         }
 
@@ -48,8 +52,8 @@ class ParsedQuestionExportService
             throw new InvalidArgumentException('Không thể tạo tệp tạm để export dữ liệu.');
         }
 
-        $xlsxPath = $filePath . '.xlsx';
-        if (!@rename($filePath, $xlsxPath)) {
+        $xlsxPath = $filePath.'.xlsx';
+        if (! @rename($filePath, $xlsxPath)) {
             @unlink($filePath);
 
             throw new InvalidArgumentException('Không thể tạo tệp xlsx tạm để xuất dữ liệu.');
@@ -57,7 +61,7 @@ class ParsedQuestionExportService
 
         @unlink($xlsxPath);
 
-        if (!@copy($templatePath, $xlsxPath)) {
+        if (! @copy($templatePath, $xlsxPath)) {
             throw new InvalidArgumentException('Không thể sao chép tệp mẫu Excel để xuất dữ liệu.');
         }
 
@@ -127,7 +131,7 @@ class ParsedQuestionExportService
     private function resolveCorrectAnswerCellIndex(array $row): ?int
     {
         $correctAnswerIndexes = collect($row['answers'] ?? [])
-            ->filter(fn (array $answer) => !empty($answer['is_dap_an_dung']))
+            ->filter(fn (array $answer) => ! empty($answer['is_dap_an_dung']))
             ->keys()
             ->values()
             ->all();
@@ -154,7 +158,7 @@ class ParsedQuestionExportService
         $baseName = trim($baseName, '-');
         $baseName = $baseName !== '' ? $baseName : 'question-preview';
 
-        return $baseName . '-preview-' . $scope . '-' . now()->format('YmdHis') . '.xlsx';
+        return $baseName.'-preview-'.$scope.'-'.now()->format('YmdHis').'.xlsx';
     }
 
     /**
@@ -162,7 +166,7 @@ class ParsedQuestionExportService
      */
     private function fillTemplateWorkbook(string $xlsxPath, string $sheetName, int $startRow, array $rows): void
     {
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($xlsxPath) !== true) {
             throw new RuntimeException('Không thể mở tệp Excel mẫu để xuất dữ liệu.');
         }
@@ -185,7 +189,7 @@ class ParsedQuestionExportService
             $fillIds = [];
 
             $sheetData = $xpath->query('//main:sheetData')->item(0);
-            if (!$sheetData instanceof DOMElement) {
+            if (! $sheetData instanceof DOMElement) {
                 throw new RuntimeException('File mau Excel khong hop le: thieu sheetData.');
             }
 
@@ -194,7 +198,7 @@ class ParsedQuestionExportService
             $rowsToReplace = [];
 
             foreach ($xpath->query('./main:row', $sheetData) as $rowNode) {
-                if (!$rowNode instanceof DOMElement) {
+                if (! $rowNode instanceof DOMElement) {
                     continue;
                 }
 
@@ -210,7 +214,7 @@ class ParsedQuestionExportService
                 }
             }
 
-            if (!$templateRow instanceof DOMElement) {
+            if (! $templateRow instanceof DOMElement) {
                 throw new RuntimeException('File mau Excel khong co dong bat dau du lieu de tao export.');
             }
 
@@ -229,7 +233,7 @@ class ParsedQuestionExportService
                 ];
                 $newRow = $templateRow->cloneNode(true);
 
-                if (!$newRow instanceof DOMElement) {
+                if (! $newRow instanceof DOMElement) {
                     throw new RuntimeException('Không thể sao chép dòng mẫu trong tệp Excel.');
                 }
 
@@ -260,12 +264,12 @@ class ParsedQuestionExportService
             }
 
             $zip->deleteName($worksheetPath);
-            if (!$zip->addFromString($worksheetPath, $updatedWorksheetContent)) {
+            if (! $zip->addFromString($worksheetPath, $updatedWorksheetContent)) {
                 throw new RuntimeException('Không thể cập nhật dữ liệu vào tệp export.');
             }
 
             $zip->deleteName('xl/styles.xml');
-            if (!$zip->addFromString('xl/styles.xml', $updatedStylesContent)) {
+            if (! $zip->addFromString('xl/styles.xml', $updatedStylesContent)) {
                 throw new RuntimeException('Không thể cập nhật style vào tệp export.');
             }
         } finally {
@@ -304,12 +308,12 @@ class ParsedQuestionExportService
         foreach (self::EXPORT_COLUMNS as $index => $columnName) {
             $cellNode = $cellNodes[$index] ?? null;
 
-            if (!$cellNode instanceof DOMElement) {
+            if (! $cellNode instanceof DOMElement) {
                 $cellNode = $document->createElementNS(self::NS_MAIN, 'x:c');
                 $rowNode->appendChild($cellNode);
             }
 
-            $cellNode->setAttribute('r', $columnName . $rowNumber);
+            $cellNode->setAttribute('r', $columnName.$rowNumber);
             $this->fillWorksheetCell($document, $cellNode, (string) ($values[$index] ?? ''));
 
             $baseStyleId = (int) ($cellNode->getAttribute('s') !== '' ? $cellNode->getAttribute('s') : '0');
@@ -370,11 +374,11 @@ class ParsedQuestionExportService
     private function updateConditionalFormattingRange(DOMXPath $xpath, int $lastRow): void
     {
         foreach ($xpath->query('//main:conditionalFormatting') as $conditionalFormattingNode) {
-            if (!$conditionalFormattingNode instanceof DOMElement) {
+            if (! $conditionalFormattingNode instanceof DOMElement) {
                 continue;
             }
 
-            $conditionalFormattingNode->setAttribute('sqref', 'F3:F' . max(3, $lastRow));
+            $conditionalFormattingNode->setAttribute('sqref', 'F3:F'.max(3, $lastRow));
         }
     }
 
@@ -388,9 +392,8 @@ class ParsedQuestionExportService
         string $fillColor,
         array &$styleIds,
         array &$fillIds,
-    ): int
-    {
-        $styleCacheKey = $fillColor . ':' . $baseStyleId;
+    ): int {
+        $styleCacheKey = $fillColor.':'.$baseStyleId;
         if (isset($styleIds[$styleCacheKey])) {
             return $styleIds[$styleCacheKey];
         }
@@ -401,19 +404,19 @@ class ParsedQuestionExportService
         $fillsNode = $xpath->query('//main:fills')->item(0);
         $cellXfsNode = $xpath->query('//main:cellXfs')->item(0);
 
-        if (!$fillsNode instanceof DOMElement || !$cellXfsNode instanceof DOMElement) {
+        if (! $fillsNode instanceof DOMElement || ! $cellXfsNode instanceof DOMElement) {
             throw new RuntimeException('File style Excel mau khong hop le.');
         }
 
         $fillId = $this->resolveFillId($stylesDocument, $fillsNode, $fillColor, $fillIds);
         $baseXfNode = $xpath->query('./main:xf', $cellXfsNode)->item($baseStyleId);
 
-        if (!$baseXfNode instanceof DOMElement) {
+        if (! $baseXfNode instanceof DOMElement) {
             throw new RuntimeException('Không tìm thấy style cơ sở để tạo dòng lỗi trong tệp export.');
         }
 
         $newXfNode = $baseXfNode->cloneNode(true);
-        if (!$newXfNode instanceof DOMElement) {
+        if (! $newXfNode instanceof DOMElement) {
             throw new RuntimeException('Không thể tạo style dòng lỗi cho tệp export.');
         }
 
@@ -439,17 +442,17 @@ class ParsedQuestionExportService
 
         $currentIndex = 0;
         foreach ($fillsNode->childNodes as $fillNode) {
-            if (!$fillNode instanceof DOMElement || $fillNode->localName !== 'fill') {
+            if (! $fillNode instanceof DOMElement || $fillNode->localName !== 'fill') {
                 continue;
             }
 
             foreach ($fillNode->childNodes as $childNode) {
-                if (!$childNode instanceof DOMElement || $childNode->localName !== 'patternFill') {
+                if (! $childNode instanceof DOMElement || $childNode->localName !== 'patternFill') {
                     continue;
                 }
 
                 foreach ($childNode->childNodes as $colorNode) {
-                    if (!$colorNode instanceof DOMElement || $colorNode->localName !== 'fgColor') {
+                    if (! $colorNode instanceof DOMElement || $colorNode->localName !== 'fgColor') {
                         continue;
                     }
 
@@ -504,20 +507,20 @@ class ParsedQuestionExportService
 
         $targets = [];
         foreach ($relationshipsXPath->query('//rel:Relationship') as $relationshipNode) {
-            if (!$relationshipNode instanceof DOMElement) {
+            if (! $relationshipNode instanceof DOMElement) {
                 continue;
             }
 
             $target = ltrim($relationshipNode->getAttribute('Target'), '/');
-            if (!str_starts_with($target, 'xl/')) {
-                $target = 'xl/' . $target;
+            if (! str_starts_with($target, 'xl/')) {
+                $target = 'xl/'.$target;
             }
 
             $targets[$relationshipNode->getAttribute('Id')] = $target;
         }
 
         foreach ($workbookXPath->query('//main:sheets/main:sheet') as $sheetNode) {
-            if (!$sheetNode instanceof DOMElement || $sheetNode->getAttribute('name') !== $sheetName) {
+            if (! $sheetNode instanceof DOMElement || $sheetNode->getAttribute('name') !== $sheetName) {
                 continue;
             }
 
@@ -534,10 +537,10 @@ class ParsedQuestionExportService
 
     private function loadDocument(string $xmlContent, string $label): DOMDocument
     {
-        $document = new DOMDocument();
+        $document = new DOMDocument;
         $document->preserveWhiteSpace = false;
 
-        if (!@$document->loadXML($xmlContent)) {
+        if (! @$document->loadXML($xmlContent)) {
             throw new RuntimeException("Không thể phân tích {$label} trong tệp Excel mẫu.");
         }
 

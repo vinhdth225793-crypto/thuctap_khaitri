@@ -9,7 +9,6 @@ use App\Models\ModuleHoc;
 class LearningProgressStatusService
 {
     /**
-     * @param  LichHoc|int  $schedule
      * @return array{module: array<string, mixed>|null, course: array<string, mixed>|null}
      */
     public function syncFromSchedule(LichHoc|int $schedule): array
@@ -36,7 +35,6 @@ class LearningProgressStatusService
     }
 
     /**
-     * @param  ModuleHoc|int  $module
      * @return array<string, mixed>
      */
     public function syncModuleStatus(ModuleHoc|int $module): array
@@ -53,7 +51,6 @@ class LearningProgressStatusService
     }
 
     /**
-     * @param  KhoaHoc|int  $course
      * @return array<string, mixed>
      */
     public function syncCourseStatus(KhoaHoc|int $course): array

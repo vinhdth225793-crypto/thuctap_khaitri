@@ -6,15 +6,14 @@ use App\Models\Banner;
 use App\Models\GiangVien;
 use App\Models\HocVienKhoaHoc;
 use App\Models\KhoaHoc;
-use App\Models\NhomNganh;
-use App\Models\SystemSetting;
-use Illuminate\Http\Request;
-
-use App\Models\PhanCongModuleGiangVien;
 use App\Models\LichHoc;
-use App\Models\TaiKhoanChoPheDuyet;
 use App\Models\NguoiDung;
+use App\Models\NhomNganh;
+use App\Models\PhanCongModuleGiangVien;
+use App\Models\SystemSetting;
+use App\Models\TaiKhoanChoPheDuyet;
 use App\Services\StudentLearningDashboardService;
+use Illuminate\Http\Request;
 
 class HomeController extends Controller
 {
@@ -96,9 +95,10 @@ class HomeController extends Controller
             $enrolledCourseIds = HocVienKhoaHoc::where('hoc_vien_id', $user->ma_nguoi_dung)
                 ->pluck('khoa_hoc_id')
                 ->toArray();
-            
+
             $courses->getCollection()->transform(function ($course) use ($enrolledCourseIds) {
                 $course->is_enrolled = in_array($course->id, $enrolledCourseIds);
+
                 return $course;
             });
         }
@@ -199,14 +199,16 @@ class HomeController extends Controller
     private function buildTeacherDashboard(NguoiDung $user): array
     {
         $giangVien = $user->giangVien;
-        if (!$giangVien) return [];
+        if (! $giangVien) {
+            return [];
+        }
 
         $today = now()->toDateString();
-        
+
         $lichDayHomNay = LichHoc::query()
             ->whereHas('phanCongGiangViens', function ($q) use ($giangVien) {
                 $q->where('giang_vien_id', $giangVien->id)
-                  ->where('trang_thai', 'da_nhan');
+                    ->where('trang_thai', 'da_nhan');
             })
             ->whereDate('ngay_hoc', $today)
             ->with([
@@ -301,7 +303,7 @@ class HomeController extends Controller
             },
             'category' => $course->nhomNganh->ten_nhom_nganh ?? 'Đa lĩnh vực',
             'image' => $course->hinh_anh ? asset($course->hinh_anh) : asset('images/default-course.svg'),
-            'url' => route('home', ['q' => $course->ma_khoa_hoc]) . '#courses',
+            'url' => route('home', ['q' => $course->ma_khoa_hoc]).'#courses',
         ]);
 
         $instructorPayload = $instructors->map(function ($gv) {
@@ -310,7 +312,7 @@ class HomeController extends Controller
             if ($avatar) {
                 $avatarUrl = \Illuminate\Support\Str::startsWith($avatar, ['http://', 'https://'])
                     ? $avatar
-                    : asset(\Illuminate\Support\Str::startsWith($avatar, ['avatars/']) ? 'storage/' . $avatar : $avatar);
+                    : asset(\Illuminate\Support\Str::startsWith($avatar, ['avatars/']) ? 'storage/'.$avatar : $avatar);
             }
 
             return [
@@ -337,7 +339,7 @@ class HomeController extends Controller
     public function notificationsRecent(Request $request)
     {
         $user = auth()->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['items' => [], 'unread' => 0]);
         }
 

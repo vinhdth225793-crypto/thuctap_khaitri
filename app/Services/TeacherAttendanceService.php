@@ -21,8 +21,7 @@ class TeacherAttendanceService
     public function __construct(
         private readonly TeachingSessionWindowService $windowService,
         private readonly OnlineMeetingProviderService $onlineMeetingProvider,
-    ) {
-    }
+    ) {}
 
     public function ensureCheckIn(
         LichHoc $lichHoc,
@@ -47,7 +46,7 @@ class TeacherAttendanceService
     ): ?DiemDanhGiangVien {
         $attendance = $this->findAttendance($lichHoc, $giangVien);
 
-        if (!$attendance || $attendance->thoi_gian_bat_dau_day === null) {
+        if (! $attendance || $attendance->thoi_gian_bat_dau_day === null) {
             return null;
         }
 
@@ -96,10 +95,10 @@ class TeacherAttendanceService
                 'trang_thai' => DiemDanhGiangVien::STATUS_DA_CHECKIN,
                 'nguoi_tao_id' => $actor->ma_nguoi_dung,
                 'ghi_chu' => $this->appendNotes($attendance->ghi_chu, [
-                    'Check-in lúc ' . $checkedInAt->format('d/m/Y H:i'),
+                    'Check-in lúc '.$checkedInAt->format('d/m/Y H:i'),
                     $liveNote,
                     $checkInStatus === DiemDanhGiangVien::CHECK_IN_VAO_TRE
-                        ? 'Ghi nhan vao tre ' . $lateMinutes . ' phut so voi gio bat dau du kien.'
+                        ? 'Ghi nhan vao tre '.$lateMinutes.' phut so voi gio bat dau du kien.'
                         : null,
                     $context['note'] ?? null,
                 ]),
@@ -145,7 +144,7 @@ class TeacherAttendanceService
                 ->where('giang_vien_id', $giangVien->id)
                 ->first();
 
-            if (!$attendance || $attendance->thoi_gian_bat_dau_day === null) {
+            if (! $attendance || $attendance->thoi_gian_bat_dau_day === null) {
                 throw ValidationException::withMessages([
                     'teacher_attendance' => 'Bạn cần check-in trước khi check-out buổi học này.',
                 ]);
@@ -171,10 +170,10 @@ class TeacherAttendanceService
                 'trang_thai' => DiemDanhGiangVien::STATUS_HOAN_THANH,
                 'nguoi_tao_id' => $actor->ma_nguoi_dung,
                 'ghi_chu' => $this->appendNotes($attendance->ghi_chu, [
-                    'Check-out lúc ' . $checkedOutAt->format('d/m/Y H:i'),
-                    'Tổng thời lượng giảng dạy: ' . $teachingMinutes . ' phút',
+                    'Check-out lúc '.$checkedOutAt->format('d/m/Y H:i'),
+                    'Tổng thời lượng giảng dạy: '.$teachingMinutes.' phút',
                     $checkOutStatus === DiemDanhGiangVien::CHECK_OUT_DONG_SOM
-                        ? 'Ghi nhận đóng buổi sớm ' . $earlyLeaveMinutes . ' phút so với giờ kết thúc dự kiến.'
+                        ? 'Ghi nhận đóng buổi sớm '.$earlyLeaveMinutes.' phút so với giờ kết thúc dự kiến.'
                         : null,
                     $liveNote,
                     $context['note'] ?? null,
@@ -239,7 +238,7 @@ class TeacherAttendanceService
     ): ?DiemDanhGiangVien {
         $attendance = $this->findAttendance($lichHoc, $giangVien);
 
-        if (!$attendance || $attendance->thoi_gian_bat_dau_day === null) {
+        if (! $attendance || $attendance->thoi_gian_bat_dau_day === null) {
             return null;
         }
 
@@ -328,7 +327,7 @@ class TeacherAttendanceService
         if ($this->windowService->isCheckoutOverdue($lichHoc)) {
             $deadlineAt = $this->windowService->teacherCheckoutDeadlineAt($lichHoc);
             throw ValidationException::withMessages([
-                'teacher_attendance' => 'Đã quá hạn check-out buổi học này lúc ' . ($deadlineAt ? $deadlineAt->format('d/m/Y H:i') : 'N/A') . '.',
+                'teacher_attendance' => 'Đã quá hạn check-out buổi học này lúc '.($deadlineAt ? $deadlineAt->format('d/m/Y H:i') : 'N/A').'.',
             ]);
         }
     }
@@ -368,7 +367,7 @@ class TeacherAttendanceService
             if (Schema::hasColumn('lich_hoc', 'teacher_monitoring_note')) {
                 $payload['teacher_monitoring_note'] = trim(implode(PHP_EOL, array_filter([
                     $lichHoc->teacher_monitoring_note,
-                    'Giao vien check-in tre ' . $lateMinutes . ' phut luc ' . $checkedInAt->format('d/m/Y H:i') . '.',
+                    'Giao vien check-in tre '.$lateMinutes.' phut luc '.$checkedInAt->format('d/m/Y H:i').'.',
                 ])));
             }
 
@@ -397,7 +396,7 @@ class TeacherAttendanceService
         // Thiết lập deadline điểm danh (15 phút sau khi kết thúc)
         $remindMinutes = $lichHoc->attendance_remind_after_finish_minutes ?? LichHoc::DEFAULT_ATTENDANCE_REMIND_AFTER_FINISH_MINUTES;
         $deadlineAt = $checkedOutAt->copy()->addMinutes($remindMinutes);
-        
+
         if (Schema::hasColumn('lich_hoc', 'attendance_deadline_at')) {
             $payload['attendance_deadline_at'] = $deadlineAt;
         }
@@ -410,7 +409,7 @@ class TeacherAttendanceService
             if (Schema::hasColumn('lich_hoc', 'teacher_monitoring_note')) {
                 $payload['teacher_monitoring_note'] = trim(implode(PHP_EOL, array_filter([
                     $lichHoc->teacher_monitoring_note,
-                    'Giao vien dong buoi som ' . $earlyLeaveMinutes . ' phut luc ' . $checkedOutAt->format('d/m/Y H:i') . '.',
+                    'Giao vien dong buoi som '.$earlyLeaveMinutes.' phut luc '.$checkedOutAt->format('d/m/Y H:i').'.',
                 ])));
             }
 
@@ -427,19 +426,19 @@ class TeacherAttendanceService
 
     private function notifyTeacherToAttendance(LichHoc $lichHoc, Carbon $deadlineAt): void
     {
-        if (!$lichHoc->giang_vien_id) {
+        if (! $lichHoc->giang_vien_id) {
             return;
         }
 
         $teacher = $lichHoc->giangVien;
-        if (!$teacher || !$teacher->nguoi_dung_id) {
+        if (! $teacher || ! $teacher->nguoi_dung_id) {
             return;
         }
 
         ThongBao::create([
             'nguoi_nhan_id' => $teacher->nguoi_dung_id,
             'tieu_de' => 'Nhắc nhở: Điểm danh học viên',
-            'noi_dung' => "Buổi học đã kết thúc. Vui lòng hoàn tất điểm danh học viên và chốt báo cáo trước " . $deadlineAt->format('H:i d/m/Y') . " (hạn 15 phút).",
+            'noi_dung' => 'Buổi học đã kết thúc. Vui lòng hoàn tất điểm danh học viên và chốt báo cáo trước '.$deadlineAt->format('H:i d/m/Y').' (hạn 15 phút).',
             'loai' => 'he_thong',
             'url' => route('giang-vien.khoa-hoc.show', ['id' => $lichHoc->khoa_hoc_id, 'focus_lich_hoc_id' => $lichHoc->id]),
             'da_doc' => false,
@@ -452,11 +451,11 @@ class TeacherAttendanceService
         $deadlineAt = $this->windowService->teacherCheckoutDeadlineAt($lichHoc);
 
         if ($openAt && $checkedInAt->lt($openAt)) {
-            return 'Chi duoc check-in hoac bat dau buoi hoc tu ' . $openAt->format('d/m/Y H:i') . '.';
+            return 'Chi duoc check-in hoac bat dau buoi hoc tu '.$openAt->format('d/m/Y H:i').'.';
         }
 
         if ($deadlineAt && $checkedInAt->gt($deadlineAt)) {
-            return 'Da qua han check-in/bat dau buoi hoc luc ' . $deadlineAt->format('d/m/Y H:i') . '.';
+            return 'Da qua han check-in/bat dau buoi hoc luc '.$deadlineAt->format('d/m/Y H:i').'.';
         }
 
         return 'Thoi diem check-in/bat dau khong nam trong khung cho phep cua buoi hoc.';
@@ -474,7 +473,7 @@ class TeacherAttendanceService
 
         $room = $room ?: $this->resolveLinkedLiveRoom($lichHoc);
 
-        if (!$room) {
+        if (! $room) {
             if (filled($lichHoc->link_online)) {
                 return [$fallbackAt, 'Dùng mốc check-in làm thời điểm mở live vì buổi học chỉ có link online bên ngoài.'];
             }
@@ -485,7 +484,7 @@ class TeacherAttendanceService
         $participant = $this->resolveTeacherParticipant($room, $giangVien);
         $startedAt = $participant?->joined_at ?? $fallbackAt;
 
-        return [$startedAt, 'Đồng bộ giờ mở live từ phòng ' . $room->platform_label . '.'];
+        return [$startedAt, 'Đồng bộ giờ mở live từ phòng '.$room->platform_label.'.'];
     }
 
     private function resolveLiveEnd(
@@ -500,7 +499,7 @@ class TeacherAttendanceService
 
         $room = $room ?: $this->resolveLinkedLiveRoom($lichHoc);
 
-        if (!$room) {
+        if (! $room) {
             if (filled($lichHoc->link_online)) {
                 return [$fallbackAt, 'Dùng mốc check-out làm thời điểm tắt live vì buổi học chỉ có link online bên ngoài.'];
             }
@@ -511,7 +510,7 @@ class TeacherAttendanceService
         $participant = $this->resolveTeacherParticipant($room, $giangVien);
         $endedAt = $participant?->left_at ?? $fallbackAt;
 
-        return [$endedAt, 'Đồng bộ giờ tắt live từ phòng ' . $room->platform_label . '.'];
+        return [$endedAt, 'Đồng bộ giờ tắt live từ phòng '.$room->platform_label.'.'];
     }
 
     private function resolveLinkedLiveRoom(LichHoc $lichHoc): ?PhongHocLive
@@ -538,7 +537,7 @@ class TeacherAttendanceService
             ->first();
 
         if (! $this->hasLiveParticipantsTable() && $lecture?->phongHocLive) {
-            $lecture->phongHocLive->setRelation('nguoiThamGia', new EloquentCollection());
+            $lecture->phongHocLive->setRelation('nguoiThamGia', new EloquentCollection);
         }
 
         return $lecture?->phongHocLive;
@@ -548,7 +547,7 @@ class TeacherAttendanceService
     {
         if (! $this->hasLiveParticipantsTable()) {
             if (! $room->relationLoaded('nguoiThamGia')) {
-                $room->setRelation('nguoiThamGia', new EloquentCollection());
+                $room->setRelation('nguoiThamGia', new EloquentCollection);
             }
 
             return null;

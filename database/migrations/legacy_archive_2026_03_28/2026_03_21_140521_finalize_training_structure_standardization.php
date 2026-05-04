@@ -30,10 +30,10 @@ return new class extends Migration
                 } catch (\Exception $e) {
                     // Foreign key might not exist with this name or already dropped
                 }
-                
+
                 $table->foreign('module_hoc_id')
-                      ->references('id')->on('module_hoc')
-                      ->onDelete('cascade');
+                    ->references('id')->on('module_hoc')
+                    ->onDelete('cascade');
             });
         }
 

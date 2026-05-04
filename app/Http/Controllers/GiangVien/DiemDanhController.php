@@ -16,8 +16,7 @@ class DiemDanhController extends Controller
 {
     public function __construct(
         private readonly KetQuaHocTapService $ketQuaHocTapService,
-    ) {
-    }
+    ) {}
 
     public function redirectToSession(Request $request)
     {
@@ -30,7 +29,7 @@ class DiemDanhController extends Controller
                 'id' => $lichHoc->khoa_hoc_id,
                 'focus_lich_hoc_id' => $lichHoc->id,
                 'quick_action' => 'attendance',
-            ]) . '#session-' . $lichHoc->id
+            ]).'#session-'.$lichHoc->id
         );
     }
 
@@ -50,7 +49,7 @@ class DiemDanhController extends Controller
             ->where('khoa_hoc_id', $lichHoc->khoa_hoc_id)
             ->whereIn('trang_thai', ['dang_hoc', 'hoan_thanh'])
             ->get()
-            ->sortBy(fn($item) => $item->hocVien?->nguoiDung?->ho_ten ?? '');
+            ->sortBy(fn ($item) => $item->hocVien?->nguoiDung?->ho_ten ?? '');
 
         // Lấy dữ liệu điểm danh đã có của buổi học này
         $diemDanhs = DiemDanh::where('lich_hoc_id', $lichHocId)
@@ -111,7 +110,7 @@ class DiemDanhController extends Controller
         }
 
         $attendanceData = collect($request->attendance)
-            ->filter(fn ($item) => !empty($item['trang_thai']))
+            ->filter(fn ($item) => ! empty($item['trang_thai']))
             ->values()
             ->all();
 
@@ -156,13 +155,13 @@ class DiemDanhController extends Controller
             return back()->with('success', 'Đã lưu dữ liệu điểm danh học viên thành công.');
         } catch (\Throwable $exception) {
             report($exception);
-            
+
             $errorMessage = 'Không thể lưu điểm danh lúc này.';
             if (config('app.debug')) {
-                $errorMessage .= ' Lỗi: ' . $exception->getMessage();
+                $errorMessage .= ' Lỗi: '.$exception->getMessage();
             }
 
-            return back()->with('error', $errorMessage . ' Dữ liệu chưa được ghi nhận, vui lòng thử lại.');
+            return back()->with('error', $errorMessage.' Dữ liệu chưa được ghi nhận, vui lòng thử lại.');
         }
     }
 
@@ -181,7 +180,7 @@ class DiemDanhController extends Controller
         try {
             $now = now();
             $trangThai = 'da_bao_cao';
-            
+
             // Phase 9: Kiểm tra nộp muộn
             if ($lichHoc->attendance_deadline_at && $now->gt($lichHoc->attendance_deadline_at)) {
                 $trangThai = 'da_bao_cao_muon';
@@ -193,8 +192,8 @@ class DiemDanhController extends Controller
                 'trang_thai_bao_cao' => $trangThai,
             ]);
 
-            $msg = $trangThai === 'da_bao_cao_muon' 
-                ? 'Đã chốt điểm danh (Ghi nhận nộp muộn).' 
+            $msg = $trangThai === 'da_bao_cao_muon'
+                ? 'Đã chốt điểm danh (Ghi nhận nộp muộn).'
                 : 'Đã chốt điểm danh và gửi báo cáo cho admin thành công.';
 
             return back()->with('success', $msg);

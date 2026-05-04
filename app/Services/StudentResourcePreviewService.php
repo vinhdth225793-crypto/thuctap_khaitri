@@ -147,7 +147,7 @@ class StudentResourcePreviewService
         ];
 
         if (! str_starts_with($path, 'storage/')) {
-            $candidates[] = public_path('storage/' . $path);
+            $candidates[] = public_path('storage/'.$path);
         }
 
         foreach ($candidates as $candidate) {
@@ -336,7 +336,7 @@ class StudentResourcePreviewService
                 }
 
                 $slides[] = [
-                    'title' => 'Slide ' . ($slideIndex + 1),
+                    'title' => 'Slide '.($slideIndex + 1),
                     'lines' => $lines,
                 ];
             }
@@ -377,7 +377,7 @@ class StudentResourcePreviewService
                 }
 
                 $sheets[] = [
-                    'title' => 'Sheet ' . ($sheetIndex + 1),
+                    'title' => 'Sheet '.($sheetIndex + 1),
                     'rows' => $this->xlsxRows($content, $sharedStrings),
                 ];
             }
@@ -502,7 +502,7 @@ class StudentResourcePreviewService
 
     private function xmlDocument(string $content): DOMDocument
     {
-        $document = new DOMDocument();
+        $document = new DOMDocument;
         $document->preserveWhiteSpace = false;
         @$document->loadXML($content);
 
@@ -511,7 +511,7 @@ class StudentResourcePreviewService
 
     private function openZip(string $path): ZipArchive
     {
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
 
         if ($zip->open($path) !== true) {
             throw new \RuntimeException('Cannot open archive.');

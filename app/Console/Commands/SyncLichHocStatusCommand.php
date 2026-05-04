@@ -27,14 +27,14 @@ class SyncLichHocStatusCommand extends Command
                     $startsAt = $lichHoc->starts_at;
                     $endsAt = $lichHoc->ends_at;
 
-                    if (!$startsAt || !$endsAt) {
+                    if (! $startsAt || ! $endsAt) {
                         continue;
                     }
 
                     if ($now->greaterThan($endsAt)) {
                         if ($lichHoc->trang_thai !== 'hoan_thanh') {
                             $toHoanThanh++;
-                            if (!$dryRun) {
+                            if (! $dryRun) {
                                 $lichHoc->update(['trang_thai' => 'hoan_thanh']);
                             }
                         }
@@ -44,7 +44,7 @@ class SyncLichHocStatusCommand extends Command
 
                     if ($now->greaterThanOrEqualTo($startsAt) && $now->lessThanOrEqualTo($endsAt) && $lichHoc->trang_thai !== 'dang_hoc') {
                         $toDangHoc++;
-                        if (!$dryRun) {
+                        if (! $dryRun) {
                             $lichHoc->update(['trang_thai' => 'dang_hoc']);
                         }
                     }

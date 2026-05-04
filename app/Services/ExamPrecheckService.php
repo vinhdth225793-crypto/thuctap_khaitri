@@ -10,6 +10,7 @@ use Illuminate\Validation\ValidationException;
 class ExamPrecheckService
 {
     private const SESSION_KEY = 'exam_surveillance_precheck';
+
     private const TTL_MINUTES = 15;
 
     /**
@@ -18,7 +19,7 @@ class ExamPrecheckService
      */
     public function validatePayload(BaiKiemTra $baiKiemTra, array $payload): array
     {
-        if (!$baiKiemTra->co_giam_sat) {
+        if (! $baiKiemTra->co_giam_sat) {
             return [];
         }
 
@@ -36,22 +37,22 @@ class ExamPrecheckService
 
         $errors = [];
 
-        if (!$normalized['browser_supported'] || !$normalized['visibility_supported']) {
+        if (! $normalized['browser_supported'] || ! $normalized['visibility_supported']) {
             $errors['browser'] = 'Trình duyệt hiện tại chưa hỗ trợ đầy đủ API cần thiết cho bài thi giám sát.';
         }
 
         if ($baiKiemTra->bat_buoc_camera) {
-            if (!$normalized['camera_supported']) {
+            if (! $normalized['camera_supported']) {
                 $errors['camera'] = 'Thiết bị hoặc trình duyệt chưa hỗ trợ camera cho bài thi này.';
-            } elseif (!$normalized['camera_ok']) {
+            } elseif (! $normalized['camera_ok']) {
                 $errors['camera'] = 'Không thể bật camera. Vui lòng cấp quyền và thử lại.';
             }
         }
 
         if ($baiKiemTra->bat_buoc_fullscreen) {
-            if (!$normalized['fullscreen_supported']) {
+            if (! $normalized['fullscreen_supported']) {
                 $errors['fullscreen'] = 'Trình duyệt hiện tại không hỗ trợ chế độ toàn màn hình.';
-            } elseif (!$normalized['fullscreen_ok']) {
+            } elseif (! $normalized['fullscreen_ok']) {
                 $errors['fullscreen'] = 'Không thể bật chế độ toàn màn hình. Vui lòng thử lại.';
             }
         }
@@ -80,7 +81,7 @@ class ExamPrecheckService
     public function getPassedPrecheck(BaiKiemTra $baiKiemTra, int $hocVienId): ?array
     {
         $state = session()->get($this->sessionKey($baiKiemTra->id, $hocVienId));
-        if (!is_array($state)) {
+        if (! is_array($state)) {
             return null;
         }
 
@@ -107,6 +108,6 @@ class ExamPrecheckService
 
     private function sessionKey(int $baiKiemTraId, int $hocVienId): string
     {
-        return self::SESSION_KEY . '.' . $baiKiemTraId . '.' . $hocVienId;
+        return self::SESSION_KEY.'.'.$baiKiemTraId.'.'.$hocVienId;
     }
 }

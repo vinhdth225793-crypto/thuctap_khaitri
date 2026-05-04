@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('ket_qua_hoc_tap')) {
+        if (! Schema::hasTable('ket_qua_hoc_tap')) {
             return;
         }
 
@@ -42,7 +42,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasIndex('ket_qua_hoc_tap', 'uniq_ket_qua_phan_cap', 'unique')) {
+        if (! Schema::hasIndex('ket_qua_hoc_tap', 'uniq_ket_qua_phan_cap', 'unique')) {
             Schema::table('ket_qua_hoc_tap', function (Blueprint $table) {
                 $table->unique(
                     ['hoc_vien_id', 'khoa_hoc_id', 'module_hoc_id', 'bai_kiem_tra_id'],
@@ -51,7 +51,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasIndex('ket_qua_hoc_tap', 'idx_ket_qua_hoc_tap_khoa_hoc')) {
+        if (! Schema::hasIndex('ket_qua_hoc_tap', 'idx_ket_qua_hoc_tap_khoa_hoc')) {
             Schema::table('ket_qua_hoc_tap', function (Blueprint $table) {
                 // Keep an explicit index for khoa_hoc_id so fresh builds stay FK-safe
                 // across engines after the old unique key is replaced.
@@ -74,7 +74,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (!Schema::hasTable('ket_qua_hoc_tap')) {
+        if (! Schema::hasTable('ket_qua_hoc_tap')) {
             return;
         }
 
@@ -102,7 +102,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasIndex('ket_qua_hoc_tap', 'uniq_ket_qua_hoc_tap', 'unique')) {
+        if (! Schema::hasIndex('ket_qua_hoc_tap', 'uniq_ket_qua_hoc_tap', 'unique')) {
             Schema::table('ket_qua_hoc_tap', function (Blueprint $table) {
                 $table->unique(['khoa_hoc_id', 'hoc_vien_id'], 'uniq_ket_qua_hoc_tap');
             });
@@ -123,7 +123,7 @@ return new class extends Migration
 
     private function hasForeignKey(string $column, string $targetTable, string $targetColumn): bool
     {
-        if (!Schema::hasColumn('ket_qua_hoc_tap', $column)) {
+        if (! Schema::hasColumn('ket_qua_hoc_tap', $column)) {
             return false;
         }
 

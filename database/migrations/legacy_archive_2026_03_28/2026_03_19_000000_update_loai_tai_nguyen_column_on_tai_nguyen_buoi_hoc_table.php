@@ -23,9 +23,9 @@ return new class extends Migration
             return;
         }
 
-        DB::statement("
+        DB::statement('
             ALTER TABLE tai_nguyen_buoi_hoc
             MODIFY loai_tai_nguyen VARCHAR(255) NOT NULL
-        ");
+        ');
     }
 };

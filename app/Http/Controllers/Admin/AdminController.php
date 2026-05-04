@@ -3,18 +3,18 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\NguoiDung;
-use App\Models\TaiKhoanChoPheDuyet;
-use App\Models\GiangVien;
-use App\Models\GiangVienDonXinNghi;
-use App\Models\SystemSetting;
-use App\Models\NhomNganh;
-use App\Models\KhoaHoc;
-use App\Models\ModuleHoc;
-use App\Models\PhanCongModuleGiangVien;
 use App\Models\BaiGiang;
 use App\Models\BaiKiemTra;
+use App\Models\GiangVien;
+use App\Models\GiangVienDonXinNghi;
+use App\Models\KhoaHoc;
 use App\Models\LichHoc;
+use App\Models\ModuleHoc;
+use App\Models\NguoiDung;
+use App\Models\NhomNganh;
+use App\Models\PhanCongModuleGiangVien;
+use App\Models\SystemSetting;
+use App\Models\TaiKhoanChoPheDuyet;
 use App\Models\TaiNguyenBuoiHoc;
 use App\Models\YeuCauHocVien;
 use Illuminate\Http\Request;
@@ -22,7 +22,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Carbon\Carbon;
 
 class AdminController extends Controller
 {
@@ -47,28 +46,28 @@ class AdminController extends Controller
 
         // 2. Th?ng k� d�o t?o & Module (Phase 5)
         $trainingStats = [
-            'tong_nhom_nganh'        => NhomNganh::count(),
-            'nhom_nganh_hoat_dong'   => NhomNganh::active()->count(),
-            'tong_khoa_hoc'       => KhoaHoc::count(),
-            'khoa_hoc_hoat_dong'  => KhoaHoc::active()->count(),
-            'khoa_hoc_cho_gv'      => KhoaHoc::where('trang_thai_van_hanh', 'cho_giang_vien')->count(),
-            'khoa_hoc_dang_hoc'    => KhoaHoc::where('trang_thai_van_hanh', 'dang_day')->count(),
-            'tong_module'         => ModuleHoc::count(),
-            'module_chua_co_gv'   => ModuleHoc::whereDoesntHave('phanCongGiangViens', function($q) {
-                                        $q->whereIn('trang_thai', ['da_nhan', 'cho_xac_nhan']);
-                                     })
-                                     ->whereHas('khoaHoc', fn($q) => $q->where('loai', 'hoat_dong'))
-                                     ->count(),
-            'phan_cong_cho_xn'    => PhanCongModuleGiangVien::where('trang_thai', 'cho_xac_nhan')->count(),
-            'tai_khoan_cho_duyet'  => TaiKhoanChoPheDuyet::where('trang_thai', 'cho_phe_duyet')->count(),
+            'tong_nhom_nganh' => NhomNganh::count(),
+            'nhom_nganh_hoat_dong' => NhomNganh::active()->count(),
+            'tong_khoa_hoc' => KhoaHoc::count(),
+            'khoa_hoc_hoat_dong' => KhoaHoc::active()->count(),
+            'khoa_hoc_cho_gv' => KhoaHoc::where('trang_thai_van_hanh', 'cho_giang_vien')->count(),
+            'khoa_hoc_dang_hoc' => KhoaHoc::where('trang_thai_van_hanh', 'dang_day')->count(),
+            'tong_module' => ModuleHoc::count(),
+            'module_chua_co_gv' => ModuleHoc::whereDoesntHave('phanCongGiangViens', function ($q) {
+                $q->whereIn('trang_thai', ['da_nhan', 'cho_xac_nhan']);
+            })
+                ->whereHas('khoaHoc', fn ($q) => $q->where('loai', 'hoat_dong'))
+                ->count(),
+            'phan_cong_cho_xn' => PhanCongModuleGiangVien::where('trang_thai', 'cho_xac_nhan')->count(),
+            'tai_khoan_cho_duyet' => TaiKhoanChoPheDuyet::where('trang_thai', 'cho_phe_duyet')->count(),
             'yeu_cau_hoc_vien_cho_duyet' => YeuCauHocVien::where('trang_thai', 'cho_duyet')->count(),
-            'bai_giang_cho_duyet'  => BaiGiang::where('trang_thai_duyet', BaiGiang::STATUS_DUYET_CHO)->count(),
+            'bai_giang_cho_duyet' => BaiGiang::where('trang_thai_duyet', BaiGiang::STATUS_DUYET_CHO)->count(),
             'tai_nguyen_cho_duyet' => TaiNguyenBuoiHoc::where('trang_thai_duyet', TaiNguyenBuoiHoc::STATUS_DUYET_CHO)->count(),
             'bai_kiem_tra_cho_duyet' => BaiKiemTra::where('trang_thai_duyet', 'cho_duyet')->count(),
-            'lich_hoc_hom_nay'     => LichHoc::whereDate('ngay_hoc', $today)
+            'lich_hoc_hom_nay' => LichHoc::whereDate('ngay_hoc', $today)
                 ->where('trang_thai', '!=', 'huy')
                 ->count(),
-            'lich_hoc_sap_toi'     => LichHoc::whereDate('ngay_hoc', '>', $today)
+            'lich_hoc_sap_toi' => LichHoc::whereDate('ngay_hoc', '>', $today)
                 ->where('trang_thai', '!=', 'huy')
                 ->count(),
             'giang_vien_co_lich_day_tuong_lai' => GiangVien::whereHas('lichHocs', function ($query) {
@@ -83,19 +82,19 @@ class AdminController extends Controller
 
         // 3. D? li?u b?ng chi ti?t (Phase 5)
         $phanCongMoiNhat = PhanCongModuleGiangVien::with([
-                'moduleHoc.khoaHoc',
-                'giangVien.nguoiDung'
-            ])
+            'moduleHoc.khoaHoc',
+            'giangVien.nguoiDung',
+        ])
             ->where('trang_thai', 'cho_xac_nhan')
             ->latest('ngay_phan_cong')
             ->take(5)
             ->get();
 
         $moduleChuaCoGv = ModuleHoc::with(['khoaHoc.nhomNganh'])
-            ->whereDoesntHave('phanCongGiangViens', function($q) {
+            ->whereDoesntHave('phanCongGiangViens', function ($q) {
                 $q->whereIn('trang_thai', ['da_nhan', 'cho_xac_nhan']);
             })
-            ->whereHas('khoaHoc', fn($q) => $q->where('loai', 'hoat_dong'))
+            ->whereHas('khoaHoc', fn ($q) => $q->where('loai', 'hoat_dong'))
             ->where('trang_thai', true)
             ->take(5)
             ->get();
@@ -261,7 +260,7 @@ class AdminController extends Controller
         // D? li?u ho?t d?ng theo th�ng
         $monthlyActivity = [];
         $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        
+
         for ($i = 0; $i < 6; $i++) {
             $month = now()->subMonths(5 - $i);
             $monthlyActivity[$months[$month->month - 1]] = [
@@ -296,8 +295,8 @@ class AdminController extends Controller
             $search = $request->get('search');
             $query->where(function ($q) use ($search) {
                 $q->where('ho_ten', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('so_dien_thoai', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('so_dien_thoai', 'like', "%{$search}%");
             });
         }
 
@@ -374,7 +373,7 @@ class AdminController extends Controller
         // X? l� upload ?nh d?i di?n
         if ($request->hasFile('anh_dai_dien')) {
             $file = $request->file('anh_dai_dien');
-            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
             $file->move(public_path('images'), $filename);
             $data['anh_dai_dien'] = $filename;
         }
@@ -414,8 +413,8 @@ class AdminController extends Controller
             $search = $request->get('search');
             $query->where(function ($q) use ($search) {
                 $q->where('ho_ten', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('so_dien_thoai', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('so_dien_thoai', 'like', "%{$search}%");
             });
         }
 
@@ -434,14 +433,14 @@ class AdminController extends Controller
         // S?p x?p
         $sortField = $request->get('sort_field', 'created_at');
         $sortDirection = $request->get('sort_direction', 'desc');
-        
-        if (!in_array($sortField, ['ho_ten', 'email', 'created_at', 'trang_thai'])) {
+
+        if (! in_array($sortField, ['ho_ten', 'email', 'created_at', 'trang_thai'])) {
             $sortField = 'created_at';
         }
-        if (!in_array($sortDirection, ['asc', 'desc'])) {
+        if (! in_array($sortDirection, ['asc', 'desc'])) {
             $sortDirection = 'desc';
         }
-        
+
         // S?p x?p theo ch? c�i d?u ti�n cho t�n v� email
         if ($sortField === 'ho_ten') {
             $query->orderByRaw("SUBSTRING(ho_ten, 1, 1) COLLATE utf8mb4_unicode_ci {$sortDirection}, ho_ten {$sortDirection}");
@@ -469,8 +468,8 @@ class AdminController extends Controller
             $search = $request->get('search');
             $query->where(function ($q) use ($search) {
                 $q->where('ho_ten', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('so_dien_thoai', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('so_dien_thoai', 'like', "%{$search}%");
             });
         }
 
@@ -489,14 +488,14 @@ class AdminController extends Controller
         // S?p x?p
         $sortField = $request->get('sort_field', 'created_at');
         $sortDirection = $request->get('sort_direction', 'desc');
-        
-        if (!in_array($sortField, ['ho_ten', 'email', 'created_at', 'trang_thai'])) {
+
+        if (! in_array($sortField, ['ho_ten', 'email', 'created_at', 'trang_thai'])) {
             $sortField = 'created_at';
         }
-        if (!in_array($sortDirection, ['asc', 'desc'])) {
+        if (! in_array($sortDirection, ['asc', 'desc'])) {
             $sortDirection = 'desc';
         }
-        
+
         // S?p x?p theo ch? c�i d?u ti�n cho t�n v� email
         if ($sortField === 'ho_ten') {
             $query->orderByRaw("SUBSTRING(ho_ten, 1, 1) COLLATE utf8mb4_unicode_ci {$sortDirection}, ho_ten {$sortDirection}");
@@ -547,6 +546,7 @@ class AdminController extends Controller
     public function profile()
     {
         $user = auth()->user();
+
         return view('pages.admin.profile', compact('user'));
     }
 
@@ -555,13 +555,13 @@ class AdminController extends Controller
         $user = auth()->user();
 
         $validator = Validator::make($request->all(), [
-            'ho_ten'        => 'required|string|max:255',
-            'email'         => 'required|email|unique:nguoi_dung,email,' . $user->ma_nguoi_dung . ',ma_nguoi_dung',
+            'ho_ten' => 'required|string|max:255',
+            'email' => 'required|email|unique:nguoi_dung,email,'.$user->ma_nguoi_dung.',ma_nguoi_dung',
             'so_dien_thoai' => 'nullable|string|max:15',
-            'ngay_sinh'     => 'nullable|date|before:today',
-            'dia_chi'       => 'nullable|string|max:500',
-            'anh_dai_dien'  => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'mat_khau'      => 'nullable|min:8|confirmed',
+            'ngay_sinh' => 'nullable|date|before:today',
+            'dia_chi' => 'nullable|string|max:500',
+            'anh_dai_dien' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'mat_khau' => 'nullable|min:8|confirmed',
         ]);
 
         if ($validator->fails()) {
@@ -597,6 +597,7 @@ class AdminController extends Controller
     public function editNguoiDung($id)
     {
         $nguoiDung = NguoiDung::withTrashed()->findOrFail($id);
+
         return view('pages.admin.quan-ly-tai-khoan.tai-khoan.edit', compact('nguoiDung'));
     }
 
@@ -606,13 +607,13 @@ class AdminController extends Controller
     public function updateNguoiDung(Request $request, $id)
     {
         $nguoiDung = NguoiDung::withTrashed()->findOrFail($id);
-        
+
         $validator = Validator::make($request->all(), [
             'ho_ten' => 'required|string|max:255',
             'email' => [
                 'required',
                 'email',
-                'unique:nguoi_dung,email,' . $id . ',ma_nguoi_dung',
+                'unique:nguoi_dung,email,'.$id.',ma_nguoi_dung',
                 'unique:tai_khoan_cho_phe_duyet,email',
             ],
             'vai_tro' => 'required|in:admin,giang_vien,hoc_vien',
@@ -642,12 +643,12 @@ class AdminController extends Controller
         // X? l� upload ?nh d?i di?n m?i
         if ($request->hasFile('anh_dai_dien')) {
             // X�a ?nh cu n?u t?n t?i
-            if ($nguoiDung->anh_dai_dien && file_exists(public_path('images/' . $nguoiDung->anh_dai_dien))) {
-                unlink(public_path('images/' . $nguoiDung->anh_dai_dien));
+            if ($nguoiDung->anh_dai_dien && file_exists(public_path('images/'.$nguoiDung->anh_dai_dien))) {
+                unlink(public_path('images/'.$nguoiDung->anh_dai_dien));
             }
 
             $file = $request->file('anh_dai_dien');
-            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
             $file->move(public_path('images'), $filename);
             $data['anh_dai_dien'] = $filename;
         }
@@ -662,32 +663,32 @@ class AdminController extends Controller
 
         return redirect()->route('admin.tai-khoan.show', $nguoiDung->id)
             ->with('success', 'Cập nhật thông tin người dùng thành công.');
-        }
+    }
 
-        /**
-        * Khóa/Mở khóa tài khoản người dùng
-        */
-        public function toggleStatusNguoiDung($id)
-        {
+    /**
+     * Khóa/Mở khóa tài khoản người dùng
+     */
+    public function toggleStatusNguoiDung($id)
+    {
         $nguoiDung = NguoiDung::findOrFail($id);
 
         // Không cho khóa chính mình
         if ($nguoiDung->id == auth()->id()) {
             return response()->json([
                 'success' => false,
-                'message' => 'B?n kh�ng th? kh�a t�i kho?n c?a ch�nh m�nh.'
+                'message' => 'B?n kh�ng th? kh�a t�i kho?n c?a ch�nh m�nh.',
             ], 403);
         }
 
-        $nguoiDung->trang_thai = !$nguoiDung->trang_thai;
+        $nguoiDung->trang_thai = ! $nguoiDung->trang_thai;
         $nguoiDung->save();
 
         $action = $nguoiDung->trang_thai ? 'm? kh�a' : 'kh�a';
-        
+
         return response()->json([
             'success' => true,
             'message' => "�� {$action} t�i kho?n {$nguoiDung->ho_ten}.",
-            'trang_thai' => $nguoiDung->trang_thai
+            'trang_thai' => $nguoiDung->trang_thai,
         ]);
     }
 
@@ -697,12 +698,12 @@ class AdminController extends Controller
     public function destroyNguoiDung($id)
     {
         $nguoiDung = NguoiDung::findOrFail($id);
-        
+
         // Kh�ng cho x�a ch�nh m�nh
         if ($nguoiDung->id == auth()->id()) {
             return response()->json([
                 'success' => false,
-                'message' => 'B?n kh�ng th? x�a t�i kho?n c?a ch�nh m�nh.'
+                'message' => 'B?n kh�ng th? x�a t�i kho?n c?a ch�nh m�nh.',
             ], 403);
         }
 
@@ -710,7 +711,7 @@ class AdminController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '�� x�a t�i kho?n ' . $nguoiDung->ho_ten . '. T�i kho?n c� th? du?c kh�i ph?c trong v�ng 30 ng�y.'
+            'message' => '�� x�a t�i kho?n '.$nguoiDung->ho_ten.'. T�i kho?n c� th? du?c kh�i ph?c trong v�ng 30 ng�y.',
         ]);
     }
 
@@ -724,7 +725,7 @@ class AdminController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '�� kh�i ph?c t�i kho?n ' . $nguoiDung->ho_ten . '.'
+            'message' => '�� kh�i ph?c t�i kho?n '.$nguoiDung->ho_ten.'.',
         ]);
     }
 
@@ -734,25 +735,25 @@ class AdminController extends Controller
     public function forceDeleteNguoiDung($id)
     {
         $nguoiDung = NguoiDung::withTrashed()->findOrFail($id);
-        
+
         // Kh�ng cho x�a ch�nh m�nh
         if ($nguoiDung->id == auth()->id()) {
             return response()->json([
                 'success' => false,
-                'message' => 'B?n kh�ng th? x�a t�i kho?n c?a ch�nh m�nh.'
+                'message' => 'B?n kh�ng th? x�a t�i kho?n c?a ch�nh m�nh.',
             ], 403);
         }
 
         // X�a ?nh d?i di?n n?u t?n t?i
-        if ($nguoiDung->anh_dai_dien && file_exists(public_path('images/' . $nguoiDung->anh_dai_dien))) {
-            unlink(public_path('images/' . $nguoiDung->anh_dai_dien));
+        if ($nguoiDung->anh_dai_dien && file_exists(public_path('images/'.$nguoiDung->anh_dai_dien))) {
+            unlink(public_path('images/'.$nguoiDung->anh_dai_dien));
         }
 
         $nguoiDung->forceDelete();
 
         return response()->json([
             'success' => true,
-            'message' => '�� x�a vinh vi?n t�i kho?n ' . $nguoiDung->ho_ten . '.'
+            'message' => '�� x�a vinh vi?n t�i kho?n '.$nguoiDung->ho_ten.'.',
         ]);
     }
 
@@ -762,10 +763,10 @@ class AdminController extends Controller
     public function exportNguoiDung(Request $request)
     {
         $nguoiDung = NguoiDung::all();
-        
+
         $headers = [
-            'H? t�n', 'Email', 'Vai tr�', 'S? di?n tho?i', 
-            'Ng�y sinh', '�?a ch?', 'Tr?ng th�i', 'Ng�y dang k�'
+            'H? t�n', 'Email', 'Vai tr�', 'S? di?n tho?i',
+            'Ng�y sinh', '�?a ch?', 'Tr?ng th�i', 'Ng�y dang k�',
         ];
 
         $data = [];
@@ -783,22 +784,22 @@ class AdminController extends Controller
         }
 
         // T?o file CSV
-        $filename = 'danh-sach-nguoi-dung-' . date('Y-m-d') . '.csv';
-        
+        $filename = 'danh-sach-nguoi-dung-'.date('Y-m-d').'.csv';
+
         $handle = fopen('php://output', 'w');
         fputcsv($handle, $headers);
-        
+
         foreach ($data as $row) {
             fputcsv($handle, $row);
         }
-        
+
         fclose($handle);
 
-        return response()->streamDownload(function() use ($handle) {
+        return response()->streamDownload(function () use ($handle) {
             echo $handle;
         }, $filename, [
             'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 
@@ -877,14 +878,14 @@ class AdminController extends Controller
 
         // Luu c�i d?t v�o file .env ho?c database
         $envPath = base_path('.env');
-        
+
         if (file_exists($envPath)) {
             $envContent = file_get_contents($envPath);
-            
+
             foreach ($validated as $key => $value) {
-                $envKey = 'APP_' . strtoupper($key);
+                $envKey = 'APP_'.strtoupper($key);
                 $envValue = is_bool($value) ? ($value ? 'true' : 'false') : $value;
-                
+
                 if (strpos($envContent, "{$envKey}=") !== false) {
                     $envContent = preg_replace(
                         "/^{$envKey}=.*/m",
@@ -895,7 +896,7 @@ class AdminController extends Controller
                     $envContent .= "\n{$envKey}={$envValue}";
                 }
             }
-            
+
             file_put_contents($envPath, $envContent);
         }
 
@@ -908,10 +909,10 @@ class AdminController extends Controller
      */
     public function backupDatabase()
     {
-        $filename = 'backup-' . date('Y-m-d-H-i-s') . '.sql';
-        $path = storage_path('app/backups/' . $filename);
-        
-        if (!file_exists(dirname($path))) {
+        $filename = 'backup-'.date('Y-m-d-H-i-s').'.sql';
+        $path = storage_path('app/backups/'.$filename);
+
+        if (! file_exists(dirname($path))) {
             mkdir(dirname($path), 0755, true);
         }
 
@@ -940,15 +941,15 @@ class AdminController extends Controller
     public function nhatKy(Request $request)
     {
         $logFile = storage_path('logs/laravel.log');
-        
-        if (!file_exists($logFile)) {
+
+        if (! file_exists($logFile)) {
             return view('pages.admin.nhat-ky.index', ['logs' => [], 'error' => 'File log kh�ng t?n t?i.']);
         }
 
         $logs = [];
         $file = fopen($logFile, 'r');
-        
-        while (!feof($file)) {
+
+        while (! feof($file)) {
             $line = fgets($file);
             if (preg_match('/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\].*?(\w+)\.(\w+): (.*)$/', $line, $matches)) {
                 $logs[] = [
@@ -959,11 +960,11 @@ class AdminController extends Controller
                 ];
             }
         }
-        
+
         fclose($file);
 
         if ($request->has('level') && $request->level != 'all') {
-            $logs = array_filter($logs, function($log) use ($request) {
+            $logs = array_filter($logs, function ($log) use ($request) {
                 return strtolower($log['level']) == strtolower($request->level);
             });
         }
@@ -1009,7 +1010,7 @@ class AdminController extends Controller
     public function xoaNhatKy()
     {
         $logFile = storage_path('logs/laravel.log');
-        
+
         if (file_exists($logFile)) {
             file_put_contents($logFile, '');
         }
@@ -1028,7 +1029,7 @@ class AdminController extends Controller
         if ($request->has('search')) {
             $search = $request->get('search');
             $query->where('ho_ten', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                ->orWhere('email', 'like', "%{$search}%");
         }
 
         if ($request->has('vai_tro')) {
@@ -1039,7 +1040,7 @@ class AdminController extends Controller
 
         return response()->json([
             'data' => $nguoiDung,
-            'success' => true
+            'success' => true,
         ]);
     }
 
@@ -1049,7 +1050,7 @@ class AdminController extends Controller
     public function timKiemNguoiDung(Request $request)
     {
         $search = $request->get('q');
-        
+
         $nguoiDung = NguoiDung::where('ho_ten', 'like', "%{$search}%")
             ->orWhere('email', 'like', "%{$search}%")
             ->limit(10)
@@ -1065,7 +1066,7 @@ class AdminController extends Controller
     {
         $giangVienId = auth()->user()->giangVien->id ?? null;
 
-        if (!$giangVienId) {
+        if (! $giangVienId) {
             return redirect()->route('home')->with('error', 'T�i kho?n c?a b?n chua du?c thi?t l?p profile gi?ng vi�n.');
         }
 
@@ -1077,7 +1078,7 @@ class AdminController extends Controller
                 ->where('trang_thai', 'cho_xac_nhan')
                 ->count(),
             'tong_hoc_vien' => DB::table('hoc_vien_khoa_hoc')
-                ->whereIn('khoa_hoc_id', function($query) use ($giangVienId) {
+                ->whereIn('khoa_hoc_id', function ($query) use ($giangVienId) {
                     $query->select('khoa_hoc_id')
                         ->from('phan_cong_module_giang_vien')
                         ->where('giang_vien_id', $giangVienId);
@@ -1111,7 +1112,7 @@ class AdminController extends Controller
     public function hocVienDashboard()
     {
         $user = auth()->user();
-        
+
         $stats = [
             'tongKhoaHoc' => 0, // Placeholder
             'diemTrungBinh' => 0,
@@ -1148,8 +1149,8 @@ class AdminController extends Controller
             $search = $request->get('search');
             $query->where(function ($q) use ($search) {
                 $q->where('ho_ten', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('so_dien_thoai', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('so_dien_thoai', 'like', "%{$search}%");
             });
         }
 
@@ -1173,7 +1174,7 @@ class AdminController extends Controller
         if (NguoiDung::where('email', $taiKhoan->email)->exists()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Email này đã tồn tại trong hệ thống.'
+                'message' => 'Email này đã tồn tại trong hệ thống.',
             ], 422);
         }
 
@@ -1201,7 +1202,9 @@ class AdminController extends Controller
                 (int) $nguoiDung->ma_nguoi_dung,
                 true
             );
-        } catch (\Throwable $e) { report($e); }
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         $redirectUrl = $taiKhoan->vai_tro === 'giang_vien'
             ? route('admin.giang-vien.index')
@@ -1209,9 +1212,9 @@ class AdminController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Đã phê duyệt tài khoản ' . $taiKhoan->ho_ten . '.',
+            'message' => 'Đã phê duyệt tài khoản '.$taiKhoan->ho_ten.'.',
             'redirect' => $redirectUrl,
-            'vai_tro' => $taiKhoan->vai_tro
+            'vai_tro' => $taiKhoan->vai_tro,
         ]);
     }
 
@@ -1225,7 +1228,7 @@ class AdminController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '�� t? ch?i t�i kho?n ' . $taiKhoan->ho_ten . '.'
+            'message' => '�� t? ch?i t�i kho?n '.$taiKhoan->ho_ten.'.',
         ]);
     }
 
@@ -1237,10 +1240,10 @@ class AdminController extends Controller
         $taiKhoan = TaiKhoanChoPheDuyet::findOrFail($id);
         $nguoiDung = NguoiDung::where('email', $taiKhoan->email)->first();
 
-        if (!$nguoiDung) {
+        if (! $nguoiDung) {
             return response()->json([
                 'success' => false,
-                'message' => 'T�i kho?n kh�ng t?n t?i d? h?y ph� duy?t.'
+                'message' => 'T�i kho?n kh�ng t?n t?i d? h?y ph� duy?t.',
             ], 404);
         }
 
@@ -1249,7 +1252,7 @@ class AdminController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '�� h?y ph� duy?t t�i kho?n ' . $taiKhoan->ho_ten . '.'
+            'message' => '�� h?y ph� duy?t t�i kho?n '.$taiKhoan->ho_ten.'.',
         ]);
     }
 
@@ -1291,9 +1294,9 @@ class AdminController extends Controller
 
         if ($request->hasFile('site_logo')) {
             $file = $request->file('site_logo');
-            $filename = time() . '_logo.' . $file->getClientOriginalExtension();
+            $filename = time().'_logo.'.$file->getClientOriginalExtension();
             $file->move(public_path('images'), $filename);
-            $validated['site_logo'] = 'images/' . $filename;
+            $validated['site_logo'] = 'images/'.$filename;
         }
 
         foreach ($validated as $key => $value) {
@@ -1328,7 +1331,7 @@ class AdminController extends Controller
         $instructorIds = $request->get('instructors', []);
         GiangVien::query()->update(['hien_thi_trang_chu' => false]);
 
-        if (!empty($instructorIds)) {
+        if (! empty($instructorIds)) {
             GiangVien::whereIn('id', $instructorIds)
                 ->update(['hien_thi_trang_chu' => true]);
         }
@@ -1350,8 +1353,8 @@ class AdminController extends Controller
             'address' => SystemSetting::get('address', ''),
             'general_notification' => SystemSetting::get('general_notification', ''),
             'banner_images' => collect(json_decode(SystemSetting::get('banner_images', '[]'), true) ?: [])
-                                ->map(fn($p) => asset($p))
-                                ->toArray(),
+                ->map(fn ($p) => asset($p))
+                ->toArray(),
         ];
 
         return view('pages.admin.settings.contact', compact('settings'));
@@ -1376,11 +1379,7 @@ class AdminController extends Controller
     public function showInstructorSettings()
     {
         $instructors = GiangVien::with('nguoiDung')->get();
+
         return view('pages.admin.settings.instructors', compact('instructors'));
     }
 }
-
-
-
-
-

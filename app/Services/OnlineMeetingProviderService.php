@@ -11,7 +11,6 @@ class OnlineMeetingProviderService
      * Cấp link online cho buổi học.
      * Ưu tiên dùng link sẵn có, nếu thiếu thì tạo mới.
      *
-     * @param LichHoc $lichHoc
      * @return array{link: string, source: string}
      */
     public function provide(LichHoc $lichHoc): array
@@ -36,7 +35,7 @@ class OnlineMeetingProviderService
         $p1 = Str::lower(Str::random(3));
         $p2 = Str::lower(Str::random(4));
         $p3 = Str::lower(Str::random(3));
-        
+
         $code = "{$p1}-{$p2}-{$p3}";
         $link = "https://meet.google.com/{$code}";
 
@@ -52,7 +51,7 @@ class OnlineMeetingProviderService
     public function ensureOnlineLink(LichHoc $lichHoc): LichHoc
     {
         // Ép kiểu về string để so sánh chính xác
-        if ((string)$lichHoc->hinh_thuc !== 'online') {
+        if ((string) $lichHoc->hinh_thuc !== 'online') {
             return $lichHoc;
         }
 

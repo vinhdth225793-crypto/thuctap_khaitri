@@ -17,11 +17,17 @@ use ZipArchive;
 class ExamAttemptReportExportService
 {
     private const NS_MAIN = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+
     private const NS_REL_OFFICE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+
     private const NS_REL_PACKAGE = 'http://schemas.openxmlformats.org/package/2006/relationships';
+
     private const TEMPLATE_RELATIVE_PATH = 'templates/exports/bao-cao-hoc-vien-lam-bai/mau_xuat_bao_cao_hoc_vien_lam_bai_day_du_co_nhan_tieng_viet.xlsx';
+
     private const REPORT_SHEET_NAME = 'BaoCao';
+
     private const DATA_START_ROW = 3;
+
     private const EXPORT_COLUMNS = [
         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
         'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
@@ -32,9 +38,9 @@ class ExamAttemptReportExportService
      */
     public function export(BaiKiemTra $baiKiemTra): array
     {
-        $templatePath = storage_path('app/' . self::TEMPLATE_RELATIVE_PATH);
+        $templatePath = storage_path('app/'.self::TEMPLATE_RELATIVE_PATH);
 
-        if (!is_file($templatePath)) {
+        if (! is_file($templatePath)) {
             throw new InvalidArgumentException('Không tìm thấy file mẫu xuất báo cáo học viên làm bài.');
         }
 
@@ -43,8 +49,8 @@ class ExamAttemptReportExportService
             throw new RuntimeException('Không thể tạo file tạm để xuất báo cáo.');
         }
 
-        $xlsxPath = $filePath . '.xlsx';
-        if (!@rename($filePath, $xlsxPath)) {
+        $xlsxPath = $filePath.'.xlsx';
+        if (! @rename($filePath, $xlsxPath)) {
             @unlink($filePath);
 
             throw new RuntimeException('Không thể tạo file Excel tạm để xuất báo cáo.');
@@ -52,7 +58,7 @@ class ExamAttemptReportExportService
 
         @unlink($xlsxPath);
 
-        if (!@copy($templatePath, $xlsxPath)) {
+        if (! @copy($templatePath, $xlsxPath)) {
             throw new RuntimeException('Không thể sao chép file mẫu để xuất báo cáo.');
         }
 
@@ -145,13 +151,13 @@ class ExamAttemptReportExportService
 
     private function formatScheduleLabel(mixed $schedule): string
     {
-        if (!$schedule) {
+        if (! $schedule) {
             return '';
         }
 
         $parts = [];
         if ($schedule->buoi_so !== null) {
-            $parts[] = 'Buổi ' . $schedule->buoi_so;
+            $parts[] = 'Buổi '.$schedule->buoi_so;
         } elseif (filled($schedule->buoi_hoc)) {
             $parts[] = (string) $schedule->buoi_hoc;
         }
@@ -165,7 +171,7 @@ class ExamAttemptReportExportService
 
     private function formatDateTime(mixed $value): string
     {
-        if (!$value) {
+        if (! $value) {
             return '';
         }
 
@@ -176,7 +182,7 @@ class ExamAttemptReportExportService
 
     private function formatActualMinutes(BaiLamBaiKiemTra $baiLam): string
     {
-        if (!$baiLam->bat_dau_luc || !$baiLam->nop_luc) {
+        if (! $baiLam->bat_dau_luc || ! $baiLam->nop_luc) {
             return '';
         }
 
@@ -204,7 +210,7 @@ class ExamAttemptReportExportService
             $baiLam->ghi_chu_giam_sat,
             $this->buildQuestionDetailArchiveNote($baiLam),
             $baiLam->da_tu_dong_nop ? 'Tự động nộp khi hết giờ/vi phạm' : null,
-            $baiLam->nguoiCham ? 'Người chấm: ' . $baiLam->nguoiCham->ho_ten : null,
+            $baiLam->nguoiCham ? 'Người chấm: '.$baiLam->nguoiCham->ho_ten : null,
         ])
             ->filter(fn ($note) => filled($note))
             ->map(fn ($note) => trim((string) $note))
@@ -213,7 +219,7 @@ class ExamAttemptReportExportService
 
     private function buildOfficialResultNote(BaiLamBaiKiemTra $baiLam, ?KetQuaHocTap $officialResult): ?string
     {
-        if (!$officialResult) {
+        if (! $officialResult) {
             return null;
         }
 
@@ -230,14 +236,14 @@ class ExamAttemptReportExportService
             ->map(fn ($id) => (int) $id)
             ->contains((int) $baiLam->id);
 
-        return 'Diem chinh thuc: ' . $this->formatDecimal($officialResult->diem_kiem_tra)
-            . '; strategy: ' . ($officialResult->attempt_strategy_used ?: 'highest_score')
-            . '; attempt nay: ' . ($isOfficialAttempt ? 'co' : 'khong');
+        return 'Diem chinh thuc: '.$this->formatDecimal($officialResult->diem_kiem_tra)
+            .'; strategy: '.($officialResult->attempt_strategy_used ?: 'highest_score')
+            .'; attempt nay: '.($isOfficialAttempt ? 'co' : 'khong');
     }
 
     private function buildQuestionDetailArchiveNote(BaiLamBaiKiemTra $baiLam): ?string
     {
-        if (!$baiLam->relationLoaded('chiTietTraLois') || $baiLam->chiTietTraLois->isEmpty()) {
+        if (! $baiLam->relationLoaded('chiTietTraLois') || $baiLam->chiTietTraLois->isEmpty()) {
             return null;
         }
 
@@ -250,17 +256,17 @@ class ExamAttemptReportExportService
                     ? $this->formatDecimal($detail->diem_tu_dong)
                     : $this->formatDecimal($detail->diem_tu_luan);
                 $scoreText = $score !== '' || $maxScore !== ''
-                    ? trim(($score !== '' ? $score : '0') . '/' . ($maxScore !== '' ? $maxScore : '?'))
+                    ? trim(($score !== '' ? $score : '0').'/'.($maxScore !== '' ? $maxScore : '?'))
                     : '';
                 $typeText = $detail->cauHoi?->loai_cau_hoi === 'trac_nghiem' ? 'TN' : 'TL';
-                $comment = filled($detail->nhan_xet) ? ' - ' . trim((string) $detail->nhan_xet) : '';
+                $comment = filled($detail->nhan_xet) ? ' - '.trim((string) $detail->nhan_xet) : '';
 
-                return trim('C' . ($index + 1) . " {$typeText} {$scoreText}{$comment}");
+                return trim('C'.($index + 1)." {$typeText} {$scoreText}{$comment}");
             })
             ->filter(fn (string $item) => $item !== '')
             ->implode('; ');
 
-        return $items !== '' ? 'Chi tiet cau hoi: ' . $items : null;
+        return $items !== '' ? 'Chi tiet cau hoi: '.$items : null;
     }
 
     /**
@@ -268,7 +274,7 @@ class ExamAttemptReportExportService
      */
     private function fillTemplateWorkbook(string $xlsxPath, array $rows): void
     {
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($xlsxPath) !== true) {
             throw new RuntimeException('Không thể mở file Excel mẫu để xuất báo cáo.');
         }
@@ -286,7 +292,7 @@ class ExamAttemptReportExportService
             $xpath->registerNamespace('main', self::NS_MAIN);
 
             $sheetData = $xpath->query('//main:sheetData')->item(0);
-            if (!$sheetData instanceof DOMElement) {
+            if (! $sheetData instanceof DOMElement) {
                 throw new RuntimeException('File mẫu Excel không hợp lệ: thiếu sheetData.');
             }
 
@@ -294,7 +300,7 @@ class ExamAttemptReportExportService
             $rowsToReplace = [];
 
             foreach ($xpath->query('./main:row', $sheetData) as $rowNode) {
-                if (!$rowNode instanceof DOMElement) {
+                if (! $rowNode instanceof DOMElement) {
                     continue;
                 }
 
@@ -308,7 +314,7 @@ class ExamAttemptReportExportService
                 }
             }
 
-            if (!$templateRow instanceof DOMElement) {
+            if (! $templateRow instanceof DOMElement) {
                 throw new RuntimeException('File mẫu Excel không có dòng mẫu dữ liệu để xuất báo cáo.');
             }
 
@@ -326,7 +332,7 @@ class ExamAttemptReportExportService
                 $rowNumber = self::DATA_START_ROW + $offset;
                 $newRow = $templateRow->cloneNode(true);
 
-                if (!$newRow instanceof DOMElement) {
+                if (! $newRow instanceof DOMElement) {
                     throw new RuntimeException('Không thể sao chép dòng mẫu trong file Excel.');
                 }
 
@@ -342,7 +348,7 @@ class ExamAttemptReportExportService
             }
 
             $zip->deleteName($worksheetPath);
-            if (!$zip->addFromString($worksheetPath, $updatedWorksheetContent)) {
+            if (! $zip->addFromString($worksheetPath, $updatedWorksheetContent)) {
                 throw new RuntimeException('Không thể cập nhật dữ liệu vào file báo cáo.');
             }
         } finally {
@@ -360,7 +366,7 @@ class ExamAttemptReportExportService
 
         $cellByColumn = [];
         foreach ($rowNode->childNodes as $childNode) {
-            if (!$childNode instanceof DOMElement || $childNode->localName !== 'c') {
+            if (! $childNode instanceof DOMElement || $childNode->localName !== 'c') {
                 continue;
             }
 
@@ -373,12 +379,12 @@ class ExamAttemptReportExportService
         foreach (self::EXPORT_COLUMNS as $index => $columnName) {
             $cellNode = $cellByColumn[$columnName] ?? null;
 
-            if (!$cellNode instanceof DOMElement) {
+            if (! $cellNode instanceof DOMElement) {
                 $cellNode = $document->createElementNS(self::NS_MAIN, 'x:c');
                 $rowNode->appendChild($cellNode);
             }
 
-            $cellNode->setAttribute('r', $columnName . $rowNumber);
+            $cellNode->setAttribute('r', $columnName.$rowNumber);
             $this->fillWorksheetCell($document, $cellNode, (string) ($values[$index] ?? ''));
         }
     }
@@ -412,13 +418,13 @@ class ExamAttemptReportExportService
     private function removeDataMergeRanges(DOMXPath $xpath, int $startRow): void
     {
         foreach ($xpath->query('//main:mergeCells') as $mergeCellsNode) {
-            if (!$mergeCellsNode instanceof DOMElement) {
+            if (! $mergeCellsNode instanceof DOMElement) {
                 continue;
             }
 
             $removed = 0;
             foreach (iterator_to_array($xpath->query('./main:mergeCell', $mergeCellsNode)) as $mergeCellNode) {
-                if (!$mergeCellNode instanceof DOMElement) {
+                if (! $mergeCellNode instanceof DOMElement) {
                     continue;
                 }
 
@@ -441,7 +447,7 @@ class ExamAttemptReportExportService
     {
         $dimensionNode = $xpath->query('//main:dimension')->item(0);
         if ($dimensionNode instanceof DOMElement) {
-            $dimensionNode->setAttribute('ref', 'A1:Z' . max(self::DATA_START_ROW, $lastRow));
+            $dimensionNode->setAttribute('ref', 'A1:Z'.max(self::DATA_START_ROW, $lastRow));
         }
     }
 
@@ -465,20 +471,20 @@ class ExamAttemptReportExportService
 
         $targets = [];
         foreach ($relationshipsXPath->query('//rel:Relationship') as $relationshipNode) {
-            if (!$relationshipNode instanceof DOMElement) {
+            if (! $relationshipNode instanceof DOMElement) {
                 continue;
             }
 
             $target = ltrim($relationshipNode->getAttribute('Target'), '/');
-            if (!str_starts_with($target, 'xl/')) {
-                $target = 'xl/' . $target;
+            if (! str_starts_with($target, 'xl/')) {
+                $target = 'xl/'.$target;
             }
 
             $targets[$relationshipNode->getAttribute('Id')] = $target;
         }
 
         foreach ($workbookXPath->query('//main:sheets/main:sheet') as $sheetNode) {
-            if (!$sheetNode instanceof DOMElement || $sheetNode->getAttribute('name') !== $sheetName) {
+            if (! $sheetNode instanceof DOMElement || $sheetNode->getAttribute('name') !== $sheetName) {
                 continue;
             }
 
@@ -495,10 +501,10 @@ class ExamAttemptReportExportService
 
     private function loadDocument(string $xmlContent, string $label): DOMDocument
     {
-        $document = new DOMDocument();
+        $document = new DOMDocument;
         $document->preserveWhiteSpace = false;
 
-        if (!@$document->loadXML($xmlContent)) {
+        if (! @$document->loadXML($xmlContent)) {
             throw new RuntimeException("Không thể phân tích {$label} trong file Excel mẫu.");
         }
 
@@ -522,9 +528,9 @@ class ExamAttemptReportExportService
 
     private function buildDownloadName(BaiKiemTra $baiKiemTra): string
     {
-        $slug = Str::slug($baiKiemTra->tieu_de ?: ('bai-kiem-tra-' . $baiKiemTra->id));
-        $slug = $slug !== '' ? $slug : ('bai-kiem-tra-' . $baiKiemTra->id);
+        $slug = Str::slug($baiKiemTra->tieu_de ?: ('bai-kiem-tra-'.$baiKiemTra->id));
+        $slug = $slug !== '' ? $slug : ('bai-kiem-tra-'.$baiKiemTra->id);
 
-        return 'bao-cao-hoc-vien-lam-bai-' . $slug . '-' . now()->format('YmdHis') . '.xlsx';
+        return 'bao-cao-hoc-vien-lam-bai-'.$slug.'-'.now()->format('YmdHis').'.xlsx';
     }
 }

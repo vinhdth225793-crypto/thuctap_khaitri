@@ -13,24 +13,24 @@ return new class extends Migration
     {
         Schema::table('ngan_hang_cau_hoi', function (Blueprint $table) {
             // Thêm các cột theo prompt v2 nếu chưa có
-            if (!Schema::hasColumn('ngan_hang_cau_hoi', 'noi_dung_cau_hoi')) {
+            if (! Schema::hasColumn('ngan_hang_cau_hoi', 'noi_dung_cau_hoi')) {
                 $table->text('noi_dung_cau_hoi')->after('khoa_hoc_id');
             }
-            if (!Schema::hasColumn('ngan_hang_cau_hoi', 'dap_an_sai_1')) {
+            if (! Schema::hasColumn('ngan_hang_cau_hoi', 'dap_an_sai_1')) {
                 $table->text('dap_an_sai_1')->after('noi_dung_cau_hoi');
             }
-            if (!Schema::hasColumn('ngan_hang_cau_hoi', 'dap_an_sai_2')) {
+            if (! Schema::hasColumn('ngan_hang_cau_hoi', 'dap_an_sai_2')) {
                 $table->text('dap_an_sai_2')->after('dap_an_sai_1');
             }
-            if (!Schema::hasColumn('ngan_hang_cau_hoi', 'dap_an_sai_3')) {
+            if (! Schema::hasColumn('ngan_hang_cau_hoi', 'dap_an_sai_3')) {
                 $table->text('dap_an_sai_3')->after('dap_an_sai_2');
             }
-            if (!Schema::hasColumn('ngan_hang_cau_hoi', 'dap_an_dung')) {
+            if (! Schema::hasColumn('ngan_hang_cau_hoi', 'dap_an_dung')) {
                 $table->text('dap_an_dung')->after('dap_an_sai_3');
             }
-            
+
             // Thêm Soft Deletes nếu chưa có
-            if (!Schema::hasColumn('ngan_hang_cau_hoi', 'deleted_at')) {
+            if (! Schema::hasColumn('ngan_hang_cau_hoi', 'deleted_at')) {
                 $table->softDeletes();
             }
 
@@ -51,7 +51,7 @@ return new class extends Migration
                 'dap_an_sai_1',
                 'dap_an_sai_2',
                 'dap_an_sai_3',
-                'dap_an_dung'
+                'dap_an_dung',
             ]);
             $table->dropSoftDeletes();
         });

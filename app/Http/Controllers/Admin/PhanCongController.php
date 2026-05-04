@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\PhanCongModuleGiangVien;
-use App\Models\ModuleHoc;
 use App\Models\GiangVien;
+use App\Models\ModuleHoc;
+use App\Models\PhanCongModuleGiangVien;
 use App\Services\ThongBaoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,10 +28,10 @@ class PhanCongController extends Controller
     {
         $request->validate([
             'giang_vien_id' => 'required|exists:giang_vien,id',
-            'ghi_chu'      => 'nullable|string|max:500',
+            'ghi_chu' => 'nullable|string|max:500',
         ], [
             'giang_vien_id.required' => 'Vui lòng chọn giảng viên.',
-            'giang_vien_id.exists'   => 'Giảng viên không hợp lệ.',
+            'giang_vien_id.exists' => 'Giảng viên không hợp lệ.',
         ]);
 
         $moduleHoc = ModuleHoc::findOrFail($moduleId);
@@ -41,14 +41,14 @@ class PhanCongController extends Controller
             $phanCong = PhanCongModuleGiangVien::updateOrCreate(
                 [
                     'module_hoc_id' => $moduleId,
-                    'giang_vien_id'  => $request->giang_vien_id
+                    'giang_vien_id' => $request->giang_vien_id,
                 ],
                 [
-                    'khoa_hoc_id'    => $moduleHoc->khoa_hoc_id,
+                    'khoa_hoc_id' => $moduleHoc->khoa_hoc_id,
                     'ngay_phan_cong' => now(),
-                    'trang_thai'     => 'cho_xac_nhan',
-                    'ghi_chu'        => $request->ghi_chu,
-                    'created_by'     => Auth::user()->id,
+                    'trang_thai' => 'cho_xac_nhan',
+                    'ghi_chu' => $request->ghi_chu,
+                    'created_by' => Auth::user()->id,
                 ]
             );
 
@@ -57,6 +57,7 @@ class PhanCongController extends Controller
             ThongBaoService::guiPhanCongGV($gv, $moduleHoc, $moduleHoc->khoaHoc);
 
             DB::commit();
+
             return back()->with('success', 'Đã gửi yêu cầu phân công cho giảng viên.');
         } catch (\Exception $e) {
             DB::rollback();
@@ -89,7 +90,7 @@ class PhanCongController extends Controller
     {
         $request->validate([
             'giang_vien_id' => 'required|exists:giang_vien,id',
-            'ghi_chu'      => 'nullable|string|max:500',
+            'ghi_chu' => 'nullable|string|max:500',
         ]);
 
         $phanCongCu = PhanCongModuleGiangVien::findOrFail($id);
@@ -103,13 +104,13 @@ class PhanCongController extends Controller
             // Tạo phân công mới
             $moduleHoc = ModuleHoc::findOrFail($moduleId);
             $newPc = PhanCongModuleGiangVien::create([
-                'khoa_hoc_id'    => $moduleHoc->khoa_hoc_id,
-                'module_hoc_id'  => $moduleId,
-                'giang_vien_id'   => $request->giang_vien_id,
+                'khoa_hoc_id' => $moduleHoc->khoa_hoc_id,
+                'module_hoc_id' => $moduleId,
+                'giang_vien_id' => $request->giang_vien_id,
                 'ngay_phan_cong' => now(),
-                'trang_thai'     => 'cho_xac_nhan',
-                'ghi_chu'        => $request->ghi_chu,
-                'created_by'     => Auth::user()->id,
+                'trang_thai' => 'cho_xac_nhan',
+                'ghi_chu' => $request->ghi_chu,
+                'created_by' => Auth::user()->id,
             ]);
 
             // Gửi thông báo cho GV mới
@@ -117,6 +118,7 @@ class PhanCongController extends Controller
             ThongBaoService::guiPhanCongGV($gv, $moduleHoc, $moduleHoc->khoaHoc);
 
             DB::commit();
+
             return back()->with('success', 'Đã thay đổi giảng viên và gửi thông báo mới.');
         } catch (\Exception $e) {
             DB::rollback();
@@ -126,4 +128,3 @@ class PhanCongController extends Controller
         }
     }
 }
-

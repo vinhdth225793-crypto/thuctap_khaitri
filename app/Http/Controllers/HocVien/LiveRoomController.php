@@ -12,8 +12,7 @@ class LiveRoomController extends Controller
 {
     public function __construct(
         private readonly LiveRoomParticipationService $participationService
-    ) {
-    }
+    ) {}
 
     public function show(int $id)
     {
@@ -112,7 +111,7 @@ class LiveRoomController extends Controller
 
         $playerUrl = $phongHocLive->embed_url ?? $phongHocLive->join_url ?? $phongHocLive->start_url;
         $playerSupportsEmbed = filled($phongHocLive->embed_url)
-            || (bool) config('live_room.platforms.' . $phongHocLive->nen_tang_live . '.supports_embed', false);
+            || (bool) config('live_room.platforms.'.$phongHocLive->nen_tang_live.'.supports_embed', false);
 
         return [$playerMode, $playerUrl, $playerSupportsEmbed];
     }

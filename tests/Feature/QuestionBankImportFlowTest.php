@@ -22,7 +22,7 @@ class QuestionBankImportFlowTest extends TestCase
     public function test_template_download_uses_file_stored_in_storage(): void
     {
         $admin = $this->createUser('admin');
-        $templatePath = storage_path('app/' . config('import_templates.templates.question_bank_mcq.path'));
+        $templatePath = storage_path('app/'.config('import_templates.templates.question_bank_mcq.path'));
 
         $this->assertFileExists($templatePath);
 
@@ -62,7 +62,7 @@ class QuestionBankImportFlowTest extends TestCase
 
     public function test_stored_template_keeps_form_layout_and_reserves_row_seven_for_input(): void
     {
-        $templatePath = storage_path('app/' . config('import_templates.templates.question_bank_mcq.path'));
+        $templatePath = storage_path('app/'.config('import_templates.templates.question_bank_mcq.path'));
         $rows = app(SimpleXlsxReader::class)->readSheetRows($templatePath, 'Mau_Import');
 
         $rowTwo = collect($rows)->firstWhere('row', 2);
@@ -361,7 +361,7 @@ class QuestionBankImportFlowTest extends TestCase
         $tempPath = tempnam(sys_get_temp_dir(), 'preview-export-valid-');
         $this->assertNotFalse($tempPath);
 
-        $xlsxPath = $tempPath . '.xlsx';
+        $xlsxPath = $tempPath.'.xlsx';
         @rename($tempPath, $xlsxPath);
         file_put_contents($xlsxPath, $content);
 
@@ -407,11 +407,11 @@ class QuestionBankImportFlowTest extends TestCase
         $tempPath = tempnam(sys_get_temp_dir(), 'preview-export-layout-');
         $this->assertNotFalse($tempPath);
 
-        $xlsxPath = $tempPath . '.xlsx';
+        $xlsxPath = $tempPath.'.xlsx';
         @rename($tempPath, $xlsxPath);
         file_put_contents($xlsxPath, $content);
 
-        $templatePath = storage_path('app/' . config('import_templates.templates.question_bank_mcq.path'));
+        $templatePath = storage_path('app/'.config('import_templates.templates.question_bank_mcq.path'));
         $templateRows = app(SimpleXlsxReader::class)->readSheetRows($templatePath, 'Mau_Import');
         $exportRows = app(SimpleXlsxReader::class)->readSheetRows($xlsxPath, 'Mau_Import');
 
@@ -445,7 +445,7 @@ class QuestionBankImportFlowTest extends TestCase
         $tempPath = tempnam(sys_get_temp_dir(), 'preview-export-error-');
         $this->assertNotFalse($tempPath);
 
-        $xlsxPath = $tempPath . '.xlsx';
+        $xlsxPath = $tempPath.'.xlsx';
         @rename($tempPath, $xlsxPath);
         file_put_contents($xlsxPath, $content);
 
@@ -482,7 +482,7 @@ class QuestionBankImportFlowTest extends TestCase
         $tempPath = tempnam(sys_get_temp_dir(), 'preview-export-styles-');
         $this->assertNotFalse($tempPath);
 
-        $xlsxPath = $tempPath . '.xlsx';
+        $xlsxPath = $tempPath.'.xlsx';
         @rename($tempPath, $xlsxPath);
         file_put_contents($xlsxPath, $content);
 
@@ -513,7 +513,7 @@ class QuestionBankImportFlowTest extends TestCase
         $tempPath = tempnam(sys_get_temp_dir(), 'preview-export-correct-');
         $this->assertNotFalse($tempPath);
 
-        $xlsxPath = $tempPath . '.xlsx';
+        $xlsxPath = $tempPath.'.xlsx';
         @rename($tempPath, $xlsxPath);
         file_put_contents($xlsxPath, $content);
 
@@ -623,8 +623,8 @@ class QuestionBankImportFlowTest extends TestCase
         $index = $this->sequence++;
 
         return NguoiDung::create(array_merge([
-            'ho_ten' => strtoupper($role) . ' ' . $index,
-            'email' => $role . $index . '@example.com',
+            'ho_ten' => strtoupper($role).' '.$index,
+            'email' => $role.$index.'@example.com',
             'mat_khau' => bcrypt('password'),
             'vai_tro' => $role,
             'trang_thai' => true,
@@ -635,15 +635,15 @@ class QuestionBankImportFlowTest extends TestCase
     {
         $index = $this->sequence++;
         $group = NhomNganh::create([
-            'ma_nhom_nganh' => 'NN' . str_pad((string) $index, 3, '0', STR_PAD_LEFT),
-            'ten_nhom_nganh' => 'Group ' . $index,
+            'ma_nhom_nganh' => 'NN'.str_pad((string) $index, 3, '0', STR_PAD_LEFT),
+            'ten_nhom_nganh' => 'Group '.$index,
             'trang_thai' => true,
         ]);
 
         return KhoaHoc::create([
             'nhom_nganh_id' => $group->id,
-            'ma_khoa_hoc' => 'KH-' . str_pad((string) $index, 3, '0', STR_PAD_LEFT),
-            'ten_khoa_hoc' => 'Course ' . $index,
+            'ma_khoa_hoc' => 'KH-'.str_pad((string) $index, 3, '0', STR_PAD_LEFT),
+            'ten_khoa_hoc' => 'Course '.$index,
             'cap_do' => 'co_ban',
             'tong_so_module' => 1,
             'phuong_thuc_danh_gia' => 'cuoi_khoa',
@@ -667,7 +667,7 @@ class QuestionBankImportFlowTest extends TestCase
             throw new \RuntimeException('Unable to create temp file for xlsx import test.');
         }
 
-        $xlsxPath = $filePath . '.xlsx';
+        $xlsxPath = $filePath.'.xlsx';
         @rename($filePath, $xlsxPath);
 
         $guidanceRows = [
@@ -704,7 +704,7 @@ class QuestionBankImportFlowTest extends TestCase
 
             while ($index > 0) {
                 $remainder = ($index - 1) % 26;
-                $name = chr(65 + $remainder) . $name;
+                $name = chr(65 + $remainder).$name;
                 $index = intdiv($index - 1, 26);
             }
 
@@ -726,41 +726,41 @@ class QuestionBankImportFlowTest extends TestCase
                     }
 
                     $sharedIndex = $addSharedString((string) $value);
-                    $reference = $columnName($cellIndex) . ($rowIndex + 1);
-                    $cellXml[] = '<c r="' . $reference . '" t="s"><v>' . $sharedIndex . '</v></c>';
+                    $reference = $columnName($cellIndex).($rowIndex + 1);
+                    $cellXml[] = '<c r="'.$reference.'" t="s"><v>'.$sharedIndex.'</v></c>';
                 }
 
-                $rowsXml[] = '<row r="' . ($rowIndex + 1) . '">' . implode('', $cellXml) . '</row>';
+                $rowsXml[] = '<row r="'.($rowIndex + 1).'">'.implode('', $cellXml).'</row>';
             }
 
             $sheetXml[$sheetIndex + 1] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-                . '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-                . '<sheetData>' . implode('', $rowsXml) . '</sheetData>'
-                . '</worksheet>';
+                .'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+                .'<sheetData>'.implode('', $rowsXml).'</sheetData>'
+                .'</worksheet>';
         }
 
         $sharedStringItems = [];
         foreach ($sharedStrings as $text) {
-            $sharedStringItems[] = '<si><t>' . $escape($text) . '</t></si>';
+            $sharedStringItems[] = '<si><t>'.$escape($text).'</t></si>';
         }
 
         $sharedStringsXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-            . '<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="' . count($sharedStrings) . '" uniqueCount="' . count($sharedStrings) . '">'
-            . implode('', $sharedStringItems)
-            . '</sst>';
+            .'<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="'.count($sharedStrings).'" uniqueCount="'.count($sharedStrings).'">'
+            .implode('', $sharedStringItems)
+            .'</sst>';
 
         $workbookSheetsXml = [];
         $workbookRelsXml = [];
         foreach ($worksheets as $index => $sheet) {
             $sheetNumber = $index + 1;
-            $workbookSheetsXml[] = '<sheet name="' . $escape($sheet['name']) . '" sheetId="' . $sheetNumber . '" r:id="rId' . $sheetNumber . '"/>';
-            $workbookRelsXml[] = '<Relationship Id="rId' . $sheetNumber . '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="/xl/worksheets/sheet' . $sheetNumber . '.xml"/>';
+            $workbookSheetsXml[] = '<sheet name="'.$escape($sheet['name']).'" sheetId="'.$sheetNumber.'" r:id="rId'.$sheetNumber.'"/>';
+            $workbookRelsXml[] = '<Relationship Id="rId'.$sheetNumber.'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="/xl/worksheets/sheet'.$sheetNumber.'.xml"/>';
         }
 
         $sharedStringRelId = count($worksheets) + 1;
         $stylesRelId = $sharedStringRelId + 1;
-        $workbookRelsXml[] = '<Relationship Id="rId' . $sharedStringRelId . '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="/xl/sharedStrings.xml"/>';
-        $workbookRelsXml[] = '<Relationship Id="rId' . $stylesRelId . '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="/xl/styles.xml"/>';
+        $workbookRelsXml[] = '<Relationship Id="rId'.$sharedStringRelId.'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="/xl/sharedStrings.xml"/>';
+        $workbookRelsXml[] = '<Relationship Id="rId'.$stylesRelId.'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="/xl/styles.xml"/>';
 
         $contentTypeOverrides = [
             '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>',
@@ -769,42 +769,42 @@ class QuestionBankImportFlowTest extends TestCase
         ];
 
         foreach ($worksheets as $index => $sheet) {
-            $contentTypeOverrides[] = '<Override PartName="/xl/worksheets/sheet' . ($index + 1) . '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
+            $contentTypeOverrides[] = '<Override PartName="/xl/worksheets/sheet'.($index + 1).'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
         }
 
         $workbookXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-            . '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
-            . '<sheets>' . implode('', $workbookSheetsXml) . '</sheets>'
-            . '</workbook>';
+            .'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+            .'<sheets>'.implode('', $workbookSheetsXml).'</sheets>'
+            .'</workbook>';
 
         $workbookRelsXmlString = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-            . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
-            . implode('', $workbookRelsXml)
-            . '</Relationships>';
+            .'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            .implode('', $workbookRelsXml)
+            .'</Relationships>';
 
         $contentTypesXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-            . '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
-            . '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
-            . '<Default Extension="xml" ContentType="application/xml"/>'
-            . implode('', $contentTypeOverrides)
-            . '</Types>';
+            .'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+            .'<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+            .'<Default Extension="xml" ContentType="application/xml"/>'
+            .implode('', $contentTypeOverrides)
+            .'</Types>';
 
         $rootRelsXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-            . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
-            . '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
-            . '</Relationships>';
+            .'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            .'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
+            .'</Relationships>';
 
         $stylesXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-            . '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-            . '<fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts>'
-            . '<fills count="1"><fill><patternFill patternType="none"/></fill></fills>'
-            . '<borders count="1"><border/></borders>'
-            . '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-            . '<cellXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs>'
-            . '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
-            . '</styleSheet>';
+            .'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+            .'<fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts>'
+            .'<fills count="1"><fill><patternFill patternType="none"/></fill></fills>'
+            .'<borders count="1"><border/></borders>'
+            .'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
+            .'<cellXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs>'
+            .'<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
+            .'</styleSheet>';
 
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($xlsxPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             throw new \RuntimeException('Unable to create xlsx import fixture.');
         }
@@ -817,7 +817,7 @@ class QuestionBankImportFlowTest extends TestCase
         $zip->addFromString('xl/styles.xml', $stylesXml);
 
         foreach ($sheetXml as $index => $xml) {
-            $zip->addFromString('xl/worksheets/sheet' . $index . '.xml', $xml);
+            $zip->addFromString('xl/worksheets/sheet'.$index.'.xml', $xml);
         }
 
         $zip->close();
@@ -835,7 +835,7 @@ class QuestionBankImportFlowTest extends TestCase
             throw new \RuntimeException('Unable to create temp file for csv import test.');
         }
 
-        $csvPath = $filePath . '.csv';
+        $csvPath = $filePath.'.csv';
         @rename($filePath, $csvPath);
 
         $handle = fopen($csvPath, 'wb');
@@ -843,7 +843,7 @@ class QuestionBankImportFlowTest extends TestCase
             throw new \RuntimeException('Unable to open temp csv file.');
         }
 
-        fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
+        fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
 
         foreach ($rows as $row) {
             fputcsv($handle, $row);
@@ -912,7 +912,7 @@ class QuestionBankImportFlowTest extends TestCase
 
     private function readWorksheetCellStyleIndex(string $xlsxPath, string $cellReference): int
     {
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($xlsxPath) !== true) {
             throw new \RuntimeException('Unable to open xlsx export fixture.');
         }
@@ -923,14 +923,14 @@ class QuestionBankImportFlowTest extends TestCase
                 throw new \RuntimeException('Unable to read Mau_Import worksheet.');
             }
 
-            $document = new \DOMDocument();
+            $document = new \DOMDocument;
             $document->loadXML($worksheetContent);
 
             $xpath = new \DOMXPath($document);
             $xpath->registerNamespace('main', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main');
 
-            $cellNode = $xpath->query('//main:c[@r="' . $cellReference . '"]')->item(0);
-            if (!$cellNode instanceof \DOMElement) {
+            $cellNode = $xpath->query('//main:c[@r="'.$cellReference.'"]')->item(0);
+            if (! $cellNode instanceof \DOMElement) {
                 throw new \RuntimeException("Unable to locate cell {$cellReference} in worksheet.");
             }
 
@@ -942,7 +942,7 @@ class QuestionBankImportFlowTest extends TestCase
 
     private function readFillColorForStyleIndex(string $xlsxPath, int $styleIndex): ?string
     {
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($xlsxPath) !== true) {
             throw new \RuntimeException('Unable to open xlsx export fixture.');
         }
@@ -953,25 +953,25 @@ class QuestionBankImportFlowTest extends TestCase
                 throw new \RuntimeException('Unable to read styles.xml from export.');
             }
 
-            $document = new \DOMDocument();
+            $document = new \DOMDocument;
             $document->loadXML($stylesContent);
 
             $xpath = new \DOMXPath($document);
             $xpath->registerNamespace('main', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main');
 
             $xfNode = $xpath->query('//main:cellXfs/main:xf')->item($styleIndex);
-            if (!$xfNode instanceof \DOMElement) {
+            if (! $xfNode instanceof \DOMElement) {
                 throw new \RuntimeException("Unable to locate style index {$styleIndex}.");
             }
 
             $fillId = (int) $xfNode->getAttribute('fillId');
             $fillNode = $xpath->query('//main:fills/main:fill')->item($fillId);
-            if (!$fillNode instanceof \DOMElement) {
+            if (! $fillNode instanceof \DOMElement) {
                 throw new \RuntimeException("Unable to locate fill id {$fillId}.");
             }
 
             $foregroundNode = $xpath->query('./main:patternFill/main:fgColor', $fillNode)->item(0);
-            if (!$foregroundNode instanceof \DOMElement) {
+            if (! $foregroundNode instanceof \DOMElement) {
                 return null;
             }
 

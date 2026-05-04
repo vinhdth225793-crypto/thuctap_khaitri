@@ -99,7 +99,7 @@ class ExamQuestionSelectionService
 
             if ($diemSo < self::MIN_QUESTION_SCORE) {
                 throw ValidationException::withMessages([
-                    'question_scores.' . $questionId => 'Điểm mỗi câu phải từ ' . number_format(self::MIN_QUESTION_SCORE, 2) . ' trở lên.',
+                    'question_scores.'.$questionId => 'Điểm mỗi câu phải từ '.number_format(self::MIN_QUESTION_SCORE, 2).' trở lên.',
                 ]);
             }
 
@@ -138,8 +138,8 @@ class ExamQuestionSelectionService
         $search = trim((string) ($filters['search'] ?? ''));
         if ($search !== '') {
             $query->where(function (Builder $searchQuery) use ($search) {
-                $searchQuery->where('noi_dung', 'like', '%' . $search . '%')
-                    ->orWhere('ma_cau_hoi', 'like', '%' . $search . '%');
+                $searchQuery->where('noi_dung', 'like', '%'.$search.'%')
+                    ->orWhere('ma_cau_hoi', 'like', '%'.$search.'%');
             });
         }
 

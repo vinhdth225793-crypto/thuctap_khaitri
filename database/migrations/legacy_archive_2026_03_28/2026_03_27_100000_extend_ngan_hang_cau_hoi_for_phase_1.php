@@ -10,7 +10,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('ngan_hang_cau_hoi', function (Blueprint $table) {
-            if (!Schema::hasColumn('ngan_hang_cau_hoi', 'kieu_dap_an')) {
+            if (! Schema::hasColumn('ngan_hang_cau_hoi', 'kieu_dap_an')) {
                 $table->string('kieu_dap_an', 50)->nullable()->after('loai_cau_hoi');
             }
         });
@@ -23,7 +23,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (!Schema::hasColumn('ngan_hang_cau_hoi', 'kieu_dap_an')) {
+        if (! Schema::hasColumn('ngan_hang_cau_hoi', 'kieu_dap_an')) {
             return;
         }
 

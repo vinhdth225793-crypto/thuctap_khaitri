@@ -37,7 +37,7 @@ return new class extends Migration
 
     private function addMissingColumns(string $tableName, array $columnDefinitions): void
     {
-        if (!Schema::hasTable($tableName)) {
+        if (! Schema::hasTable($tableName)) {
             return;
         }
 
@@ -54,7 +54,7 @@ return new class extends Migration
 
     private function dropExistingColumns(string $tableName, array $columns): void
     {
-        if (!Schema::hasTable($tableName)) {
+        if (! Schema::hasTable($tableName)) {
             return;
         }
 

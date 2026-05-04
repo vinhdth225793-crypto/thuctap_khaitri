@@ -23,7 +23,7 @@ return new class extends Migration
             $table->integer('tong_so_module')->default(0);
             $table->boolean('trang_thai')->default(1);
             $table->timestamps();
-            
+
             // Foreign key
             $table->foreign('mon_hoc_id')->references('id')->on('mon_hoc')->onDelete('cascade');
         });

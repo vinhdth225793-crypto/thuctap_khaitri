@@ -17,27 +17,27 @@ return new class extends Migration
             $table->unsignedBigInteger('module_hoc_id');
             $table->unsignedBigInteger('lich_hoc_id')->nullable();
             $table->unsignedBigInteger('nguoi_tao_id')->nullable();
-            
+
             $table->string('tieu_de');
             $table->text('mo_ta')->nullable();
             $table->string('loai_bai_giang')->default('tai_lieu');
             // video, tai_lieu, bai_doc, bai_tap, hon_hop
-            
+
             $table->unsignedBigInteger('tai_nguyen_chinh_id')->nullable();
             $table->integer('thu_tu_hien_thi')->default(0);
             $table->dateTime('thoi_diem_mo')->nullable();
-            
+
             $table->string('trang_thai_duyet')->default('da_duyet');
             // nhap, cho_duyet, da_duyet, can_chinh_sua, tu_choi
-            
+
             $table->string('trang_thai_cong_bo')->default('an');
             // an, da_cong_bo
-            
+
             $table->text('ghi_chu_admin')->nullable();
             $table->dateTime('ngay_gui_duyet')->nullable();
             $table->dateTime('ngay_duyet')->nullable();
             $table->unsignedBigInteger('nguoi_duyet_id')->nullable();
-            
+
             $table->timestamps();
             $table->softDeletes();
 

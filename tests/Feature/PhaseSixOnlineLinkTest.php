@@ -101,8 +101,8 @@ class PhaseSixOnlineLinkTest extends TestCase
         $index = $this->sequence++;
 
         return NguoiDung::create([
-            'ho_ten' => strtoupper($role) . ' ' . $index,
-            'email' => $role . $index . '@example.com',
+            'ho_ten' => strtoupper($role).' '.$index,
+            'email' => $role.$index.'@example.com',
             'mat_khau' => bcrypt('password'),
             'vai_tro' => $role,
             'trang_thai' => true,
@@ -123,15 +123,15 @@ class PhaseSixOnlineLinkTest extends TestCase
     {
         $index = $this->sequence++;
         $nhomNganh = NhomNganh::create([
-            'ma_nhom_nganh' => 'NN' . $index,
-            'ten_nhom_nganh' => 'Nhom nganh ' . $index,
+            'ma_nhom_nganh' => 'NN'.$index,
+            'ten_nhom_nganh' => 'Nhom nganh '.$index,
             'trang_thai' => true,
         ]);
 
         $course = KhoaHoc::create([
             'nhom_nganh_id' => $nhomNganh->id,
-            'ma_khoa_hoc' => 'KH-' . $index,
-            'ten_khoa_hoc' => 'Khoa hoc ' . $index,
+            'ma_khoa_hoc' => 'KH-'.$index,
+            'ten_khoa_hoc' => 'Khoa hoc '.$index,
             'cap_do' => 'co_ban',
             'tong_so_module' => 1,
             'trang_thai' => true,
@@ -142,8 +142,8 @@ class PhaseSixOnlineLinkTest extends TestCase
 
         $module = ModuleHoc::create([
             'khoa_hoc_id' => $course->id,
-            'ma_module' => 'M-' . $index,
-            'ten_module' => 'Module ' . $index,
+            'ma_module' => 'M-'.$index,
+            'ten_module' => 'Module '.$index,
             'thu_tu_module' => 1,
             'so_buoi' => 1,
             'trang_thai' => true,

@@ -11,20 +11,31 @@ class DiemDanhGiangVien extends Model
     use HasFactory;
 
     public const STATUS_CHUA_DIEM_DANH = 'chua_diem_danh';
+
     public const STATUS_DA_CHECKIN = 'da_checkin';
+
     public const STATUS_DA_CHECKOUT = 'da_checkout';
+
     public const STATUS_HOAN_THANH = 'hoan_thanh';
+
     public const STATUS_LEGACY_DANG_DAY = 'dang_day';
+
     public const STATUS_LEGACY_DA_KET_THUC = 'da_ket_thuc';
 
     public const CHECK_IN_DUNG_GIO = 'dung_gio';
+
     public const CHECK_IN_VAO_TRE = 'vao_tre';
+
     public const CHECK_IN_NGOAI_KHUNG = 'ngoai_khung';
+
     public const CHECK_IN_KHONG_CHECKIN = 'khong_checkin';
 
     public const CHECK_OUT_DUNG_HAN = 'dung_han';
+
     public const CHECK_OUT_DONG_SOM = 'dong_som';
+
     public const CHECK_OUT_QUA_HAN = 'qua_han';
+
     public const CHECK_OUT_CHUA_CHECKOUT = 'chua_checkout';
 
     protected $table = 'diem_danh_giang_vien';

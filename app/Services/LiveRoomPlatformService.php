@@ -14,7 +14,7 @@ class LiveRoomPlatformService
 
     public function platformLabel(?string $platform): string
     {
-        if (!$platform) {
+        if (! $platform) {
             return 'Chua xac dinh';
         }
 

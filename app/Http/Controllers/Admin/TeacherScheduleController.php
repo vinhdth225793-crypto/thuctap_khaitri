@@ -12,8 +12,7 @@ class TeacherScheduleController extends Controller
 {
     public function __construct(
         private readonly TeacherScheduleViewService $scheduleViewService,
-    ) {
-    }
+    ) {}
 
     public function show(Request $request, int $giangVienId)
     {
@@ -31,7 +30,7 @@ class TeacherScheduleController extends Controller
             ->where('trang_thai', 'da_nhan')
             ->latest('ngay_phan_cong')
             ->get()
-            ->unique(fn ($assignment) => ($assignment->khoa_hoc_id ?? 'course') . '-' . ($assignment->module_hoc_id ?? 'module'))
+            ->unique(fn ($assignment) => ($assignment->khoa_hoc_id ?? 'course').'-'.($assignment->module_hoc_id ?? 'module'))
             ->values();
 
         $recentLeaveRequests = $teacher->donXinNghis()

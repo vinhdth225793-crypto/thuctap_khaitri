@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\BaiGiang;
 use App\Models\GiangVien;
 use App\Models\HocVien;
-use App\Models\HocVienKhoaHoc;
 use App\Models\KhoaHoc;
 use App\Models\LichHoc;
 use App\Models\ModuleHoc;
@@ -289,8 +288,8 @@ class TeacherContentAuthorizationTest extends TestCase
         $index = $this->sequence++;
 
         return NguoiDung::create(array_merge([
-            'ho_ten' => strtoupper($role) . ' ' . $index,
-            'email' => $role . $index . '@example.com',
+            'ho_ten' => strtoupper($role).' '.$index,
+            'email' => $role.$index.'@example.com',
             'mat_khau' => bcrypt('password123'),
             'vai_tro' => $role,
             'trang_thai' => true,
@@ -322,15 +321,15 @@ class TeacherContentAuthorizationTest extends TestCase
     {
         $index = $this->sequence++;
         $nhomNganh = NhomNganh::create([
-            'ma_nhom_nganh' => 'NN' . str_pad((string) $index, 3, '0', STR_PAD_LEFT),
-            'ten_nhom_nganh' => 'Nhom nganh ' . $index,
+            'ma_nhom_nganh' => 'NN'.str_pad((string) $index, 3, '0', STR_PAD_LEFT),
+            'ten_nhom_nganh' => 'Nhom nganh '.$index,
             'trang_thai' => true,
         ]);
 
         return KhoaHoc::create(array_merge([
             'nhom_nganh_id' => $nhomNganh->id,
-            'ma_khoa_hoc' => 'KH-' . str_pad((string) $index, 3, '0', STR_PAD_LEFT),
-            'ten_khoa_hoc' => 'Khoa hoc ' . $index,
+            'ma_khoa_hoc' => 'KH-'.str_pad((string) $index, 3, '0', STR_PAD_LEFT),
+            'ten_khoa_hoc' => 'Khoa hoc '.$index,
             'cap_do' => 'co_ban',
             'tong_so_module' => 1,
             'trang_thai' => true,
@@ -344,8 +343,8 @@ class TeacherContentAuthorizationTest extends TestCase
     {
         return ModuleHoc::create([
             'khoa_hoc_id' => $course->id,
-            'ma_module' => $course->ma_khoa_hoc . '-M' . $order,
-            'ten_module' => 'Module ' . $order,
+            'ma_module' => $course->ma_khoa_hoc.'-M'.$order,
+            'ten_module' => 'Module '.$order,
             'thu_tu_module' => $order,
             'so_buoi' => 3,
             'trang_thai' => true,
@@ -390,7 +389,7 @@ class TeacherContentAuthorizationTest extends TestCase
             'vai_tro_nguoi_tao' => 'giang_vien',
             'trang_thai_duyet' => TaiNguyenBuoiHoc::STATUS_DUYET_DA_DUYET,
             'trang_thai_xu_ly' => TaiNguyenBuoiHoc::STATUS_XU_LY_NONE,
-            'duong_dan_file' => 'uploads/thu-vien/' . str_replace(' ', '-', strtolower($title)) . '.pdf',
+            'duong_dan_file' => 'uploads/thu-vien/'.str_replace(' ', '-', strtolower($title)).'.pdf',
         ]);
     }
 }

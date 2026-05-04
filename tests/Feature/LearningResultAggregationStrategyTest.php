@@ -260,14 +260,14 @@ class LearningResultAggregationStrategyTest extends TestCase
     {
         $admin = NguoiDung::create([
             'ho_ten' => 'Admin Test',
-            'email' => 'admin-' . uniqid() . '@example.com',
+            'email' => 'admin-'.uniqid().'@example.com',
             'mat_khau' => 'password',
             'vai_tro' => 'admin',
             'trang_thai' => true,
         ]);
         $student = NguoiDung::create([
             'ho_ten' => 'Student Test',
-            'email' => 'student-' . uniqid() . '@example.com',
+            'email' => 'student-'.uniqid().'@example.com',
             'mat_khau' => 'password',
             'vai_tro' => 'hoc_vien',
             'trang_thai' => true,
@@ -276,13 +276,13 @@ class LearningResultAggregationStrategyTest extends TestCase
             'nguoi_dung_id' => $student->ma_nguoi_dung,
         ]);
         $nhomNganh = NhomNganh::create([
-            'ma_nhom_nganh' => 'NN' . uniqid(),
-            'ten_nhom_nganh' => 'Nhom nganh test ' . uniqid(),
+            'ma_nhom_nganh' => 'NN'.uniqid(),
+            'ten_nhom_nganh' => 'Nhom nganh test '.uniqid(),
             'trang_thai' => true,
         ]);
         $course = KhoaHoc::create(array_merge([
             'nhom_nganh_id' => $nhomNganh->id,
-            'ma_khoa_hoc' => 'KH' . uniqid(),
+            'ma_khoa_hoc' => 'KH'.uniqid(),
             'ten_khoa_hoc' => 'Khoa hoc diem',
             'cap_do' => 'co_ban',
             'tong_so_module' => 1,
@@ -294,7 +294,7 @@ class LearningResultAggregationStrategyTest extends TestCase
         ], $courseOverrides));
         $module = ModuleHoc::create([
             'khoa_hoc_id' => $course->id,
-            'ma_module' => 'MD' . uniqid(),
+            'ma_module' => 'MD'.uniqid(),
             'ten_module' => 'Module diem',
             'thu_tu_module' => 1,
             'so_buoi' => 1,
@@ -318,7 +318,7 @@ class LearningResultAggregationStrategyTest extends TestCase
     {
         $teacherUser = NguoiDung::create([
             'ho_ten' => 'Teacher Test',
-            'email' => 'teacher-' . uniqid() . '@example.com',
+            'email' => 'teacher-'.uniqid().'@example.com',
             'mat_khau' => 'password',
             'vai_tro' => 'giang_vien',
             'trang_thai' => true,
@@ -359,7 +359,7 @@ class LearningResultAggregationStrategyTest extends TestCase
         return BaiKiemTra::create(array_merge([
             'khoa_hoc_id' => $course->id,
             'module_hoc_id' => $module->id,
-            'tieu_de' => 'Exam strategy ' . uniqid(),
+            'tieu_de' => 'Exam strategy '.uniqid(),
             'mo_ta' => 'Exam for strategy test',
             'thoi_gian_lam_bai' => 30,
             'pham_vi' => 'module',

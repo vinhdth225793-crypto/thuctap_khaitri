@@ -21,7 +21,7 @@ return new class extends Migration
             $table->integer('thoi_luong_du_kien')->nullable();
             $table->boolean('trang_thai')->default(1);
             $table->timestamps();
-            
+
             // Foreign keys
             $table->foreign('khoa_hoc_id')->references('id')->on('khoa_hoc')->onDelete('cascade');
             $table->unique(['khoa_hoc_id', 'thu_tu_module']);

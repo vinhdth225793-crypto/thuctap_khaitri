@@ -38,16 +38,16 @@ class HocVienController extends Controller
     public function ketQuaHocTap()
     {
         $user = auth()->user();
-        
+
         $khoaHocThamGia = HocVienKhoaHoc::with(['khoaHoc.moduleHocs'])
             ->where('hoc_vien_id', $user->ma_nguoi_dung)
             ->get();
 
         $resultsByCourse = [];
-        
+
         foreach ($khoaHocThamGia as $enrollment) {
             $khoaHoc = $enrollment->khoaHoc;
-            
+
             // Lấy tất cả kết quả của học viên trong khóa học này (phân cấp)
             $allResults = KetQuaHocTap::with(['moduleHoc', 'baiKiemTra'])
                 ->where('hoc_vien_id', $user->ma_nguoi_dung)
@@ -65,8 +65,8 @@ class HocVienController extends Controller
         // Thống kê tổng quan
         $stats = [
             'tong_khoa_hoc' => count($resultsByCourse),
-            'khoa_hoc_dat' => collect($resultsByCourse)->filter(fn($c) => optional($c['course_result'])->trang_thai === 'dat')->count(),
-            'khoa_hoc_truot' => collect($resultsByCourse)->filter(fn($c) => optional($c['course_result'])->trang_thai === 'khong_dat')->count(),
+            'khoa_hoc_dat' => collect($resultsByCourse)->filter(fn ($c) => optional($c['course_result'])->trang_thai === 'dat')->count(),
+            'khoa_hoc_truot' => collect($resultsByCourse)->filter(fn ($c) => optional($c['course_result'])->trang_thai === 'khong_dat')->count(),
             'diem_trung_binh_chung' => collect($resultsByCourse)->whereNotNull('course_result')->avg('course_result.diem_tong_ket'),
         ];
 
@@ -224,7 +224,7 @@ class HocVienController extends Controller
     {
         $data = $this->scheduleViewService->buildCourseDetail(auth()->user(), (int) $id);
 
-        if (!$data) {
+        if (! $data) {
             return redirect()->route('hoc-vien.khoa-hoc-cua-toi')->with('error', 'Bạn không có quyền truy cập khóa học này.');
         }
 
@@ -235,7 +235,7 @@ class HocVienController extends Controller
     {
         $data = $this->scheduleViewService->buildSessionDetail(auth()->user(), (int) $id);
 
-        if (!$data) {
+        if (! $data) {
             return redirect()->route('hoc-vien.khoa-hoc-cua-toi')->with('error', 'Bạn không có quyền truy cập buổi học này.');
         }
 
@@ -283,7 +283,7 @@ class HocVienController extends Controller
             ->whereIn('trang_thai', ['dang_hoc', 'hoan_thanh'])
             ->exists();
 
-                        if (!$daGhiDanh) {
+        if (! $daGhiDanh) {
             return redirect()->route('hoc-vien.khoa-hoc-cua-toi')->with('error', 'Bạn chưa đăng ký khóa học này.');
         }
 
@@ -312,7 +312,7 @@ class HocVienController extends Controller
 
         $validator = Validator::make($request->all(), [
             'ho_ten' => 'required|string|max:255',
-            'email' => 'required|email|unique:nguoi_dung,email,' . $user->id . ',ma_nguoi_dung',
+            'email' => 'required|email|unique:nguoi_dung,email,'.$user->id.',ma_nguoi_dung',
             'so_dien_thoai' => 'nullable|string|max:15',
             'ngay_sinh' => 'nullable|date|before:today',
             'dia_chi' => 'nullable|string|max:500',
@@ -349,7 +349,7 @@ class HocVienController extends Controller
         $user->update($data);
 
         $hv = $user->hocVien;
-        if (!$hv) {
+        if (! $hv) {
             $hv = $user->hocVien()->create([]);
         }
 

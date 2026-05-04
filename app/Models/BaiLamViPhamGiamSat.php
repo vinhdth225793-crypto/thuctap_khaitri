@@ -11,15 +11,25 @@ class BaiLamViPhamGiamSat extends Model
     use HasFactory;
 
     public const SU_KIEN_TAB_SWITCH = 'tab_switch';
+
     public const SU_KIEN_WINDOW_BLUR = 'window_blur';
+
     public const SU_KIEN_WINDOW_FOCUS = 'window_focus';
+
     public const SU_KIEN_FULLSCREEN_EXIT = 'fullscreen_exit';
+
     public const SU_KIEN_CAMERA_OFF = 'camera_off';
+
     public const SU_KIEN_SNAPSHOT_CAPTURED = 'snapshot_captured';
+
     public const SU_KIEN_SNAPSHOT_FAILED = 'snapshot_failed';
+
     public const SU_KIEN_WARNING_ISSUED = 'warning_issued';
+
     public const SU_KIEN_AUTO_SUBMIT = 'auto_submit';
+
     public const SU_KIEN_COPY_PASTE_BLOCKED = 'copy_paste_blocked';
+
     public const SU_KIEN_RIGHT_CLICK_BLOCKED = 'right_click_blocked';
 
     protected $table = 'bai_lam_vi_pham_giam_sat';

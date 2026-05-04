@@ -18,9 +18,9 @@ class OnlineMeetingUrl
         }
 
         $scheme = $parts['scheme'] ?? 'https';
-        $path = '/' . ltrim($parts['path'] ?? '', '/');
+        $path = '/'.ltrim($parts['path'] ?? '', '/');
 
-        return rtrim($scheme . '://' . $parts['host'] . $path, '/');
+        return rtrim($scheme.'://'.$parts['host'].$path, '/');
     }
 
     public static function meetingCode(?string $url): ?string

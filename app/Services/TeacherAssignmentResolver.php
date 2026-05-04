@@ -99,11 +99,11 @@ class TeacherAssignmentResolver
             $specificKey = $this->buildKey((int) $assignment->khoa_hoc_id, $assignment->module_hoc_id !== null ? (int) $assignment->module_hoc_id : null);
             $courseFallbackKey = $this->buildKey((int) $assignment->khoa_hoc_id, null);
 
-            if (!isset($resolved[$specificKey])) {
+            if (! isset($resolved[$specificKey])) {
                 $resolved[$specificKey] = (int) $assignment->id;
             }
 
-            if (!isset($resolved[$courseFallbackKey])) {
+            if (! isset($resolved[$courseFallbackKey])) {
                 $resolved[$courseFallbackKey] = (int) $assignment->id;
             }
         }
@@ -113,6 +113,6 @@ class TeacherAssignmentResolver
 
     private function buildKey(int $courseId, ?int $moduleId): string
     {
-        return $courseId . ':' . ($moduleId ?? '*');
+        return $courseId.':'.($moduleId ?? '*');
     }
 }

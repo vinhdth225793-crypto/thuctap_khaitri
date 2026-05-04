@@ -30,16 +30,17 @@ class QuestionImportPersistenceService
 
                 if (NganHangCauHoi::isDuplicate($khoaHocId, $noiDungCauHoi)) {
                     $skippedDuplicateDbCount++;
+
                     continue;
                 }
 
                 $questionType = (string) ($item['loai_cau_hoi'] ?? NganHangCauHoi::LOAI_TRAC_NGHIEM);
-                if (!in_array($questionType, [NganHangCauHoi::LOAI_TRAC_NGHIEM, NganHangCauHoi::LOAI_TU_LUAN], true)) {
+                if (! in_array($questionType, [NganHangCauHoi::LOAI_TRAC_NGHIEM, NganHangCauHoi::LOAI_TU_LUAN], true)) {
                     $questionType = NganHangCauHoi::LOAI_TRAC_NGHIEM;
                 }
 
                 $mucDo = (string) ($item['muc_do'] ?? 'trung_binh');
-                if (!in_array($mucDo, ['de', 'trung_binh', 'kho'], true)) {
+                if (! in_array($mucDo, ['de', 'trung_binh', 'kho'], true)) {
                     $mucDo = 'trung_binh';
                 }
 
@@ -48,7 +49,7 @@ class QuestionImportPersistenceService
                     : 1.0;
 
                 $trangThai = (string) ($item['trang_thai_import'] ?? NganHangCauHoi::TRANG_THAI_SAN_SANG);
-                if (!in_array($trangThai, [
+                if (! in_array($trangThai, [
                     NganHangCauHoi::TRANG_THAI_NHAP,
                     NganHangCauHoi::TRANG_THAI_SAN_SANG,
                     NganHangCauHoi::TRANG_THAI_TAM_AN,

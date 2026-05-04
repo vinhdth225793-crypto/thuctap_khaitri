@@ -15,8 +15,7 @@ class AdminSchedulePlanningService
         private readonly TeacherLeaveRequestService $leaveRequestService,
         private readonly TeacherScheduleConflictService $conflictService,
         private readonly ScheduleSuggestionService $suggestionService,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, mixed>  $payload
@@ -64,7 +63,7 @@ class AdminSchedulePlanningService
         ];
 
         $module = ModuleHoc::with(['khoaHoc', 'phanCongGiangViens.giangVien.nguoiDung'])->find($moduleId);
-        if (!$module || (int) $module->khoa_hoc_id !== $courseId) {
+        if (! $module || (int) $module->khoa_hoc_id !== $courseId) {
             $context['can_schedule'] = false;
             $context['errors']['module_hoc_id'] = 'Module được chọn không thuộc khóa học hiện tại.';
 
@@ -89,7 +88,7 @@ class AdminSchedulePlanningService
             'message' => $standardWindow['message'],
         ];
 
-        if (!$standardWindow['ok']) {
+        if (! $standardWindow['ok']) {
             $context['can_schedule'] = false;
             $context['errors']['ngay_hoc'] = $standardWindow['message'];
         }
@@ -100,7 +99,7 @@ class AdminSchedulePlanningService
             $context['assignment']['message'] = 'Vui lòng chọn giảng viên trước khi lưu lịch học.';
             $context['leave_requests']['ok'] = true;
             $context['leave_requests']['message'] = 'Chưa có giảng viên để đối chiếu đơn xin nghỉ.';
-            $context['teaching_window']['message'] = $standardWindow['message'] . ' Vui lòng chọn giảng viên để đối chiếu đơn xin nghỉ.';
+            $context['teaching_window']['message'] = $standardWindow['message'].' Vui lòng chọn giảng viên để đối chiếu đơn xin nghỉ.';
             $context['conflicts']['ok'] = true;
             $context['conflicts']['message'] = 'Chưa đủ dữ liệu để kiểm tra xung đột cho giảng viên.';
             $context['errors']['giang_vien_id'] = $context['assignment']['message'];
@@ -109,7 +108,7 @@ class AdminSchedulePlanningService
         }
 
         $teacher = GiangVien::with('nguoiDung')->find($teacherId);
-        if (!$teacher) {
+        if (! $teacher) {
             $context['can_schedule'] = false;
             $context['errors']['giang_vien_id'] = 'Giảng viên được chọn không hợp lệ.';
 
@@ -126,7 +125,7 @@ class AdminSchedulePlanningService
             ->latest('id')
             ->first();
 
-        if (!$assignment || $assignment->trang_thai !== 'da_nhan') {
+        if (! $assignment || $assignment->trang_thai !== 'da_nhan') {
             $context['can_schedule'] = false;
             $context['assignment']['ok'] = false;
             $context['assignment']['message'] = 'Giảng viên này chưa có phân công đã nhận cho module được chọn.';
@@ -180,7 +179,7 @@ class AdminSchedulePlanningService
         $context['teaching_window']['message'] = $approvedLeaveRequests->isNotEmpty()
             ? $context['leave_requests']['message']
             : ($pendingLeaveRequests->isNotEmpty()
-                ? $standardWindow['message'] . ' ' . $context['leave_requests']['message']
+                ? $standardWindow['message'].' '.$context['leave_requests']['message']
                 : $standardWindow['message']);
 
         $conflicts = $this->conflictService->findConflicts(
@@ -198,7 +197,7 @@ class AdminSchedulePlanningService
                 'course_code' => $item->khoaHoc?->ma_khoa_hoc ?? 'N/A',
                 'module_name' => $item->moduleHoc?->ten_module ?? 'N/A',
                 'date' => $item->ngay_hoc?->format('d/m/Y') ?? 'N/A',
-                'time' => substr((string) $item->gio_bat_dau, 0, 5) . ' - ' . substr((string) $item->gio_ket_thuc, 0, 5),
+                'time' => substr((string) $item->gio_bat_dau, 0, 5).' - '.substr((string) $item->gio_ket_thuc, 0, 5),
                 'schedule' => $item->schedule_range_label,
             ])
             ->values()
@@ -217,4 +216,3 @@ class AdminSchedulePlanningService
         return $context;
     }
 }
-

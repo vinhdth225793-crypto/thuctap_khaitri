@@ -3,14 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\HocVienKhoaHoc;
 use App\Models\HocVien;
+use App\Models\HocVienKhoaHoc;
 use App\Models\KhoaHoc;
 use App\Models\NguoiDung;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-
 use Illuminate\Support\Facades\Log;
 
 class HocVienKhoaHocController extends Controller
@@ -51,8 +50,8 @@ class HocVienKhoaHocController extends Controller
         }
 
         $keywordLower = mb_strtolower($keyword, 'UTF-8');
-        $startsWith = $keywordLower . '%';
-        $contains = '%' . $keywordLower . '%';
+        $startsWith = $keywordLower.'%';
+        $contains = '%'.$keywordLower.'%';
 
         $students = NguoiDung::query()
             ->where('vai_tro', 'hoc_vien')
@@ -124,14 +123,16 @@ class HocVienKhoaHocController extends Controller
             foreach ($request->hoc_vien_ids as $hvMaNguoiDung) {
                 // Kiểm tra sự tồn tại của học viên trong bảng hoc_vien
                 $hocVien = HocVien::where('nguoi_dung_id', $hvMaNguoiDung)->first();
-                if (!$hocVien) continue;
+                if (! $hocVien) {
+                    continue;
+                }
 
                 // Lưu ma_nguoi_dung vào cột hoc_vien_id (theo quy ước của dự án này)
                 $exists = HocVienKhoaHoc::where('khoa_hoc_id', $khoaHocId)
                     ->where('hoc_vien_id', $hvMaNguoiDung)
                     ->exists();
 
-                if (!$exists) {
+                if (! $exists) {
                     HocVienKhoaHoc::create([
                         'khoa_hoc_id' => $khoaHocId,
                         'hoc_vien_id' => $hvMaNguoiDung,
@@ -150,10 +151,10 @@ class HocVienKhoaHocController extends Controller
             return back()->with('success', "Đã thêm thành công {$count} học viên vào khóa học.");
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Lỗi thêm học viên vào khóa học: " . $e->getMessage(), [
+            Log::error('Lỗi thêm học viên vào khóa học: '.$e->getMessage(), [
                 'khoa_hoc_id' => $khoaHocId,
                 'request' => $request->all(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
             report($e);
 

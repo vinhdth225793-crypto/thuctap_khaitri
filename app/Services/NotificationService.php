@@ -59,14 +59,14 @@ class NotificationService
     {
         return ThongBao::create([
             'nguoi_nhan_id' => $userId,
-            'tieu_de'       => $title,
-            'noi_dung'      => $body,
-            'loai'          => $opts['loai']     ?? 'he_thong',
-            'level'         => $opts['level']    ?? 'info',
-            'icon'          => $opts['icon']     ?? null,
-            'url'           => $opts['url']      ?? null,
-            'metadata'      => $opts['metadata'] ?? null,
-            'da_doc'        => false,
+            'tieu_de' => $title,
+            'noi_dung' => $body,
+            'loai' => $opts['loai'] ?? 'he_thong',
+            'level' => $opts['level'] ?? 'info',
+            'icon' => $opts['icon'] ?? null,
+            'url' => $opts['url'] ?? null,
+            'metadata' => $opts['metadata'] ?? null,
+            'da_doc' => false,
         ]);
     }
 
@@ -77,14 +77,17 @@ class NotificationService
     {
         $count = 0;
         foreach ($userIds as $uid) {
-            if (!$uid) continue;
+            if (! $uid) {
+                continue;
+            }
             try {
                 $this->send((int) $uid, $title, $body, $opts);
                 $count++;
             } catch (\Throwable $e) {
-                Log::warning('NotificationService: failed to notify user ' . $uid . ' — ' . $e->getMessage());
+                Log::warning('NotificationService: failed to notify user '.$uid.' — '.$e->getMessage());
             }
         }
+
         return $count;
     }
 
@@ -92,6 +95,7 @@ class NotificationService
     public function sendToRole(string $role, string $title, string $body, array $opts = []): int
     {
         $userIds = NguoiDung::where('vai_tro', $role)->pluck('ma_nguoi_dung');
+
         return $this->sendMany($userIds, $title, $body, $opts);
     }
 
@@ -104,12 +108,12 @@ class NotificationService
         return $this->sendToRole(
             'admin',
             'Tài nguyên thư viện cần duyệt',
-            ($tenGV ? $tenGV . ' đã ' : 'Giảng viên đã ') . 'gửi tài nguyên "' . $tieuDe . '" để duyệt.',
+            ($tenGV ? $tenGV.' đã ' : 'Giảng viên đã ').'gửi tài nguyên "'.$tieuDe.'" để duyệt.',
             [
-                'loai'  => 'library_submitted',
+                'loai' => 'library_submitted',
                 'level' => 'warning',
-                'icon'  => 'fa-folder-tree',
-                'url'   => route('admin.thu-vien.show', $resourceId),
+                'icon' => 'fa-folder-tree',
+                'url' => route('admin.thu-vien.show', $resourceId),
             ]
         );
     }
@@ -119,14 +123,14 @@ class NotificationService
         $this->send(
             $userId,
             $approved ? 'Tài nguyên đã được duyệt' : 'Tài nguyên cần chỉnh sửa / từ chối',
-            'Tài nguyên "' . $tieuDe . '"' .
-                ($approved ? ' đã được admin duyệt.' : ' bị admin từ chối / yêu cầu chỉnh sửa.') .
-                ($note ? ' Ghi chú: ' . $note : ''),
+            'Tài nguyên "'.$tieuDe.'"'.
+                ($approved ? ' đã được admin duyệt.' : ' bị admin từ chối / yêu cầu chỉnh sửa.').
+                ($note ? ' Ghi chú: '.$note : ''),
             [
-                'loai'  => $approved ? 'library_approved' : 'library_rejected',
+                'loai' => $approved ? 'library_approved' : 'library_rejected',
                 'level' => $approved ? 'success' : 'danger',
-                'icon'  => $approved ? 'fa-circle-check' : 'fa-circle-xmark',
-                'url'   => route('giang-vien.thu-vien.edit', $resourceId),
+                'icon' => $approved ? 'fa-circle-check' : 'fa-circle-xmark',
+                'url' => route('giang-vien.thu-vien.edit', $resourceId),
             ]
         );
     }
@@ -136,12 +140,12 @@ class NotificationService
         return $this->sendToRole(
             'admin',
             'Bài giảng cần duyệt',
-            'Có bài giảng mới "' . $tieuDe . '" đang chờ admin duyệt.',
+            'Có bài giảng mới "'.$tieuDe.'" đang chờ admin duyệt.',
             [
-                'loai'  => 'lecture_submitted',
+                'loai' => 'lecture_submitted',
                 'level' => 'warning',
-                'icon'  => 'fa-chalkboard-teacher',
-                'url'   => route('admin.bai-giang.show', $lectureId),
+                'icon' => 'fa-chalkboard-teacher',
+                'url' => route('admin.bai-giang.show', $lectureId),
             ]
         );
     }
@@ -151,13 +155,13 @@ class NotificationService
         $this->send(
             $userId,
             $approved ? 'Bài giảng đã được duyệt' : 'Bài giảng cần chỉnh sửa / từ chối',
-            'Bài giảng "' . $tieuDe . '"' . ($approved ? ' đã được duyệt.' : ' bị từ chối / cần sửa.') .
-                ($note ? ' Ghi chú: ' . $note : ''),
+            'Bài giảng "'.$tieuDe.'"'.($approved ? ' đã được duyệt.' : ' bị từ chối / cần sửa.').
+                ($note ? ' Ghi chú: '.$note : ''),
             [
-                'loai'  => $approved ? 'lecture_approved' : 'lecture_rejected',
+                'loai' => $approved ? 'lecture_approved' : 'lecture_rejected',
                 'level' => $approved ? 'success' : 'danger',
-                'icon'  => $approved ? 'fa-circle-check' : 'fa-circle-xmark',
-                'url'   => route('giang-vien.bai-giang.edit', $lectureId),
+                'icon' => $approved ? 'fa-circle-check' : 'fa-circle-xmark',
+                'url' => route('giang-vien.bai-giang.edit', $lectureId),
             ]
         );
     }
@@ -169,11 +173,11 @@ class NotificationService
             ->whereIn('trang_thai', ['dang_hoc'])
             ->pluck('hoc_vien_id');
 
-        return $this->sendMany($userIds, 'Bài giảng mới', 'Bài giảng "' . $tieuDe . '" vừa được công bố cho lớp của bạn.', [
-            'loai'  => 'lecture_published',
+        return $this->sendMany($userIds, 'Bài giảng mới', 'Bài giảng "'.$tieuDe.'" vừa được công bố cho lớp của bạn.', [
+            'loai' => 'lecture_published',
             'level' => 'info',
-            'icon'  => 'fa-book-open',
-            'url'   => route('hoc-vien.bai-giang.show', $lectureId),
+            'icon' => 'fa-book-open',
+            'url' => route('hoc-vien.bai-giang.show', $lectureId),
         ]);
     }
 
@@ -182,12 +186,12 @@ class NotificationService
         return $this->sendToRole(
             'admin',
             'Đề thi cần duyệt',
-            'Có đề thi mới "' . $tieuDe . '" đang chờ admin duyệt.',
+            'Có đề thi mới "'.$tieuDe.'" đang chờ admin duyệt.',
             [
-                'loai'  => 'exam_submitted',
+                'loai' => 'exam_submitted',
                 'level' => 'warning',
-                'icon'  => 'fa-file-signature',
-                'url'   => route('admin.kiem-tra-online.phe-duyet.show', $examId),
+                'icon' => 'fa-file-signature',
+                'url' => route('admin.kiem-tra-online.phe-duyet.show', $examId),
             ]
         );
     }
@@ -197,13 +201,13 @@ class NotificationService
         $this->send(
             $userId,
             $approved ? 'Đề thi đã được duyệt' : 'Đề thi bị từ chối',
-            'Đề thi "' . $tieuDe . '"' . ($approved ? ' đã được duyệt.' : ' bị từ chối.') .
-                ($note ? ' Ghi chú: ' . $note : ''),
+            'Đề thi "'.$tieuDe.'"'.($approved ? ' đã được duyệt.' : ' bị từ chối.').
+                ($note ? ' Ghi chú: '.$note : ''),
             [
-                'loai'  => $approved ? 'exam_approved' : 'exam_rejected',
+                'loai' => $approved ? 'exam_approved' : 'exam_rejected',
                 'level' => $approved ? 'success' : 'danger',
-                'icon'  => $approved ? 'fa-circle-check' : 'fa-circle-xmark',
-                'url'   => route('giang-vien.bai-kiem-tra.edit', $examId),
+                'icon' => $approved ? 'fa-circle-check' : 'fa-circle-xmark',
+                'url' => route('giang-vien.bai-kiem-tra.edit', $examId),
             ]
         );
     }
@@ -214,11 +218,11 @@ class NotificationService
             ->whereIn('trang_thai', ['dang_hoc'])
             ->pluck('hoc_vien_id');
 
-        return $this->sendMany($userIds, 'Đề thi mới được phát hành', 'Đề thi "' . $tieuDe . '" đã được phát hành cho lớp của bạn.', [
-            'loai'  => 'exam_published',
+        return $this->sendMany($userIds, 'Đề thi mới được phát hành', 'Đề thi "'.$tieuDe.'" đã được phát hành cho lớp của bạn.', [
+            'loai' => 'exam_published',
             'level' => 'info',
-            'icon'  => 'fa-file-signature',
-            'url'   => route('hoc-vien.bai-kiem-tra.show', $examId),
+            'icon' => 'fa-file-signature',
+            'url' => route('hoc-vien.bai-kiem-tra.show', $examId),
         ]);
     }
 
@@ -227,12 +231,12 @@ class NotificationService
         $this->send(
             $userId,
             'Bài làm đã được chấm',
-            'Bài thi "' . $tieuDe . '"' . ($diem !== null ? ' đạt ' . number_format($diem, 2) . ' điểm.' : ' đã được giảng viên chấm xong.'),
+            'Bài thi "'.$tieuDe.'"'.($diem !== null ? ' đạt '.number_format($diem, 2).' điểm.' : ' đã được giảng viên chấm xong.'),
             [
-                'loai'  => 'exam_graded',
+                'loai' => 'exam_graded',
                 'level' => 'success',
-                'icon'  => 'fa-star',
-                'url'   => route('hoc-vien.bai-kiem-tra.show', $examId),
+                'icon' => 'fa-star',
+                'url' => route('hoc-vien.bai-kiem-tra.show', $examId),
             ]
         );
     }
@@ -242,12 +246,12 @@ class NotificationService
         $this->send(
             $teacherUserId,
             'Có bài tự luận mới chờ chấm',
-            $hocVienTen . ' vừa nộp bài "' . $examTitle . '".',
+            $hocVienTen.' vừa nộp bài "'.$examTitle.'".',
             [
-                'loai'  => 'exam_submission',
+                'loai' => 'exam_submission',
                 'level' => 'warning',
-                'icon'  => 'fa-pen-fancy',
-                'url'   => route('giang-vien.cham-diem.show', $baiLamId),
+                'icon' => 'fa-pen-fancy',
+                'url' => route('giang-vien.cham-diem.show', $baiLamId),
             ]
         );
     }
@@ -257,12 +261,12 @@ class NotificationService
         return $this->sendToRole(
             'admin',
             'Đơn xin nghỉ mới',
-            $tenGV . ' đã gửi đơn xin nghỉ.',
+            $tenGV.' đã gửi đơn xin nghỉ.',
             [
-                'loai'  => 'leave_submitted',
+                'loai' => 'leave_submitted',
                 'level' => 'warning',
-                'icon'  => 'fa-calendar-xmark',
-                'url'   => route('admin.giang-vien-don-xin-nghi.show', $leaveId),
+                'icon' => 'fa-calendar-xmark',
+                'url' => route('admin.giang-vien-don-xin-nghi.show', $leaveId),
             ]
         );
     }
@@ -272,13 +276,13 @@ class NotificationService
         $this->send(
             $teacherUserId,
             $approved ? 'Đơn xin nghỉ được duyệt' : 'Đơn xin nghỉ bị từ chối',
-            'Đơn xin nghỉ của bạn đã ' . ($approved ? 'được duyệt.' : 'bị từ chối.') .
-                ($note ? ' Ghi chú: ' . $note : ''),
+            'Đơn xin nghỉ của bạn đã '.($approved ? 'được duyệt.' : 'bị từ chối.').
+                ($note ? ' Ghi chú: '.$note : ''),
             [
-                'loai'  => $approved ? 'leave_approved' : 'leave_rejected',
+                'loai' => $approved ? 'leave_approved' : 'leave_rejected',
                 'level' => $approved ? 'success' : 'danger',
-                'icon'  => $approved ? 'fa-circle-check' : 'fa-circle-xmark',
-                'url'   => route('giang-vien.don-xin-nghi.index'),
+                'icon' => $approved ? 'fa-circle-check' : 'fa-circle-xmark',
+                'url' => route('giang-vien.don-xin-nghi.index'),
             ]
         );
     }
@@ -288,12 +292,12 @@ class NotificationService
         return $this->sendToRole(
             'admin',
             'Phiếu xét duyệt kết quả mới',
-            'GV đã gửi phiếu xét duyệt kết quả cho khóa ' . $tenKhoa . '.',
+            'GV đã gửi phiếu xét duyệt kết quả cho khóa '.$tenKhoa.'.',
             [
-                'loai'  => 'result_ticket_submitted',
+                'loai' => 'result_ticket_submitted',
                 'level' => 'warning',
-                'icon'  => 'fa-stamp',
-                'url'   => route('admin.xet-duyet-ket-qua.show', $ticketId),
+                'icon' => 'fa-stamp',
+                'url' => route('admin.xet-duyet-ket-qua.show', $ticketId),
             ]
         );
     }
@@ -303,12 +307,12 @@ class NotificationService
         $this->send(
             $teacherUserId,
             $approved ? 'Phiếu xét duyệt kết quả được duyệt' : 'Phiếu xét duyệt bị từ chối',
-            'Phiếu xét duyệt khóa ' . $tenKhoa . ($approved ? ' đã được admin duyệt.' : ' bị admin từ chối.') .
-                ($note ? ' Ghi chú: ' . $note : ''),
+            'Phiếu xét duyệt khóa '.$tenKhoa.($approved ? ' đã được admin duyệt.' : ' bị admin từ chối.').
+                ($note ? ' Ghi chú: '.$note : ''),
             [
-                'loai'  => $approved ? 'result_ticket_approved' : 'result_ticket_rejected',
+                'loai' => $approved ? 'result_ticket_approved' : 'result_ticket_rejected',
                 'level' => $approved ? 'success' : 'danger',
-                'icon'  => $approved ? 'fa-circle-check' : 'fa-circle-xmark',
+                'icon' => $approved ? 'fa-circle-check' : 'fa-circle-xmark',
             ]
         );
     }
@@ -318,12 +322,12 @@ class NotificationService
         $this->send(
             $hocVienUserId,
             'Kết quả khóa học đã được chốt',
-            'Kết quả khóa "' . $tenKhoa . '" đã được chốt chính thức.',
+            'Kết quả khóa "'.$tenKhoa.'" đã được chốt chính thức.',
             [
-                'loai'  => 'result_finalized',
+                'loai' => 'result_finalized',
                 'level' => 'success',
-                'icon'  => 'fa-trophy',
-                'url'   => route('hoc-vien.chi-tiet-khoa-hoc', $khoaHocId),
+                'icon' => 'fa-trophy',
+                'url' => route('hoc-vien.chi-tiet-khoa-hoc', $khoaHocId),
             ]
         );
     }
@@ -333,12 +337,12 @@ class NotificationService
         return $this->sendToRole(
             'admin',
             'Yêu cầu liên quan học viên',
-            $tenGV . ' gửi yêu cầu ' . $loaiLabel . ' học viên.',
+            $tenGV.' gửi yêu cầu '.$loaiLabel.' học viên.',
             [
-                'loai'  => 'student_request_new',
+                'loai' => 'student_request_new',
                 'level' => 'warning',
-                'icon'  => 'fa-user-edit',
-                'url'   => route('admin.yeu-cau-hoc-vien.index'),
+                'icon' => 'fa-user-edit',
+                'url' => route('admin.yeu-cau-hoc-vien.index'),
             ]
         );
     }
@@ -348,12 +352,12 @@ class NotificationService
         $this->send(
             $teacherUserId,
             $approved ? 'Yêu cầu được duyệt' : 'Yêu cầu bị từ chối',
-            'Yêu cầu ' . $loaiLabel . ' của bạn đã ' . ($approved ? 'được duyệt.' : 'bị từ chối.') .
-                ($note ? ' Ghi chú: ' . $note : ''),
+            'Yêu cầu '.$loaiLabel.' của bạn đã '.($approved ? 'được duyệt.' : 'bị từ chối.').
+                ($note ? ' Ghi chú: '.$note : ''),
             [
-                'loai'  => $approved ? 'student_request_approved' : 'student_request_rejected',
+                'loai' => $approved ? 'student_request_approved' : 'student_request_rejected',
                 'level' => $approved ? 'success' : 'danger',
-                'icon'  => $approved ? 'fa-circle-check' : 'fa-circle-xmark',
+                'icon' => $approved ? 'fa-circle-check' : 'fa-circle-xmark',
             ]
         );
     }
@@ -363,12 +367,12 @@ class NotificationService
         $this->send(
             $hocVienUserId,
             'Bạn đã được thêm vào khóa học',
-            'Bạn vừa được thêm vào khóa "' . $tenKhoa . '".',
+            'Bạn vừa được thêm vào khóa "'.$tenKhoa.'".',
             [
-                'loai'  => 'student_enrolled',
+                'loai' => 'student_enrolled',
                 'level' => 'info',
-                'icon'  => 'fa-user-graduate',
-                'url'   => route('hoc-vien.chi-tiet-khoa-hoc', $khoaHocId),
+                'icon' => 'fa-user-graduate',
+                'url' => route('hoc-vien.chi-tiet-khoa-hoc', $khoaHocId),
             ]
         );
     }
@@ -378,12 +382,12 @@ class NotificationService
         return $this->sendToRole(
             'admin',
             'Tài khoản mới chờ duyệt',
-            $hoTen . ' (' . $email . ') vừa đăng ký, chờ admin duyệt.',
+            $hoTen.' ('.$email.') vừa đăng ký, chờ admin duyệt.',
             [
-                'loai'  => 'account_pending',
+                'loai' => 'account_pending',
                 'level' => 'warning',
-                'icon'  => 'fa-user-plus',
-                'url'   => route('admin.phe-duyet-tai-khoan.index'),
+                'icon' => 'fa-user-plus',
+                'url' => route('admin.phe-duyet-tai-khoan.index'),
             ]
         );
     }
@@ -393,11 +397,11 @@ class NotificationService
         $this->send(
             $userId,
             $approved ? 'Tài khoản được phê duyệt' : 'Tài khoản bị từ chối',
-            $approved ? 'Tài khoản của bạn đã được phê duyệt. Bạn có thể đăng nhập và sử dụng hệ thống.' : ('Tài khoản của bạn đã bị từ chối.' . ($note ? ' Lý do: ' . $note : '')),
+            $approved ? 'Tài khoản của bạn đã được phê duyệt. Bạn có thể đăng nhập và sử dụng hệ thống.' : ('Tài khoản của bạn đã bị từ chối.'.($note ? ' Lý do: '.$note : '')),
             [
-                'loai'  => $approved ? 'account_approved' : 'account_rejected',
+                'loai' => $approved ? 'account_approved' : 'account_rejected',
                 'level' => $approved ? 'success' : 'danger',
-                'icon'  => $approved ? 'fa-user-check' : 'fa-user-xmark',
+                'icon' => $approved ? 'fa-user-check' : 'fa-user-xmark',
             ]
         );
     }
@@ -407,12 +411,12 @@ class NotificationService
         $this->send(
             $teacherUserId,
             'Bạn được phân công giảng dạy',
-            'Admin đã phân công bạn cho khóa "' . $tenKhoa . '". Vui lòng xác nhận.',
+            'Admin đã phân công bạn cho khóa "'.$tenKhoa.'". Vui lòng xác nhận.',
             [
-                'loai'  => 'course_assignment_new',
+                'loai' => 'course_assignment_new',
                 'level' => 'info',
-                'icon'  => 'fa-clipboard-user',
-                'url'   => route('giang-vien.khoa-hoc.show', $assignmentId),
+                'icon' => 'fa-clipboard-user',
+                'url' => route('giang-vien.khoa-hoc.show', $assignmentId),
             ]
         );
     }
@@ -422,11 +426,11 @@ class NotificationService
         return $this->sendToRole(
             'admin',
             $accepted ? 'GV xác nhận phân công' : 'GV từ chối phân công',
-            $tenGV . ' đã ' . ($accepted ? 'xác nhận' : 'từ chối') . ' phân công khóa "' . $tenKhoa . '".',
+            $tenGV.' đã '.($accepted ? 'xác nhận' : 'từ chối').' phân công khóa "'.$tenKhoa.'".',
             [
-                'loai'  => 'course_assignment_confirm',
+                'loai' => 'course_assignment_confirm',
                 'level' => $accepted ? 'success' : 'danger',
-                'icon'  => $accepted ? 'fa-circle-check' : 'fa-circle-xmark',
+                'icon' => $accepted ? 'fa-circle-check' : 'fa-circle-xmark',
             ]
         );
     }
@@ -437,11 +441,11 @@ class NotificationService
             ->whereIn('trang_thai', ['dang_hoc'])
             ->pluck('hoc_vien_id');
 
-        return $this->sendMany($userIds, 'Lớp đã được mở', 'Khóa "' . $tenKhoa . '" đã sẵn sàng — bạn có thể bắt đầu học.', [
-            'loai'  => 'class_opened',
+        return $this->sendMany($userIds, 'Lớp đã được mở', 'Khóa "'.$tenKhoa.'" đã sẵn sàng — bạn có thể bắt đầu học.', [
+            'loai' => 'class_opened',
             'level' => 'info',
-            'icon'  => 'fa-door-open',
-            'url'   => route('hoc-vien.chi-tiet-khoa-hoc', $khoaHocId),
+            'icon' => 'fa-door-open',
+            'url' => route('hoc-vien.chi-tiet-khoa-hoc', $khoaHocId),
         ]);
     }
 

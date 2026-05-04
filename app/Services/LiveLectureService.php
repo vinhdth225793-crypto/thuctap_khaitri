@@ -16,8 +16,7 @@ class LiveLectureService
 {
     public function __construct(
         private readonly LiveRoomPlatformService $platformService
-    ) {
-    }
+    ) {}
 
     public function syncLiveRoom(BaiGiang $baiGiang, array $validated, NguoiDung $actor, bool $isAdmin = false): ?PhongHocLive
     {
@@ -67,7 +66,7 @@ class LiveLectureService
             $roomData['approved_at'] = now();
         }
 
-        if (!$baiGiang->phongHocLive) {
+        if (! $baiGiang->phongHocLive) {
             $roomData['created_by'] = $actor->ma_nguoi_dung;
         }
 
@@ -147,7 +146,7 @@ class LiveLectureService
         if (! $lopHoc) {
             $lopHoc = LopHoc::create([
                 'khoa_hoc_id' => $baiGiang->khoa_hoc_id,
-                'ma_lop_hoc' => 'AUTO-KH-' . $baiGiang->khoa_hoc_id,
+                'ma_lop_hoc' => 'AUTO-KH-'.$baiGiang->khoa_hoc_id,
                 'ngay_khai_giang' => $lichHoc?->ngay_hoc,
                 'trang_thai_van_hanh' => 'dang_day',
                 'ghi_chu' => 'Tu dong tao khi tao phong hoc live cho khoa hoc chua co lop.',

@@ -27,8 +27,7 @@ class BaiKiemTraController extends Controller
         private readonly ExamSurveillanceService $surveillanceService,
         private readonly ExamSurveillanceLogService $surveillanceLogService,
         private readonly ExamSnapshotService $snapshotService,
-    ) {
-    }
+    ) {}
 
     public function index()
     {
@@ -99,7 +98,7 @@ class BaiKiemTraController extends Controller
 
         $attemptsUsed = $baiKiemTra->baiLams->count();
         $remainingAttempts = max(0, (int) $baiKiemTra->so_lan_duoc_lam - $attemptsUsed);
-        $canStartNewAttempt = $baiKiemTra->can_student_start && !$activeBaiLam && $remainingAttempts > 0;
+        $canStartNewAttempt = $baiKiemTra->can_student_start && ! $activeBaiLam && $remainingAttempts > 0;
         $precheckState = $baiKiemTra->co_giam_sat
             ? $this->precheckService->getPassedPrecheck($baiKiemTra, $hocVienId)
             : null;
@@ -145,13 +144,13 @@ class BaiKiemTraController extends Controller
         $hocVienId = auth()->id();
         $baiKiemTra = $this->findBaiKiemTraHocVien($id, $hocVienId);
 
-        if (!$baiKiemTra->co_giam_sat) {
+        if (! $baiKiemTra->co_giam_sat) {
             return redirect()
                 ->route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id)
                 ->with('info', 'Bài kiểm tra này không yêu cầu bước pre-check.');
         }
 
-        if (!$baiKiemTra->can_student_start) {
+        if (! $baiKiemTra->can_student_start) {
             return redirect()
                 ->route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id)
                 ->with('error', 'Bài kiểm tra này chưa mở hoặc đã đóng.');
@@ -179,7 +178,7 @@ class BaiKiemTraController extends Controller
         $hocVienId = auth()->id();
         $baiKiemTra = $this->findBaiKiemTraHocVien($id, $hocVienId);
 
-        if (!$baiKiemTra->co_giam_sat) {
+        if (! $baiKiemTra->co_giam_sat) {
             return redirect()->route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id);
         }
 
@@ -188,7 +187,7 @@ class BaiKiemTraController extends Controller
         ]);
 
         $payload = json_decode($validated['precheck_payload'], true);
-        if (!is_array($payload)) {
+        if (! is_array($payload)) {
             throw ValidationException::withMessages([
                 'precheck_payload' => 'Không đọc được dữ liệu pre-check.',
             ]);
@@ -207,7 +206,7 @@ class BaiKiemTraController extends Controller
         $user = auth()->user();
         $baiKiemTra = $this->findBaiKiemTraHocVien($id, $user->id);
 
-        if (!$baiKiemTra->can_student_start) {
+        if (! $baiKiemTra->can_student_start) {
             return redirect()
                 ->route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id)
                 ->with('error', 'Bài kiểm tra này chưa mở hoặc đã đóng.');
@@ -237,7 +236,7 @@ class BaiKiemTraController extends Controller
         if ($baiKiemTra->co_giam_sat) {
             $precheckState = $this->precheckService->consumePassedPrecheck($baiKiemTra, $user->ma_nguoi_dung);
 
-            if (!$precheckState) {
+            if (! $precheckState) {
                 return redirect()
                     ->route('hoc-vien.bai-kiem-tra.precheck', $baiKiemTra->id)
                     ->with('error', 'Bạn cần hoàn tất pre-check hợp lệ trước khi bắt đầu bài thi giám sát.');
@@ -281,13 +280,13 @@ class BaiKiemTraController extends Controller
         $baiLam = $baiKiemTra->baiLams->firstWhere('trang_thai', 'dang_lam');
         $tuDongNop = $request->boolean('tu_dong_nop');
 
-        if (!$baiLam) {
+        if (! $baiLam) {
             return redirect()
                 ->route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id)
                 ->with('error', 'Bạn cần bắt đầu bài kiểm tra trước khi nộp bài.');
         }
 
-        if (!$baiKiemTra->can_student_start) {
+        if (! $baiKiemTra->can_student_start) {
             return redirect()
                 ->route('hoc-vien.bai-kiem-tra.show', $baiKiemTra->id)
                 ->with('error', 'Không thể nộp bài vì bài kiểm tra này đã đóng hoặc chưa đến giờ mở.');
@@ -301,7 +300,7 @@ class BaiKiemTraController extends Controller
 
         if ($baiKiemTra->chiTietCauHois->isEmpty()) {
             $validated = $request->validate([
-                'noi_dung_bai_lam' => ($tuDongNop ? 'nullable' : 'required') . '|string|max:50000',
+                'noi_dung_bai_lam' => ($tuDongNop ? 'nullable' : 'required').'|string|max:50000',
             ]);
 
             DB::transaction(function () use ($baiLam, $baiKiemTra, $validated, $tuDongNop) {
@@ -338,17 +337,17 @@ class BaiKiemTraController extends Controller
             if ($question?->loai_cau_hoi === 'trac_nghiem') {
                 $dapAnId = $payload['dap_an_cau_hoi_id'] ?? null;
 
-                if (!$tuDongNop && $chiTietBaiKiemTra->bat_buoc && !$dapAnId) {
+                if (! $tuDongNop && $chiTietBaiKiemTra->bat_buoc && ! $dapAnId) {
                     throw ValidationException::withMessages([
-                        'answers.' . $chiTietBaiKiemTra->id . '.dap_an_cau_hoi_id' => 'Vui lòng chọn đáp án cho câu hỏi trắc nghiệm.',
+                        'answers.'.$chiTietBaiKiemTra->id.'.dap_an_cau_hoi_id' => 'Vui lòng chọn đáp án cho câu hỏi trắc nghiệm.',
                     ]);
                 }
             } else {
                 $cauTraLoi = trim((string) ($payload['cau_tra_loi_text'] ?? ''));
 
-                if (!$tuDongNop && $chiTietBaiKiemTra->bat_buoc && $cauTraLoi === '') {
+                if (! $tuDongNop && $chiTietBaiKiemTra->bat_buoc && $cauTraLoi === '') {
                     throw ValidationException::withMessages([
-                        'answers.' . $chiTietBaiKiemTra->id . '.cau_tra_loi_text' => 'Vui lòng nhập câu trả lời cho câu hỏi tự luận.',
+                        'answers.'.$chiTietBaiKiemTra->id.'.cau_tra_loi_text' => 'Vui lòng nhập câu trả lời cho câu hỏi tự luận.',
                     ]);
                 }
 
@@ -406,7 +405,7 @@ class BaiKiemTraController extends Controller
     {
         $baiLam = $this->findAttemptHocVien($baiLamId, auth()->id());
 
-        if (!$baiLam->can_resume || !$baiLam->baiKiemTra?->co_giam_sat) {
+        if (! $baiLam->can_resume || ! $baiLam->baiKiemTra?->co_giam_sat) {
             return response()->json([
                 'message' => 'Bài làm hiện không còn ghi nhận giám sát.',
             ], 422);
@@ -428,7 +427,7 @@ class BaiKiemTraController extends Controller
             BaiLamViPhamGiamSat::SU_KIEN_RIGHT_CLICK_BLOCKED,
         ];
 
-        if (!in_array($validated['event_type'], $allowedEvents, true)) {
+        if (! in_array($validated['event_type'], $allowedEvents, true)) {
             return response()->json([
                 'message' => 'Sự kiện giám sát không hợp lệ.',
             ], 422);
@@ -448,7 +447,7 @@ class BaiKiemTraController extends Controller
     {
         $baiLam = $this->findAttemptHocVien($baiLamId, auth()->id());
 
-        if (!$baiLam->can_resume || !$baiLam->baiKiemTra?->co_giam_sat) {
+        if (! $baiLam->can_resume || ! $baiLam->baiKiemTra?->co_giam_sat) {
             return response()->json([
                 'message' => 'Bài làm hiện không còn ghi nhận snapshot.',
             ], 422);

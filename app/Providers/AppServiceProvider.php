@@ -2,21 +2,20 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\View;
 use App\Models\BaiGiang;
 use App\Models\BaiKiemTra;
 use App\Models\GiangVienDonXinNghi;
+use App\Models\ModuleHoc;
+use App\Models\PhieuXetDuyetKetQua;
 use App\Models\TaiKhoanChoPheDuyet;
 use App\Models\TaiNguyenBuoiHoc;
 use App\Models\ThongBao;
-use App\Models\ModuleHoc;
 use App\Models\YeuCauHocVien;
-use App\Models\PhieuXetDuyetKetQua;
 use App\Observers\ModuleHocObserver;
-
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -108,7 +107,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         View::composer('components.header', function ($view) {
-            if (!auth()->check()) {
+            if (! auth()->check()) {
                 $view->with([
                     'headerNotificationCount' => 0,
                     'headerRecentNotifications' => collect(),

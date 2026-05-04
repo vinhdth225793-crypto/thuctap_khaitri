@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\GiangVien;
 
 use App\Http\Controllers\Controller;
-use App\Services\TeacherAssignmentResolver;
 use App\Services\Scheduling\TeacherScheduleViewService;
+use App\Services\TeacherAssignmentResolver;
 use Illuminate\Http\Request;
 
 class TeacherScheduleController extends Controller
@@ -12,13 +12,12 @@ class TeacherScheduleController extends Controller
     public function __construct(
         private readonly TeacherAssignmentResolver $assignmentResolver,
         private readonly TeacherScheduleViewService $scheduleViewService,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request)
     {
         $teacher = auth()->user()->giangVien;
-        abort_if(!$teacher, 404);
+        abort_if(! $teacher, 404);
 
         $upcomingSchedules = $teacher->lichHocs()
             ->with(['khoaHoc', 'moduleHoc'])
@@ -29,8 +28,8 @@ class TeacherScheduleController extends Controller
 
         $assignmentMap = $this->assignmentResolver->mapAcceptedAssignmentsForSchedules($teacher->id, $upcomingSchedules);
         $upcomingSchedules->each(function ($schedule) use ($assignmentMap) {
-            $specificKey = (int) $schedule->khoa_hoc_id . ':' . ($schedule->module_hoc_id !== null ? (int) $schedule->module_hoc_id : '*');
-            $fallbackKey = (int) $schedule->khoa_hoc_id . ':*';
+            $specificKey = (int) $schedule->khoa_hoc_id.':'.($schedule->module_hoc_id !== null ? (int) $schedule->module_hoc_id : '*');
+            $fallbackKey = (int) $schedule->khoa_hoc_id.':*';
 
             $schedule->setAttribute('phan_cong_id', $assignmentMap[$specificKey] ?? $assignmentMap[$fallbackKey] ?? null);
         });

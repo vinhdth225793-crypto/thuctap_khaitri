@@ -34,7 +34,7 @@ class PhongHocLiveBanGhi extends Model
 
     public function getPlaybackUrlAttribute(): ?string
     {
-        if (!empty($this->link_ngoai)) {
+        if (! empty($this->link_ngoai)) {
             return $this->link_ngoai;
         }
 
@@ -46,12 +46,12 @@ class PhongHocLiveBanGhi extends Model
             return asset($this->duong_dan_file);
         }
 
-        return asset('storage/' . ltrim($this->duong_dan_file, '/'));
+        return asset('storage/'.ltrim($this->duong_dan_file, '/'));
     }
 
     public function getDurationLabelAttribute(): string
     {
-        if (!$this->thoi_luong) {
+        if (! $this->thoi_luong) {
             return 'Chưa cập nhật';
         }
 

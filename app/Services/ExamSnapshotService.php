@@ -13,8 +13,7 @@ class ExamSnapshotService
 {
     public function __construct(
         private readonly ExamSurveillanceLogService $logService,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, mixed>  $meta
@@ -36,7 +35,7 @@ class ExamSnapshotService
             ]);
         }
 
-        if (!preg_match('/^data:image\/(?P<extension>png|jpe?g|webp);base64,/', $imageData, $matches)) {
+        if (! preg_match('/^data:image\/(?P<extension>png|jpe?g|webp);base64,/', $imageData, $matches)) {
             throw ValidationException::withMessages([
                 'image_data' => 'Định dạng snapshot không hợp lệ.',
             ]);

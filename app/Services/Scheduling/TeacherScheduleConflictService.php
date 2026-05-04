@@ -62,7 +62,7 @@ class TeacherScheduleConflictService
     public function buildConflictMessage(Collection $conflicts): ?string
     {
         $firstConflict = $conflicts->first();
-        if (!$firstConflict instanceof LichHoc) {
+        if (! $firstConflict instanceof LichHoc) {
             return null;
         }
 
