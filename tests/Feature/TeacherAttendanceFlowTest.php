@@ -332,7 +332,7 @@ class TeacherAttendanceFlowTest extends TestCase
         $response
             ->assertOk()
             ->assertSee('Quản lý theo tuần', escape: false)
-            ->assertSee('Danh sách đã điểm danh trong tuần', escape: false)
+            ->assertSee('Buổi đã điểm danh', escape: false)
             ->assertSee($course->ten_khoa_hoc)
             ->assertSee($teacherUser->ho_ten)
             ->assertSee('Hoàn thành', escape: false);
@@ -473,7 +473,7 @@ class TeacherAttendanceFlowTest extends TestCase
             ->assertOk()
             ->assertSee($student->ho_ten)
             ->assertSee($course->ten_khoa_hoc)
-            ->assertSee('Co mat', escape: false);
+            ->assertSee('Có mặt', escape: false);
 
         Carbon::setTestNow();
     }

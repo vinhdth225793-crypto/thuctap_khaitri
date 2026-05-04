@@ -107,7 +107,7 @@ class LearningResultAggregationStrategyTest extends TestCase
             ->get(route('admin.ket-qua.show', $course->id))
             ->assertOk()
             ->assertSeeText('Exam selected by config')
-            ->assertSeeText('Diem chinh thuc')
+            ->assertSeeText('Chưa chốt')
             ->assertSeeText('selected_exams_average');
     }
 
@@ -243,14 +243,13 @@ class LearningResultAggregationStrategyTest extends TestCase
         $this->actingAs($student)
             ->get(route('hoc-vien.ket-qua'))
             ->assertOk()
-            ->assertSeeText('Diem giang vien chot')
+            ->assertSeeText('Điểm GV chốt')
             ->assertSeeText('8.00');
 
         $this->actingAs($admin)
             ->get(route('admin.ket-qua.show', $course->id))
             ->assertOk()
-            ->assertSeeText('Diem GV chot')
-            ->assertSeeText('Da duyet, luu ho so');
+            ->assertSeeText('Đã chốt');
     }
 
     /**

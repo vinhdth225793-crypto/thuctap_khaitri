@@ -88,7 +88,7 @@ class CourseApprovalReviewFlowTest extends TestCase
         $this->actingAs($student)
             ->get(route('hoc-vien.ket-qua'))
             ->assertOk()
-            ->assertSeeText('Diem xet duyet chinh thuc')
+            ->assertSeeText('Điểm xét duyệt chính thức')
             ->assertSeeText('7.40');
     }
 

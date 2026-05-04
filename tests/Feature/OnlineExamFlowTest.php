@@ -313,8 +313,8 @@ class OnlineExamFlowTest extends TestCase
         $this->actingAs($student)
             ->get(route('hoc-vien.bai-kiem-tra'))
             ->assertOk()
-            ->assertSeeText('Làm lần tiếp theo')
-            ->assertSeeText('còn 1 lượt');
+            ->assertSeeText('Làm lại')
+            ->assertSeeText('(+1)');
 
         $this->actingAs($student)
             ->get(route('hoc-vien.bai-kiem-tra.show', $exam->id))
@@ -544,7 +544,7 @@ class OnlineExamFlowTest extends TestCase
         $this->actingAs($teacherUser)
             ->get(route('giang-vien.diem-kiem-tra.index'))
             ->assertOk()
-            ->assertSeeText('Bảng điểm bài kiểm tra')
+            ->assertSeeText('Bảng điểm thông minh')
             ->assertSeeText('De module co diem')
             ->assertSeeText('De cuoi khoa co diem')
             ->assertSeeText('8.50')
