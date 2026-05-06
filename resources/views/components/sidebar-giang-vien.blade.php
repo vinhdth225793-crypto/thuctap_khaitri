@@ -6,6 +6,7 @@
             'giang-vien.bai-kiem-tra*',
             'giang-vien.cham-diem*',
             'giang-vien.diem-kiem-tra*',
+            'giang-vien.ngan-hang-cau-hoi*',
             'giang-vien.xet-duyet-ket-qua*'
         );
         $papersGroupOpen = request()->routeIs('giang-vien.don-xin-nghi*');
@@ -81,6 +82,9 @@
                 <x-sidebar-submenu-item route="giang-vien.bai-kiem-tra.index" pattern="giang-vien.bai-kiem-tra*" icon="fas fa-clipboard-list">
                     Đề kiểm tra
                 </x-sidebar-submenu-item>
+                <x-sidebar-submenu-item route="giang-vien.ngan-hang-cau-hoi.index" pattern="giang-vien.ngan-hang-cau-hoi*" icon="fas fa-database">
+                    Ngân hàng câu hỏi
+                </x-sidebar-submenu-item>
                 <x-sidebar-submenu-item route="giang-vien.cham-diem.index" pattern="giang-vien.cham-diem*" icon="fas fa-marker">
                     Chấm điểm tự luận
                 </x-sidebar-submenu-item>
@@ -126,12 +130,12 @@
     :root {
         --sb-brand: #1d4ed8;
         --sb-brand-dark: #1e40af;
-        --sb-bg: #ffffff;
+        --sb-bg: #eff6ff;
         --sb-text: #475569;
         --sb-text-strong: #0f172a;
         --sb-muted: #94a3b8;
-        --sb-line: #f1f5f9;
-        --sb-soft: #f8fafc;
+        --sb-line: #dbeafe;
+        --sb-soft: #dbeafe;
         --sb-active-grad: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
     }
 

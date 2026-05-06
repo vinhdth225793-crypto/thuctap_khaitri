@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\TaiNguyenBuoiHoc;
+use App\Services\StudentResourcePreviewService;
 use Illuminate\Http\Request;
 
 class ThuVienController extends Controller
@@ -30,6 +31,17 @@ class ThuVienController extends Controller
         $taiNguyen = TaiNguyenBuoiHoc::with(['nguoiTao', 'nguoiDuyet'])->findOrFail($id);
 
         return view('pages.admin.thu-vien.show', compact('taiNguyen'));
+    }
+
+    public function preview($id)
+    {
+        $resource = TaiNguyenBuoiHoc::findOrFail($id);
+        $preview = app(StudentResourcePreviewService::class)->build($resource);
+
+        return response()->view('pages.hoc-vien.buoi-hoc.resource-preview', [
+            'resource' => $resource,
+            'preview' => $preview,
+        ]);
     }
 
     public function duyet(Request $request, $id)

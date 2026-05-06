@@ -74,6 +74,16 @@ class LiveRoomController extends Controller
         [$playerMode, $playerUrl, $playerSupportsEmbed] = $this->resolvePlayerState($phongHocLive, true);
         $sessionLinks = $this->buildScheduleActionLinks($baiGiang->lichHoc);
 
+        // Lấy diem_danh giảng viên hiện tại cho buổi này (để hiển thị trạng thái check-in/out trên trang)
+        $teacherAttendance = null;
+        if ($baiGiang->lichHoc && $user->giangVien) {
+            $teacherAttendance = \App\Models\DiemDanhGiangVien::query()
+                ->where('lich_hoc_id', $baiGiang->lichHoc->id)
+                ->where('giang_vien_id', $user->giangVien->id)
+                ->latest('created_at')
+                ->first();
+        }
+
         return view('pages.giang-vien.live-room.show', [
             'mode' => 'teacher',
             'lectureId' => $baiGiang->id,
@@ -90,6 +100,7 @@ class LiveRoomController extends Controller
             'playerSupportsEmbed' => $playerSupportsEmbed,
             'updateMeetLinkRoute' => route('giang-vien.live-room.google-meet-link.update', $baiGiang->id),
             'linkHistories' => $phongHocLive->linkHistories()->with('nguoiCapNhat')->limit(5)->get(),
+            'teacherAttendance' => $teacherAttendance,
         ]);
     }
 

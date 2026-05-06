@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\LichHocController;
 use App\Http\Controllers\Admin\LiveRoomController as AdminLiveRoomController;
 use App\Http\Controllers\Admin\ModuleHocController;
 use App\Http\Controllers\Admin\NganHangCauHoiController;
+use App\Http\Controllers\GiangVien\NganHangCauHoiController as GVNganHangCauHoiController;
 use App\Http\Controllers\Admin\NhomNganhController;
 use App\Http\Controllers\Admin\PhanCongController as AdminPhanCongController;
 use App\Http\Controllers\Admin\PheDuyetTaiKhoanController;
@@ -227,6 +228,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     Route::prefix('thu-vien')->name('thu-vien.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\ThuVienController::class, 'index'])->name('index');
         Route::get('/{id}', [App\Http\Controllers\Admin\ThuVienController::class, 'show'])->name('show');
+        Route::get('/{id}/preview', [App\Http\Controllers\Admin\ThuVienController::class, 'preview'])->name('preview');
         Route::post('/{id}/duyet', [App\Http\Controllers\Admin\ThuVienController::class, 'duyet'])->name('duyet');
         Route::delete('/{id}', [App\Http\Controllers\Admin\ThuVienController::class, 'destroy'])->name('destroy');
     });
@@ -261,6 +263,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
             Route::put('/{id}', [NganHangCauHoiController::class, 'update'])->name('update');
             Route::post('/{id}/toggle-status', [NganHangCauHoiController::class, 'toggleStatus'])->name('toggle-status');
             Route::post('/{id}/toggle-reusable', [NganHangCauHoiController::class, 'toggleReusable'])->name('toggle-reusable');
+            Route::patch('/{id}/toggle-public', [NganHangCauHoiController::class, 'togglePublic'])->name('toggle-public');
+            Route::post('/bulk-toggle-public', [NganHangCauHoiController::class, 'bulkTogglePublic'])->name('bulk-toggle-public');
             Route::delete('/{id}', [NganHangCauHoiController::class, 'destroy'])->name('destroy');
         });
 
@@ -346,6 +350,7 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
     Route::post('/buoi-hoc/{lichHocId}/tai-nguyen', [TaiNguyenController::class, 'store'])->name('buoi-hoc.tai-nguyen.store');
     Route::put('/tai-nguyen/{id}', [TaiNguyenController::class, 'update'])->name('buoi-hoc.tai-nguyen.update');
     Route::patch('/tai-nguyen/{id}/toggle', [TaiNguyenController::class, 'toggleHienThi'])->name('buoi-hoc.tai-nguyen.toggle');
+    Route::get('/tai-nguyen/{id}/preview', [TaiNguyenController::class, 'preview'])->name('buoi-hoc.tai-nguyen.preview');
     Route::delete('/tai-nguyen/{id}', [TaiNguyenController::class, 'destroy'])->name('buoi-hoc.tai-nguyen.destroy');
 
     // Thư viện tài nguyên của giảng viên
@@ -409,6 +414,15 @@ Route::prefix('giang-vien')->name('giang-vien.')->middleware(['auth', 'giang_vie
     Route::post('/bai-kiem-tra/{id}/gui-duyet', [BaiKiemTraController::class, 'submitForApproval'])->name('bai-kiem-tra.submit');
     Route::post('/bai-kiem-tra/{id}/phat-hanh', [BaiKiemTraController::class, 'publish'])->name('bai-kiem-tra.publish');
     Route::delete('/bai-kiem-tra/{id}', [BaiKiemTraController::class, 'destroy'])->name('bai-kiem-tra.destroy');
+
+    // Ngân hàng câu hỏi của giảng viên (xem riêng tư của mình + đã công bố)
+    Route::prefix('ngan-hang-cau-hoi')->name('ngan-hang-cau-hoi.')->group(function () {
+        Route::get('/', [GVNganHangCauHoiController::class, 'index'])->name('index');
+        Route::post('/bulk-toggle-public', [GVNganHangCauHoiController::class, 'bulkTogglePublic'])->name('bulk-toggle-public');
+        Route::get('/{id}', [GVNganHangCauHoiController::class, 'show'])->name('show');
+        Route::patch('/{id}/toggle-public', [GVNganHangCauHoiController::class, 'togglePublic'])->name('toggle-public');
+        Route::delete('/{id}', [GVNganHangCauHoiController::class, 'destroy'])->name('destroy');
+    });
     Route::get('/diem-kiem-tra', [ChamDiemController::class, 'diemKiemTraIndex'])->name('diem-kiem-tra.index');
     Route::get('/diem-kiem-tra/{id}/bao-cao', [ChamDiemController::class, 'xuatBaoCaoDiemKiemTra'])->name('diem-kiem-tra.bao-cao');
     Route::get('/diem-kiem-tra/{id}/hoc-vien', [ChamDiemController::class, 'diemKiemTraHocVien'])->name('diem-kiem-tra.hoc-vien');

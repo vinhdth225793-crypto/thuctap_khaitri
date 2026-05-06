@@ -275,9 +275,9 @@
         align-items: center;
         padding: 14px 18px;
         margin-bottom: 14px;
-        background: linear-gradient(135deg, #ffffff 0%, #dbeafe 100%);
-        border: 1px solid #bfdbfe;
-        border-left: 4px solid #1d4ed8;
+        background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+        border: 1px solid #fecaca;
+        border-left: 4px solid #dc2626;
         border-radius: 12px;
     }
 
@@ -294,13 +294,13 @@
         width: 36px;
         height: 36px;
         border-radius: 12px;
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
         color: #fff;
         display: grid;
         place-items: center;
         font-weight: 900;
         font-size: 1rem;
-        box-shadow: 0 6px 16px rgba(29, 78, 216, 0.3);
+        box-shadow: 0 6px 16px rgba(220, 38, 38, 0.3);
     }
 
     .tsh-title h2 {
@@ -313,7 +313,7 @@
         gap: 8px;
     }
 
-    .tsh-title h2 i { font-size: 0.95rem; color: #1d4ed8; }
+    .tsh-title h2 i { font-size: 0.95rem; color: #dc2626; }
     .tsh-title p { margin: 0; font-size: 0.82rem; color: #64748b; line-height: 1.4; }
 
     @media (max-width: 720px) {

@@ -43,6 +43,7 @@
                 <a href="#tong-quan" class="section-link">Tổng quan</a>
                 <a href="#module" class="section-link">Module</a>
                 <a href="#lich-hoc" class="section-link">Buổi học</a>
+                <a href="#bai-giang" class="section-link">Bài giảng</a>
                 <a href="#tai-lieu" class="section-link">Tài liệu</a>
                 <a href="#bai-kiem-tra" class="section-link">Bài kiểm tra</a>
                 <a href="#tien-do" class="section-link">Tiến độ</a>
@@ -71,10 +72,11 @@
                     </div>
                 </div>
                 <div class="col-md-3 col-sm-6">
+                    @php $sp = $stats['student_progress']; @endphp
                     <div class="stat-box">
-                        <div class="stat-box__label">Tiến độ khóa học</div>
-                        <div class="stat-box__value">{{ $khoaHoc->tien_do_hoc_tap }}%</div>
-                        <div class="small text-muted">{{ $stats['bai_kiem_tra_cong_khai'] }} bài kiểm tra đã phát hành</div>
+                        <div class="stat-box__label">Tiến độ học tập</div>
+                        <div class="stat-box__value">{{ $sp['percent'] }}%</div>
+                        <div class="small text-muted">Có mặt {{ $sp['present'] }}/{{ $sp['total'] }} buổi</div>
                     </div>
                 </div>
             </div>
@@ -90,9 +92,55 @@
                 </div>
                 <div class="card-body">
                     <div class="overview-box">
-                        <div class="small text-muted mb-2">Ngày ghi danh: {{ $ghiDanh->ngay_tham_gia?->format('d/m/Y') ?: 'Chưa cập nhật' }}</div>
-                        <div class="progress progress-thin mb-3">
-                            <div class="progress-bar bg-primary" role="progressbar" style="width: {{ $khoaHoc->tien_do_hoc_tap }}%"></div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="small text-muted">Ngày ghi danh: {{ $ghiDanh->ngay_tham_gia?->format('d/m/Y') ?: 'Chưa cập nhật' }}</div>
+                            <div class="small fw-bold text-dark">{{ $sp['present'] }}/{{ $sp['total'] }} buổi đã dự</div>
+                        </div>
+
+                        {{-- Progress bar split: xanh có mặt + vàng có phép + đỏ vắng + xám chưa qua --}}
+                        <div class="hv-progress-split mb-2" title="Có mặt {{ $sp['present'] }} · Có phép {{ $sp['excused'] }} · Vắng {{ $sp['absent'] }} · Chưa qua {{ $sp['pending'] }}">
+                            @if($sp['total'] > 0)
+                                @php
+                                    $pctPresent = ($sp['present'] / $sp['total']) * 100;
+                                    $pctExcused = ($sp['excused'] / $sp['total']) * 100;
+                                    $pctAbsent = ($sp['absent'] / $sp['total']) * 100;
+                                @endphp
+                                @if($pctPresent > 0)
+                                    <div class="hv-progress-split__seg is-present" style="width: {{ $pctPresent }}%;" title="Có mặt: {{ $sp['present'] }}">
+                                        @if($pctPresent > 8) {{ $sp['present'] }} @endif
+                                    </div>
+                                @endif
+                                @if($pctExcused > 0)
+                                    <div class="hv-progress-split__seg is-excused" style="width: {{ $pctExcused }}%;" title="Có phép: {{ $sp['excused'] }}">
+                                        @if($pctExcused > 8) {{ $sp['excused'] }} @endif
+                                    </div>
+                                @endif
+                                @if($pctAbsent > 0)
+                                    <div class="hv-progress-split__seg is-absent" style="width: {{ $pctAbsent }}%;" title="Vắng: {{ $sp['absent'] }}">
+                                        @if($pctAbsent > 8) {{ $sp['absent'] }} @endif
+                                    </div>
+                                @endif
+                            @endif
+                        </div>
+
+                        {{-- Legend --}}
+                        <div class="hv-progress-legend mb-3">
+                            <span class="hv-progress-legend__item">
+                                <span class="hv-dot is-present"></span> Có mặt: <strong>{{ $sp['present'] }}</strong>
+                            </span>
+                            <span class="hv-progress-legend__item">
+                                <span class="hv-dot is-excused"></span> Có phép: <strong>{{ $sp['excused'] }}</strong>
+                            </span>
+                            <span class="hv-progress-legend__item">
+                                <span class="hv-dot is-absent"></span> Vắng: <strong>{{ $sp['absent'] }}</strong>
+                            </span>
+                            <span class="hv-progress-legend__item">
+                                <span class="hv-dot is-pending"></span> Chưa qua: <strong>{{ $sp['pending'] }}</strong>
+                            </span>
+                            <span class="hv-progress-legend__sep">·</span>
+                            <span class="hv-progress-legend__total">
+                                Đã chấm điểm danh: <strong>{{ $sp['completion_percent'] }}%</strong>
+                            </span>
                         </div>
                         @if($buoiSapToi)
                             <div class="fw-semibold text-dark mb-1">Buổi học sắp tới</div>
@@ -261,10 +309,10 @@
                 </div>
             </section>
 
-            {{-- ========== Section: Bài giảng & tài liệu đã công bố (interactive list + preview) ========== --}}
-            <section id="tai-lieu" class="card vip-card border-0 shadow-sm mb-4">
+            {{-- ========== Section: Bài giảng đã công bố (interactive list + preview) ========== --}}
+            <section id="bai-giang" class="card vip-card border-0 shadow-sm mb-4">
                 <div class="card-header border-0 bg-white py-3">
-                    <h5 class="mb-1 fw-semibold">Bài giảng &amp; tài liệu đã công bố</h5>
+                    <h5 class="mb-1 fw-semibold">Bài giảng đã công bố</h5>
                     <p class="text-muted small mb-0">Bấm vào một mục bên trái để xem trước nội dung. Bấm "Xem chi tiết" để mở bài giảng đầy đủ.</p>
                 </div>
                 <div class="card-body p-0">
@@ -394,6 +442,93 @@
                                 @endforeach
                             </div>
                         </div>
+                    @endif
+                </div>
+            </section>
+
+            {{-- ========== Section: Tài liệu công bố (giáo viên upload trực tiếp cho buổi học) ========== --}}
+            <section id="tai-lieu" class="card vip-card border-0 shadow-sm mb-4">
+                <div class="card-header border-0 bg-white py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-1 fw-semibold">Tài liệu công bố</h5>
+                        <p class="text-muted small mb-0">Slide, PDF, video, link tham khảo… giảng viên đã công bố cho từng buổi học.</p>
+                    </div>
+                    <span class="badge bg-light text-dark border">{{ $publishedResources->count() }}</span>
+                </div>
+                <div class="card-body">
+                    @if($publishedResources->isEmpty())
+                        <div class="empty-state-box">Chưa có tài liệu nào được công bố cho khóa học này.</div>
+                    @else
+                        @php
+                            $resourcesGrouped = $publishedResources->groupBy(fn ($r) => $r->lich_hoc_id);
+                        @endphp
+                        @foreach($resourcesGrouped as $lichHocId => $items)
+                            @php $firstLich = $items->first()->lichHoc; @endphp
+                            <div class="cdt-resource-group">
+                                <div class="cdt-resource-group__head">
+                                    <div class="cdt-resource-group__meta">
+                                        <span class="cdt-resource-group__buoi">Buổi {{ $firstLich?->buoi_so ?: '#' }}</span>
+                                        <span class="cdt-resource-group__date">
+                                            <i class="far fa-calendar-alt"></i>
+                                            {{ optional($firstLich?->ngay_hoc)->format('d/m/Y') ?? '—' }}
+                                        </span>
+                                        @if($firstLich?->moduleHoc)
+                                            <span class="cdt-resource-group__module">
+                                                <i class="fas fa-cube"></i> {{ $firstLich->moduleHoc->ten_module }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <a href="{{ route('hoc-vien.buoi-hoc.show', $lichHocId) }}" class="cdt-resource-group__link">
+                                        <i class="fas fa-arrow-up-right-from-square"></i> Mở buổi học
+                                    </a>
+                                </div>
+
+                                <div class="cdt-resource-group__list">
+                                    @foreach($items as $taiNguyen)
+                                        @php $previewId = 'cdt-resource-preview-' . $taiNguyen->id; @endphp
+                                        <div class="resource-preview-item">
+                                            <div class="resource-preview-item__header">
+                                                <div class="resource-preview-item__icon">
+                                                    <i class="fas {{ $taiNguyen->loai_icon }}"></i>
+                                                </div>
+                                                <div class="resource-preview-item__main">
+                                                    <div class="fw-semibold text-dark">{{ $taiNguyen->tieu_de }}</div>
+                                                    <div class="small text-muted">{{ $taiNguyen->loai_label }} • {{ $taiNguyen->file_status_message }}</div>
+                                                </div>
+                                                <div class="resource-preview-item__actions">
+                                                    <button
+                                                        class="btn btn-sm btn-primary fw-bold"
+                                                        type="button"
+                                                        data-bs-toggle="collapse"
+                                                        data-bs-target="#{{ $previewId }}"
+                                                        aria-expanded="false"
+                                                        aria-controls="{{ $previewId }}"
+                                                    >
+                                                        <i class="fas fa-chevron-down me-1"></i>Xem trong trang
+                                                    </button>
+                                                    @if($taiNguyen->file_url)
+                                                        <a href="{{ $taiNguyen->file_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary fw-bold">
+                                                            Mở tab mới
+                                                        </a>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                            <div class="collapse" id="{{ $previewId }}">
+                                                <div class="resource-preview-panel">
+                                                    <iframe
+                                                        class="resource-preview-frame"
+                                                        data-resource-preview-frame
+                                                        data-preview-src="{{ route('hoc-vien.tai-nguyen.preview', $taiNguyen->id) }}"
+                                                        title="Xem trước {{ $taiNguyen->tieu_de }}"
+                                                        loading="lazy"
+                                                    ></iframe>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
                     @endif
                 </div>
             </section>
@@ -1201,11 +1336,79 @@
     .stat-box__label { color: #64748b; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.35rem; }
     .stat-box__value { font-size: 2rem; line-height: 1; font-weight: 700; color: #0f172a; }
     .progress-thin { height: 8px; border-radius: 999px; background: #e2e8f0; }
+    .progress-thin .progress-bar.bg-primary { background: linear-gradient(90deg, #dc2626 0%, #b91c1c 100%) !important; }
+
+    /* ===== Progress bar chia theo điểm danh ===== */
+    .hv-progress-split {
+        display: flex;
+        height: 14px;
+        border-radius: 999px;
+        background: #e2e8f0;
+        overflow: hidden;
+        border: 1px solid #cbd5e1;
+    }
+    .hv-progress-split__seg {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: #fff;
+        transition: width 0.3s ease;
+        min-width: 0;
+    }
+    .hv-progress-split__seg.is-present {
+        background: linear-gradient(90deg, #10b981 0%, #047857 100%);
+    }
+    .hv-progress-split__seg.is-excused {
+        background: linear-gradient(90deg, #38bdf8 0%, #0284c7 100%);
+    }
+    .hv-progress-split__seg.is-absent {
+        background: linear-gradient(90deg, #ef4444 0%, #b91c1c 100%);
+    }
+
+    .hv-progress-legend {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 14px;
+        font-size: 0.78rem;
+        color: #475569;
+    }
+    .hv-progress-legend__item {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .hv-progress-legend__item strong {
+        color: #0f172a;
+        font-weight: 800;
+    }
+    .hv-progress-legend__sep { color: #cbd5e1; }
+    .hv-progress-legend__total {
+        margin-left: auto;
+        font-weight: 600;
+    }
+    .hv-progress-legend__total strong { color: #b91c1c; font-weight: 800; }
+    .hv-dot {
+        width: 9px; height: 9px;
+        border-radius: 50%;
+        display: inline-block;
+        flex-shrink: 0;
+    }
+    .hv-dot.is-present { background: #10b981; box-shadow: 0 0 0 1px #047857; }
+    .hv-dot.is-excused { background: #38bdf8; box-shadow: 0 0 0 1px #0284c7; }
+    .hv-dot.is-absent  { background: #ef4444; box-shadow: 0 0 0 1px #b91c1c; }
+    .hv-dot.is-pending { background: #cbd5e1; box-shadow: 0 0 0 1px #94a3b8; }
+
+    @media (max-width: 768px) {
+        .hv-progress-legend__total { margin-left: 0; width: 100%; }
+    }
     .content-row { padding: 1rem 0; border-bottom: 1px solid #eef2f7; display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
     .content-row:first-child { padding-top: 0; }
     .content-row:last-child { padding-bottom: 0; border-bottom: none; }
     .course-quick-card { position: relative; z-index: 0; }
-    .course-schedule-pill { display: inline-flex; align-items: center; gap: 0.5rem; border: 1px solid #bfdbfe; border-radius: 8px; background: #eff6ff; color: #1d4ed8; font-size: 0.86rem; font-weight: 700; padding: 0.5rem 0.75rem; white-space: nowrap; }
+    .course-schedule-pill { display: inline-flex; align-items: center; gap: 0.5rem; border: 1px solid #fecaca; border-radius: 8px; background: #fef2f2; color: #dc2626; font-size: 0.86rem; font-weight: 700; padding: 0.5rem 0.75rem; white-space: nowrap; }
     .course-schedule-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; margin-bottom: 0.9rem; }
     .course-schedule-summary-item { border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; padding: 0.65rem 0.75rem; }
     .course-schedule-summary-item span { display: block; color: #64748b; font-size: 0.78rem; margin-bottom: 0.2rem; }
@@ -1214,29 +1417,29 @@
     .course-schedule-summary-item.is-current { background: #eff6ff; border-color: #93c5fd; }
     .course-schedule-summary-item.is-upcoming { background: #f8fafc; border-color: #cbd5e1; }
     .course-schedule-summary-item.is-online { background: #f0fdfa; border-color: #99f6e4; }
-    .course-schedule-board { display: grid; gap: 0.65rem; max-height: min(58vh, 560px); overflow-y: auto; overscroll-behavior: contain; padding-right: 0.35rem; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: #93c5fd #eff6ff; }
+    .course-schedule-board { display: grid; gap: 0.65rem; max-height: min(58vh, 560px); overflow-y: auto; overscroll-behavior: contain; padding-right: 0.35rem; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: #fecaca #fef2f2; }
     .course-schedule-board::-webkit-scrollbar { width: 8px; }
-    .course-schedule-board::-webkit-scrollbar-track { background: #eff6ff; border-radius: 8px; }
-    .course-schedule-board::-webkit-scrollbar-thumb { background: #93c5fd; border-radius: 8px; }
+    .course-schedule-board::-webkit-scrollbar-track { background: #fef2f2; border-radius: 8px; }
+    .course-schedule-board::-webkit-scrollbar-thumb { background: #fecaca; border-radius: 8px; }
     .course-schedule-item { position: relative; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 0.6rem; }
-    .course-schedule-item:not(:last-child)::before { content: ""; position: absolute; left: 15px; top: 32px; bottom: -0.65rem; border-left: 2px solid #dbeafe; }
-    .course-schedule-marker { position: relative; z-index: 1; width: 32px; height: 32px; border: 1px solid #bfdbfe; border-radius: 8px; background: #eff6ff; color: #1d4ed8; display: flex; align-items: center; justify-content: center; font-size: 0.82rem; }
+    .course-schedule-item:not(:last-child)::before { content: ""; position: absolute; left: 15px; top: 32px; bottom: -0.65rem; border-left: 2px solid #fecaca; }
+    .course-schedule-marker { position: relative; z-index: 1; width: 32px; height: 32px; border: 1px solid #fecaca; border-radius: 8px; background: #fef2f2; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 0.82rem; }
     .course-schedule-card { min-width: 0; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; padding: 0.7rem 0.8rem; }
     .course-schedule-card .min-w-0 { min-width: 0; }
-    .course-schedule-eyebrow { display: flex; flex-wrap: wrap; gap: 0.3rem; color: #2563eb; font-size: 0.78rem; font-weight: 700; margin-bottom: 0.15rem; }
+    .course-schedule-eyebrow { display: flex; flex-wrap: wrap; gap: 0.3rem; color: #dc2626; font-size: 0.78rem; font-weight: 800; margin-bottom: 0.15rem; }
     .course-schedule-title { color: #0f172a; font-size: 0.94rem; font-weight: 700; margin-bottom: 0; overflow-wrap: anywhere; }
     .course-schedule-meta { display: flex; flex-wrap: wrap; gap: 0.3rem 0.8rem; color: #64748b; font-size: 0.82rem; margin-top: 0.45rem; }
     .course-schedule-meta span { display: inline-flex; align-items: center; gap: 0.35rem; min-width: 0; overflow-wrap: anywhere; }
-    .course-schedule-meta i { flex: 0 0 auto; color: #2563eb; font-size: 0.78rem; }
+    .course-schedule-meta i { flex: 0 0 auto; color: #dc2626; font-size: 0.78rem; }
     .course-schedule-status { border-radius: 8px; font-size: 0.72rem; font-weight: 800; line-height: 1; padding: 0.35rem 0.5rem; white-space: nowrap; }
     .course-schedule-status-done { background: #dcfce7; color: #166534; }
-    .course-schedule-status-current { background: #dbeafe; color: #1d4ed8; }
+    .course-schedule-status-current { background: #fee2e2; color: #b91c1c; }
     .course-schedule-status-upcoming { background: #f1f5f9; color: #475569; }
     .course-schedule-item.is-done:not(:last-child)::before { border-color: #86efac; }
     .course-schedule-item.is-done .course-schedule-marker { background: #dcfce7; border-color: #86efac; color: #15803d; }
     .course-schedule-item.is-done .course-schedule-card { background: #f0fdf4; border-color: #bbf7d0; }
-    .course-schedule-item.is-current .course-schedule-marker { background: #dbeafe; border-color: #60a5fa; color: #1d4ed8; box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12); }
-    .course-schedule-item.is-current .course-schedule-card { border-color: #60a5fa; box-shadow: 0 10px 24px rgba(37, 99, 235, 0.1); }
+    .course-schedule-item.is-current .course-schedule-marker { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); border-color: #dc2626; color: #fff; box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.15); }
+    .course-schedule-item.is-current .course-schedule-card { border-color: #dc2626; box-shadow: 0 10px 24px rgba(220, 38, 38, 0.12); background: linear-gradient(180deg, #fff 0%, #fef2f2 100%); }
     .empty-state-box { border: 1px dashed #cbd5e1; border-radius: 18px; padding: 1.25rem; background: #f8fafc; color: #64748b; text-align: center; }
 
     @media (max-width: 767.98px) {
@@ -1250,6 +1453,152 @@
         .course-schedule-item { grid-template-columns: 28px minmax(0, 1fr); gap: 0.55rem; }
         .course-schedule-marker { width: 28px; height: 28px; font-size: 0.76rem; }
         .course-schedule-item:not(:last-child)::before { left: 13px; top: 28px; }
+    }
+
+    /* ============ Tài liệu công bố — group theo buổi + preview iframe ============ */
+    .cdt-resource-group {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 14px 16px;
+        margin-bottom: 18px;
+    }
+    .cdt-resource-group:last-child { margin-bottom: 0; }
+
+    .cdt-resource-group__head {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        padding-bottom: 10px;
+        margin-bottom: 12px;
+        border-bottom: 1px dashed #cbd5e1;
+    }
+
+    .cdt-resource-group__meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.85rem;
+    }
+    .cdt-resource-group__buoi {
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        color: #fff;
+        font-weight: 800;
+        padding: 3px 11px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        letter-spacing: 0.3px;
+    }
+    .cdt-resource-group__date,
+    .cdt-resource-group__module {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: #475569;
+        font-weight: 600;
+    }
+    .cdt-resource-group__date i,
+    .cdt-resource-group__module i { color: #94a3b8; }
+
+    .cdt-resource-group__link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #1d4ed8;
+        text-decoration: none;
+        padding: 5px 12px;
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+        background: #fff;
+        transition: all 0.18s ease;
+    }
+    .cdt-resource-group__link:hover {
+        background: #1d4ed8;
+        color: #fff;
+        border-color: #1d4ed8;
+    }
+
+    /* Resource item (copy từ buoi-hoc/show) */
+    .resource-preview-item {
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: #ffffff;
+        margin-bottom: 10px;
+        overflow: hidden;
+    }
+    .resource-preview-item:last-child { margin-bottom: 0; }
+
+    .resource-preview-item__header {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: center;
+        padding: 14px 16px;
+    }
+    .resource-preview-item__icon {
+        width: 44px; height: 44px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(37, 99, 235, 0.08);
+        color: #1d4ed8;
+        font-size: 1.05rem;
+    }
+    .resource-preview-item__main { min-width: 0; }
+    .resource-preview-item__actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+    .resource-preview-item__actions [aria-expanded="true"] .fa-chevron-down {
+        transform: rotate(180deg);
+    }
+    .resource-preview-item__actions .fa-chevron-down {
+        transition: transform 160ms ease;
+    }
+
+    .resource-preview-panel {
+        border-top: 1px solid #e2e8f0;
+        background: #f8fafc;
+        padding: 14px;
+    }
+    .resource-preview-frame {
+        display: block;
+        width: 100%;
+        min-height: 560px;
+        border: 1px solid #bfdbfe;
+        border-radius: 14px;
+        background: #ffffff;
+    }
+
+    .empty-state-box {
+        text-align: center;
+        padding: 28px 16px;
+        background: #f8fafc;
+        border: 1px dashed #cbd5e1;
+        border-radius: 12px;
+        color: #64748b;
+        font-size: 0.9rem;
+    }
+
+    @media (max-width: 768px) {
+        .resource-preview-item__header {
+            grid-template-columns: auto 1fr;
+            grid-template-rows: auto auto;
+        }
+        .resource-preview-item__actions {
+            grid-column: 1 / -1;
+            justify-content: flex-start;
+        }
+        .resource-preview-frame { min-height: 420px; }
+        .cdt-resource-group__head { flex-direction: column; align-items: flex-start; }
     }
 </style>
 @endpush
@@ -1284,6 +1633,13 @@ document.addEventListener('DOMContentLoaded', function () {
             this.classList.add('is-active');
         });
     });
+});
+
+// Lazy load preview iframe trong section "Tài liệu công bố"
+document.addEventListener('shown.bs.collapse', function (event) {
+    const frame = event.target.querySelector('[data-resource-preview-frame]');
+    if (!frame || frame.getAttribute('src')) return;
+    frame.setAttribute('src', frame.dataset.previewSrc);
 });
 </script>
 @endpush

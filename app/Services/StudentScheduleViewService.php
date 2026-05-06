@@ -85,6 +85,8 @@ class StudentScheduleViewService
             ->where('khoa_hoc_id', $courseId)
             ->first();
 
+        $studentProgress = $khoaHoc->studentSessionProgress((int) $user->ma_nguoi_dung);
+
         $stats = [
             'tong_module' => $khoaHoc->moduleHocs->count(),
             'module_hoan_thanh' => $khoaHoc->so_module_hoan_thanh,
@@ -95,6 +97,7 @@ class StudentScheduleViewService
             'tai_nguyen_cong_khai' => $publishedResources->count(),
             'bai_giang_cong_khai' => $publishedLectures->count(),
             'bai_kiem_tra_cong_khai' => $publishedExams->count(),
+            'student_progress' => $studentProgress,
         ];
 
         $buoiSapToi = $courseSchedules

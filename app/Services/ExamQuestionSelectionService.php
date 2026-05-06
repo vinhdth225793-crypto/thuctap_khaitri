@@ -131,6 +131,16 @@ class ExamQuestionSelectionService
                     ->orWhereNull('module_hoc_id');
             });
         }
+
+        // GV chỉ thấy câu hỏi của mình HOẶC đã công bố. Admin xem được tất cả.
+        $user = auth()->user();
+        if ($user && ! $user->isAdmin()) {
+            $userId = (int) $user->id;
+            $query->where(function (Builder $accessQuery) use ($userId) {
+                $accessQuery->where('nguoi_tao_id', $userId)
+                    ->orWhere('pham_vi', NganHangCauHoi::PHAM_VI_CONG_BO);
+            });
+        }
     }
 
     private function applyFilters(Builder $query, BaiKiemTra $baiKiemTra, array $filters): void

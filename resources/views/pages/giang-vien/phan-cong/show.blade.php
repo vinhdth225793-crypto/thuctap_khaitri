@@ -307,6 +307,160 @@
                                         <p class="mb-0">Module này chưa có lịch dạy cụ thể.</p>
                                     </div>
                                 @endforelse
+
+                                {{-- ====== Nội dung & Tài nguyên của module (list + xem trước) ====== --}}
+                                @php
+                                    $modResources = collect($sectionTimelineItems)
+                                        ->flatMap(fn ($it) => $it['lich']->taiNguyen)
+                                        ->sortBy([
+                                            fn ($r) => optional($r->lichHoc?->ngay_hoc)->format('Ymd') ?? '99999999',
+                                            fn ($r) => $r->thu_tu_hien_thi ?? 0,
+                                        ])
+                                        ->values();
+                                    $modPublic = $modResources->where('trang_thai_hien_thi', 'hien')->count();
+                                    $modDraft = $modResources->where('trang_thai_hien_thi', '!=', 'hien')->count();
+                                @endphp
+
+                                <div class="gv-mod-content">
+                                    <div class="gv-mod-content__head">
+                                        <div class="gv-mod-content__title">
+                                            <i class="fas fa-layer-group"></i>
+                                            <span>Tổng hợp tài liệu module</span>
+                                            <span class="gv-mod-content__sub">— gom toàn bộ tài liệu từ {{ count($sectionTimelineItems) }} buổi dạy</span>
+                                        </div>
+                                        <div class="gv-mod-content__pills">
+                                            <span class="gv-mod-content__pill gv-mod-content__pill--public">
+                                                <i class="fas fa-globe-asia"></i> {{ $modPublic }} công khai
+                                            </span>
+                                            <span class="gv-mod-content__pill gv-mod-content__pill--draft">
+                                                <i class="fas fa-pencil-alt"></i> {{ $modDraft }} nháp
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    @if($modResources->isEmpty())
+                                        <div class="gv-tl-mod__empty">
+                                            <i class="fas fa-folder-open"></i>
+                                            <p>Module này chưa có tài liệu nào. Vào từng buổi dạy để bấm "+ Tài liệu".</p>
+                                        </div>
+                                    @else
+                                        @php $modResGrouped = $modResources->groupBy(fn ($r) => $r->lich_hoc_id); @endphp
+                                        <div class="gv-tl-wrap">
+                                            {{-- Cột trái: list theo buổi --}}
+                                            <div class="gv-tl-listcol">
+                                                @foreach($modResGrouped as $lichHocId => $items)
+                                                    @php $firstLich = $items->first()->lichHoc; @endphp
+                                                    <div class="gv-tl-group">
+                                                        <div class="gv-tl-group__head">
+                                                            <div class="gv-tl-group__meta">
+                                                                <span class="gv-tl-group__buoi">Buổi {{ $firstLich?->buoi_so ?: '#' }}</span>
+                                                                <span class="gv-tl-group__date">
+                                                                    <i class="far fa-calendar-alt"></i>
+                                                                    {{ optional($firstLich?->ngay_hoc)->format('d/m/Y') ?? '—' }}
+                                                                </span>
+                                                            </div>
+                                                            <a href="#session-{{ $lichHocId }}" class="gv-tl-group__link" title="Mở buổi dạy">
+                                                                <i class="fas fa-arrow-up-right-from-square"></i>
+                                                            </a>
+                                                        </div>
+                                                        <div class="gv-tl-list">
+                                                            @foreach($items as $taiNguyen)
+                                                                @php
+                                                                    $isHien = $taiNguyen->trang_thai_hien_thi === 'hien';
+                                                                    $isFirstActive = ($loop->parent->first && $loop->first);
+                                                                @endphp
+                                                                <button type="button"
+                                                                        id="gv-tl-item-{{ $taiNguyen->id }}"
+                                                                        class="gv-tl-item {{ $isHien ? 'is-public' : 'is-draft' }} {{ $isFirstActive ? 'is-active' : '' }}"
+                                                                        data-target="gv-tl-pane-{{ $taiNguyen->id }}">
+                                                                    <span class="gv-tl-item__icon">
+                                                                        <i class="fas {{ $taiNguyen->loai_icon }}"></i>
+                                                                    </span>
+                                                                    <span class="gv-tl-item__main">
+                                                                        <span class="gv-tl-item__title">{{ $taiNguyen->tieu_de }}</span>
+                                                                        <span class="gv-tl-item__meta">
+                                                                            <span class="gv-tl-item__pill">
+                                                                                <i class="fas fa-{{ $isHien ? 'globe-asia' : 'pencil-alt' }}"></i>
+                                                                                {{ $isHien ? 'CÔNG KHAI' : 'NHÁP' }}
+                                                                            </span>
+                                                                            <span class="gv-tl-item__type">{{ $taiNguyen->loai_label }}</span>
+                                                                        </span>
+                                                                    </span>
+                                                                </button>
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+
+                                            {{-- Cột phải: preview pane --}}
+                                            <div class="gv-tl-preview-area">
+                                                @foreach($modResources as $taiNguyen)
+                                                    @php
+                                                        $isHien = $taiNguyen->trang_thai_hien_thi === 'hien';
+                                                        $isFirstActive = $loop->first;
+                                                        $fileUrl = $taiNguyen->file_url;
+                                                        $previewLich = $taiNguyen->lichHoc;
+                                                        $previewSrc = route('giang-vien.buoi-hoc.tai-nguyen.preview', $taiNguyen->id);
+                                                    @endphp
+                                                    <div id="gv-tl-pane-{{ $taiNguyen->id }}" class="gv-tl-preview-pane {{ $isFirstActive ? 'is-active' : '' }}">
+                                                        <div class="gv-tl-preview-pane__head">
+                                                            <div class="gv-tl-preview-pane__title">
+                                                                <i class="fas {{ $taiNguyen->loai_icon }} me-2"></i>
+                                                                <span>{{ $taiNguyen->tieu_de }}</span>
+                                                            </div>
+                                                            <div class="gv-tl-preview-pane__sub">
+                                                                <span><i class="far fa-calendar-alt"></i> Buổi {{ $previewLich?->buoi_so ?: '#' }} · {{ optional($previewLich?->ngay_hoc)->format('d/m/Y') ?? '—' }}</span>
+                                                                <span class="text-silver">·</span>
+                                                                <span>{{ $taiNguyen->loai_label }}</span>
+                                                                <span class="text-silver">·</span>
+                                                                <span class="gv-tl-preview-pane__pill {{ $isHien ? 'is-on' : 'is-off' }}" id="gv-tl-pane-pill-{{ $taiNguyen->id }}">
+                                                                    <i class="fas fa-{{ $isHien ? 'globe-asia' : 'pencil-alt' }}"></i>
+                                                                    {{ $isHien ? 'CÔNG KHAI' : 'NHÁP' }}
+                                                                </span>
+                                                            </div>
+                                                            @if($taiNguyen->mo_ta)
+                                                                <p class="gv-tl-preview-pane__desc">{{ $taiNguyen->mo_ta }}</p>
+                                                            @endif
+                                                            <div class="gv-tl-preview-pane__actions">
+                                                                <button type="button"
+                                                                        class="btn-toggle-resource-hien-thi gv-tl-toggle {{ $isHien ? 'is-on' : 'is-off' }}"
+                                                                        data-id="{{ $taiNguyen->id }}"
+                                                                        title="{{ $isHien ? 'Bấm để thu hồi (chuyển về nháp)' : 'Bấm để công khai cho học viên' }}">
+                                                                    <i class="fas fa-{{ $isHien ? 'eye-slash' : 'globe' }}"></i>
+                                                                    <span>{{ $isHien ? 'Thu hồi' : 'Công khai' }}</span>
+                                                                </button>
+                                                                @if($fileUrl)
+                                                                    <a href="{{ $fileUrl }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary fw-bold">
+                                                                        <i class="fas fa-external-link-alt me-1"></i> Mở tab mới
+                                                                    </a>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="gv-tl-preview-body">
+                                                            @if(!$fileUrl)
+                                                                <div class="gv-tl-preview__fallback">
+                                                                    <i class="fas fa-unlink fa-2x mb-2 text-muted"></i>
+                                                                    <p class="mb-0">Tài liệu chưa có file đính kèm hoặc link.</p>
+                                                                </div>
+                                                            @else
+                                                                <iframe
+                                                                    class="gv-tl-preview__frame"
+                                                                    data-preview-frame
+                                                                    data-preview-src="{{ $previewSrc }}"
+                                                                    @if($isFirstActive && $isExpanded) src="{{ $previewSrc }}" @endif
+                                                                    title="Xem trước {{ $taiNguyen->tieu_de }}"
+                                                                    loading="lazy">
+                                                                </iframe>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -318,6 +472,7 @@
                 @endforelse
                 </div>
             </section>
+
 
             {{-- ④ Mô tả nội dung bài dạy --}}
             <section class="apx-section">
@@ -408,12 +563,12 @@
                                             </div>
                                             <code class="smaller text-muted">#{{ $bghv->hocVien->ma_nguoi_dung }}</code>
                                         </div>
-                                        
+
                                         <div class="smaller text-muted d-flex flex-column gap-1">
                                             <span class="text-truncate"><i class="far fa-envelope me-1"></i>{{ $bghv->hocVien->email }}</span>
                                             <span><i class="fas fa-phone-alt me-1"></i>{{ $bghv->hocVien->so_dien_thoai ?: 'Chưa cập nhật' }}</span>
                                             <span class="fw-bold"><i class="far fa-calendar-alt me-1"></i>Tham gia: {{ $bghv->ngay_tham_gia?->format('d/m/Y') ?? 'N/A' }}</span>
-                                            
+
                                             {{-- Thống kê chuyên cần (Phase 2) --}}
                                             @php
                                                 $myDiemDanh = $bghv->hocVien->diemDanhs->whereIn('lich_hoc_id', $lichHocIds);
@@ -473,17 +628,41 @@
                 <h5 class="modal-title fw-bold"><i class="fas fa-user-check me-2"></i> Điểm danh buổi <span id="dd-buoi-label"></span></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            
+
+            {{-- Progress 2 bước --}}
+            <div class="dd-progress" id="dd-progress">
+                <div class="dd-progress__step" data-step="1">
+                    <div class="dd-progress__num"><i class="fas fa-1"></i></div>
+                    <div class="dd-progress__info">
+                        <div class="dd-progress__title">Điểm danh học viên</div>
+                        <div class="dd-progress__desc" id="dd-progress-step1-desc">Đánh trạng thái có/vắng/trễ cho từng HV</div>
+                    </div>
+                    <i class="fas fa-circle-check dd-progress__check"></i>
+                </div>
+                <div class="dd-progress__bar"></div>
+                <div class="dd-progress__step" data-step="2">
+                    <div class="dd-progress__num"><i class="fas fa-2"></i></div>
+                    <div class="dd-progress__info">
+                        <div class="dd-progress__title">Chốt điểm danh</div>
+                        <div class="dd-progress__desc" id="dd-progress-step2-desc">Nhập báo cáo và gửi admin</div>
+                    </div>
+                    <i class="fas fa-circle-check dd-progress__check"></i>
+                </div>
+                <div class="dd-progress__overall" id="dd-progress-overall">
+                    <span>0/2</span> Bước hoàn tất
+                </div>
+            </div>
+
             <!-- Nav Tabs trong Modal -->
             <ul class="nav nav-tabs nav-fill bg-light" id="diemDanhModalTabs" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active fw-bold small py-3" id="tab-attendance-list" data-bs-toggle="tab" data-bs-target="#attendance-pane" type="button" role="tab">
-                        <i class="fas fa-list me-1"></i> DANH SÁCH ĐIỂM DANH
+                        <i class="fas fa-list me-1"></i> Bước 1 · Danh sách điểm danh
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link fw-bold small py-3" id="tab-report-admin" data-bs-toggle="tab" data-bs-target="#report-pane" type="button" role="tab">
-                        <i class="fas fa-paper-plane me-1"></i> Chốt điểm danh
+                        <i class="fas fa-paper-plane me-1"></i> Bước 2 · Chốt điểm danh
                     </button>
                 </li>
             </ul>
@@ -532,16 +711,22 @@
                         @csrf
                         <div class="modal-body p-4">
                             <div id="report-status-badge" class="mb-3 text-center"></div>
-                            
+
+                            {{-- Cảnh báo nếu chưa lưu điểm danh --}}
+                            <div id="dd-step1-warning" class="alert alert-warning border-0 d-none mb-3">
+                                <i class="fas fa-triangle-exclamation me-1"></i>
+                                <b>Chưa thể chốt:</b> Bạn cần hoàn tất <b>Bước 1 — Danh sách điểm danh</b> (lưu ít nhất 1 trạng thái cho học viên) trước khi chốt báo cáo.
+                            </div>
+
                             <div class="mb-3">
                                 <label class="form-label small fw-bold">Nội dung chốt điểm danh / báo cáo buổi dạy *</label>
-                                <textarea name="bao_cao_giang_vien" id="dd-bao-cao-content" class="form-control vip-form-control" rows="8" 
+                                <textarea name="bao_cao_giang_vien" id="dd-bao-cao-content" class="form-control vip-form-control" rows="8"
                                           placeholder="Nhập nội dung báo cáo cho Admin (VD: Tình hình lớp học, các vấn đề phát sinh, nhận xét chung về buổi học...)" required></textarea>
                             </div>
-                            
-                            <div class="alert alert-warning border-0 small mb-0">
-                                <i class="fas fa-info-circle me-1"></i> 
-                                <b>Lưu ý:</b> Hành động này được dùng như bước chốt điểm danh cuối buổi và gửi báo cáo trực tiếp đến Ban quản lý.
+
+                            <div class="alert alert-info border-0 small mb-0">
+                                <i class="fas fa-info-circle me-1"></i>
+                                <b>Lưu ý:</b> Đủ <b>Bước 1 (đã điểm danh học viên)</b> + <b>Bước 2 (gửi báo cáo)</b> thì buổi dạy mới được tính là <b>HOÀN THÀNH ĐIỂM DANH</b>.
                             </div>
                         </div>
                         <div class="modal-footer border-0 p-3 justify-content-center gap-2 bg-light">
@@ -1322,6 +1507,52 @@ document.addEventListener('DOMContentLoaded', function() {
     const attendanceSummary = document.getElementById('attendance-summary');
     const btnSaveDD = document.querySelector('#modalDiemDanh button[type="submit"]');
 
+    // Helper: cập nhật progress 2 bước trong modal điểm danh
+    function updateProgress(step1Done, step2Done, summary) {
+        const progress = document.getElementById('dd-progress');
+        if (!progress) return;
+        const step1 = progress.querySelector('[data-step="1"]');
+        const step2 = progress.querySelector('[data-step="2"]');
+        const overall = document.getElementById('dd-progress-overall');
+        const step1Desc = document.getElementById('dd-progress-step1-desc');
+        const step2Desc = document.getElementById('dd-progress-step2-desc');
+
+        // Step 1
+        if (step1) {
+            step1.classList.toggle('is-done', step1Done);
+            step1.classList.toggle('is-todo', !step1Done);
+        }
+        if (step1Desc && summary) {
+            step1Desc.textContent = step1Done
+                ? `Đã chấm ${summary.marked_students || 0}/${summary.total_students || 0} học viên`
+                : 'Đánh trạng thái có/vắng/trễ cho từng HV';
+        }
+
+        // Step 2
+        if (step2) {
+            step2.classList.toggle('is-done', step2Done);
+            step2.classList.toggle('is-todo', !step2Done);
+            step2.classList.toggle('is-locked', !step1Done && !step2Done);
+        }
+        if (step2Desc) {
+            step2Desc.textContent = step2Done
+                ? 'Đã gửi báo cáo cho admin'
+                : (step1Done ? 'Sẵn sàng chốt — nhập báo cáo và gửi' : 'Hoàn tất Bước 1 trước khi chốt');
+        }
+
+        // Overall
+        const doneCount = (step1Done ? 1 : 0) + (step2Done ? 1 : 0);
+        if (overall) {
+            overall.classList.remove('is-pending', 'is-partial', 'is-complete');
+            if (doneCount === 0) overall.classList.add('is-pending');
+            else if (doneCount === 1) overall.classList.add('is-partial');
+            else overall.classList.add('is-complete');
+            overall.innerHTML = doneCount === 2
+                ? '<i class="fas fa-circle-check"></i> <span>HOÀN THÀNH ĐIỂM DANH</span>'
+                : `<span>${doneCount}/2</span> Bước hoàn tất`;
+        }
+    }
+
     document.querySelectorAll('.btn-diem-danh').forEach(btn => {
         btn.addEventListener('click', function() {
             const id = this.dataset.id;
@@ -1353,16 +1584,34 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         baoCaoContent.value = res.bao_cao || '';
                         
-                        if (['da_bao_cao', 'da_bao_cao_muon'].includes(res.trang_thai_bao_cao)) {
+                        const step1Done = (summary.marked_students || 0) > 0;
+                        const step2Done = ['da_bao_cao', 'da_bao_cao_muon'].includes(res.trang_thai_bao_cao);
+                        updateProgress(step1Done, step2Done, summary);
+
+                        if (step2Done) {
                             const badgeColor = res.trang_thai_bao_cao === 'da_bao_cao' ? 'success' : 'warning';
                             const badgeText = res.trang_thai_bao_cao === 'da_bao_cao' ? 'Đã gửi báo cáo' : 'Đã báo cáo muộn';
                             statusBadge.innerHTML = `<span class="badge bg-${badgeColor} bg-opacity-10 text-${badgeColor} border border-${badgeColor} px-3 py-2 fw-bold"><i class="fas fa-check-circle me-1"></i> ${badgeText}</span>`;
-                            btnSubmitReport.innerHTML = '<i class="fas fa-sync-alt me-1"></i> CẬP NHẬT Chốt điểm danh';
-                            btnSubmitReport.classList.replace('btn-success', 'btn-warning');
+                            btnSubmitReport.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Cập nhật báo cáo';
+                            btnSubmitReport.classList.remove('btn-success');
+                            btnSubmitReport.classList.add('btn-warning');
                         } else {
-                            statusBadge.innerHTML = '<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary px-3 py-2 fw-bold"><i class="fas fa-clock me-1"></i> CHƯA GỬI BÁO CÁO</span>';
-                            btnSubmitReport.innerHTML = '<i class="fas fa-paper-plane me-1"></i> CHỐT ĐIỂM DANH VÀ GỬI BÁO CÁO';
-                            btnSubmitReport.classList.replace('btn-warning', 'btn-success');
+                            statusBadge.innerHTML = '<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary px-3 py-2 fw-bold"><i class="fas fa-clock me-1"></i> Chưa chốt báo cáo</span>';
+                            btnSubmitReport.innerHTML = '<i class="fas fa-paper-plane me-1"></i> Chốt điểm danh và gửi báo cáo';
+                            btnSubmitReport.classList.remove('btn-warning');
+                            btnSubmitReport.classList.add('btn-success');
+                        }
+
+                        // Khoá nút "Chốt" nếu chưa lưu điểm danh học viên (step 1)
+                        const step1Warn = document.getElementById('dd-step1-warning');
+                        if (!step1Done) {
+                            btnSubmitReport.disabled = true;
+                            btnSubmitReport.classList.add('disabled');
+                            if (step1Warn) step1Warn.classList.remove('d-none');
+                        } else {
+                            btnSubmitReport.disabled = false;
+                            btnSubmitReport.classList.remove('disabled');
+                            if (step1Warn) step1Warn.classList.add('d-none');
                         }
 
                         if (attendanceSummary) {
@@ -1642,13 +1891,105 @@ document.addEventListener('DOMContentLoaded', function() {
     // ==========================================
     // AJAX TOGGLE HIỂN THỊ TÀI LIỆU
     // ==========================================
+    function applyResourceState(resourceId, isHien) {
+        // Cập nhật cùng lúc 3 chỗ: row trong session-content-card, item trong section ④, và pane preview
+        const targets = [
+            { card: document.getElementById(`resource-item-${resourceId}`), pillSel: '.resource-row__pill' },
+            { card: document.getElementById(`gv-tl-item-${resourceId}`),    pillSel: '.gv-tl-item__pill'  },
+        ];
+
+        targets.forEach(({ card, pillSel }) => {
+            if (!card) return;
+            card.classList.remove('is-public', 'is-draft');
+            card.classList.add(isHien ? 'is-public' : 'is-draft');
+            const pill = card.querySelector(pillSel);
+            if (pill) {
+                pill.innerHTML = isHien
+                    ? '<i class="fas fa-globe-asia"></i> CÔNG KHAI'
+                    : '<i class="fas fa-pencil-alt"></i> NHÁP';
+            }
+        });
+
+        // Cập nhật pill trong vùng preview (header pane)
+        const panePill = document.getElementById(`gv-tl-pane-pill-${resourceId}`);
+        if (panePill) {
+            panePill.classList.remove('is-on', 'is-off');
+            panePill.classList.add(isHien ? 'is-on' : 'is-off');
+            panePill.innerHTML = isHien
+                ? '<i class="fas fa-globe-asia"></i> CÔNG KHAI'
+                : '<i class="fas fa-pencil-alt"></i> NHÁP';
+        }
+
+        // Cập nhật tất cả nút toggle có cùng data-id (có thể có nhiều nút ở các section khác nhau)
+        document.querySelectorAll(`.btn-toggle-resource-hien-thi[data-id="${resourceId}"]`).forEach(b => {
+            const i = b.querySelector('i');
+            const lbl = b.querySelector('span');
+            b.classList.remove('is-on', 'is-off');
+            b.classList.add(isHien ? 'is-on' : 'is-off');
+            if (i) i.className = isHien ? 'fas fa-eye-slash' : 'fas fa-globe';
+            if (lbl) lbl.textContent = isHien ? 'Thu hồi' : 'Công khai';
+            b.title = isHien
+                ? 'Bấm để thu hồi (chuyển về nháp)'
+                : 'Bấm để công khai cho học viên';
+        });
+    }
+
+    // ==========================================
+    // Section ④ accordion module + click item → chuyển preview pane
+    // (mỗi module có 1 .gv-tl-wrap riêng, scope item/pane theo wrap đó)
+    // ==========================================
+    document.querySelectorAll('.gv-tl-wrap').forEach(wrap => {
+        const items = wrap.querySelectorAll('.gv-tl-item');
+        const panes = wrap.querySelectorAll('.gv-tl-preview-pane');
+
+        items.forEach(item => {
+            item.addEventListener('click', function () {
+                const target = this.dataset.target;
+                items.forEach(i => i.classList.remove('is-active'));
+                this.classList.add('is-active');
+
+                panes.forEach(p => {
+                    if (p.id === target) {
+                        p.classList.add('is-active');
+                        const frame = p.querySelector('[data-preview-frame]');
+                        if (frame && !frame.getAttribute('src')) {
+                            frame.setAttribute('src', frame.dataset.previewSrc);
+                        }
+                    } else {
+                        p.classList.remove('is-active');
+                    }
+                });
+            });
+        });
+    });
+
+    // Lazy-load iframe của pane active khi module collapse (section ③) được mở lần đầu
+    document.querySelectorAll('[id^="collapse-module-"]').forEach(collapseEl => {
+        collapseEl.addEventListener('shown.bs.collapse', function () {
+            this.querySelectorAll('.gv-tl-preview-pane.is-active [data-preview-frame]').forEach(frame => {
+                if (!frame.getAttribute('src')) {
+                    frame.setAttribute('src', frame.dataset.previewSrc);
+                }
+            });
+        });
+    });
+
+    // Lazy-load iframe khi user bấm "Xem trước" inline trong session card (collapse từng row)
+    document.addEventListener('shown.bs.collapse', function (event) {
+        const target = event.target;
+        if (!target.id || !target.id.startsWith('ses-preview-')) return;
+        const frame = target.querySelector('[data-preview-frame]');
+        if (frame && !frame.getAttribute('src')) {
+            frame.setAttribute('src', frame.dataset.previewSrc);
+        }
+    });
+
     document.querySelectorAll('.btn-toggle-resource-hien-thi').forEach(btn => {
         btn.addEventListener('click', function() {
             const id = this.dataset.id;
-            const card = document.getElementById(`resource-item-${id}`);
             const icon = this.querySelector('i');
-            
-            // Hiệu ứng loading tạm thời
+            const prevIconClass = icon.className;
+
             this.disabled = true;
             icon.className = 'fas fa-spinner fa-spin';
 
@@ -1663,25 +2004,16 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(res => res.json())
             .then(res => {
                 if (res.success) {
-                    if (res.is_hien) {
-                        this.className = 'btn btn-icon-xs btn-toggle-resource-hien-thi text-success';
-                        icon.className = 'fas fa-eye';
-                        this.title = 'Đang hiện - Bấm để ẩn';
-                        if (card) card.classList.remove('opacity-75', 'bg-light');
-                    } else {
-                        this.className = 'btn btn-icon-xs btn-toggle-resource-hien-thi text-secondary';
-                        icon.className = 'fas fa-eye-slash';
-                        this.title = 'Đang ẩn - Bấm để hiện';
-                        if (card) card.classList.add('opacity-75', 'bg-light');
-                    }
+                    applyResourceState(id, !!res.is_hien);
                 } else {
                     alert(res.message || 'Có lỗi xảy ra');
-                    icon.className = res.is_hien ? 'fas fa-eye' : 'fas fa-eye-slash';
+                    icon.className = prevIconClass;
                 }
             })
             .catch(err => {
                 console.error('Toggle Error:', err);
                 alert('Không thể kết nối máy chủ');
+                icon.className = prevIconClass;
             })
             .finally(() => {
                 this.disabled = false;
@@ -1719,6 +2051,639 @@ document.addEventListener('DOMContentLoaded', function() {
     .smaller { font-size: 0.75rem; }
     .italic { font-style: italic; }
     .hover-bg-light:hover { background-color: #f8fafc; }
+
+    /* ============ Resource row (Tài liệu — nháp / công khai) ============ */
+    .resource-list { max-height: 320px; overflow-y: auto; padding-right: 4px; }
+    .resource-list::-webkit-scrollbar { width: 5px; }
+    .resource-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+    .resource-row {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 8px 10px;
+        border-radius: 9px;
+        border: 1px solid;
+        transition: all 0.2s ease;
+        font-size: 0.78rem;
+    }
+    .resource-row.is-public {
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        border-color: #6ee7b7;
+        box-shadow: 0 2px 5px rgba(16, 185, 129, 0.12);
+    }
+    .resource-row.is-draft {
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        border-color: #fca5a5;
+        box-shadow: 0 2px 5px rgba(239, 68, 68, 0.12);
+    }
+    .resource-row:hover { transform: translateY(-1px); }
+
+    .resource-row__head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: space-between;
+    }
+    .resource-row__title {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        flex: 1;
+        font-weight: 700;
+    }
+    .resource-row.is-public .resource-row__title { color: #065f46; }
+    .resource-row.is-draft .resource-row__title { color: #991b1b; }
+
+    .resource-row__icon { font-size: 0.85rem; flex-shrink: 0; }
+    .resource-row__name {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+
+    .resource-row__pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        font-size: 0.62rem;
+        font-weight: 800;
+        letter-spacing: 0.4px;
+        border-radius: 999px;
+        text-transform: uppercase;
+        flex-shrink: 0;
+    }
+    .resource-row.is-public .resource-row__pill {
+        background: #10b981; color: #fff;
+    }
+    .resource-row.is-draft .resource-row__pill {
+        background: #ef4444; color: #fff;
+    }
+
+    .resource-row__actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .resource-toggle-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        border-radius: 7px;
+        border: 1px solid;
+        cursor: pointer;
+        transition: all 0.18s ease;
+        flex: 1;
+        justify-content: center;
+    }
+    .resource-toggle-btn.is-on {
+        background: #fff;
+        color: #047857;
+        border-color: #10b981;
+    }
+    .resource-toggle-btn.is-on:hover {
+        background: #fef2f2;
+        color: #b91c1c;
+        border-color: #f87171;
+    }
+    .resource-toggle-btn.is-off {
+        background: #fff;
+        color: #b91c1c;
+        border-color: #ef4444;
+    }
+    .resource-toggle-btn.is-off:hover {
+        background: #ecfdf5;
+        color: #047857;
+        border-color: #10b981;
+    }
+    .resource-toggle-btn:disabled { opacity: 0.6; cursor: wait; }
+    .resource-toggle-btn i { font-size: 0.7rem; }
+
+    .resource-row__link {
+        display: inline-grid;
+        place-items: center;
+        width: 28px; height: 28px;
+        border-radius: 7px;
+        background: rgba(255, 255, 255, 0.7);
+        color: #475569;
+        text-decoration: none;
+        flex-shrink: 0;
+        transition: all 0.18s ease;
+    }
+    .resource-row.is-public .resource-row__link { color: #065f46; }
+    .resource-row.is-draft .resource-row__link { color: #991b1b; }
+    .resource-row__link:hover { background: #fff; transform: scale(1.05); }
+
+    /* Nút "Xem trước" inline trong session card */
+    .resource-row__preview-btn {
+        display: inline-grid;
+        place-items: center;
+        width: 28px; height: 28px;
+        border-radius: 7px;
+        background: rgba(255, 255, 255, 0.7);
+        color: #1d4ed8;
+        border: none;
+        flex-shrink: 0;
+        cursor: pointer;
+        transition: all 0.18s ease;
+    }
+    .resource-row__preview-btn:hover { background: #1d4ed8; color: #fff; transform: scale(1.05); }
+    .resource-row__preview-btn[aria-expanded="true"] { background: #1d4ed8; color: #fff; }
+    .resource-row__preview-btn[aria-expanded="true"] i { transform: scaleY(-1); }
+    .resource-row__preview-btn i { font-size: 0.78rem; transition: transform 0.18s ease; }
+
+    /* Vùng iframe khi expand collapse trong session row */
+    .resource-row__preview {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px dashed rgba(0, 0, 0, 0.1);
+    }
+    .resource-row__frame {
+        display: block;
+        width: 100%;
+        min-height: 420px;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        background: #fff;
+    }
+
+    /* ============ Sub-block "Nội dung & Tài nguyên" trong từng module (section ③) ============ */
+    .gv-mod-content {
+        margin-top: 14px;
+        padding: 14px 16px 16px;
+        background: linear-gradient(135deg, #fff7ed 0%, #ffffff 60%);
+        border: 1px solid #fed7aa;
+        border-left: 4px solid #ea580c;
+        border-radius: 12px;
+    }
+    .gv-mod-content__head {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        padding-bottom: 10px;
+        margin-bottom: 12px;
+        border-bottom: 1px dashed #fdba74;
+    }
+    .gv-mod-content__title {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.92rem;
+        font-weight: 800;
+        color: #9a3412;
+    }
+    .gv-mod-content__title i { color: #ea580c; font-size: 1rem; }
+    .gv-mod-content__sub {
+        font-size: 0.74rem;
+        font-weight: 600;
+        color: #c2410c;
+        margin-left: 4px;
+        opacity: 0.85;
+    }
+    .gv-mod-content__pills { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+    .gv-mod-content__pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 10px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        border-radius: 999px;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+    }
+    .gv-mod-content__pill i { font-size: 0.6rem; }
+    .gv-mod-content__pill--public { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+    .gv-mod-content__pill--draft  { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+    /* ============ Tài liệu khóa học (section ④ — accordion theo module) ============ */
+    .gv-tl-modules { display: flex; flex-direction: column; gap: 12px; }
+
+    .gv-tl-mod {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        overflow: hidden;
+        transition: box-shadow 0.18s ease;
+    }
+    .gv-tl-mod:hover { box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06); }
+    .gv-tl-mod.is-empty { opacity: 0.7; }
+
+    .gv-tl-mod__head {
+        all: unset;
+        cursor: pointer;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 14px;
+        width: 100%;
+        padding: 14px 18px;
+        background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+        border-bottom: 1px solid transparent;
+        transition: all 0.18s ease;
+    }
+    .gv-tl-mod__head:hover { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); }
+    .gv-tl-mod__head[aria-expanded="true"] { border-bottom-color: #fecaca; }
+
+    .gv-tl-mod__order {
+        flex-shrink: 0;
+        width: 42px; height: 42px;
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        color: #fff;
+        font-weight: 800;
+        font-size: 0.8rem;
+        border-radius: 11px;
+        display: grid;
+        place-items: center;
+        box-shadow: 0 4px 10px rgba(220, 38, 38, 0.28);
+    }
+
+    .gv-tl-mod__title {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+    }
+    .gv-tl-mod__name {
+        font-size: 1rem;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1.3;
+    }
+    .gv-tl-mod__meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        font-size: 0.74rem;
+    }
+    .gv-tl-mod__count {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 9px;
+        font-weight: 700;
+        border-radius: 999px;
+        letter-spacing: 0.2px;
+    }
+    .gv-tl-mod__count i { font-size: 0.6rem; }
+    .gv-tl-mod__count--public { background: #d1fae5; color: #065f46; }
+    .gv-tl-mod__count--draft  { background: #fee2e2; color: #991b1b; }
+    .gv-tl-mod__count--total  { background: #e0e7ff; color: #3730a3; }
+
+    .gv-tl-mod__chevron {
+        color: #94a3b8;
+        transition: transform 0.25s ease;
+        font-size: 0.85rem;
+    }
+    .gv-tl-mod__head[aria-expanded="true"] .gv-tl-mod__chevron {
+        transform: rotate(180deg);
+        color: #b91c1c;
+    }
+
+    .gv-tl-mod__body { padding: 12px 14px 14px; background: #f8fafc; }
+
+    .gv-tl-mod__empty {
+        padding: 28px 16px;
+        text-align: center;
+        color: #94a3b8;
+        background: #fff;
+        border: 1px dashed #cbd5e1;
+        border-radius: 12px;
+    }
+    .gv-tl-mod__empty i { font-size: 1.6rem; opacity: 0.5; display: block; margin-bottom: 6px; }
+    .gv-tl-mod__empty p { margin: 0; font-size: 0.84rem; }
+
+    .gv-tl-summary { margin-left: auto; display: inline-flex; gap: 8px; }
+    .gv-tl-summary__pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        font-size: 0.74rem;
+        font-weight: 800;
+        border-radius: 999px;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+    }
+    .gv-tl-summary__pill--public { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+    .gv-tl-summary__pill--draft  { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+    /* Wrap 2 cột */
+    .gv-tl-wrap {
+        display: grid;
+        grid-template-columns: 360px 1fr;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        overflow: hidden;
+        min-height: 540px;
+    }
+    @media (max-width: 991.98px) {
+        .gv-tl-wrap { grid-template-columns: 1fr; }
+    }
+
+    /* ===== Cột trái: danh sách ===== */
+    .gv-tl-listcol {
+        background: #f8fafc;
+        border-right: 1px solid #e2e8f0;
+        max-height: 720px;
+        overflow-y: auto;
+        padding: 10px;
+    }
+    .gv-tl-listcol::-webkit-scrollbar { width: 6px; }
+    .gv-tl-listcol::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+    .gv-tl-group {
+        margin-bottom: 14px;
+        padding: 8px 0 4px;
+    }
+    .gv-tl-group:last-child { margin-bottom: 0; }
+    .gv-tl-group__head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+    }
+    .gv-tl-group__meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+    }
+    .gv-tl-group__buoi {
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        color: #fff;
+        font-weight: 800;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        letter-spacing: 0.3px;
+    }
+    .gv-tl-group__date {
+        font-size: 0.78rem;
+        color: #64748b;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .gv-tl-group__date i { color: #94a3b8; }
+    .gv-tl-group__module-line {
+        font-size: 0.74rem;
+        color: #94a3b8;
+        margin: 0 2px 6px;
+    }
+    .gv-tl-group__module-line i { color: #cbd5e1; margin-right: 4px; }
+    .gv-tl-group__link {
+        width: 28px; height: 28px;
+        display: inline-grid;
+        place-items: center;
+        background: #fff;
+        border: 1px solid #fca5a5;
+        color: #b91c1c;
+        border-radius: 7px;
+        text-decoration: none;
+        font-size: 0.72rem;
+        transition: all 0.18s ease;
+    }
+    .gv-tl-group__link:hover { background: #b91c1c; color: #fff; }
+
+    .gv-tl-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    /* Item button */
+    .gv-tl-item {
+        all: unset;
+        cursor: pointer;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid;
+        background: #fff;
+        transition: all 0.16s ease;
+        align-items: center;
+    }
+    .gv-tl-item.is-public { border-color: #a7f3d0; }
+    .gv-tl-item.is-draft  { border-color: #fecaca; }
+    .gv-tl-item:hover { transform: translateX(2px); box-shadow: 0 4px 12px rgba(15, 23, 42, 0.07); }
+    .gv-tl-item.is-active.is-public {
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        border-color: #10b981;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.18);
+    }
+    .gv-tl-item.is-active.is-draft {
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        border-color: #ef4444;
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.18);
+    }
+
+    .gv-tl-item__icon {
+        width: 36px; height: 36px;
+        border-radius: 9px;
+        display: inline-grid;
+        place-items: center;
+        font-size: 0.95rem;
+        flex-shrink: 0;
+    }
+    .gv-tl-item.is-public .gv-tl-item__icon { background: rgba(16, 185, 129, 0.14); color: #047857; }
+    .gv-tl-item.is-draft .gv-tl-item__icon  { background: rgba(239, 68, 68, 0.14); color: #b91c1c; }
+
+    .gv-tl-item__main { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .gv-tl-item__title {
+        font-weight: 700;
+        font-size: 0.84rem;
+        color: #1e293b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .gv-tl-item__meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.7rem;
+    }
+    .gv-tl-item__pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 1px 7px;
+        font-size: 0.6rem;
+        font-weight: 800;
+        letter-spacing: 0.3px;
+        border-radius: 999px;
+        text-transform: uppercase;
+        color: #fff;
+    }
+    .gv-tl-item.is-public .gv-tl-item__pill { background: #10b981; }
+    .gv-tl-item.is-draft  .gv-tl-item__pill { background: #ef4444; }
+    .gv-tl-item__type { color: #94a3b8; font-weight: 600; }
+
+    /* ===== Cột phải: vùng preview ===== */
+    .gv-tl-preview-area {
+        position: relative;
+        background: #fff;
+        min-height: 540px;
+    }
+    .gv-tl-preview-pane {
+        display: none;
+        flex-direction: column;
+        height: 100%;
+    }
+    .gv-tl-preview-pane.is-active { display: flex; }
+
+    .gv-tl-preview-pane__head {
+        padding: 18px 22px 14px;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .gv-tl-preview-pane__title {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 6px;
+    }
+    .gv-tl-preview-pane__title i { color: #b91c1c; }
+    .gv-tl-preview-pane__sub {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.78rem;
+        color: #64748b;
+    }
+    .gv-tl-preview-pane__sub .text-silver { color: #cbd5e1; }
+    .gv-tl-preview-pane__sub i { color: #94a3b8; margin-right: 3px; }
+    .gv-tl-preview-pane__pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 9px;
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.3px;
+        border-radius: 999px;
+        text-transform: uppercase;
+        color: #fff;
+    }
+    .gv-tl-preview-pane__pill.is-on  { background: #10b981; }
+    .gv-tl-preview-pane__pill.is-off { background: #ef4444; }
+    .gv-tl-preview-pane__pill i { color: #fff !important; margin: 0 !important; }
+    .gv-tl-preview-pane__desc {
+        margin: 8px 0 0;
+        font-size: 0.85rem;
+        color: #475569;
+        line-height: 1.5;
+    }
+    .gv-tl-preview-pane__actions {
+        margin-top: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .gv-tl-preview-body {
+        flex: 1;
+        padding: 18px;
+        background: #f8fafc;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .gv-tl-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        font-size: 0.78rem;
+        font-weight: 800;
+        border-radius: 8px;
+        border: 1px solid;
+        cursor: pointer;
+        transition: all 0.18s ease;
+    }
+    .gv-tl-toggle.is-on  { background: #fff; color: #047857; border-color: #10b981; }
+    .gv-tl-toggle.is-on:hover  { background: #fef2f2; color: #b91c1c; border-color: #f87171; }
+    .gv-tl-toggle.is-off { background: #ef4444; color: #fff; border-color: #ef4444; }
+    .gv-tl-toggle.is-off:hover { background: #b91c1c; border-color: #b91c1c; }
+    .gv-tl-toggle:disabled { opacity: 0.6; cursor: wait; }
+
+    .gv-tl-preview__frame {
+        display: block;
+        width: 100%;
+        flex: 1;
+        min-height: 480px;
+        border: 1px solid #bfdbfe;
+        border-radius: 12px;
+        background: #fff;
+    }
+    .gv-tl-preview__video {
+        width: 100%;
+        max-height: 560px;
+        border-radius: 12px;
+        background: #000;
+    }
+    .gv-tl-preview__audio {
+        width: 100%;
+        border-radius: 12px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        padding: 8px;
+    }
+    .gv-tl-preview__img {
+        max-width: 100%;
+        max-height: 560px;
+        display: block;
+        margin: 0 auto;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+    }
+    .gv-tl-preview__fallback {
+        text-align: center;
+        padding: 40px 24px;
+        background: #fff;
+        border: 1px dashed #cbd5e1;
+        border-radius: 12px;
+        color: #64748b;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    @media (max-width: 991.98px) {
+        .gv-tl-listcol {
+            border-right: none;
+            border-bottom: 1px solid #e2e8f0;
+            max-height: 360px;
+        }
+        .gv-tl-preview__frame { min-height: 420px; }
+    }
+    @media (max-width: 768px) {
+        .gv-tl-summary { width: 100%; margin-left: 0; }
+        .gv-tl-preview-pane__sub { gap: 5px; }
+    }
 
     .collapse-icon {
         transition: transform 0.3s ease;
@@ -1922,6 +2887,24 @@ document.addEventListener('DOMContentLoaded', function() {
         line-height: 1.6;
         box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.01);
     }
+
+    /* ===== Override màu đề mục: đỏ ===== */
+    .gv-detail-page .apx-section-head {
+        background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+        border-color: #fecaca;
+        border-left-color: #dc2626;
+    }
+    .gv-detail-page .apx-section-num {
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+    }
+    .gv-detail-page .apx-section-title h2 i { color: #dc2626; }
+    .gv-detail-page .apx-meta-pill {
+        border-color: #fecaca;
+        color: #dc2626;
+    }
+    .gv-detail-page .apx-meta-pill strong { color: #b91c1c; }
+
     
     .session-note--soft {
         background: rgba(248, 250, 252, 0.6);
@@ -2133,6 +3116,144 @@ document.addEventListener('DOMContentLoaded', function() {
         line-height: 1.75;
         color: #334155;
         font-size: 0.92rem;
+    }
+
+    /* ===== Modal điểm danh — progress 2 bước ===== */
+    .dd-progress {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr auto;
+        align-items: center;
+        gap: 14px;
+        padding: 16px 20px;
+        background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+        border-bottom: 1px solid #bfdbfe;
+    }
+    .dd-progress__step {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        transition: all 0.18s ease;
+    }
+    .dd-progress__step.is-todo {
+        background: #fff;
+        border-color: #fcd34d;
+    }
+    .dd-progress__step.is-done {
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        border-color: #10b981;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.18);
+    }
+    .dd-progress__step.is-locked { opacity: 0.55; background: #f8fafc; }
+
+    .dd-progress__num {
+        flex-shrink: 0;
+        width: 32px; height: 32px;
+        border-radius: 50%;
+        display: grid; place-items: center;
+        background: #e2e8f0;
+        color: #64748b;
+        font-weight: 800;
+        font-size: 0.78rem;
+        transition: all 0.18s ease;
+    }
+    .dd-progress__step.is-todo .dd-progress__num { background: #fef3c7; color: #92400e; }
+    .dd-progress__step.is-done .dd-progress__num { background: #10b981; color: #fff; }
+    .dd-progress__num i { font-size: 0.78rem; }
+
+    .dd-progress__info { min-width: 0; }
+    .dd-progress__title {
+        font-weight: 800;
+        font-size: 0.86rem;
+        color: #0f172a;
+        line-height: 1.2;
+    }
+    .dd-progress__desc {
+        font-size: 0.74rem;
+        color: #64748b;
+        line-height: 1.3;
+    }
+
+    .dd-progress__check {
+        font-size: 1.1rem;
+        color: transparent;
+        transition: color 0.2s ease;
+    }
+    .dd-progress__step.is-done .dd-progress__check { color: #10b981; }
+
+    .dd-progress__bar {
+        width: 30px;
+        height: 2px;
+        background: #cbd5e1;
+        border-radius: 2px;
+    }
+
+    .dd-progress__overall {
+        padding: 8px 14px;
+        font-size: 0.78rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+    }
+    .dd-progress__overall.is-pending { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }
+    .dd-progress__overall.is-partial { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+    .dd-progress__overall.is-complete { background: #10b981; color: #fff; border: 1px solid #059669; box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
+    .dd-progress__overall span:first-child { font-size: 0.92rem; }
+
+    @media (max-width: 768px) {
+        .dd-progress { grid-template-columns: 1fr; }
+        .dd-progress__bar { display: none; }
+        .dd-progress__overall { justify-self: stretch; justify-content: center; }
+    }
+
+    /* ===== Mini progress 2 bước trong session card ===== */
+    .att-progress-mini {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 8px;
+        font-size: 0.7rem;
+    }
+    .att-progress-mini__step {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-weight: 700;
+        background: #f1f5f9;
+        color: #64748b;
+        border: 1px solid #e2e8f0;
+        flex: 1;
+        justify-content: center;
+    }
+    .att-progress-mini__step.is-done {
+        background: #d1fae5;
+        color: #065f46;
+        border-color: #6ee7b7;
+    }
+    .att-progress-mini__step.is-ready {
+        background: #fef3c7;
+        color: #92400e;
+        border-color: #fcd34d;
+    }
+    .att-progress-mini__step.is-locked { opacity: 0.5; }
+    .att-progress-mini__step i { font-size: 0.62rem; }
+    .att-progress-mini__sep {
+        flex-shrink: 0;
+        width: 14px;
+        height: 1px;
+        background: #cbd5e1;
     }
 </style>
 

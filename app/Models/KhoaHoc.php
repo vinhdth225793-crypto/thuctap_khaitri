@@ -436,6 +436,83 @@ class KhoaHoc extends Model
         return $this->trang_thai_hoc_tap === self::LEARNING_STATUS_HOAN_THANH;
     }
 
+    /**
+     * Tiến độ tổng theo BUỔI HỌC (dùng cho admin overview):
+     * - completed: buổi có timeline_trang_thai = 'hoan_thanh' (đã qua giờ kết thúc hoặc đã chốt)
+     * - total: tổng số buổi chưa huỷ
+     */
+    public function getSessionProgressSnapshotAttribute(): array
+    {
+        $sessions = $this->relationLoaded('lichHocs')
+            ? $this->lichHocs->where('trang_thai', '!=', 'huy')
+            : $this->lichHocs()->where('trang_thai', '!=', 'huy')->get();
+
+        $total = $sessions->count();
+        $completed = $sessions->filter(fn ($lich) => $lich->timeline_trang_thai === 'hoan_thanh')->count();
+        $inProgress = $sessions->filter(fn ($lich) => $lich->timeline_trang_thai === 'dang_hoc')->count();
+
+        return [
+            'total' => $total,
+            'completed' => $completed,
+            'in_progress' => $inProgress,
+            'remaining' => max(0, $total - $completed - $inProgress),
+            'percent' => $total > 0 ? (int) round(($completed / $total) * 100) : 0,
+        ];
+    }
+
+    /**
+     * Tiến độ điểm danh của 1 HỌC VIÊN trong khoá:
+     * - present: có mặt + vào trễ (vẫn dự buổi học)
+     * - absent: vắng mặt (đã có record nhưng vắng)
+     * - excused: có phép (vắng có lý do)
+     * - completed_sessions: buổi đã hoàn thành (timeline = hoan_thanh)
+     * - pending: buổi chưa có record / chưa diễn ra
+     * - percent: present / total (% buổi học viên thực sự dự)
+     * - completion_percent: (present + absent + excused) / total (% buổi đã diễn ra & đã được chấm)
+     */
+    public function studentSessionProgress(int $hocVienId): array
+    {
+        $sessions = $this->relationLoaded('lichHocs')
+            ? $this->lichHocs->where('trang_thai', '!=', 'huy')
+            : $this->lichHocs()->where('trang_thai', '!=', 'huy')->get();
+
+        $total = $sessions->count();
+        if ($total === 0) {
+            return [
+                'total' => 0, 'present' => 0, 'absent' => 0, 'excused' => 0,
+                'completed_sessions' => 0, 'pending' => 0,
+                'percent' => 0, 'completion_percent' => 0,
+                'attendance_percent' => 0, 'absent_percent' => 0,
+            ];
+        }
+
+        $sessionIds = $sessions->pluck('id');
+        $records = \App\Models\DiemDanh::query()
+            ->whereIn('lich_hoc_id', $sessionIds)
+            ->where('hoc_vien_id', $hocVienId)
+            ->get();
+
+        $present = $records->whereIn('trang_thai', ['co_mat', 'vao_tre'])->count();
+        $absent = $records->where('trang_thai', 'vang_mat')->count();
+        $excused = $records->where('trang_thai', 'co_phep')->count();
+        $completedSessions = $sessions->filter(fn ($lich) => $lich->timeline_trang_thai === 'hoan_thanh')->count();
+        $marked = $present + $absent + $excused;
+        $pending = max(0, $total - $marked);
+
+        return [
+            'total' => $total,
+            'present' => $present,
+            'absent' => $absent,
+            'excused' => $excused,
+            'completed_sessions' => $completedSessions,
+            'pending' => $pending,
+            'percent' => (int) round(($present / $total) * 100),
+            'completion_percent' => (int) round(($marked / $total) * 100),
+            'attendance_percent' => (int) round(($present / $total) * 100),
+            'absent_percent' => (int) round((($absent + $excused) / $total) * 100),
+        ];
+    }
+
     private function resolveLearningStatusLabel(string $status): string
     {
         return match ($status) {

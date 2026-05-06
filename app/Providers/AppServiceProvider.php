@@ -8,6 +8,7 @@ use App\Models\GiangVienDonXinNghi;
 use App\Models\ModuleHoc;
 use App\Models\PhieuXetDuyetKetQua;
 use App\Models\TaiKhoanChoPheDuyet;
+use App\Models\SystemSetting;
 use App\Models\TaiNguyenBuoiHoc;
 use App\Models\ThongBao;
 use App\Models\YeuCauHocVien;
@@ -36,6 +37,21 @@ class AppServiceProvider extends ServiceProvider
 
         // Phase 1 - Register ModuleHocObserver
         ModuleHoc::observe(ModuleHocObserver::class);
+
+        // Logo trang web (admin upload qua /admin/settings/contact) — dùng làm favicon trên mọi layout
+        View::composer('*', function ($view) {
+            static $siteLogo = null;
+            if ($siteLogo === null) {
+                try {
+                    $siteLogo = Schema::hasTable('system_settings')
+                        ? (string) SystemSetting::get('site_logo', '')
+                        : '';
+                } catch (\Throwable $e) {
+                    $siteLogo = '';
+                }
+            }
+            $view->with('siteLogo', $siteLogo);
+        });
 
         // Share số lượng tài khoản chờ phê duyệt tới tất cả views
         View::composer(['components.sidebar-admin', 'layouts.app'], function ($view) {

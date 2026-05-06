@@ -49,7 +49,7 @@
                 @else
                     <span class="dd-status-badge"><i class="fas fa-user-graduate"></i> Học viên</span>
                     @if($studentAttendances)
-                        <span class="dd-status-badge"><i class="fas fa-list"></i> {{ $studentAttendances->total() }} lượt</span>
+                        <span class="dd-status-badge"><i class="fas fa-calendar-day"></i> {{ $studentAttendances->total() }} buổi</span>
                     @endif
                 @endif
             </div>
@@ -412,7 +412,7 @@
                     </div>
                 </div>
                 <div class="apx-section-meta">
-                    <span class="apx-meta-pill"><strong>{{ $studentAttendances?->total() ?? 0 }}</strong> lượt</span>
+                    <span class="apx-meta-pill"><strong>{{ $studentAttendances?->total() ?? 0 }}</strong> buổi</span>
                 </div>
             </header>
 
@@ -424,93 +424,127 @@
                         <p>Hãy thử đổi bộ lọc hoặc chờ giảng viên ghi nhận điểm danh.</p>
                     </div>
                 @else
-                    <div class="table-responsive">
-                        <table class="table align-middle mb-0 dd-table">
-                            <thead>
-                                <tr>
-                                    <th class="ps-4">Khóa / Module</th>
-                                    <th>Buổi học</th>
-                                    <th>Học viên</th>
-                                    <th>Giảng viên phụ trách</th>
-                                    <th class="text-center">Trạng thái</th>
-                                    <th class="pe-4">Ghi chú</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($studentAttendances as $attendance)
-                                    @php
-                                        $schedule = $attendance->lichHoc;
-                                        $teacher = $schedule?->assigned_teacher;
-                                        $statusMap = [
-                                            'co_mat'   => ['label' => 'Có mặt',   'class' => 'is-success', 'icon' => 'fa-check-circle'],
-                                            'vao_tre'  => ['label' => 'Vào trễ',  'class' => 'is-warning', 'icon' => 'fa-clock'],
-                                            'vang_mat' => ['label' => 'Vắng mặt', 'class' => 'is-danger',  'icon' => 'fa-times-circle'],
-                                            'co_phep'  => ['label' => 'Có phép',  'class' => 'is-info',    'icon' => 'fa-circle-info'],
-                                        ];
-                                        $st = $statusMap[$attendance->trang_thai] ?? ['label' => ucfirst($attendance->trang_thai), 'class' => 'is-secondary', 'icon' => 'fa-circle-question'];
-
-                                        $idColor = ($attendance->hoc_vien_id ?? 0) % 6;
-                                        $gradients = [
-                                            'linear-gradient(135deg,#4361ee,#2f46c9)','linear-gradient(135deg,#16a34a,#15803d)',
-                                            'linear-gradient(135deg,#d97706,#b45309)','linear-gradient(135deg,#0ea5e9,#0369a1)',
-                                            'linear-gradient(135deg,#7c3aed,#6d28d9)','linear-gradient(135deg,#db2777,#be185d)',
-                                        ];
-                                        $hocVienTen = $attendance->hocVien?->nguoiDung?->ho_ten ?? 'N/A';
-                                        $initialHV = mb_strtoupper(mb_substr(trim($hocVienTen), 0, 1, 'UTF-8'), 'UTF-8');
-                                    @endphp
-                                    <tr>
-                                        <td class="ps-4">
-                                            <div class="dd-course">{{ $schedule?->khoaHoc?->ten_khoa_hoc ?? 'N/A' }}</div>
-                                            <div class="dd-module">
-                                                <i class="fas fa-cube"></i> {{ $schedule?->moduleHoc?->ten_module ?? 'N/A' }}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="dd-session">Buổi #{{ $schedule?->buoi_so ?? '--' }}</div>
-                                            <div class="dd-session-sub">
-                                                <i class="far fa-calendar-alt"></i>
-                                                {{ $schedule?->ngay_hoc?->format('d/m/Y') ?? '--' }}
-                                                @if($schedule?->gio_bat_dau)
-                                                    · {{ \Carbon\Carbon::parse($schedule->gio_bat_dau)->format('H:i') }}
-                                                @endif
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <div class="dd-avatar" style="background: {{ $gradients[$idColor] }};">{{ $initialHV ?: '?' }}</div>
-                                                <div>
-                                                    <div class="dd-name">{{ $hocVienTen }}</div>
-                                                    <div class="dd-name-sub">#{{ $attendance->hoc_vien_id }}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="dd-teacher">{{ $teacher?->nguoiDung?->ho_ten ?? '—' }}</div>
-                                            @if(!$teacher)
-                                                <div class="dd-teacher-warn"><i class="fas fa-triangle-exclamation"></i> Chưa gán</div>
-                                            @endif
-                                        </td>
-                                        <td class="text-center">
-                                            <span class="dd-status-pill {{ $st['class'] }}">
-                                                <i class="fas {{ $st['icon'] }}"></i> {{ $st['label'] }}
+                    @php
+                        $statusMap = [
+                            'co_mat'   => ['label' => 'Có mặt',   'class' => 'is-success', 'icon' => 'fa-check-circle'],
+                            'vao_tre'  => ['label' => 'Vào trễ',  'class' => 'is-warning', 'icon' => 'fa-clock'],
+                            'vang_mat' => ['label' => 'Vắng mặt', 'class' => 'is-danger',  'icon' => 'fa-times-circle'],
+                            'co_phep'  => ['label' => 'Có phép',  'class' => 'is-info',    'icon' => 'fa-circle-info'],
+                        ];
+                        $gradients = [
+                            'linear-gradient(135deg,#4361ee,#2f46c9)','linear-gradient(135deg,#16a34a,#15803d)',
+                            'linear-gradient(135deg,#d97706,#b45309)','linear-gradient(135deg,#0ea5e9,#0369a1)',
+                            'linear-gradient(135deg,#7c3aed,#6d28d9)','linear-gradient(135deg,#db2777,#be185d)',
+                        ];
+                    @endphp
+                    <div class="dd-sessions">
+                        @foreach($studentAttendances as $session)
+                            @php
+                                $items = $session->diemDanhs;
+                                $teacher = $session->assigned_teacher;
+                                $cnt = [
+                                    'co_mat' => $items->where('trang_thai', 'co_mat')->count(),
+                                    'vao_tre' => $items->where('trang_thai', 'vao_tre')->count(),
+                                    'vang_mat' => $items->where('trang_thai', 'vang_mat')->count(),
+                                    'co_phep' => $items->where('trang_thai', 'co_phep')->count(),
+                                ];
+                                $cnt['total'] = array_sum($cnt);
+                                $sesId = 'dd-ses-' . $session->id;
+                            @endphp
+                            <div class="dd-session-card">
+                                <button type="button"
+                                        class="dd-session-card__head"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#{{ $sesId }}"
+                                        aria-expanded="{{ $loop->first ? 'true' : 'false' }}"
+                                        aria-controls="{{ $sesId }}">
+                                    <span class="dd-session-card__num">B{{ $session->buoi_so ?? '?' }}</span>
+                                    <div class="dd-session-card__main">
+                                        <div class="dd-session-card__title">
+                                            {{ $session->khoaHoc?->ten_khoa_hoc ?? 'N/A' }}
+                                            <span class="dd-session-card__module">
+                                                <i class="fas fa-cube"></i> {{ $session->moduleHoc?->ten_module ?? 'N/A' }}
                                             </span>
-                                        </td>
-                                        <td class="pe-4">
-                                            @if($attendance->ghi_chu)
-                                                <div class="dd-note">
-                                                    <i class="fas fa-comment-dots"></i> {{ $attendance->ghi_chu }}
-                                                </div>
-                                            @else
-                                                <span class="text-muted small">—</span>
+                                        </div>
+                                        <div class="dd-session-card__meta">
+                                            <span><i class="far fa-calendar-alt"></i> {{ $session->ngay_hoc?->format('d/m/Y') ?? '—' }}</span>
+                                            @if($session->gio_bat_dau)
+                                                <span class="text-silver">·</span>
+                                                <span><i class="far fa-clock"></i> {{ \Carbon\Carbon::parse($session->gio_bat_dau)->format('H:i') }}</span>
                                             @endif
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                                            <span class="text-silver">·</span>
+                                            <span><i class="fas fa-chalkboard-teacher"></i> {{ $teacher?->nguoiDung?->ho_ten ?? '— Chưa gán' }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="dd-session-card__counters">
+                                        <span class="dd-cnt-pill is-success" title="Có mặt"><i class="fas fa-check-circle"></i> {{ $cnt['co_mat'] }}</span>
+                                        <span class="dd-cnt-pill is-warning" title="Vào trễ"><i class="fas fa-clock"></i> {{ $cnt['vao_tre'] }}</span>
+                                        <span class="dd-cnt-pill is-danger" title="Vắng mặt"><i class="fas fa-times-circle"></i> {{ $cnt['vang_mat'] }}</span>
+                                        <span class="dd-cnt-pill is-info" title="Có phép"><i class="fas fa-circle-info"></i> {{ $cnt['co_phep'] }}</span>
+                                        <span class="dd-cnt-total" title="Tổng học viên đã điểm danh">{{ $cnt['total'] }} HV</span>
+                                    </div>
+                                    <i class="fas fa-chevron-down dd-session-card__chevron"></i>
+                                </button>
+
+                                <div id="{{ $sesId }}" class="collapse {{ $loop->first ? 'show' : '' }}">
+                                    <div class="dd-session-card__body">
+                                        @if($items->isEmpty())
+                                            <div class="dd-empty-mini">Buổi này không có điểm danh nào khớp bộ lọc.</div>
+                                        @else
+                                            <div class="table-responsive">
+                                                <table class="table align-middle mb-0 dd-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th class="ps-4" style="width:40%">Học viên</th>
+                                                            <th class="text-center" style="width:20%">Trạng thái</th>
+                                                            <th class="pe-4">Ghi chú</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach($items->sortBy(fn ($a) => $a->hocVien?->nguoiDung?->ho_ten ?? '') as $attendance)
+                                                            @php
+                                                                $st = $statusMap[$attendance->trang_thai] ?? ['label' => ucfirst($attendance->trang_thai), 'class' => 'is-secondary', 'icon' => 'fa-circle-question'];
+                                                                $idColor = ($attendance->hoc_vien_id ?? 0) % 6;
+                                                                $hocVienTen = $attendance->hocVien?->nguoiDung?->ho_ten ?? 'N/A';
+                                                                $initialHV = mb_strtoupper(mb_substr(trim($hocVienTen), 0, 1, 'UTF-8'), 'UTF-8');
+                                                            @endphp
+                                                            <tr>
+                                                                <td class="ps-4">
+                                                                    <div class="d-flex align-items-center gap-2">
+                                                                        <div class="dd-avatar" style="background: {{ $gradients[$idColor] }};">{{ $initialHV ?: '?' }}</div>
+                                                                        <div>
+                                                                            <div class="dd-name">{{ $hocVienTen }}</div>
+                                                                            <div class="dd-name-sub">#{{ $attendance->hoc_vien_id }}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                                <td class="text-center">
+                                                                    <span class="dd-status-pill {{ $st['class'] }}">
+                                                                        <i class="fas {{ $st['icon'] }}"></i> {{ $st['label'] }}
+                                                                    </span>
+                                                                </td>
+                                                                <td class="pe-4">
+                                                                    @if($attendance->ghi_chu)
+                                                                        <div class="dd-note">
+                                                                            <i class="fas fa-comment-dots"></i> {{ $attendance->ghi_chu }}
+                                                                        </div>
+                                                                    @else
+                                                                        <span class="text-muted small">—</span>
+                                                                    @endif
+                                                                </td>
+                                                            </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
                     </div>
                     @if($studentAttendances->hasPages())
-                        <div class="dd-pagination">{{ $studentAttendances->links('pagination::bootstrap-5') }}</div>
+                        <div class="dd-pagination mt-3">{{ $studentAttendances->links('pagination::bootstrap-5') }}</div>
                     @endif
                 @endif
             </div>
@@ -526,6 +560,158 @@
     .dd-page .apx-section-title h2 i { color: #dc2626; }
     .dd-page .apx-meta-pill { border-color: #fecaca; color: #dc2626; }
     .dd-page .apx-meta-pill strong { color: #b91c1c; }
+
+    /* ===== Session accordion ===== */
+    .dd-sessions { display: flex; flex-direction: column; gap: 12px; }
+
+    .dd-session-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        overflow: hidden;
+        transition: box-shadow 0.18s ease;
+    }
+    .dd-session-card:hover { box-shadow: 0 6px 18px rgba(15, 23, 42, 0.07); }
+
+    .dd-session-card__head {
+        all: unset;
+        cursor: pointer;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto auto;
+        align-items: center;
+        gap: 14px;
+        width: 100%;
+        padding: 14px 18px;
+        background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+        border-bottom: 1px solid transparent;
+        transition: background 0.18s ease;
+    }
+    .dd-session-card__head:hover { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); }
+    .dd-session-card__head[aria-expanded="true"] { border-bottom-color: #fecaca; }
+
+    .dd-session-card__num {
+        flex-shrink: 0;
+        width: 44px; height: 44px;
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        color: #fff;
+        font-weight: 800;
+        font-size: 0.86rem;
+        border-radius: 11px;
+        display: grid; place-items: center;
+        box-shadow: 0 4px 10px rgba(220, 38, 38, 0.28);
+    }
+
+    .dd-session-card__main { min-width: 0; }
+    .dd-session-card__title {
+        font-size: 0.96rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 2px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+    }
+    .dd-session-card__module {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 10px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        background: #f1f5f9;
+        color: #475569;
+        border-radius: 999px;
+    }
+    .dd-session-card__module i { font-size: 0.6rem; color: #94a3b8; }
+
+    .dd-session-card__meta {
+        font-size: 0.78rem;
+        color: #64748b;
+        font-weight: 600;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+    }
+    .dd-session-card__meta i { color: #94a3b8; margin-right: 3px; }
+    .dd-session-card__meta .text-silver { color: #cbd5e1; }
+
+    .dd-session-card__counters {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .dd-cnt-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        font-size: 0.74rem;
+        font-weight: 800;
+        border-radius: 999px;
+        letter-spacing: 0.2px;
+        min-width: 48px;
+        justify-content: center;
+    }
+    .dd-cnt-pill i { font-size: 0.62rem; }
+    .dd-cnt-pill.is-success { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+    .dd-cnt-pill.is-warning { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+    .dd-cnt-pill.is-danger  { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+    .dd-cnt-pill.is-info    { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+
+    .dd-cnt-total {
+        background: #1e293b;
+        color: #fff;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
+    .dd-session-card__chevron {
+        color: #94a3b8;
+        font-size: 0.85rem;
+        transition: transform 0.25s ease;
+    }
+    .dd-session-card__head[aria-expanded="true"] .dd-session-card__chevron {
+        transform: rotate(180deg);
+        color: #b91c1c;
+    }
+
+    .dd-session-card__body {
+        background: #f8fafc;
+        padding: 6px 0 0;
+    }
+    .dd-session-card__body .dd-table { background: transparent; }
+    .dd-session-card__body .dd-table thead th {
+        background: #fef2f2;
+        font-size: 0.74rem;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: #b91c1c;
+        font-weight: 800;
+    }
+    .dd-session-card__body .dd-table tbody tr { background: #fff; }
+    .dd-session-card__body .dd-table tbody tr:nth-child(even) { background: #fafbfc; }
+
+    .dd-empty-mini {
+        padding: 24px;
+        text-align: center;
+        color: #94a3b8;
+        font-style: italic;
+        font-size: 0.86rem;
+    }
+
+    @media (max-width: 991.98px) {
+        .dd-session-card__head { grid-template-columns: auto 1fr; row-gap: 10px; }
+        .dd-session-card__counters { grid-column: 1 / -1; }
+        .dd-session-card__chevron { grid-column: 1 / -1; text-align: center; }
+    }
 
     .dd-welcome { background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #4361ee 100%) !important; box-shadow: 0 16px 36px rgba(29,78,216,0.22) !important; }
     .dd-tag-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }

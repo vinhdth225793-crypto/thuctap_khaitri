@@ -104,25 +104,32 @@ class AttendanceReportService
 
     public function studentAttendanceReport(array $filters = []): LengthAwarePaginator
     {
-        return DiemDanh::query()
+        // Gom lọn theo buổi học: paginate theo LichHoc thay vì theo từng dòng diem_danh
+        $statusFilter = $filters['trang_thai'] ?? null;
+
+        return LichHoc::query()
+            ->whereHas('diemDanhs', function ($q) use ($filters, $statusFilter) {
+                if (filled($statusFilter)) {
+                    $q->where('trang_thai', (string) $statusFilter);
+                }
+            })
             ->with([
-                'hocVien.nguoiDung',
-                'lichHoc.khoaHoc',
-                'lichHoc.giangVien.nguoiDung',
-                'lichHoc.moduleHoc.phanCongGiangViens.giangVien.nguoiDung',
+                'khoaHoc',
+                'moduleHoc.phanCongGiangViens.giangVien.nguoiDung',
+                'giangVien.nguoiDung',
+                'diemDanhs' => function ($q) use ($statusFilter) {
+                    $q->with('hocVien.nguoiDung');
+                    if (filled($statusFilter)) {
+                        $q->where('trang_thai', (string) $statusFilter);
+                    }
+                },
             ])
-            ->when(filled($filters['khoa_hoc_id'] ?? null), fn ($query) => $query->whereHas('lichHoc', fn ($scheduleQuery) => $scheduleQuery->where('khoa_hoc_id', (int) $filters['khoa_hoc_id'])))
-            ->when(filled($filters['lich_hoc_id'] ?? null), fn ($query) => $query->where('lich_hoc_id', (int) $filters['lich_hoc_id']))
-            ->when(filled($filters['ngay_hoc'] ?? null), fn ($query) => $query->whereHas('lichHoc', fn ($scheduleQuery) => $scheduleQuery->whereDate('ngay_hoc', $filters['ngay_hoc'])))
-            ->when(filled($filters['trang_thai'] ?? null), fn ($query) => $query->where('trang_thai', (string) $filters['trang_thai']))
-            ->orderByDesc(
-                LichHoc::query()
-                    ->select('ngay_hoc')
-                    ->whereColumn('lich_hoc.id', 'diem_danh.lich_hoc_id')
-                    ->limit(1)
-            )
-            ->orderByDesc('updated_at')
-            ->paginate(15)
+            ->when(filled($filters['khoa_hoc_id'] ?? null), fn ($query) => $query->where('khoa_hoc_id', (int) $filters['khoa_hoc_id']))
+            ->when(filled($filters['lich_hoc_id'] ?? null), fn ($query) => $query->where('id', (int) $filters['lich_hoc_id']))
+            ->when(filled($filters['ngay_hoc'] ?? null), fn ($query) => $query->whereDate('ngay_hoc', $filters['ngay_hoc']))
+            ->orderByDesc('ngay_hoc')
+            ->orderByDesc('gio_bat_dau')
+            ->paginate(10)
             ->withQueryString();
     }
 

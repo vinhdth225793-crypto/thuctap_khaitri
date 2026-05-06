@@ -28,5 +28,12 @@ return [
             'web_sdk_enabled' => false,
             'default_launch_mode' => env('LIVE_ROOM_GOOGLE_MEET_LAUNCH_MODE', 'redirect'),
         ],
+        'jitsi' => [
+            'label' => 'Jitsi Meet (nhúng vào trang)',
+            'supports_embed' => true,
+            'web_sdk_enabled' => true,
+            'default_launch_mode' => 'embed',
+            'server' => env('LIVE_ROOM_JITSI_SERVER', 'meet.jit.si'),
+        ],
     ],
 ];

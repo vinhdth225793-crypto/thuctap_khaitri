@@ -29,6 +29,10 @@ class NganHangCauHoi extends Model
 
     public const TRANG_THAI_TAM_AN = 'tam_an';
 
+    public const PHAM_VI_RIENG_TU = 'rieng_tu';
+
+    public const PHAM_VI_CONG_BO = 'cong_bo';
+
     protected $table = 'ngan_hang_cau_hoi';
 
     protected $fillable = [
@@ -47,11 +51,15 @@ class NganHangCauHoi extends Model
         'giai_thich_dap_an',
         'trang_thai',
         'co_the_tai_su_dung',
+        'pham_vi',
+        'cong_bo_luc',
+        'cong_bo_boi_id',
     ];
 
     protected $casts = [
         'diem_mac_dinh' => 'decimal:2',
         'co_the_tai_su_dung' => 'boolean',
+        'cong_bo_luc' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -72,6 +80,35 @@ class NganHangCauHoi extends Model
     public function scopeSanSang($query)
     {
         return $query->where('trang_thai', self::TRANG_THAI_SAN_SANG);
+    }
+
+    /**
+     * Câu hỏi của một giảng viên cụ thể.
+     */
+    public function scopeCuaToi($query, int $userId)
+    {
+        return $query->where('nguoi_tao_id', $userId);
+    }
+
+    /**
+     * Câu hỏi đã được admin công bố cho toàn bộ giảng viên.
+     */
+    public function scopeDaCongBo($query)
+    {
+        return $query->where('pham_vi', self::PHAM_VI_CONG_BO);
+    }
+
+    /**
+     * Phạm vi giảng viên có thể truy cập:
+     *   - câu hỏi của chính mình (mọi pham_vi)
+     *   - HOẶC câu hỏi đã công bố
+     */
+    public function scopeTruyCapBoiGiangVien($query, int $userId)
+    {
+        return $query->where(function ($q) use ($userId) {
+            $q->where('nguoi_tao_id', $userId)
+                ->orWhere('pham_vi', self::PHAM_VI_CONG_BO);
+        });
     }
 
     public function scopeDungChoFlowRaDeHienTai($query)
@@ -115,6 +152,34 @@ class NganHangCauHoi extends Model
     public function nguoiTao(): BelongsTo
     {
         return $this->belongsTo(NguoiDung::class, 'nguoi_tao_id', 'ma_nguoi_dung');
+    }
+
+    public function nguoiCongBo(): BelongsTo
+    {
+        return $this->belongsTo(NguoiDung::class, 'cong_bo_boi_id', 'ma_nguoi_dung');
+    }
+
+    public function getPhamViLabelAttribute(): string
+    {
+        return match ($this->pham_vi) {
+            self::PHAM_VI_CONG_BO => 'Đã công bố',
+            self::PHAM_VI_RIENG_TU => 'Riêng tư',
+            default => 'Riêng tư',
+        };
+    }
+
+    public function getPhamViColorAttribute(): string
+    {
+        return match ($this->pham_vi) {
+            self::PHAM_VI_CONG_BO => 'success',
+            self::PHAM_VI_RIENG_TU => 'secondary',
+            default => 'secondary',
+        };
+    }
+
+    public function getIsCongBoAttribute(): bool
+    {
+        return $this->pham_vi === self::PHAM_VI_CONG_BO;
     }
 
     public function dapAns(): HasMany

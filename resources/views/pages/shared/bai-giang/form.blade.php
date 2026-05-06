@@ -30,11 +30,41 @@
     $submitPrimaryLabel = $isAdmin ? 'Lưu và duyệt ngay' : 'Lưu và gửi duyệt';
 @endphp
 
-<div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col-md-10 mx-auto">
-            <h2 class="fw-bold mb-1">{{ $pageTitle }}</h2>
-            <p class="text-muted mb-0">{{ $pageSubtitle }}</p>
+<div class="container-fluid admin-page-x bgform-page">
+    {{-- Welcome banner xanh dương --}}
+    <div class="apx-welcome bgform-welcome">
+        <div class="apx-welcome-icon">
+            <i class="fas {{ $selectedLoai === 'live' ? 'fa-broadcast-tower' : 'fa-chalkboard-teacher' }}"></i>
+        </div>
+        <div class="apx-welcome-text">
+            <div class="bgform-tag-row">
+                <span class="bgform-loai-badge">
+                    <i class="fas {{ $baiGiang ? 'fa-pen-to-square' : 'fa-plus' }}"></i>
+                    {{ $baiGiang ? 'CHỈNH SỬA BÀI GIẢNG' : 'TẠO BÀI GIẢNG MỚI' }}
+                </span>
+                @if($selectedLichHoc)
+                    <span class="bgform-status-badge">
+                        <i class="far fa-calendar-alt"></i>
+                        Buổi {{ $selectedLichHoc->buoi_so ?: '#' }} · {{ $selectedLichHoc->ngay_hoc?->format('d/m/Y') ?? '—' }}
+                    </span>
+                @endif
+                <span class="bgform-status-badge">
+                    <i class="fas fa-tag"></i>
+                    {{ ['video'=>'Video','tai_lieu'=>'Tài liệu','bai_doc'=>'Bài đọc','bai_tap'=>'Bài tập','hon_hop'=>'Hỗn hợp','live'=>'Phòng học live'][$selectedLoai] ?? $selectedLoai }}
+                </span>
+                @if($baiGiang && $baiGiang->trang_thai_duyet)
+                    <span class="bgform-status-pill is-{{ $baiGiang->trang_thai_duyet === 'da_duyet' ? 'success' : ($baiGiang->trang_thai_duyet === 'cho_duyet' ? 'warning' : 'danger') }}">
+                        <i class="fas fa-circle"></i> {{ $baiGiang->trang_thai_duyet_label ?? $baiGiang->trang_thai_duyet }}
+                    </span>
+                @endif
+            </div>
+            <h4>{{ $pageTitle }}</h4>
+            <p>{{ $pageSubtitle }}</p>
+        </div>
+        <div class="apx-welcome-cta">
+            <a href="{{ $indexRoute }}" class="apx-view-toggle">
+                <i class="fas fa-arrow-left"></i> <span>Danh sách</span>
+            </a>
         </div>
     </div>
 
@@ -360,6 +390,160 @@
         </div>
     </div>
 </div>
+
+@include('pages.admin.partials._admin-page-styles')
+
+<style>
+    /* ===== Bai-giang form — welcome banner overrides + đề mục đỏ ===== */
+    .bgform-page { padding-top: 8px; }
+
+    .bgform-welcome { gap: 18px; }
+    .bgform-welcome .apx-welcome-icon { width: 64px; height: 64px; font-size: 1.6rem; }
+
+    .bgform-tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .bgform-loai-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        background: #fff;
+        color: #1d4ed8;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.4px;
+        border-radius: 999px;
+        text-transform: uppercase;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+    }
+    .bgform-loai-badge i { font-size: 0.7rem; }
+
+    .bgform-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 11px;
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        color: #fff;
+        font-size: 0.74rem;
+        font-weight: 700;
+        border-radius: 999px;
+        backdrop-filter: blur(6px);
+    }
+    .bgform-status-badge i { font-size: 0.7rem; opacity: 0.95; }
+
+    .bgform-status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 11px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        border-radius: 999px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    .bgform-status-pill i { font-size: 0.5rem; }
+    .bgform-status-pill.is-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+    .bgform-status-pill.is-warning { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+    .bgform-status-pill.is-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+    /* Đề mục đỏ override + card-header style cho form */
+    .bgform-page .card { border-radius: 14px; transition: box-shadow 0.2s ease; }
+    .bgform-page .card:hover { box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08) !important; }
+
+    .bgform-page .card-header {
+        background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%) !important;
+        border: 1px solid #fecaca;
+        border-left: 4px solid #dc2626;
+        border-radius: 10px 10px 0 0;
+        padding: 12px 18px;
+    }
+    .bgform-page .card-header strong {
+        color: #b91c1c;
+        font-weight: 800;
+        font-size: 0.95rem;
+        letter-spacing: 0.2px;
+    }
+    .bgform-page .card-header strong.text-primary {
+        color: #b91c1c !important;
+    }
+
+    /* Card phê duyệt (admin) — đổi accent đỏ */
+    .bgform-page .border-primary { border-color: #dc2626 !important; }
+
+    /* Form labels nhấn nhẹ */
+    .bgform-page .form-label.fw-bold {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #1f2937;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        margin-bottom: 6px;
+    }
+
+    .bgform-page .form-control,
+    .bgform-page .form-select {
+        border-radius: 10px;
+        border: 1px solid #e5e7eb;
+        padding: 9px 13px;
+        font-size: 0.9rem;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .bgform-page .form-control:focus,
+    .bgform-page .form-select:focus {
+        border-color: #dc2626;
+        box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+    }
+
+    /* Card sticky bên phải (Phân công + buttons) */
+    .bgform-page .col-lg-4 .card.bg-primary {
+        background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 60%, #4361ee 100%) !important;
+        border-radius: 14px;
+        box-shadow: 0 10px 26px rgba(29, 78, 216, 0.22);
+    }
+    .bgform-page .col-lg-4 .card.bg-primary .btn-light {
+        color: #1d4ed8;
+        font-weight: 800;
+        border-radius: 10px;
+        padding: 10px 14px;
+    }
+    .bgform-page .col-lg-4 .card.bg-primary .btn-outline-light {
+        border-radius: 10px;
+        font-weight: 700;
+        padding: 10px 14px;
+    }
+
+    /* Tài nguyên phụ checkbox cards */
+    .bgform-page .row.g-2 label.card.bg-light {
+        border: 1px solid #e5e7eb !important;
+        border-radius: 10px !important;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .bgform-page .row.g-2 label.card.bg-light:hover {
+        border-color: #dc2626 !important;
+        background: #fef2f2 !important;
+    }
+    .bgform-page .row.g-2 label.card.bg-light:has(input:checked) {
+        border-color: #dc2626 !important;
+        background: #fee2e2 !important;
+        box-shadow: 0 4px 10px rgba(220, 38, 38, 0.12);
+    }
+
+    @media (max-width: 768px) {
+        .bgform-welcome { flex-direction: column; align-items: flex-start; padding: 18px 20px; }
+        .bgform-welcome .apx-welcome-cta { width: 100%; }
+        .bgform-tag-row { gap: 6px; }
+    }
+</style>
 
 @push('scripts')
 <script>

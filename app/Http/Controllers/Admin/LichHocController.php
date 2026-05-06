@@ -344,6 +344,9 @@ class LichHocController extends Controller
         }
 
         $date = Carbon::parse($validated['ngay_hoc']);
+        // module_hoc_id không nằm trong UpdateAdminScheduleRequest (module gắn cố định
+        // theo lịch học cũ), inject từ $lichHoc để prepareSchedulePayload không lỗi key.
+        $validated['module_hoc_id'] = $lichHoc->module_hoc_id;
         $data = $this->prepareSchedulePayload($validated, $khoaHocId, $date, $lichHoc->buoi_so);
         $data = $this->preserveOnlineLinkSourceForUpdate($lichHoc, $data);
         $data['trang_thai'] = $validated['trang_thai'];

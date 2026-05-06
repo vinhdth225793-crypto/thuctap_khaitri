@@ -165,6 +165,10 @@ class NganHangCauHoiController extends Controller
             $query->where('trang_thai', (string) $request->string('trang_thai'));
         }
 
+        if ($request->filled('pham_vi')) {
+            $query->where('pham_vi', (string) $request->string('pham_vi'));
+        }
+
         if ($request->filled('co_the_tai_su_dung')) {
             $query->where('co_the_tai_su_dung', $request->string('co_the_tai_su_dung') === '1');
         }
@@ -401,6 +405,114 @@ class NganHangCauHoiController extends Controller
         ]);
 
         return back()->with('success', 'Đã cập nhật cờ tái sử dụng của câu hỏi.');
+    }
+
+    /**
+     * Bulk: Admin công bố / thu hồi nhiều câu hỏi cùng lúc.
+     * Hỗ trợ:
+     *   - ids[] = danh sách ID cụ thể
+     *   - scope = 'filtered' → áp dụng cho toàn bộ kết quả filter hiện tại
+     */
+    public function bulkTogglePublic(Request $request)
+    {
+        abort_unless(auth()->user()?->isAdmin(), 403);
+
+        $action = $request->input('action'); // publish | unpublish
+        $scope = $request->input('scope', 'ids'); // ids | filtered
+        $ids = $request->input('ids', []);
+
+        if (! in_array($action, ['publish', 'unpublish'], true)) {
+            return back()->with('error', 'Hành động không hợp lệ.');
+        }
+
+        $query = NganHangCauHoi::query();
+
+        if ($scope === 'filtered') {
+            // Áp dụng cùng filter của index() để chọn tất cả câu hỏi khớp filter hiện tại
+            if ($request->filled('khoa_hoc_id')) {
+                $query->where('khoa_hoc_id', $request->integer('khoa_hoc_id'));
+            }
+            if ($request->filled('module_hoc_id')) {
+                $query->where('module_hoc_id', $request->integer('module_hoc_id'));
+            }
+            if ($request->filled('loai_cau_hoi')) {
+                $query->where('loai_cau_hoi', (string) $request->string('loai_cau_hoi'));
+            }
+            if ($request->filled('muc_do')) {
+                $query->where('muc_do', (string) $request->string('muc_do'));
+            }
+            if ($request->filled('trang_thai')) {
+                $query->where('trang_thai', (string) $request->string('trang_thai'));
+            }
+            if ($request->filled('pham_vi')) {
+                $query->where('pham_vi', (string) $request->string('pham_vi'));
+            }
+            if ($request->filled('search')) {
+                $search = trim((string) $request->string('search'));
+                $query->where(function ($q) use ($search) {
+                    $q->where('noi_dung', 'like', "%{$search}%")
+                        ->orWhere('ma_cau_hoi', 'like', "%{$search}%");
+                });
+            }
+        } else {
+            if (! is_array($ids) || empty($ids)) {
+                return back()->with('error', 'Bạn chưa chọn câu hỏi nào.');
+            }
+            $query->whereIn('id', array_map('intval', $ids));
+        }
+
+        if ($action === 'publish') {
+            $count = $query->update([
+                'pham_vi' => NganHangCauHoi::PHAM_VI_CONG_BO,
+                'cong_bo_luc' => now(),
+                'cong_bo_boi_id' => auth()->user()->id,
+            ]);
+            return back()->with('success', "Đã công bố {$count} câu hỏi cho mọi giảng viên.");
+        }
+
+        $count = $query->update([
+            'pham_vi' => NganHangCauHoi::PHAM_VI_RIENG_TU,
+            'cong_bo_luc' => null,
+            'cong_bo_boi_id' => null,
+        ]);
+        return back()->with('success', "Đã thu hồi công bố {$count} câu hỏi.");
+    }
+
+    /**
+     * Admin bật/tắt cờ "công bố" — câu hỏi công bố tất cả giảng viên đều thấy & dùng được.
+     */
+    public function togglePublic($id)
+    {
+        abort_unless(auth()->user()?->isAdmin(), 403, 'Chỉ admin mới có quyền công bố câu hỏi.');
+
+        $cauHoi = NganHangCauHoi::findOrFail($id);
+
+        if ($cauHoi->is_cong_bo) {
+            $cauHoi->update([
+                'pham_vi' => NganHangCauHoi::PHAM_VI_RIENG_TU,
+                'cong_bo_luc' => null,
+                'cong_bo_boi_id' => null,
+            ]);
+            $message = 'Đã thu hồi công bố — câu hỏi trở về riêng tư.';
+        } else {
+            $cauHoi->update([
+                'pham_vi' => NganHangCauHoi::PHAM_VI_CONG_BO,
+                'cong_bo_luc' => now(),
+                'cong_bo_boi_id' => auth()->user()->id,
+            ]);
+            $message = 'Đã công bố — tất cả giảng viên đều có thể dùng câu hỏi này.';
+        }
+
+        if (request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'is_cong_bo' => $cauHoi->is_cong_bo,
+                'pham_vi_label' => $cauHoi->pham_vi_label,
+            ]);
+        }
+
+        return back()->with('success', $message);
     }
 
     public function downloadTemplate()

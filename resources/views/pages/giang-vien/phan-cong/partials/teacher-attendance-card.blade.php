@@ -29,6 +29,23 @@
         'is_finalized' => in_array($lich->trang_thai_bao_cao, ['da_bao_cao', 'da_bao_cao_muon'], true),
         'status_hint' => 'Giảng viên có thể cập nhật điểm danh nhiều lần trong buổi học rồi chốt lại khi hoàn tất.',
     ];
+
+    // Override label/color theo logic 2-step mới: chỉ "Hoàn thành" khi đủ cả 2 bước
+    $_step1Done = ($studentAttendanceStatus['marked_students'] ?? 0) > 0;
+    $_step2Done = (bool) ($studentAttendanceStatus['is_finalized'] ?? false);
+    if ($_step1Done && $_step2Done) {
+        $studentAttendanceStatus['label'] = 'Hoàn thành ĐD';
+        $studentAttendanceStatus['color'] = 'success';
+    } elseif ($_step2Done && !$_step1Done) {
+        $studentAttendanceStatus['label'] = 'Đã chốt — thiếu ĐD';
+        $studentAttendanceStatus['color'] = 'danger';
+    } elseif ($_step1Done) {
+        $studentAttendanceStatus['label'] = 'Cần chốt (1/2)';
+        $studentAttendanceStatus['color'] = 'warning';
+    } else {
+        $studentAttendanceStatus['label'] = 'Chưa điểm danh';
+        $studentAttendanceStatus['color'] = 'secondary';
+    }
 @endphp
 
 <div class="col-lg-5">
@@ -69,15 +86,35 @@
                     </button>
                 </form>
             @endif
-            @if($studentAttendanceStatus['is_finalized'])
-                <button type="button" class="btn btn-sm btn-success fw-bold btn-diem-danh px-3 py-2 flex-grow-1 shadow-sm" data-id="{{ $lich->id }}" data-buoi="{{ $lich->buoi_so }}">
-                    <i class="fas fa-check-double me-1"></i> Đã điểm danh HV
+            @php
+                $ddStep1Done = ($studentAttendanceStatus['marked_students'] ?? 0) > 0;
+                $ddStep2Done = (bool) ($studentAttendanceStatus['is_finalized'] ?? false);
+                $ddFullyDone = $ddStep1Done && $ddStep2Done;
+            @endphp
+            @if($ddFullyDone)
+                <button type="button" class="btn btn-sm btn-success fw-bold btn-diem-danh px-3 py-2 flex-grow-1 shadow-sm" data-id="{{ $lich->id }}" data-buoi="{{ $lich->buoi_so }}" title="Hoàn thành điểm danh — có thể xem lại / chỉnh sửa">
+                    <i class="fas fa-check-double me-1"></i> Hoàn thành ĐD
+                </button>
+            @elseif($ddStep1Done)
+                <button type="button" class="btn btn-sm btn-warning fw-bold btn-diem-danh px-3 py-2 flex-grow-1 shadow-sm" data-id="{{ $lich->id }}" data-buoi="{{ $lich->buoi_so }}" title="Đã điểm danh HV nhưng chưa chốt báo cáo">
+                    <i class="fas fa-hourglass-half me-1"></i> Cần chốt (1/2)
                 </button>
             @else
-                <button type="button" class="btn btn-sm btn-outline-primary fw-bold btn-diem-danh px-3 py-2" data-id="{{ $lich->id }}" data-buoi="{{ $lich->buoi_so }}">
-                    <i class="fas fa-users me-1"></i> Điểm danh HV
+                <button type="button" class="btn btn-sm btn-outline-primary fw-bold btn-diem-danh px-3 py-2 flex-grow-1" data-id="{{ $lich->id }}" data-buoi="{{ $lich->buoi_so }}">
+                    <i class="fas fa-users me-1"></i> Điểm danh HV (0/2)
                 </button>
             @endif
+        </div>
+
+        {{-- Mini progress 2 bước --}}
+        <div class="att-progress-mini mb-2">
+            <span class="att-progress-mini__step {{ $ddStep1Done ? 'is-done' : '' }}" title="Bước 1: Điểm danh học viên">
+                <i class="fas fa-{{ $ddStep1Done ? 'circle-check' : 'circle' }}"></i> ĐD học viên
+            </span>
+            <span class="att-progress-mini__sep"></span>
+            <span class="att-progress-mini__step {{ $ddStep2Done ? 'is-done' : ($ddStep1Done ? 'is-ready' : 'is-locked') }}" title="Bước 2: Chốt báo cáo">
+                <i class="fas fa-{{ $ddStep2Done ? 'circle-check' : 'circle' }}"></i> Chốt báo cáo
+            </span>
         </div>
 
         <div class="p-2 rounded bg-white bg-opacity-50 border border-white">

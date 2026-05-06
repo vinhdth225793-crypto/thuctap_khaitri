@@ -173,12 +173,12 @@
     :root {
         --sb-brand: #4361ee;
         --sb-brand-dark: #2f46c9;
-        --sb-bg: #ffffff;
+        --sb-bg: #eff6ff;
         --sb-text: #475569;
         --sb-text-strong: #0f172a;
         --sb-muted: #94a3b8;
-        --sb-line: #f1f5f9;
-        --sb-soft: #f8fafc;
+        --sb-line: #dbeafe;
+        --sb-soft: #dbeafe;
         --sb-active-grad: linear-gradient(135deg, #4361ee 0%, #2f46c9 100%);
     }
 

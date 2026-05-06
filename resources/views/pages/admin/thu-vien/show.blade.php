@@ -101,43 +101,18 @@
                 </header>
 
                 <div class="atvs-preview">
-                    @if($taiNguyen->loai_tai_nguyen === 'video' && !$taiNguyen->is_external && $taiNguyen->file_url)
-                        <video controls preload="metadata" class="atvs-media">
-                            <source src="{{ $taiNguyen->file_url }}">
-                        </video>
-                    @elseif($youtubeId)
-                        <iframe src="https://www.youtube.com/embed/{{ $youtubeId }}" allowfullscreen frameborder="0" class="atvs-media"></iframe>
-                    @elseif($taiNguyen->loai_tai_nguyen === 'image' && $taiNguyen->file_url)
-                        <img src="{{ $taiNguyen->file_url }}" alt="{{ $taiNguyen->tieu_de }}" class="atvs-media">
-                    @elseif($taiNguyen->loai_tai_nguyen === 'pdf' && $taiNguyen->file_url)
-                        <iframe src="{{ $taiNguyen->file_url }}" class="atvs-media atvs-pdf" frameborder="0"></iframe>
-                    @elseif($taiNguyen->loai_tai_nguyen === 'audio' && $taiNguyen->file_url)
-                        <div class="atvs-fallback audio-tone">
-                            <i class="fas fa-volume-high"></i>
-                            <h5>Tài nguyên âm thanh</h5>
-                            <audio controls preload="metadata" class="atvs-audio">
-                                <source src="{{ $taiNguyen->file_url }}">
-                            </audio>
-                        </div>
-                    @elseif($taiNguyen->is_external && !empty($taiNguyen->link_ngoai))
-                        <div class="atvs-fallback link-tone">
-                            <i class="fas fa-link"></i>
-                            <h5>Liên kết ngoài</h5>
-                            <p>{{ $sourceText }}</p>
-                            <a href="{{ $taiNguyen->link_ngoai }}" target="_blank" rel="noopener" class="atvs-fallback-link">
-                                <i class="fas fa-up-right-from-square"></i> Mở liên kết
-                            </a>
-                        </div>
+                    @if($taiNguyen->file_url || $taiNguyen->is_external)
+                        <iframe
+                            src="{{ route('admin.thu-vien.preview', $taiNguyen->id) }}"
+                            class="atvs-media atvs-pdf"
+                            frameborder="0"
+                            title="Xem trước {{ $taiNguyen->tieu_de }}">
+                        </iframe>
                     @else
                         <div class="atvs-fallback">
                             <i class="fas {{ $loaiBadge['icon'] }}"></i>
                             <h5>{{ $taiNguyen->loai_label }}</h5>
-                            <p>Không có bản xem trước cho loại tài nguyên này. Vui lòng tải file để kiểm tra.</p>
-                            @if($taiNguyen->file_url)
-                                <a href="{{ $taiNguyen->file_url }}" target="_blank" rel="noopener" class="atvs-fallback-link">
-                                    <i class="fas fa-download"></i> Tải xuống
-                                </a>
-                            @endif
+                            <p>Tài nguyên này chưa có file đính kèm hoặc liên kết.</p>
                         </div>
                     @endif
 

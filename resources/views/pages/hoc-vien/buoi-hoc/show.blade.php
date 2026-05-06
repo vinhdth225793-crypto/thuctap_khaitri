@@ -34,78 +34,178 @@
     );
 @endphp
 
-<div class="container-fluid student-session-page">
-    <div class="student-session-hero mb-4">
-        <div class="student-session-hero__content">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb student-session-breadcrumb mb-3">
-                    <li class="breadcrumb-item"><a href="{{ route('hoc-vien.dashboard') }}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('hoc-vien.khoa-hoc-cua-toi') }}">Khóa học của tôi</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('hoc-vien.chi-tiet-khoa-hoc', $lichHoc->khoa_hoc_id) }}">{{ $lichHoc->khoaHoc->ten_khoa_hoc }}</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Buổi {{ $lichHoc->buoi_so ?: '#' }}</li>
-                </ol>
-            </nav>
-
-            <div class="d-flex flex-wrap gap-2 mb-3">
-                <span class="session-chip session-chip--light">{{ $lichHoc->moduleHoc->ten_module ?? 'Chưa gán module' }}</span>
-                <span class="session-chip bg-{{ $lichHoc->trang_thai_color }}">{{ $lichHoc->trang_thai_label }}</span>
-                <span class="session-chip bg-{{ $lichHoc->hinh_thuc_color }}">{{ $lichHoc->hinh_thuc_label }}</span>
+<div class="container-fluid admin-page-x sshv-page student-session-page">
+    {{-- Welcome banner xanh dương --}}
+    <div class="apx-welcome sshv-welcome">
+        <div class="apx-welcome-icon"><i class="fas fa-calendar-day"></i></div>
+        <div class="apx-welcome-text">
+            <div class="sshv-tag-row">
+                <span class="sshv-loai-badge"><i class="fas fa-list-check"></i> BUỔI {{ $lichHoc->buoi_so ?: '#' }}</span>
+                <span class="sshv-status-pill bg-{{ $lichHoc->trang_thai_color }}">
+                    <i class="fas fa-circle"></i> {{ $lichHoc->trang_thai_label }}
+                </span>
+                <span class="sshv-status-pill bg-{{ $lichHoc->hinh_thuc_color }}">
+                    <i class="fas {{ $lichHoc->hinh_thuc === 'online' ? 'fa-video' : 'fa-chalkboard' }}"></i>
+                    {{ $lichHoc->hinh_thuc_label }}
+                </span>
+                <span class="sshv-status-badge"><i class="fas fa-cube"></i> {{ $lichHoc->moduleHoc->ten_module ?? 'Chưa gán module' }}</span>
             </div>
-
-            <div class="row g-4 align-items-end">
-                <div class="col-lg-8">
-                    <div class="student-session-eyebrow">Buổi {{ $lichHoc->buoi_so ?: '#' }} trong lộ trình</div>
-                    <h1 class="student-session-title">{{ $sessionTopic }}</h1>
-                    <p class="student-session-summary">{{ \Illuminate\Support\Str::limit($sessionSummary, 180) }}</p>
-                    <div class="student-session-meta">
-                        <span><i class="fas fa-calendar-alt me-2"></i>{{ $scheduleTimeLabel }}</span>
-                        <span><i class="fas fa-chalkboard-teacher me-2"></i>{{ $lichHoc->giangVien?->nguoiDung?->ho_ten ?? 'Chưa phân công giảng viên' }}</span>
-                    </div>
-                </div>
-                <div class="col-lg-4">
-                    <div class="student-session-focus-card">
-                        <div class="small text-white-50 text-uppercase fw-bold mb-2">Tổng quan nhanh</div>
-                        <div class="student-session-focus-grid">
-                            <div>
-                                <strong>{{ $relatedLectures->count() }}</strong>
-                                <span>Bài giảng</span>
-                            </div>
-                            <div>
-                                <strong>{{ $lichHoc->taiNguyen->count() }}</strong>
-                                <span>Tài nguyên</span>
-                            </div>
-                            <div>
-                                <strong>{{ $relatedExams->count() }}</strong>
-                                <span>Kiểm tra</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <h4>{{ $sessionTopic }}</h4>
+            <p>
+                <span><i class="fas fa-calendar-alt"></i> {{ $scheduleTimeLabel }}</span>
+                <span class="sshv-sep">·</span>
+                <span><i class="fas fa-chalkboard-teacher"></i> {{ $lichHoc->giangVien?->nguoiDung?->ho_ten ?? 'Chưa phân công GV' }}</span>
+                <span class="sshv-sep">·</span>
+                <span><i class="fas fa-graduation-cap"></i> {{ $lichHoc->khoaHoc->ten_khoa_hoc }}</span>
+            </p>
         </div>
-    </div>
-
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
-        <a href="{{ route('hoc-vien.chi-tiet-khoa-hoc', $lichHoc->khoa_hoc_id) }}#lich-hoc" class="btn btn-outline-primary fw-bold">
-            <i class="fas fa-arrow-left me-2"></i>Về lịch học
-        </a>
-        <div class="d-flex flex-wrap gap-2">
+        <div class="apx-welcome-cta">
+            <a href="{{ route('hoc-vien.chi-tiet-khoa-hoc', $lichHoc->khoa_hoc_id) }}#lich-hoc" class="apx-view-toggle">
+                <i class="fas fa-arrow-left"></i> <span>Về lịch học</span>
+            </a>
             @if($liveRoomUrl)
-                <a href="{{ $liveRoomUrl }}" class="btn btn-outline-primary fw-bold">
-                    <i class="fas fa-video me-2"></i>Xem live room
+                <a href="{{ $liveRoomUrl }}" class="apx-view-toggle">
+                    <i class="fas fa-video"></i> <span>Xem live room</span>
                 </a>
             @endif
             @if($canOpenExternalOnlineUrl)
-                <a href="{{ $externalOnlineUrl }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary fw-bold">
-                    <i class="fas fa-external-link-alt me-2"></i>Mở {{ $onlinePlatformLabel }}
+                <a href="{{ $externalOnlineUrl }}" target="_blank" rel="noopener noreferrer" class="btn btn-light text-primary fw-bold shadow-sm sshv-launch-btn">
+                    <i class="fas fa-external-link-alt me-1"></i> Mở {{ $onlinePlatformLabel }}
                 </a>
-            @elseif($externalOnlineUrl && $isSessionEnded)
-                <button type="button" class="btn btn-danger fw-bold" disabled>
-                    <i class="fas fa-lock me-2"></i>{{ $onlinePlatformLabel }} đã kết thúc
-                </button>
             @endif
         </div>
     </div>
+
+    {{-- Breadcrumb đỏ --}}
+    <nav aria-label="breadcrumb" class="sshv-breadcrumb mb-3">
+        <ol class="breadcrumb mb-0 small">
+            <li class="breadcrumb-item"><a href="{{ route('hoc-vien.dashboard') }}"><i class="fas fa-home me-1"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('hoc-vien.khoa-hoc-cua-toi') }}">Khóa học của tôi</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('hoc-vien.chi-tiet-khoa-hoc', $lichHoc->khoa_hoc_id) }}">{{ $lichHoc->khoaHoc->ten_khoa_hoc }}</a></li>
+            <li class="breadcrumb-item active">Buổi {{ $lichHoc->buoi_so ?: '#' }}</li>
+        </ol>
+    </nav>
+
+    @include('components.alert')
+
+    {{-- ======= Banner "Buổi học đã kết thúc" ======= --}}
+    @if($isSessionEnded)
+        @php
+            $myAttendance = auth()->user()?->ma_nguoi_dung
+                ? \App\Models\DiemDanh::where('lich_hoc_id', $lichHoc->id)
+                    ->where('hoc_vien_id', auth()->user()->ma_nguoi_dung)
+                    ->first()
+                : null;
+            $attMap = [
+                'co_mat'   => ['label' => 'Có mặt',   'icon' => 'fa-circle-check', 'color' => '#10b981'],
+                'vao_tre'  => ['label' => 'Vào trễ',  'icon' => 'fa-clock',         'color' => '#f59e0b'],
+                'vang_mat' => ['label' => 'Vắng mặt', 'icon' => 'fa-circle-xmark',  'color' => '#ef4444'],
+                'co_phep'  => ['label' => 'Có phép',  'icon' => 'fa-circle-info',   'color' => '#0ea5e9'],
+            ];
+            $myAtt = $myAttendance ? ($attMap[$myAttendance->trang_thai] ?? null) : null;
+            $endedAtSession = $lichHoc->ends_at;
+        @endphp
+        <div class="session-ended-banner">
+            <div class="session-ended-banner__icon">
+                <i class="fas fa-flag-checkered"></i>
+            </div>
+            <div class="session-ended-banner__main">
+                <div class="session-ended-banner__title">Buổi học đã kết thúc</div>
+                <div class="session-ended-banner__msg">
+                    Buổi {{ $lichHoc->buoi_so ?: '#' }}
+                    @if($endedAtSession)
+                        đã kết thúc lúc <strong>{{ $endedAtSession->format('H:i · d/m/Y') }}</strong>.
+                    @else
+                        đã hoàn tất.
+                    @endif
+                    Bạn có thể xem lại bản ghi (nếu có), tài liệu và bài tập của buổi này.
+                </div>
+                @if($myAtt)
+                    <div class="session-ended-banner__att">
+                        Trạng thái điểm danh của bạn:
+                        <span class="session-ended-banner__pill" style="background: {{ $myAtt['color'] }};">
+                            <i class="fas {{ $myAtt['icon'] }}"></i> {{ $myAtt['label'] }}
+                        </span>
+                    </div>
+                @elseif(auth()->user()?->ma_nguoi_dung)
+                    <div class="session-ended-banner__att">
+                        <i class="fas fa-circle-question"></i> Giảng viên chưa cập nhật điểm danh cho bạn ở buổi này.
+                    </div>
+                @endif
+            </div>
+        </div>
+    @endif
+
+    {{-- Quick stats --}}
+    <div class="row g-3 mb-3">
+        <div class="col-md-3 col-6">
+            <div class="apx-stat tone-primary">
+                <div class="aps-icon"><i class="fas fa-chalkboard"></i></div>
+                <div class="aps-text"><strong>{{ $relatedLectures->count() }}</strong><small>Bài giảng</small></div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="apx-stat tone-success">
+                <div class="aps-icon"><i class="fas fa-folder-open"></i></div>
+                <div class="aps-text"><strong>{{ $lichHoc->taiNguyen->count() }}</strong><small>Tài nguyên</small></div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="apx-stat tone-warning">
+                <div class="aps-icon"><i class="fas fa-clipboard-check"></i></div>
+                <div class="aps-text"><strong>{{ $relatedExams->count() }}</strong><small>Bài kiểm tra</small></div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="apx-stat tone-info">
+                <div class="aps-icon"><i class="fas fa-clock"></i></div>
+                <div class="aps-text">
+                    <strong>{{ substr((string) $lichHoc->gio_bat_dau, 0, 5) ?: '--:--' }}</strong>
+                    <small>{{ $lichHoc->ngay_hoc?->format('d/m') ?? '—' }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Session shell — đồng bộ style với trang giảng viên --}}
+    <div class="session-block sshv-session">
+        <div class="session-shell shadow-sm border-0 rounded-4 overflow-hidden">
+            <div class="session-shell__header bg-white py-3 px-4 border-bottom">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="session-shell__number" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color:#fff; border:0;">
+                            {{ $lichHoc->buoi_so ?: '#' }}
+                        </div>
+                        <div>
+                            <h6 class="session-shell__title fw-bold mb-0 text-dark">
+                                Buổi {{ $lichHoc->buoi_so ?: '#' }}: {{ $lichHoc->ngay_hoc?->format('d/m/Y') ?? '—' }}
+                                @if($lichHoc->ngay_hoc)
+                                    <span class="text-muted fw-normal">({{ $lichHoc->ngay_hoc->isoFormat('dddd') }})</span>
+                                @endif
+                            </h6>
+                            <div class="smaller text-muted d-flex align-items-center gap-2 mt-1 flex-wrap">
+                                <span><i class="far fa-clock me-1 text-danger"></i>{{ substr((string) $lichHoc->gio_bat_dau, 0, 5) ?: '--:--' }}{{ $lichHoc->gio_ket_thuc ? ' - ' . substr((string) $lichHoc->gio_ket_thuc, 0, 5) : '' }}</span>
+                                <span class="text-silver">|</span>
+                                <span class="badge bg-{{ $lichHoc->hinh_thuc_color }}-soft text-{{ $lichHoc->hinh_thuc_color }} border-0">
+                                    <i class="fas {{ $lichHoc->hinh_thuc === 'online' ? 'fa-video' : 'fa-chalkboard' }} me-1"></i>{{ $lichHoc->hinh_thuc_label }}
+                                </span>
+                                <span class="text-silver">|</span>
+                                <span class="badge bg-{{ $lichHoc->trang_thai_color }}-soft text-{{ $lichHoc->trang_thai_color }} border-0">{{ $lichHoc->trang_thai_label }}</span>
+                                <span class="text-silver">|</span>
+                                <span><i class="fas fa-cube me-1 text-info"></i>{{ $lichHoc->moduleHoc->ten_module ?? 'Chưa gán module' }}</span>
+                                <span class="text-silver">|</span>
+                                <span><i class="fas fa-chalkboard-teacher me-1 text-primary"></i>{{ $lichHoc->giangVien?->nguoiDung?->ho_ten ?? 'Chưa phân công' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-light border" type="button" data-bs-toggle="collapse" data-bs-target="#sshv-body">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="sshv-body" class="collapse show">
+                <div class="session-shell__body p-3 p-lg-4 bg-white">
 
     <div class="row g-4">
         <div class="col-xl-8">
@@ -393,7 +493,11 @@
             </div>
         </div>
     </div>
-</div>
+                </div>{{-- /.session-shell__body --}}
+            </div>{{-- /#sshv-body --}}
+        </div>{{-- /.session-shell --}}
+    </div>{{-- /.session-block --}}
+</div>{{-- /.container-fluid --}}
 
 @push('styles')
 <style>
@@ -858,4 +962,218 @@
     });
 </script>
 @endpush
+
+@include('pages.admin.partials._admin-page-styles')
+
+<style>
+    /* ===== Welcome banner xanh dương ===== */
+    .sshv-welcome {
+        background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #4361ee 100%) !important;
+        box-shadow: 0 16px 36px rgba(29, 78, 216, 0.22) !important;
+    }
+    .sshv-tag-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+    .sshv-loai-badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 12px;
+        background: rgba(255,255,255,0.22);
+        border: 1px solid rgba(255,255,255,0.4);
+        backdrop-filter: blur(6px);
+        color: #fff;
+        font-size: 0.7rem; font-weight: 800;
+        letter-spacing: 1px; border-radius: 999px;
+    }
+    .sshv-status-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 10px;
+        background: rgba(255,255,255,0.14);
+        color: #fff; font-size: 0.72rem; font-weight: 700;
+        border-radius: 999px;
+    }
+    .sshv-status-pill {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 12px;
+        font-size: 0.72rem; font-weight: 800;
+        border-radius: 999px;
+        color: #fff;
+    }
+    .sshv-status-pill i { font-size: 0.6rem; }
+    .apx-welcome.sshv-welcome p {
+        display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+        font-size: 0.85rem;
+    }
+    .apx-welcome.sshv-welcome p i { color: #fef3c7; margin-right: 4px; }
+    .sshv-sep { opacity: 0.5; }
+    .sshv-launch-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0,0,0,0.18); }
+
+    /* Breadcrumb đỏ */
+    .sshv-breadcrumb {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-left: 3px solid #dc2626;
+        border-radius: 8px;
+        padding: 8px 16px;
+    }
+    .sshv-breadcrumb .breadcrumb { font-size: 0.82rem; }
+    .sshv-breadcrumb a { color: #dc2626; text-decoration: none; font-weight: 600; }
+    .sshv-breadcrumb a:hover { color: #b91c1c; text-decoration: underline; }
+    .sshv-breadcrumb .breadcrumb-item.active { color: #0f172a; font-weight: 700; }
+
+    /* Card section title polish — viền đỏ trái */
+    .sshv-page .card-body h3,
+    .sshv-page .card-body h4,
+    .sshv-page .student-session-eyebrow {
+        position: relative;
+    }
+    .sshv-page .student-session-eyebrow {
+        color: #dc2626 !important;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+    }
+    .sshv-page .card .card-header h5::before {
+        content: '';
+        display: inline-block;
+        width: 4px; height: 16px;
+        background: #dc2626;
+        margin-right: 10px;
+        vertical-align: middle;
+        border-radius: 2px;
+    }
+
+    /* Learning agenda — đổi accent sang đỏ */
+    .sshv-page .learning-agenda__item.is-primary .learning-agenda__icon {
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+        color: #fff !important;
+    }
+
+    /* ===== Session shell — copy style từ trang giảng viên ===== */
+    .sshv-session { margin-bottom: 0; }
+    .sshv-session .session-shell {
+        border-radius: 1.25rem;
+        overflow: hidden;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    }
+    .sshv-session .session-shell:hover {
+        box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.08) !important;
+    }
+    .sshv-session .session-shell__header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid #fecaca;
+        background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+    }
+    .sshv-session .session-shell__number {
+        width: 54px; height: 54px;
+        border-radius: 16px;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 800;
+        font-size: 1.25rem;
+        box-shadow: 0 6px 16px rgba(220, 38, 38, 0.25);
+    }
+    .sshv-session .session-shell__title {
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: #1e293b;
+        letter-spacing: -0.02em;
+    }
+    .sshv-session .session-shell__body {
+        background-color: #fff;
+    }
+    .sshv-session .text-silver { color: #cbd5e1; }
+
+    /* Soft badges (giống teacher) */
+    .sshv-session .bg-primary-soft   { background-color: rgba(13, 110, 253, 0.1); }
+    .sshv-session .bg-success-soft   { background-color: rgba(25, 135, 84, 0.1); }
+    .sshv-session .bg-info-soft      { background-color: rgba(13, 202, 240, 0.1); }
+    .sshv-session .bg-warning-soft   { background-color: rgba(255, 193, 7, 0.12); }
+    .sshv-session .bg-danger-soft    { background-color: rgba(220, 53, 69, 0.1); }
+    .sshv-session .bg-secondary-soft { background-color: rgba(108, 117, 125, 0.1); }
+
+    /* Internal cards inside body — slim corners + light tone match */
+    .sshv-session .session-shell__body .card {
+        border-radius: 1rem;
+        border: 1px solid #f1f5f9;
+        background: #fbfcfd;
+        transition: all 0.25s ease;
+    }
+    .sshv-session .session-shell__body .card:hover {
+        background: #fff;
+        border-color: #e2e8f0;
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+    }
+    .sshv-session .session-shell__body .card-header {
+        background: transparent !important;
+        border-bottom: 1px dashed #fecaca !important;
+    }
+
+    @media (max-width: 720px) {
+        .sshv-session .session-shell__header { padding: 1rem 1.25rem; }
+        .sshv-session .session-shell__body { padding: 1rem !important; }
+        .sshv-session .session-shell__number { width: 44px; height: 44px; font-size: 1.05rem; }
+    }
+
+    /* ===== Banner "Buổi học đã kết thúc" ===== */
+    .session-ended-banner {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px 20px;
+        margin: 0 0 16px;
+        background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+        border: 1px solid #cbd5e1;
+        border-left: 5px solid #475569;
+        border-radius: 14px;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+    }
+    .session-ended-banner__icon {
+        flex-shrink: 0;
+        width: 56px; height: 56px;
+        background: #fff;
+        border: 2px solid #cbd5e1;
+        border-radius: 14px;
+        display: grid; place-items: center;
+        font-size: 1.7rem;
+        color: #475569;
+    }
+    .session-ended-banner__main { flex: 1; min-width: 0; }
+    .session-ended-banner__title {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 4px;
+    }
+    .session-ended-banner__msg {
+        font-size: 0.86rem;
+        color: #475569;
+        line-height: 1.5;
+    }
+    .session-ended-banner__msg strong { color: #1e293b; font-weight: 800; }
+    .session-ended-banner__att {
+        margin-top: 10px;
+        font-size: 0.84rem;
+        color: #475569;
+        font-weight: 600;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+    }
+    .session-ended-banner__pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 12px;
+        font-size: 0.78rem;
+        font-weight: 800;
+        color: #fff;
+        border-radius: 999px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    .session-ended-banner__pill i { font-size: 0.7rem; }
+
+    @media (max-width: 720px) {
+        .session-ended-banner { flex-direction: column; align-items: flex-start; }
+    }
+</style>
 @endsection

@@ -172,9 +172,101 @@
     }
 
     .qcard-header {
-        padding: 1.25rem;
+        padding: 1.25rem 1.25rem 1.25rem 3.25rem;
         border-bottom: 1px dashed var(--qbank-border);
         background: rgba(248, 250, 252, 0.5);
+    }
+
+    /* ===== Bulk select admin ===== */
+    .qbank-card-check {
+        position: absolute;
+        top: 14px; left: 14px;
+        z-index: 5;
+        cursor: pointer;
+        margin: 0;
+    }
+    .qbank-card-check input { display: none; }
+    .qbank-card-check span {
+        display: block;
+        width: 22px; height: 22px;
+        background: #fff;
+        border: 2px solid #cbd5e1;
+        border-radius: 6px;
+        position: relative;
+        transition: all 0.18s ease;
+    }
+    .qbank-card-check input:checked + span {
+        background: #10b981;
+        border-color: #10b981;
+    }
+    .qbank-card-check input:checked + span::after {
+        content: '✓';
+        position: absolute;
+        top: -3px; left: 3px;
+        color: #fff;
+        font-weight: 800;
+        font-size: 1rem;
+    }
+    .question-item-card:has(.qbank-card-checkbox:checked) {
+        border-color: #10b981 !important;
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2), 0 8px 22px rgba(16, 185, 129, 0.18) !important;
+    }
+
+    .qbank-bulk-toolbar {
+        position: sticky;
+        top: 8px;
+        z-index: 100;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 16px;
+        margin-bottom: 14px;
+        background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(29, 78, 216, 0.32);
+        color: #fff;
+    }
+    .qbank-bulk-toolbar.d-none { display: none !important; }
+    .qbank-bulk-toolbar__main {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex: 1;
+    }
+    .qbank-bulk-toolbar__count {
+        font-size: 0.92rem;
+        font-weight: 700;
+    }
+    .qbank-bulk-toolbar__count strong {
+        background: #fff;
+        color: #1d4ed8;
+        padding: 2px 10px;
+        border-radius: 999px;
+        margin: 0 4px;
+    }
+    .qbank-bulk-toolbar__select-all {
+        background: rgba(255, 255, 255, 0.18);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        color: #fff;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    .qbank-bulk-toolbar__select-all:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+    .qbank-bulk-toolbar__actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .qbank-bulk-toolbar__sep {
+        opacity: 0.4;
+        margin: 0 4px;
     }
 
     .qcard-body {
@@ -520,6 +612,14 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div style="min-width: 170px;">
+                            <label class="form-label">Phạm vi</label>
+                            <select name="pham_vi" class="form-select">
+                                <option value="">Tất cả</option>
+                                <option value="cong_bo" @selected(request('pham_vi') === 'cong_bo')>🌐 Đã công bố</option>
+                                <option value="rieng_tu" @selected(request('pham_vi') === 'rieng_tu')>🔒 Riêng tư</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="d-flex gap-2">
                         <a href="{{ route('admin.kiem-tra-online.cau-hoi.index', ['view_mode' => $viewMode]) }}" class="btn btn-light border px-4">
@@ -545,6 +645,42 @@
             @endif
         </div>
     </div>
+
+    <!-- Bulk action toolbar (admin) — chỉ ở detail mode -->
+    @if($viewMode === 'detail' && !empty($cauHois) && method_exists($cauHois, 'isNotEmpty') && $cauHois->isNotEmpty())
+        <form id="qbank-bulk-form" action="{{ route('admin.kiem-tra-online.cau-hoi.bulk-toggle-public') }}" method="POST" class="qbank-bulk-toolbar d-none">
+            @csrf
+            {{-- Truyền lại filter hiện tại để bulk theo scope=filtered nếu cần --}}
+            @foreach(request()->only(['khoa_hoc_id', 'module_hoc_id', 'loai_cau_hoi', 'muc_do', 'trang_thai', 'pham_vi', 'search']) as $key => $value)
+                <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+            @endforeach
+            <div class="qbank-bulk-toolbar__main">
+                <span class="qbank-bulk-toolbar__count">
+                    <i class="fas fa-check-square"></i>
+                    Đã chọn <strong id="qbank-bulk-count">0</strong> câu
+                </span>
+                <button type="button" class="qbank-bulk-toolbar__select-all" id="qbank-select-all">
+                    Chọn tất cả trong trang
+                </button>
+            </div>
+            <div class="qbank-bulk-toolbar__actions">
+                <button type="submit" name="action" value="publish" class="btn btn-sm btn-light fw-bold text-success" onclick="return confirm('Công bố các câu hỏi đã chọn cho mọi giảng viên?')">
+                    <i class="fas fa-globe-asia me-1"></i> Công bố đã chọn
+                </button>
+                <button type="submit" name="action" value="unpublish" class="btn btn-sm btn-outline-light fw-bold" onclick="return confirm('Thu hồi công bố các câu hỏi đã chọn?')">
+                    <i class="fas fa-lock me-1"></i> Thu hồi
+                </button>
+                <span class="qbank-bulk-toolbar__sep">|</span>
+                <button type="submit" name="action" value="publish" formnovalidate onclick="this.form.querySelector('input[name=scope]').value='filtered'; return confirm('Công bố TẤT CẢ câu hỏi khớp bộ lọc hiện tại (kể cả trang khác)?')" class="btn btn-sm btn-warning fw-bold">
+                    <i class="fas fa-bolt me-1"></i> Công bố toàn bộ kết quả lọc
+                </button>
+                <input type="hidden" name="scope" value="ids">
+                <button type="button" class="btn btn-sm btn-link text-white text-decoration-none" id="qbank-bulk-clear">
+                    Bỏ chọn
+                </button>
+            </div>
+        </form>
+    @endif
 
     <!-- Content Area -->
     @if($viewMode === 'compact')
@@ -621,7 +757,11 @@
         <div class="row g-4">
             @forelse($cauHois as $index => $item)
                 <div class="col-12 col-xl-6">
-                    <div class="question-item-card">
+                    <div class="question-item-card position-relative">
+                        <label class="qbank-card-check">
+                            <input type="checkbox" class="qbank-card-checkbox" form="qbank-bulk-form" name="ids[]" value="{{ $item->id }}">
+                            <span></span>
+                        </label>
                         <div class="qcard-header d-flex justify-content-between align-items-center">
                             <div class="d-flex align-items-center gap-2">
                                 <span class="qcard-code">{{ $item->ma_cau_hoi }}</span>
@@ -631,7 +771,18 @@
                                     {{ $item->muc_do_label }}
                                 </span>
                             </div>
-                            <span class="badge bg-{{ $item->trang_thai_color }} rounded-pill px-3">{{ $item->trang_thai_label }}</span>
+                            <div class="d-flex align-items-center gap-2">
+                                @if($item->is_cong_bo)
+                                    <span class="badge bg-success rounded-pill px-3" title="Tất cả giảng viên đều thấy & dùng được">
+                                        <i class="fas fa-globe-asia me-1"></i> Đã công bố
+                                    </span>
+                                @else
+                                    <span class="badge bg-secondary rounded-pill px-3" title="Chỉ người tạo + admin thấy">
+                                        <i class="fas fa-lock me-1"></i> Riêng tư
+                                    </span>
+                                @endif
+                                <span class="badge bg-{{ $item->trang_thai_color }} rounded-pill px-3">{{ $item->trang_thai_label }}</span>
+                            </div>
                         </div>
                         <div class="qcard-body">
                             <div class="qcard-content">
@@ -662,15 +813,28 @@
                                 <span title="Ngày tạo"><i class="fas fa-clock me-1"></i> {{ $item->created_at->format('d/m/Y') }}</span>
                             </div>
                         </div>
-                        <div class="qcard-footer d-flex justify-content-between align-items-center">
-                            <div>
+                        <div class="qcard-footer d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div class="d-flex flex-column">
                                 @if($item->co_the_tai_su_dung)
                                     <span class="text-success fw-bold small"><i class="fas fa-recycle me-1"></i> Có thể tái sử dụng</span>
                                 @else
                                     <span class="text-muted small"><i class="fas fa-lock me-1"></i> Dùng 1 lần</span>
                                 @endif
+                                @if($item->is_cong_bo && $item->cong_bo_luc)
+                                    <span class="text-muted small">
+                                        <i class="fas fa-globe-asia text-success me-1"></i>
+                                        Công bố {{ $item->cong_bo_luc->format('d/m/Y') }}
+                                    </span>
+                                @endif
                             </div>
-                            <div class="d-flex gap-2">
+                            <div class="d-flex flex-wrap gap-2">
+                                <form action="{{ route('admin.kiem-tra-online.cau-hoi.toggle-public', $item->id) }}" method="POST" class="d-inline" onsubmit="return confirm('{{ $item->is_cong_bo ? 'Thu hồi công bố? Câu hỏi sẽ trở về riêng tư.' : 'Công bố cho mọi giảng viên cùng dùng?' }}')">
+                                    @csrf @method('PATCH')
+                                    <button type="submit" class="btn btn-sm rounded-pill px-3 fw-bold {{ $item->is_cong_bo ? 'btn-success' : 'btn-outline-success' }}" title="{{ $item->is_cong_bo ? 'Thu hồi công bố' : 'Công bố cho mọi GV dùng' }}">
+                                        <i class="fas fa-{{ $item->is_cong_bo ? 'globe-asia' : 'share' }} me-1"></i>
+                                        {{ $item->is_cong_bo ? 'Đã công bố' : 'Công bố' }}
+                                    </button>
+                                </form>
                                 <a href="{{ route('admin.kiem-tra-online.cau-hoi.edit', $item->id) }}" class="btn btn-sm btn-outline-primary px-3 rounded-pill">
                                     <i class="fas fa-edit me-1"></i> Sửa
                                 </a>
@@ -883,6 +1047,41 @@
                 window.bootstrap.Modal.getOrCreateInstance(importModalElement).show();
             }
         @endif
+
+        // ============= Admin bulk select toolbar =============
+        const qbankToolbar = document.getElementById('qbank-bulk-form');
+        const qbankCounter = document.getElementById('qbank-bulk-count');
+        const qbankSelectAll = document.getElementById('qbank-select-all');
+        const qbankClear = document.getElementById('qbank-bulk-clear');
+
+        if (qbankToolbar && qbankCounter) {
+            const checkboxes = document.querySelectorAll('.qbank-card-checkbox');
+
+            function refreshBulk() {
+                const checked = document.querySelectorAll('.qbank-card-checkbox:checked');
+                qbankCounter.textContent = checked.length;
+                qbankToolbar.classList.toggle('d-none', checked.length === 0);
+            }
+
+            checkboxes.forEach(cb => cb.addEventListener('change', refreshBulk));
+
+            if (qbankSelectAll) {
+                qbankSelectAll.addEventListener('click', function () {
+                    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+                    checkboxes.forEach(cb => { cb.checked = !allChecked; });
+                    refreshBulk();
+                });
+            }
+
+            if (qbankClear) {
+                qbankClear.addEventListener('click', function () {
+                    checkboxes.forEach(cb => cb.checked = false);
+                    refreshBulk();
+                });
+            }
+
+            refreshBulk();
+        }
     });
 </script>
 @endpush

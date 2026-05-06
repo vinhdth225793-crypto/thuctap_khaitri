@@ -122,9 +122,11 @@
                                 <span class="kh-label">Tổng module</span>
                                 <strong>{{ $khoaHoc->tong_so_module }} bài</strong>
                             </div>
+                            @php $sesProg = $khoaHoc->session_progress_snapshot; @endphp
                             <div class="kh-info-stat">
                                 <span class="kh-label">Tiến độ học tập</span>
-                                <strong class="text-primary">{{ $khoaHoc->tien_do_hoc_tap }}%</strong>
+                                <strong class="text-primary">{{ $sesProg['percent'] }}%</strong>
+                                <small class="text-muted d-block" style="font-size: 0.7rem;">{{ $sesProg['completed'] }}/{{ $sesProg['total'] }} buổi đã xong</small>
                             </div>
                             <div class="kh-info-stat">
                                 <span class="kh-label">Module hoàn thành</span>
@@ -643,7 +645,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.addEventListener('click', function() {
             const moduleId = this.dataset.moduleId;
             moduleNamePC.textContent = this.dataset.moduleName;
-            formPC.action = `/admin/module-hoc/${moduleId}/assign`;
+            formPC.action = `{{ url('admin/module-hoc') }}/${moduleId}/assign`;
             modalPC.show();
         });
     });
@@ -658,7 +660,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const pcId = this.dataset.pcId;
             moduleNameRep.textContent = this.dataset.moduleName;
             currentGVRep.textContent = this.dataset.currentGv;
-            formRep.action = `/admin/phan-cong/${pcId}/replace`;
+            formRep.action = `{{ url('admin/phan-cong') }}/${pcId}/replace`;
             modalRep.show();
         });
     });
@@ -683,6 +685,23 @@ document.addEventListener('DOMContentLoaded', function() {
 @include('pages.admin.partials._admin-page-styles')
 
 <style>
+    /* ===== Override màu đề mục: đỏ ===== */
+    .kh-detail-page .apx-section-head {
+        background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+        border-color: #fecaca;
+        border-left-color: #dc2626;
+    }
+    .kh-detail-page .apx-section-num {
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+    }
+    .kh-detail-page .apx-section-title h2 i { color: #dc2626; }
+    .kh-detail-page .apx-meta-pill {
+        border-color: #fecaca;
+        color: #dc2626;
+    }
+    .kh-detail-page .apx-meta-pill strong { color: #b91c1c; }
+
     /* ===== Welcome banner — variant cho khóa hoạt động vs mẫu ===== */
     .kh-welcome.is-mau {
         background: linear-gradient(135deg, #4361ee 0%, #1d4ed8 52%, #1e40af 100%) !important;

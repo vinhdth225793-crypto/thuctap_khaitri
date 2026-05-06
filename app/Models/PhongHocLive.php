@@ -18,6 +18,8 @@ class PhongHocLive extends Model
 
     public const PLATFORM_GOOGLE_MEET = 'google_meet';
 
+    public const PLATFORM_JITSI = 'jitsi';
+
     public const TYPE_MEETING = 'meeting';
 
     public const TYPE_CLASS = 'class';

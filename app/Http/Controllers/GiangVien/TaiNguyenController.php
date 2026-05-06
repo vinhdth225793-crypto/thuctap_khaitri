@@ -7,6 +7,7 @@ use App\Http\Requests\StoreTaiNguyenRequest;
 use App\Models\LichHoc;
 use App\Models\PhanCongModuleGiangVien;
 use App\Models\TaiNguyenBuoiHoc;
+use App\Services\StudentResourcePreviewService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -354,6 +355,31 @@ class TaiNguyenController extends Controller
         $taiNguyen->delete();
 
         return back()->with('success', 'Đã xóa tài nguyên buổi học thành công.');
+    }
+
+    public function preview(int $id)
+    {
+        $resource = TaiNguyenBuoiHoc::with('lichHoc')->findOrFail($id);
+
+        $giangVien = auth()->user()?->giangVien;
+        abort_if(! $giangVien, 403, 'Tài khoản chưa được liên kết với giảng viên.');
+
+        $isOwner = (int) $resource->nguoi_tao_id === (int) auth()->user()->id;
+        $isAssigned = $resource->lichHoc
+            ? PhanCongModuleGiangVien::query()
+                ->where('module_hoc_id', $resource->lichHoc->module_hoc_id)
+                ->where('giang_vien_id', $giangVien->id)
+                ->exists()
+            : false;
+
+        abort_unless($isOwner || $isAssigned, 403, 'Bạn không có quyền xem tài nguyên này.');
+
+        $preview = app(StudentResourcePreviewService::class)->build($resource);
+
+        return response()->view('pages.hoc-vien.buoi-hoc.resource-preview', [
+            'resource' => $resource,
+            'preview' => $preview,
+        ]);
     }
 
     private function authorizeGiangVienForLichHoc(LichHoc $lichHoc): void
